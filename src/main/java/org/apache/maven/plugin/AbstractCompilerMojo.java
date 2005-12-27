@@ -299,11 +299,18 @@ public abstract class AbstractCompilerMojo
             {
                 Map.Entry me = (Map.Entry) i.next();
                 String key = (String) me.getKey();
+                String value = (String) me.getValue();
                 if ( !key.startsWith( "-" ))
                 {
                     key = "-" + key;
                 }
-                cplrArgsCopy.put( key, me.getValue() );
+                /* handle Xlint like parameters */
+                if ( value.startsWith( ":" ))
+                {
+                    key += value;
+                    value = null;
+                }
+                cplrArgsCopy.put( key, value );
             }
             compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
         }
