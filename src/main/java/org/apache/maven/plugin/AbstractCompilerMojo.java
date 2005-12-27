@@ -166,14 +166,30 @@ public abstract class AbstractCompilerMojo
     private String executable;
 
     /**
-     * Arguments to be passed to the compiler if fork is set to true.
-     * <p/>
+     * <p>
+     * Arguments to be passed to the compiler (prepending a dash) if fork is set to true.
+     * </p>
+     * <p>
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
+     * </p>
      *
      * @parameter
      */
     private Map compilerArguments;
+
+    /**
+     * <p>
+     * Unformatted argument string to be passed to the compiler if fork is set to true.
+     * </p>
+     * <p>
+     * This is because the list of valid arguments passed to a Java compiler
+     * varies based on the compiler version.
+     * </p>
+     *
+     * @parameter
+     */
+    private String compilerArgument;
 
     /**
      * Used to control the name of the output file when compiling a set of
@@ -292,25 +308,26 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setSourceEncoding( encoding );
 
-        if ( compilerArguments != null )
+        if (( compilerArguments != null ) || ( compilerArgument != null ))
         {
             LinkedHashMap cplrArgsCopy = new LinkedHashMap();
-            for ( Iterator i = compilerArguments.entrySet().iterator(); i.hasNext(); )
+            if ( compilerArguments != null )
             {
-                Map.Entry me = (Map.Entry) i.next();
-                String key = (String) me.getKey();
-                String value = (String) me.getValue();
-                if ( !key.startsWith( "-" ))
+                for ( Iterator i = compilerArguments.entrySet().iterator(); i.hasNext(); )
                 {
-                    key = "-" + key;
+                    Map.Entry me = (Map.Entry) i.next();
+                    String key = (String) me.getKey();
+                    String value = (String) me.getValue();
+                    if ( !key.startsWith( "-" ))
+                    {
+                        key = "-" + key;
+                    }
+                    cplrArgsCopy.put( key, value );
                 }
-                /* handle Xlint like parameters */
-                if ( value.startsWith( ":" ))
-                {
-                    key += value;
-                    value = null;
-                }
-                cplrArgsCopy.put( key, value );
+            }
+            if ( !StringUtils.isEmpty( compilerArgument) )
+            {
+                cplrArgsCopy.put( compilerArgument, null );
             }
             compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
         }
