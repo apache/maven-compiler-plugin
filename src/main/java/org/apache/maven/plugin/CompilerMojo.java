@@ -147,7 +147,7 @@ public class CompilerMojo
             {
                 includes.add( "**/*." + inputFileEnding );
             }
-            scanner = new SimpleSourceInclusionScanner( excludes, excludes );
+            scanner = new SimpleSourceInclusionScanner( includes, excludes );
         }
 
         return scanner;
