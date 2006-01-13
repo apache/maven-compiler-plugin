@@ -67,49 +67,49 @@ public abstract class AbstractCompilerMojo
     /**
      * Whether to output messages about what the compiler is doing
      *
-     * @parameter default-value="false"
+     * @parameter expression="${maven.compiler.verbose}" default-value="false"
      */
     private boolean verbose;
 
     /**
      * Output source locations where deprecated APIs are used
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.showDeprecation}"
      */
     private boolean showDeprecation;
 
     /**
      * Optimize compiled code using the compiler's optimization methods
      *
-     * @parameter default-value="false"
+     * @parameter expression="${maven.compiler.optimize}" default-value="false"
      */
     private boolean optimize;
 
     /**
      * Output warnings
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.showWarnings}"
      */
     private boolean showWarnings;
 
     /**
      * The -source argument for the Java compiler
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.source}"
      */
     private String source;
 
     /**
      * The -target argument for the Java compiler
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.target}"
      */
     private String target;
 
     /**
      * The -encoding argument for the Java compiler
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.encoding}"
      */
     private String encoding;
 
@@ -124,14 +124,14 @@ public abstract class AbstractCompilerMojo
     /**
      * The compiler id of the compiler to use.
      *
-     * @parameter default-value="javac"
+     * @parameter expression="${maven.compiler.compilerId}" default-value="javac"
      */
     private String compilerId;
 
     /**
      * Version of the compiler to use, ex. "1.3", "1.5"
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.compilerVersion}"
      */
     private String compilerVersion;
 
@@ -147,21 +147,21 @@ public abstract class AbstractCompilerMojo
     /**
      * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m".
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.meminitial}"
      */
     private String meminitial;
 
     /**
      * maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m".
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.maxmem}"
      */
     private String maxmem;
 
     /**
      * The executable of the compiler to use.
      *
-     * @parameter
+     * @parameter expression="${maven.compiler.executable}"
      */
     private String executable;
 
