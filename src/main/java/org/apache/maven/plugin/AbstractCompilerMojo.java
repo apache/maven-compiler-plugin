@@ -74,7 +74,7 @@ public abstract class AbstractCompilerMojo
     /**
      * Output source locations where deprecated APIs are used
      *
-     * @parameter expression="${maven.compiler.showDeprecation}"
+     * @parameter expression="${maven.compiler.showDeprecation}" default-value="false"
      */
     private boolean showDeprecation;
 
@@ -88,7 +88,7 @@ public abstract class AbstractCompilerMojo
     /**
      * Output warnings
      *
-     * @parameter expression="${maven.compiler.showWarnings}"
+     * @parameter expression="${maven.compiler.showWarnings}" default-value="false"
      */
     private boolean showWarnings;
 
