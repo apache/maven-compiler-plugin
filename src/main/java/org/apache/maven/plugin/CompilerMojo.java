@@ -28,12 +28,13 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * Compiles application sources
+ * 
  * @author <a href="mailto:jason@maven.org">Jason van Zyl </a>
  * @version $Id$
  * @goal compile
  * @phase compile
  * @requiresDependencyResolution compile
- * @description Compiles application sources
  */
 public class CompilerMojo
     extends AbstractCompilerMojo

@@ -27,11 +27,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * Compiles application test sources
+ * 
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
  * @goal testCompile
  * @phase test-compile
- * @description Compiles test sources
  * @requiresDependencyResolution test
  */
 public class TestCompilerMojo
