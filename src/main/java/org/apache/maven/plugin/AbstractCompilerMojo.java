@@ -129,37 +129,38 @@ public abstract class AbstractCompilerMojo
     private String compilerId;
 
     /**
-     * Version of the compiler to use, ex. "1.3", "1.5"
+     * Version of the compiler to use, ex. "1.3", "1.5", if fork is set to true
      *
      * @parameter expression="${maven.compiler.compilerVersion}"
      */
     private String compilerVersion;
 
     /**
-     * Runs the compiler in a separate process.
-     * <p/>
-     * If not set the compiler will default to a executable.
+     * Allows running the compiler in a separate process.
+     * If "false" it uses the built in compiler, while if "true" it will use an executable.
      *
      * @parameter default-value="false"
      */
     private boolean fork;
 
     /**
-     * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m".
+     * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m"
+     * if fork is set to true
      *
      * @parameter expression="${maven.compiler.meminitial}"
      */
     private String meminitial;
 
     /**
-     * maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m".
+     * maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m"
+     * if fork is set to true
      *
      * @parameter expression="${maven.compiler.maxmem}"
      */
     private String maxmem;
 
     /**
-     * The executable of the compiler to use.
+     * The executable of the compiler to use when fork is true.
      *
      * @parameter expression="${maven.compiler.executable}"
      */
