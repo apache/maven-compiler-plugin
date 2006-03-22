@@ -8,7 +8,9 @@
 
 Introduction
 
- This plugin is the Maven2 version of Maven1's Java Plugin.  
- 
- This plugin provides the basic Javac facilities. 
+ This plugin allows compilation of sources.
 
+ Currently Java is the supported language for compilation, although there's some work on AspectJ, .NET, C#,...
+
+ This plugin is the Maven2 version of Maven1's Java Plugin.
+ 

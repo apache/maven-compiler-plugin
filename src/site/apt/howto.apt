@@ -25,7 +25,7 @@ How to Use
                     <source>1.5</source>
                     <target>1.5</target>
                     <excludes>
-                        <exclude implementation="java.lang.String">**/*Point*.java</exclude>
+                        <exclude>**/*Point*.java</exclude>
                     </excludes>
                 </configuration>
              </plugin>
@@ -36,7 +36,3 @@ How to Use
 </project>
 -------------------
 
-  There are other parameters that you can configure like fork, includes/include, debug, showWarnings etc.
-  
-  For full documentation, click {{{index.html}here}}.
- 
