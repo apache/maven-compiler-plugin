@@ -13,7 +13,7 @@
             -->
             <!--
             <includes>
-                <includes>**/TestCompile1.java</includes>
+                <includes>**/TestCompile4.java</includes>
             </includes>
             <excludes>
               <exclude>**/TestCompile*.java</exclude>
@@ -21,7 +21,7 @@
             -->
 
           <includes>
-                <includes>**/TestCompile1.java</includes>
+                <includes>**/TestCompile4.java</includes>
           </includes>
           <excludes>
               <exclude>**/TestCompile2.java</exclude>

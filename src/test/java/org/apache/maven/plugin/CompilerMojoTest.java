@@ -17,19 +17,22 @@ package org.apache.maven.plugin;
  */
 
 
-import org.codehaus.plexus.util.FileUtils;
 import org.apache.maven.plugins.testing.AbstractMojoTestCase;
+import org.codehaus.plexus.util.FileUtils;
 
 import java.io.File;
 
 public class CompilerMojoTest
     extends AbstractMojoTestCase
 {
-    protected void setUp() throws Exception {
+    protected void setUp()
+        throws Exception
+    {
 
         // required for mojo lookups to work
         super.setUp();
 
+        FileUtils.deleteDirectory( new File( getBasedir(), "target/test/unit" ) );
     }
 
     /**
@@ -37,11 +40,13 @@ public class CompilerMojoTest
      *
      * @throws Exception
      */
-    public void testCompilerTestEnvironment() throws Exception {
+    public void testCompilerTestEnvironment()
+        throws Exception
+    {
 
         File testPom = new File( getBasedir(), "target/test-classes/unit/compiler-basic-test/plugin-config.xml" );
 
-        CompilerMojo mojo = (CompilerMojo) lookupMojo ("compile", testPom );
+        CompilerMojo mojo = (CompilerMojo) lookupMojo( "compile", testPom );
 
         assertNotNull( mojo );
     }
@@ -51,17 +56,20 @@ public class CompilerMojoTest
      *
      * @throws Exception
      */
-    public void testCompilerBasic() throws Exception {
-
+    public void testCompilerBasic()
+        throws Exception
+    {
         File testPom = new File( getBasedir(), "target/test-classes/unit/compiler-basic-test/plugin-config.xml" );
 
-        CompilerMojo mojo = (CompilerMojo) lookupMojo ("compile", testPom );
+        CompilerMojo mojo = (CompilerMojo) lookupMojo( "compile", testPom );
 
         assertNotNull( mojo );
 
         mojo.execute();
 
-        assertTrue( FileUtils.fileExists( "target/test/unit/compiler-basic-test/target/classes/TestCompile1.class" ) );
+        File testClass =
+            new File( getBasedir(), "target/test/unit/compiler-basic-test/target/classes/TestCompile0.class" );
+        assertTrue( FileUtils.fileExists( testClass.getAbsolutePath() ) );
     }
 
     /**
@@ -69,59 +77,77 @@ public class CompilerMojoTest
      *
      * @throws Exception
      */
-    public void testCompilerEmptySource() throws Exception {
+    public void testCompilerEmptySource()
+        throws Exception
+    {
 
-        File testPom = new File( getBasedir(), "target/test-classes/unit/compiler-empty-source-test/plugin-config.xml" );
+        File testPom =
+            new File( getBasedir(), "target/test-classes/unit/compiler-empty-source-test/plugin-config.xml" );
 
-        CompilerMojo mojo = (CompilerMojo) lookupMojo ("compile", testPom );
+        CompilerMojo mojo = (CompilerMojo) lookupMojo( "compile", testPom );
 
         assertNotNull( mojo );
 
         mojo.execute();
 
-        assertFalse( FileUtils.fileExists( "target/test/unit/compiler-empty-source-test/target/classes/TestCompile1.class" ) );
+        File testClass =
+            new File( getBasedir(), "target/test/unit/compiler-empty-source-test/target/classes/TestCompile1.class" );
+        assertFalse( FileUtils.fileExists( testClass.getAbsolutePath() ) );
     }
 
-       /**
+    /**
      * tests the ability of the plugin to respond to includes and excludes correctly
      *
      * @throws Exception
      */
-    public void testCompilerIncludesExcludes() throws Exception
+    public void testCompilerIncludesExcludes()
+        throws Exception
     {
 
-        File testPom = new File( getBasedir(), "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
+        File testPom =
+            new File( getBasedir(), "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
 
-        CompilerMojo mojo = (CompilerMojo) lookupMojo ("compile", testPom );
+        CompilerMojo mojo = (CompilerMojo) lookupMojo( "compile", testPom );
 
         assertNotNull( mojo );
 
         mojo.execute();
 
-        assertTrue( FileUtils.fileExists( "target/test/unit/compiler-includes-excludes-test/target/classes/TestCompile1.class" ) );
-        assertFalse( FileUtils.fileExists( "target/test/unit/compiler-includes-excludes-test/target/classes/TestCompile2.class" ) );
-        assertFalse( FileUtils.fileExists( "target/test/unit/compiler-includes-excludes-test/target/classes/TestCompile3.class" ) );
+        File testClass = new File( getBasedir(),
+                                   "target/test/unit/compiler-includes-excludes-test/target/classes/TestCompile4.class" );
+        assertTrue( FileUtils.fileExists( testClass.getAbsolutePath() ) );
+        File testClass2 = new File( getBasedir(),
+                                    "target/test/unit/compiler-includes-excludes-test/target/classes/TestCompile2.class" );
+        assertFalse( FileUtils.fileExists( testClass2.getAbsolutePath() ) );
+        File testClass3 = new File( getBasedir(),
+                                    "target/test/unit/compiler-includes-excludes-test/target/classes/TestCompile3.class" );
+        assertFalse( FileUtils.fileExists( testClass3.getAbsolutePath() ) );
     }
 
-       /**
+    /**
      * tests the ability of the plugin to fork and successfully compile
      *
      * @throws Exception
      */
-    public void testCompilerFork() throws Exception {
+    public void testCompilerFork()
+        throws Exception
+    {
 
         File testPom = new File( getBasedir(), "target/test-classes/unit/compiler-fork-test/plugin-config.xml" );
 
-        CompilerMojo mojo = (CompilerMojo) lookupMojo ("compile", testPom );
+        CompilerMojo mojo = (CompilerMojo) lookupMojo( "compile", testPom );
 
         assertNotNull( mojo );
 
         mojo.execute();
 
-        assertTrue( FileUtils.fileExists( "target/test/unit/compiler-fork-test/target/classes/TestCompile1.class" ) );
+        assertTrue( FileUtils.fileExists( new File( getBasedir(),
+                                                    "target/test/unit/compiler-fork-test/target/classes/TestCompile1.class" ).getAbsolutePath() ) );
     }
 
-    protected void tearDown() throws Exception {
+    protected void tearDown()
+        throws Exception
+    {
 
         //FileUtils.deleteDirectory( new File ("target/test/unit/compiler") );
 

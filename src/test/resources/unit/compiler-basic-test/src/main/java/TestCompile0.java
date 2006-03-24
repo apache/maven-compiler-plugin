@@ -1,9 +1,9 @@
 
 
-public class TestCompile1
+public class TestCompile0
 {
 
-    public TestCompile1()
+    public TestCompile0()
     {
 
         System.out.println("Woo Hoo!");
