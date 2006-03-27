@@ -14,12 +14,12 @@
           <showWarnings>true</showWarnings>
           <verbose>true</verbose>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}\target\test-classes\unit\compiler-fork-test\src\main\java</compileSourceRoot>
+            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-fork-test/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>
-          <outputDirectory>${basedir}\target\test\unit\compiler-fork-test\target\classes</outputDirectory>
-          <buildDirectory>${basedir}\target\test\unit\compiler-fork-test\target</buildDirectory>
+          <outputDirectory>${basedir}/target/test/unit/compiler-fork-test/target/classes</outputDirectory>
+          <buildDirectory>${basedir}/target/test/unit/compiler-fork-test/target</buildDirectory>
           <projectArtifact implementation="org.apache.maven.plugins.testing.stubs.StubArtifact"/>
         </configuration>
       </plugin>

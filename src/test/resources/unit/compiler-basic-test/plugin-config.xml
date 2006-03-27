@@ -5,12 +5,12 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}\target\test-classes\unit\compiler-basic-test\src\main\java</compileSourceRoot>
+            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-basic-test/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>
-          <outputDirectory>${basedir}\target\test\unit\compiler-basic-test\target\classes</outputDirectory>
-          <buildDirectory>${basedir}\target\test\unit\compiler-basic-test\target</buildDirectory>
+          <outputDirectory>${basedir}/target/test/unit/compiler-basic-test/target/classes</outputDirectory>
+          <buildDirectory>${basedir}/target/test/unit/compiler-basic-test/target</buildDirectory>
           <projectArtifact implementation="org.apache.maven.plugins.testing.stubs.StubArtifact"/>
         </configuration>
       </plugin>
