@@ -445,6 +445,12 @@ public abstract class AbstractCompilerMojo
             {
                 try
                 {
+                    if ( compilerConfiguration.getExecutable() != null )
+                    {
+                        getLog().debug( "Excutable: " );
+                        getLog().debug( " " + compilerConfiguration.getExecutable() );
+                    }
+
                     String[] cl = compiler.createCommandLine( compilerConfiguration );
                     if ( cl != null && cl.length > 0 )
                     {
