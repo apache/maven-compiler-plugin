@@ -36,3 +36,34 @@ How to Use
 </project>
 -------------------
 
+Compiling in JDKs other than the used to run Maven
+
+  You can use any JDK to compile, not only the one used to run Maven.
+
+  Note that this is different than just building with source and target options,
+  this option actaully uses a different JDK, while with sources and target you just
+  set the compatability version of the compiled classes.
+
+-------------------
+<project>
+  ...
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <fork>true</fork>
+          <compilerVersion>1.3</compilerVersion>
+          <executable>C:/Program Files/Java/jdk1.3.1_18/bin/javac</executable>
+          <!--
+          A portable way using environment variables
+          <executable>${JAVA_1_3_HOME}/bin/javac</executable>
+          -->
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  ...
+</project>
+-------------------
