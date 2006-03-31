@@ -17,7 +17,7 @@ package org.apache.maven.plugin;
  */
 
 
-import org.apache.maven.plugins.testing.AbstractMojoTestCase;
+import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.codehaus.plexus.util.FileUtils;
 
 import java.io.File;
