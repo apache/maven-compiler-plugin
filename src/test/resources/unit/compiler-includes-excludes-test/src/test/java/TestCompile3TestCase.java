@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-public class TestCompile0
+import junit.framework.TestCase;
+
+public class TestCompile3TestCase
+    extends TestCase
 {
-
-    public TestCompile0()
+    public void testCompile3()
     {
-
-        System.out.println("Woo Hoo!");
+        TestCompile3 test = new TestCompile3();
     }
-
 }

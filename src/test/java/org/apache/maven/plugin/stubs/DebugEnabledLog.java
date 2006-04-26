@@ -1,3 +1,5 @@
+package org.apache.maven.plugin.stubs;
+
 /*
  * Copyright 2001-2006 The Apache Software Foundation.
  *
@@ -14,13 +16,21 @@
  * limitations under the License.
  */
 
-public class TestCompile0
+import org.apache.maven.plugin.logging.SystemStreamLog;
+
+/**
+ * @author Edwin Punzalan
+ */
+public class DebugEnabledLog
+    extends SystemStreamLog
 {
-
-    public TestCompile0()
+    public DebugEnabledLog()
     {
-
-        System.out.println("Woo Hoo!");
+        super();
     }
 
+    public boolean isDebugEnabled()
+    {
+        return true;
+    }
 }
