@@ -1,0 +1,34 @@
+ ------
+ Maven Compiler Plugin Example
+ ------
+ Edwin Punzalan
+ ------
+ 05 July 2006
+ ------
+
+Preventing <<<OutOfMemory>>> problems during compilation
+
+  The Compiler Plugin accepts configurations for <<<meminitial>>> and
+  <<<maxmem>>>.  You can follow the example below to set the initial memory
+  size to 128MB and the maximum memory usage to 512MB:
+
++-----
+<project>
+  [...]
+  <build>
+    [...]
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <meminitial>128</meminitial>
+          <maxmem>512</maxmem>
+        </configuration>
+      </plugin>
+    </plugins>
+    [...]
+  </build>
+  [...]
+</project>
++-----

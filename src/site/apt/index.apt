@@ -1,0 +1,46 @@
+ ------
+ Maven Compiler Plugin: Overview
+ ------
+ Edwin Punzalan
+ ------
+ 06 July 2006
+ ------
+
+
+Maven Compiler Plugin
+
+  The Compiler Plugin is used to compile the sources of your project.  The
+  default compiler is <<<javac>>> and is used to compile Java sources.  Other
+  compilers can be used and work has already started on AspectJ, .NET, and C#.
+
+  This Compiler Plugin is Maven 2 version of Maven 1.x's Java Plugin.
+
+* Goals Overview
+
+  The Compiler Plugin has two goals.  Both are already bound to their proper
+  phases within the Maven Lifecycles and are therefore, automatically executed
+  during their respective phases.
+
+  * {{{compile-mojo.html}compiler:compile}} is bound to the compile phase and
+  is used to compile the main source files.
+
+  * {{{testCompile-mojo.html}compiler:testCompile}} is bound to the
+  test-compile phase and is used to compile the test source files.
+
+* How To Use
+
+  Instructions on how to use the Compiler Plugin can be found
+  {{{usage.html}here}}.
+
+* Examples
+
+  To provide you with better understanding on some usages of the Compiler
+  Plugin, you can take a look into the following examples:
+
+  * {{{examples/compile_using_different_jdk.html}Compile Using A Different JDK}}
+
+  * {{{examples/set_compiler_source_and_target.html}Compile Using -source and -target javac Options}}
+
+  * {{{examples/compile_with_memory_enhancements.html}Compile Using Memory Allocation Enhancement}}
+
+  * {{{examples/pass_compiler_arguments.html}Pass Compiler Arguments Using The Compiler Plugin}}

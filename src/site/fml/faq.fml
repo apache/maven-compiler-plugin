@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<faqs id="FAQ" title="Frequently Asked Questions">
+ <part id="General">
+   <faq id="compile-error-reports">
+     <question>Is there a way to get Maven to report the number of compile errors found?</question>
+     <answer>
+       <p>
+       Currently, this type of summary information is not built into the compiler plugin, but it
+       would be possible to add. If this feature is important to you, add your vote to
+       <a href="http://jira.codehaus.org/browse/MNG-1854">MNG-1854</a>.
+       </p>
+     </answer>
+   </faq>
+   <faq id="how-to-add-generated-sources">
+     <question>How do I add my generated sources to the compile path of Maven, when using modello?</question>
+     <answer>
+       <p>Modello generate the sources in the generate-sources phase and automatically adds the
+       source directory for compilation in maven. So you don't have to copy the generated sources.</p>
+       <p>You have to declare the modello-plugin in the build of your plugin for source generation
+       (in that way the sources are generated each time).</p>
+     </answer>
+   </faq>
+ </part>
+</faqs>

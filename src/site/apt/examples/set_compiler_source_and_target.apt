@@ -1,0 +1,38 @@
+ ------
+ Maven Compiler Plugin Example
+ ------
+ Edwin Punzalan
+ ------
+ 05 July 2006
+ ------
+
+Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
+
+  Sometimes when you may need to compile a certain project to a different
+  version than what you are currently using.  The <<<javac>>> can accept
+  such command using <<<-source>>> and <<<-target>>>.  The Compiler Plugin
+  can also be configured to provide these options during compilation.
+
+  For example, you are using JDK 1.5 and want your compiled classes to be
+  compatible with JDK 1.3, you can then put:
+
++-----
+<project>
+  [...]
+  <build>
+    [...]
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.5</source>
+          <target>1.3</target>
+        </configuration>
+      </plugin>
+    </plugins>
+    [...]
+  </build>
+  [...]
+</project>
++-----

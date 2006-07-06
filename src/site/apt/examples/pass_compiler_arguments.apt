@@ -1,0 +1,35 @@
+ ------
+ Maven Compiler Plugin Example
+ ------
+ Edwin Punzalan
+ ------
+ 05 July 2006
+ ------
+
+Passing Compiler Arguments Using the Compiler Plugin
+
+  Sometimes, you need to pass other compiler arguments that are not handled by
+  the Compiler Plugin itself but is supported by the <<<compilerId>>> selected.
+  For such arguments, the Compiler Plugin's <<<compilerArguments>>> will be
+  used.  The following example passes compiler arguments to the <<<javac>>>
+  compiler:
+
++-----
+<project>
+  [...]
+  <build>
+    [...]
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArguments>-verbose -nowarn</compilerArguments>
+        </configuration>
+      </plugin>
+    </plugins>
+    [...]
+  </build>
+  [...]
+</project>
++-----

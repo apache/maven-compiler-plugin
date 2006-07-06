@@ -33,9 +33,19 @@
     </links>
 
     <menu name="Overview">
-      <item name="Introduction" href="introduction.html"/>
-      <item name="How to Use" href="howto.html"/>
+      <item name="How to Use" href="usage.html"/>
+      <item name="FAQ" href="faq.html"/>
     </menu>
+
+    <menu name="Examples">
+      <item name="Compile Using A Different JDK" href="examples/compile_using_different_jdk.html"/>
+      <item name="Compile Using -source and -target javac Options" href="examples/set_compiler_source_and_target.html"/>
+      <item name="Compile Using Memory Allocation Enhancements" href="examples/compile_with_memory_enhancements.html"/>
+      <item name="Pass Compiler Arguments Using The Compiler Plugin" href="examples/pass_compiler_arguments.html"/>
+
+    </menu>
+
     ${reports}
+
   </body>
 </project>
