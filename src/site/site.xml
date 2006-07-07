@@ -33,7 +33,8 @@
     </links>
 
     <menu name="Overview">
-      <item name="How to Use" href="usage.html"/>
+      <item name="Introduction" href="index.html"/>
+      <item name="Usage" href="usage.html"/>
       <item name="FAQ" href="faq.html"/>
     </menu>
 
@@ -42,7 +43,6 @@
       <item name="Compile Using -source and -target javac Options" href="examples/set_compiler_source_and_target.html"/>
       <item name="Compile Using Memory Allocation Enhancements" href="examples/compile_with_memory_enhancements.html"/>
       <item name="Pass Compiler Arguments Using The Compiler Plugin" href="examples/pass_compiler_arguments.html"/>
-
     </menu>
 
     ${reports}

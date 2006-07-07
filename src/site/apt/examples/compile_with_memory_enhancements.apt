@@ -1,5 +1,5 @@
  ------
- Maven Compiler Plugin Example
+ Example
  ------
  Edwin Punzalan
  ------
@@ -22,8 +22,9 @@ Preventing <<<OutOfMemory>>> problems during compilation
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <meminitial>128</meminitial>
-          <maxmem>512</maxmem>
+          <fork>true</fork>
+          <meminitial>128m</meminitial>
+          <maxmem>512m</maxmem>
         </configuration>
       </plugin>
     </plugins>

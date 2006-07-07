@@ -1,5 +1,5 @@
  ------
- Maven Compiler Plugin Example
+ Example
  ------
  Edwin Punzalan
  ------
@@ -13,8 +13,9 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   such command using <<<-source>>> and <<<-target>>>.  The Compiler Plugin
   can also be configured to provide these options during compilation.
 
-  For example, you are using JDK 1.5 and want your compiled classes to be
-  compatible with JDK 1.3, you can then put:
+  For example, if you want to enable assertions (-source 1.4) and also want the
+  compiled classes to be compatible with JVM 1.4 (-target 1.4), you can then
+  put:
 
 +-----
 <project>
@@ -26,8 +27,8 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.5</source>
-          <target>1.3</target>
+          <source>1.4</source>
+          <target>1.4</target>
         </configuration>
       </plugin>
     </plugins>

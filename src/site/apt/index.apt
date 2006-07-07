@@ -1,5 +1,5 @@
  ------
- Maven Compiler Plugin: Overview
+ Introduction
  ------
  Edwin Punzalan
  ------
@@ -7,7 +7,7 @@
  ------
 
 
-Maven Compiler Plugin
+Maven 2 Compiler Plugin: Introduction
 
   The Compiler Plugin is used to compile the sources of your project.  The
   default compiler is <<<javac>>> and is used to compile Java sources.  Other
