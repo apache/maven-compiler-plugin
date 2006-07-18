@@ -27,7 +27,7 @@ Maven Compiler Plugin: Introduction
   * {{{testCompile-mojo.html}compiler:testCompile}} is bound to the
   test-compile phase and is used to compile the test source files.
 
-* How To Use
+* Usage
 
   Instructions on how to use the Compiler Plugin can be found
   {{{usage.html}here}}.
@@ -37,10 +37,10 @@ Maven Compiler Plugin: Introduction
   To provide you with better understanding on some usages of the Compiler
   Plugin, you can take a look into the following examples:
 
-  * {{{examples/compile_using_different_jdk.html}Compile Using A Different JDK}}
+  * {{{examples/compile-using-different-jdk.html}Compile Using A Different JDK}}
 
-  * {{{examples/set_compiler_source_and_target.html}Compile Using -source and -target javac Options}}
+  * {{{examples/set-compiler-source-and-target.html}Compile Using -source and -target javac Options}}
 
-  * {{{examples/compile_with_memory_enhancements.html}Compile Using Memory Allocation Enhancement}}
+  * {{{examples/compile-with-memory-enhancements.html}Compile Using Memory Allocation Enhancement}}
 
-  * {{{examples/pass_compiler_arguments.html}Pass Compiler Arguments Using The Compiler Plugin}}
+  * {{{examples/pass-compiler-arguments.html}Pass Compiler Arguments Using The Compiler Plugin}}
