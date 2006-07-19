@@ -1,12 +1,12 @@
  ------
- Preventing OutOfMemory problems during compilation
+ Compile Using Memory Allocation Enhancements
  ------
  Edwin Punzalan
  ------
  05 July 2006
  ------
 
-Preventing <<<OutOfMemory>>> problems during compilation
+Compile Using Memory Allocation Enhancements
 
   The Compiler Plugin accepts configurations for <<<meminitial>>> and
   <<<maxmem>>>.  You can follow the example below to set the initial memory

@@ -34,6 +34,7 @@
 
     <menu name="Overview">
       <item name="Introduction" href="index.html"/>
+      <item name="Non-javac compilerIds" href="non-javac-compilers.html"/>
       <item name="Goals" href="plugin-info.html"/>
       <item name="Usage" href="usage.html"/>
       <item name="FAQ" href="faq.html"/>
@@ -43,7 +44,7 @@
       <item name="Compile Using A Different JDK" href="examples/compile-using-different-jdk.html"/>
       <item name="Compile Using -source and -target javac Options" href="examples/set-compiler-source-and-target.html"/>
       <item name="Compile Using Memory Allocation Enhancements" href="examples/compile-with-memory-enhancements.html"/>
-      <item name="Pass Compiler Arguments Using The Compiler Plugin" href="examples/pass-compiler-arguments.html"/>
+      <item name="Pass Compiler Arguments" href="examples/pass-compiler-arguments.html"/>
     </menu>
 
     ${reports}

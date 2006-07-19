@@ -1,0 +1,61 @@
+ ------
+ Using Non-Javac Compilers
+ ------
+ Edwin Punzalan
+ ------
+ 19 July 2006
+ ------
+
+
+Using Non-Javac Compilers
+
+  Contrary to this plugin's name, the Compiler Plugin does not compile the
+  sources of your project by itself. To compile, the Compiler Plugin uses
+  another class to compile them. The parameter <<<compilerId>>> determines
+  which class will be used. Currently, the Compiler Plugin is bundled with the
+  <<<javac>>> compiler artifact with artifactId <<<plexus-compiler-javac>>>,
+  which can be seen as one of the dependencies declared inside the Compiler
+  Plugin's POM.
+
+  Plexus have some other compiler Ids available under the groupId
+  <<<org.codehaus.plexus>>>:
+
+  * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>>.
+
+  * <<<csharp>>> with artifactId <<<plexus-compiler-csharp>>>.
+
+  * <<<eclipse>>> with artifactId <<<plexus-compiler-eclipse>>>.
+
+  * <<<jikes>>> with artifactId <<<plexus-compiler-jikes>>>.
+
+
+* Using The Other Plexus Compilers
+
+  To use any of the non-javac compilers, you need to make the artifact available
+  in the classpath when the Compiler Plugin runs. This is possible by adding the
+  dependency when declaring the plugin in your project's pom.xml. The example
+  below shows how to use the <<<csharp>>> compiler:
+
++-----
+<project>
+  [...]
+  <build>
+    [...]
+    <plugins>
+      [...]
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerId>csharp</compilerId>
+        </configuration>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-compiler-csharp</artifactId>
+            <version>1.5.2</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+  [...]
+</project>
++-----

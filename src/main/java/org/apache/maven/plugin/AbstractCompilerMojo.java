@@ -57,7 +57,7 @@ public abstract class AbstractCompilerMojo
     // ----------------------------------------------------------------------
 
     /**
-     * Whether to include debugging information in the compiled class files.
+     * Set to true to include debugging information in the compiled class files.
      * The default value is true.
      *
      * @parameter expression="${maven.compiler.debug}" default-value="true"
@@ -65,71 +65,72 @@ public abstract class AbstractCompilerMojo
     private boolean debug;
 
     /**
-     * Whether to output messages about what the compiler is doing
+     * Set to true to show messages about what the compiler is doing.
      *
      * @parameter expression="${maven.compiler.verbose}" default-value="false"
      */
     private boolean verbose;
 
     /**
-     * Output source locations where deprecated APIs are used
+     * Sets whether to show source locations where deprecated APIs are used.
      *
      * @parameter expression="${maven.compiler.showDeprecation}" default-value="false"
      */
     private boolean showDeprecation;
 
     /**
-     * Optimize compiled code using the compiler's optimization methods
+     * Set to true to optimize the compiled code using the compiler's optimization methods.
      *
      * @parameter expression="${maven.compiler.optimize}" default-value="false"
      */
     private boolean optimize;
 
     /**
-     * Output warnings
+     * Set to true to show compilation warnings.
      *
      * @parameter expression="${maven.compiler.showWarnings}" default-value="false"
      */
     private boolean showWarnings;
 
     /**
-     * The -source argument for the Java compiler
+     * The -source argument for the Java compiler.
      *
      * @parameter expression="${maven.compiler.source}"
      */
     private String source;
 
     /**
-     * The -target argument for the Java compiler
+     * The -target argument for the Java compiler.
      *
      * @parameter expression="${maven.compiler.target}"
      */
     private String target;
 
     /**
-     * The -encoding argument for the Java compiler
+     * The -encoding argument for the Java compiler.
      *
      * @parameter expression="${maven.compiler.encoding}"
      */
     private String encoding;
 
     /**
-     * The granularity in milliseconds of the last modification
-     * date for testing whether a source needs recompilation
+     * Sets the granularity in milliseconds of the last modification
+     * date for testing whether a source needs recompilation.
      *
      * @parameter expression="${lastModGranularityMs}" default-value="0"
      */
     private int staleMillis;
 
     /**
-     * The compiler id of the compiler to use.
+     * The compiler id of the compiler to use. See this
+     * <a href="non-javac-compilers.html">guide</a> for more information.
      *
      * @parameter expression="${maven.compiler.compilerId}" default-value="javac"
      */
     private String compilerId;
 
     /**
-     * Version of the compiler to use, ex. "1.3", "1.5", if fork is set to true
+     * Version of the compiler to use, ex. "1.3", "1.5", if fork is set to true.
      *
      * @parameter expression="${maven.compiler.compilerVersion}"
      */
@@ -145,22 +146,22 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m"
-     * if fork is set to true
+     * if fork is set to true.
      *
      * @parameter expression="${maven.compiler.meminitial}"
      */
     private String meminitial;
 
     /**
-     * maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m"
-     * if fork is set to true
+     * Sets the maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m"
+     * if fork is set to true.
      *
      * @parameter expression="${maven.compiler.maxmem}"
      */
     private String maxmem;
 
     /**
-     * The executable of the compiler to use when fork is true.
+     * Sets the executable of the compiler to use when fork is true.
      *
      * @parameter expression="${maven.compiler.executable}"
      */
@@ -168,7 +169,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Arguments to be passed to the compiler (prepending a dash) if fork is set to true.
+     * Sets the arguments to be passed to the compiler (prepending a dash) if fork is set to true.
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler
@@ -181,7 +182,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Unformatted argument string to be passed to the compiler if fork is set to true.
+     * Sets the unformatted argument string to be passed to the compiler if fork is set to true.
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler
@@ -193,7 +194,7 @@ public abstract class AbstractCompilerMojo
     private String compilerArgument;
 
     /**
-     * Used to control the name of the output file when compiling a set of
+     * Sets the name of the output file when compiling a set of
      * sources to a single file.
      *
      * @parameter expression="${project.build.finalName}"

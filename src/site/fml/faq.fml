@@ -18,6 +18,7 @@
        source directory for compilation in maven. So you don't have to copy the generated sources.</p>
        <p>You have to declare the modello-plugin in the build of your plugin for source generation
        (in that way the sources are generated each time).</p>
+       <p>The Modello website can be found <a href="http://modello.codehaus.org/">here</a>.</p>
      </answer>
    </faq>
  </part>

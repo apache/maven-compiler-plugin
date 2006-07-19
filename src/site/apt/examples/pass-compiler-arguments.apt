@@ -1,12 +1,12 @@
  ------
- Passing Compiler Arguments Using the Compiler Plugin
+ Pass Compiler Arguments
  ------
  Edwin Punzalan
  ------
  05 July 2006
  ------
 
-Passing Compiler Arguments Using the Compiler Plugin
+Pass Compiler Arguments
 
   Sometimes, you need to pass other compiler arguments that are not handled by
   the Compiler Plugin itself but is supported by the <<<compilerId>>> selected.
