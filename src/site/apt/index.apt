@@ -7,7 +7,7 @@
  ------
 
 
-Maven Compiler Plugin: Introduction
+Maven Compiler Plugin
 
   The Compiler Plugin is used to compile the sources of your project.  The
   default compiler is <<<javac>>> and is used to compile Java sources.  Other
