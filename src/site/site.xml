@@ -16,36 +16,14 @@
   ~ limitations under the License.
   -->
 
-<project name="Maven Compiler Plugin">
-  <bannerLeft>
-    <name>Maven Compiler Plugin</name>
-    <src>http://maven.apache.org/images/apache-maven-project.png</src>
-    <href>http://maven.apache.org/</href>
-  </bannerLeft>
-  <bannerRight>
-    <src>http://maven.apache.org/images/maven-small.gif</src>
-  </bannerRight>
+<project>
   <body>
-    <links>
-      <item name="Maven" href="http://maven.apache.org/maven2/"/>
-    </links>
-
-    <menu name="Overview">
-      <item name="Introduction" href="index.html"/>
-      <item name="Non-javac compilerIds" href="non-javac-compilers.html"/>
-      <item name="Goals" href="plugin-info.html"/>
-      <item name="Usage" href="usage.html"/>
-      <item name="FAQ" href="faq.html"/>
-    </menu>
-
     <menu name="Examples">
       <item name="Compile Using A Different JDK" href="examples/compile-using-different-jdk.html"/>
       <item name="Compile Using -source and -target javac Options" href="examples/set-compiler-source-and-target.html"/>
       <item name="Compile Using Memory Allocation Enhancements" href="examples/compile-with-memory-enhancements.html"/>
       <item name="Pass Compiler Arguments" href="examples/pass-compiler-arguments.html"/>
+      <item name="Non-javac compilerIds" href="non-javac-compilers.html"/>
     </menu>
-
-    ${reports}
-
   </body>
 </project>
