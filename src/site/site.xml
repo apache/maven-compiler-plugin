@@ -18,6 +18,12 @@
 
 <project>
   <body>
+    <menu name="Overview">
+      <item name="Introduction" href="index.html"/>
+      <item name="Goals" href="plugin-info.html"/>
+      <item name="Usage" href="usage.html"/>
+      <item name="FAQ" href="faq.html"/>
+    </menu>
     <menu name="Examples">
       <item name="Compile Using A Different JDK" href="examples/compile-using-different-jdk.html"/>
       <item name="Compile Using -source and -target javac Options" href="examples/set-compiler-source-and-target.html"/>
