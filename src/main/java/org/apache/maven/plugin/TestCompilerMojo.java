@@ -28,7 +28,7 @@ import java.util.Set;
 
 /**
  * Compiles application test sources
- * 
+ *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
  * @goal testCompile

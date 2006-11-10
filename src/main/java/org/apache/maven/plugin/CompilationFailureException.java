@@ -39,7 +39,7 @@ public class CompilationFailureException
     {
         StringBuffer sb = new StringBuffer();
 
-        for ( Iterator it = messages.iterator(); it.hasNext() ; )
+        for ( Iterator it = messages.iterator(); it.hasNext(); )
         {
             CompilerError compilerError = (CompilerError) it.next();
 

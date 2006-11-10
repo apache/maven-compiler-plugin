@@ -168,10 +168,10 @@ public abstract class AbstractCompilerMojo
     private String executable;
 
     /**
-     * <p>
+     * <p/>
      * Sets the arguments to be passed to the compiler (prepending a dash) if fork is set to true.
      * </p>
-     * <p>
+     * <p/>
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
      * </p>
@@ -181,10 +181,10 @@ public abstract class AbstractCompilerMojo
     private Map compilerArguments;
 
     /**
-     * <p>
+     * <p/>
      * Sets the unformatted argument string to be passed to the compiler if fork is set to true.
      * </p>
-     * <p>
+     * <p/>
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
      * </p>
@@ -310,7 +310,7 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setSourceEncoding( encoding );
 
-        if (( compilerArguments != null ) || ( compilerArgument != null ))
+        if ( ( compilerArguments != null ) || ( compilerArgument != null ) )
         {
             LinkedHashMap cplrArgsCopy = new LinkedHashMap();
             if ( compilerArguments != null )
@@ -320,14 +320,14 @@ public abstract class AbstractCompilerMojo
                     Map.Entry me = (Map.Entry) i.next();
                     String key = (String) me.getKey();
                     String value = (String) me.getValue();
-                    if ( !key.startsWith( "-" ))
+                    if ( !key.startsWith( "-" ) )
                     {
                         key = "-" + key;
                     }
                     cplrArgsCopy.put( key, value );
                 }
             }
-            if ( !StringUtils.isEmpty( compilerArgument) )
+            if ( !StringUtils.isEmpty( compilerArgument ) )
             {
                 cplrArgsCopy.put( compilerArgument, null );
             }
@@ -336,33 +336,33 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setFork( fork );
 
-        if( fork )
+        if ( fork )
         {
             if ( !StringUtils.isEmpty( meminitial ) )
             {
                 String value = getMemoryValue( meminitial );
-                
+
                 if ( value != null )
                 {
                     compilerConfiguration.setMeminitial( value );
                 }
                 else
                 {
-                    getLog().info( "Invalid value for meminitial '" + meminitial + "'. Ignoring this option." );                    
+                    getLog().info( "Invalid value for meminitial '" + meminitial + "'. Ignoring this option." );
                 }
             }
 
             if ( !StringUtils.isEmpty( maxmem ) )
             {
                 String value = getMemoryValue( maxmem );
-                
+
                 if ( value != null )
                 {
                     compilerConfiguration.setMaxmem( value );
                 }
                 else
                 {
-                    getLog().info( "Invalid value for maxmem '" + maxmem + "'. Ignoring this option." );                    
+                    getLog().info( "Invalid value for maxmem '" + maxmem + "'. Ignoring this option." );
                 }
             }
         }
@@ -519,7 +519,7 @@ public abstract class AbstractCompilerMojo
     private String getMemoryValue( String setting )
     {
         String value = null;
-        
+
         // Allow '128' or '128m'
         if ( isDigits( setting ) )
         {
