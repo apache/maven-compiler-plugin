@@ -498,6 +498,7 @@ public abstract class AbstractCompilerMojo
             if ( message.isError() )
             {
                 compilationError = true;
+                break;
             }
         }
 
