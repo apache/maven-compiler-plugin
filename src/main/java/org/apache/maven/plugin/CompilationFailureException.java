@@ -1,7 +1,7 @@
 package org.apache.maven.plugin;
 
 /*
- * Copyright 2001-2005 The Apache Software Foundation.
+ * Copyright 2001-2006 The Apache Software Foundation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@ package org.apache.maven.plugin;
  * limitations under the License.
  */
 
-import org.codehaus.plexus.compiler.CompilerError;
-
 import java.util.Iterator;
 import java.util.List;
+
+import org.codehaus.plexus.compiler.CompilerError;
 
 /**
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
@@ -32,7 +32,7 @@ public class CompilationFailureException
 
     public CompilationFailureException( List messages )
     {
-        super( null, "Compilation failure", longMessage( messages ) );
+        super( null, shortMessage( messages ), longMessage( messages ) );
     }
 
     public static String longMessage( List messages )
@@ -42,6 +42,28 @@ public class CompilationFailureException
         for ( Iterator it = messages.iterator(); it.hasNext(); )
         {
             CompilerError compilerError = (CompilerError) it.next();
+
+            sb.append( compilerError ).append( LS );
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Short message will have the error message if there's only one, useful for errors forking the compiler
+     * @param messages
+     * @return the short error message
+     */
+    public static String shortMessage( List messages )
+    {
+        StringBuffer sb = new StringBuffer();
+
+        sb.append( "Compilation failure" );
+
+        if ( messages.size() == 1 )
+        {
+            sb.append( LS );
+
+            CompilerError compilerError = (CompilerError) messages.get( 0 );
 
             sb.append( compilerError ).append( LS );
         }
