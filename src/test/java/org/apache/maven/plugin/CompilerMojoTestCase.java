@@ -246,6 +246,24 @@ public class CompilerMojoTestCase
         }
     }
 
+    public void testCompileFailOnError()
+        throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-failonerror-test/plugin-config.xml" );
+
+        setVariableValueToObject( compileMojo, "compilerManager", new CompilerManagerStub( true ) );
+
+        try
+        {
+            compileMojo.execute();
+            assertTrue( true );
+        }
+        catch ( CompilationFailureException e )
+        {
+            fail( "The compilation error should have been consumed because failOnError = false" );
+        }
+    }
+
     private CompilerMojo getCompilerMojo( String pomXml )
         throws Exception
     {

@@ -57,12 +57,19 @@ public abstract class AbstractCompilerMojo
     // ----------------------------------------------------------------------
 
     /**
+     * Indicates whether the build will continue even if there are compilation errors; defaults to true.
+     *
+     * @parameter expression="${maven.compiler.failOnError}" default-value="true"
+     */
+    private boolean failOnError = true;
+
+    /**
      * Set to true to include debugging information in the compiled class files.
      * The default value is true.
      *
      * @parameter expression="${maven.compiler.debug}" default-value="true"
      */
-    private boolean debug;
+    private boolean debug = true;
 
     /**
      * Set to true to show messages about what the compiler is doing.
@@ -502,7 +509,7 @@ public abstract class AbstractCompilerMojo
             }
         }
 
-        if ( compilationError )
+        if ( compilationError && failOnError )
         {
             throw new CompilationFailureException( messages );
         }
