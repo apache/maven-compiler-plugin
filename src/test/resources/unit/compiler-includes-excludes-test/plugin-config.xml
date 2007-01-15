@@ -1,17 +1,20 @@
 <!--
-  ~ Copyright 2001-2006 The Apache Software Foundation.
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
   ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
+  ~   http://www.apache.org/licenses/LICENSE-2.0
   ~
-  ~      http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
   -->
 
 <project>
@@ -21,20 +24,21 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-includes-excludes-test/src/main/java</compileSourceRoot>
+            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-includes-excludes-test/src/main/java
+            </compileSourceRoot>
           </compileSourceRoots>
-            <!--
-            one would think that if you specifically include something and then do a pattern exclude that happened
-            to catch that include, the include would take precedence...which it doesn't seem to
-            -->
-            <!--
-            <includes>
-                <includes>**/TestCompile4.java</includes>
-            </includes>
-            <excludes>
-              <exclude>**/TestCompile*.java</exclude>
-            </excludes>
-            -->
+          <!--
+          one would think that if you specifically include something and then do a pattern exclude that happened
+          to catch that include, the include would take precedence...which it doesn't seem to
+          -->
+          <!--
+          <includes>
+              <includes>**/TestCompile4.java</includes>
+          </includes>
+          <excludes>
+            <exclude>**/TestCompile*.java</exclude>
+          </excludes>
+          -->
 
           <!--includes>
                 <includes>**/TestCompile4*.java</includes>
@@ -43,7 +47,7 @@
               <exclude>**/TestCompile2*.java</exclude>
               <exclude>**/TestCompile3*.java</exclude>
           </excludes-->
-          
+
           <compilerId>javac</compilerId>
           <debug>true</debug>
           <outputDirectory>${basedir}/target/test/unit/compiler-includes-excludes-test/target/classes</outputDirectory>

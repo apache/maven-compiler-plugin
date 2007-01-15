@@ -1,42 +1,51 @@
 <?xml version="1.0"?>
 
 <!--
-  ~ Copyright 2006 The Apache Software Foundation.
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
   ~
-  ~ Licensed under the Apache License, Version 2.0 (the "License");
-  ~ you may not use this file except in compliance with the License.
-  ~ You may obtain a copy of the License at
+  ~   http://www.apache.org/licenses/LICENSE-2.0
   ~
-  ~      http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software
-  ~ distributed under the License is distributed on an "AS IS" BASIS,
-  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  ~ See the License for the specific language governing permissions and
-  ~ limitations under the License.
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
   -->
 
 <faqs id="FAQ" title="Frequently Asked Questions">
- <part id="General">
-   <faq id="compile-error-reports">
-     <question>Is there a way to get Maven to report the number of compile errors found?</question>
-     <answer>
-       <p>
-       Currently, this type of summary information is not built into the compiler plugin, but it
-       would be possible to add. If this feature is important to you, add your vote to
-       <a href="http://jira.codehaus.org/browse/MNG-1854">MNG-1854</a>.
-       </p>
-     </answer>
-   </faq>
-   <faq id="how-to-add-generated-sources">
-     <question>How do I add my generated sources to the compile path of Maven, when using modello?</question>
-     <answer>
-       <p>Modello generate the sources in the generate-sources phase and automatically adds the
-       source directory for compilation in maven. So you don't have to copy the generated sources.</p>
-       <p>You have to declare the modello-plugin in the build of your plugin for source generation
-       (in that way the sources are generated each time).</p>
-       <p>The Modello website can be found <a href="http://modello.codehaus.org/">here</a>.</p>
-     </answer>
-   </faq>
- </part>
+  <part id="General">
+    <faq id="compile-error-reports">
+      <question>Is there a way to get Maven to report the number of compile errors found?</question>
+      <answer>
+        <p>
+          Currently, this type of summary information is not built into the compiler plugin, but it
+          would be possible to add. If this feature is important to you, add your vote to
+          <a href="http://jira.codehaus.org/browse/MNG-1854">MNG-1854</a>
+          .
+        </p>
+      </answer>
+    </faq>
+    <faq id="how-to-add-generated-sources">
+      <question>How do I add my generated sources to the compile path of Maven, when using modello?</question>
+      <answer>
+        <p>Modello generate the sources in the generate-sources phase and automatically adds the
+          source directory for compilation in maven. So you don't have to copy the generated sources.
+        </p>
+        <p>You have to declare the modello-plugin in the build of your plugin for source generation
+          (in that way the sources are generated each time).
+        </p>
+        <p>The Modello website can be found
+          <a href="http://modello.codehaus.org/">here</a>
+          .
+        </p>
+      </answer>
+    </faq>
+  </part>
 </faqs>
