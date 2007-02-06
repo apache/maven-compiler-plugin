@@ -68,7 +68,6 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Set to true to include debugging information in the compiled class files.
-     * The default value is true.
      *
      * @parameter expression="${maven.compiler.debug}" default-value="true"
      */
