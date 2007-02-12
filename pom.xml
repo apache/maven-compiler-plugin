@@ -24,7 +24,7 @@
   <parent>
     <artifactId>maven-plugins</artifactId>
     <groupId>org.apache.maven.plugins</groupId>
-    <version>8-SNAPSHOT</version>
+    <version>8</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>maven-compiler-plugin</artifactId>
@@ -78,13 +78,5 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  <reporting>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-changelog-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </reporting>
 </project>
 
