@@ -177,10 +177,10 @@ public abstract class AbstractCompilerMojo
     private String executable;
 
     /**
-     * <p/>
+     * <p>
      * Sets the arguments to be passed to the compiler (prepending a dash) if fork is set to true.
      * </p>
-     * <p/>
+     * <p>
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
      * </p>
@@ -190,10 +190,10 @@ public abstract class AbstractCompilerMojo
     private Map compilerArguments;
 
     /**
-     * <p/>
+     * <p>
      * Sets the unformatted argument string to be passed to the compiler if fork is set to true.
      * </p>
-     * <p/>
+     * <p>
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
      * </p>
