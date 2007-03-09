@@ -57,12 +57,12 @@ Compiling Sources Using A Different JDK
   property.  For example:
 
 +-------
-          <executable>${jdk14.executable}</executable>
+          <executable>${JAVA_1_4_HOME}/bin/javac</executable>
 +-------
 
   Each developer then defines this property in
   {{{http://maven.apache.org/ref/current/maven-settings/settings.html}settings.xml}},
-  so that the build remains portable.
+  or sets an environment variable, so that the build remains portable.
 
 +-------
 <settings>
@@ -72,7 +72,7 @@ Compiling Sources Using A Different JDK
     <profile>
       <id>compiler</id>
         <properties>
-          <jdk14.executable>C:\Program Files\Java\j2sdk1.4.2_09\bin\javac.exe</jdk14.executable>
+          <JAVA_1_4_HOME>C:\Program Files\Java\j2sdk1.4.2_09</JAVA_1_4_HOME>
         </properties>
     </profile>
   </profiles>
