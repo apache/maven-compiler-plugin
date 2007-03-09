@@ -52,3 +52,37 @@ Compiling Sources Using A Different JDK
   [...]
 </project>
 +-------
+
+  To avoid hard-coding a filesystem path for the executable, you can use a
+  property.  For example:
+
++-------
+          <executable>${jdk14.executable}</executable>
++-------
+
+  Each developer then defines this property in
+  {{{http://maven.apache.org/ref/current/maven-settings/settings.html}settings.xml}},
+  so that the build remains portable.
+
++-------
+<settings>
+  [...]
+  <profiles>
+    [...]
+    <profile>
+      <id>compiler</id>
+        <properties>
+          <jdk14.executable>C:\Program Files\Java\j2sdk1.4.2_09\bin\javac.exe</jdk14.executable>
+        </properties>
+    </profile>
+  </profiles>
+  [...]
+  <activeProfiles>
+    <activeProfile>compiler</activeProfile>
+  </activeProfiles>
+</settings>
++-------
+
+  If you build with a different JDK, you may want to 
+  {{{http://maven.apache.org/plugins/maven-jar-plugin/examples/manifest-customization.html}
+  customize}} the jar file manifest.
