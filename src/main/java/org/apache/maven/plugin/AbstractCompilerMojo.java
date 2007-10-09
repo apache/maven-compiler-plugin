@@ -50,7 +50,7 @@ import java.util.Set;
  *
  * @author others
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
- * @version $Id: StaleSourceScannerTest.java 2393 2005-08-08 22:32:59Z kenney $
+ * @version $Id$
  */
 public abstract class AbstractCompilerMojo
     extends AbstractMojo
