@@ -51,6 +51,7 @@ import java.util.Set;
  * @author others
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
  * @version $Id$
+ * @since 2.0
  */
 public abstract class AbstractCompilerMojo
     extends AbstractMojo
@@ -63,6 +64,7 @@ public abstract class AbstractCompilerMojo
      * Indicates whether the build will continue even if there are compilation errors; defaults to true.
      *
      * @parameter expression="${maven.compiler.failOnError}" default-value="true"
+     * @since 2.0.2
      */
     private boolean failOnError = true;
 
@@ -158,6 +160,7 @@ public abstract class AbstractCompilerMojo
      * if fork is set to true.
      *
      * @parameter expression="${maven.compiler.meminitial}"
+     * @since 2.0.1
      */
     private String meminitial;
 
@@ -166,6 +169,7 @@ public abstract class AbstractCompilerMojo
      * if fork is set to true.
      *
      * @parameter expression="${maven.compiler.maxmem}"
+     * @since 2.0.1
      */
     private String maxmem;
 
@@ -186,6 +190,7 @@ public abstract class AbstractCompilerMojo
      * </p>
      *
      * @parameter
+     * @since 2.0.1
      */
     private Map compilerArguments;
 

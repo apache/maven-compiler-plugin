@@ -27,6 +27,7 @@ import java.util.List;
 /**
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
+ * @since 2.0
  */
 public class CompilationFailureException
     extends MojoFailureException
@@ -56,6 +57,7 @@ public class CompilationFailureException
      *
      * @param messages
      * @return the short error message
+     * @since 2.0.2
      */
     public static String shortMessage( List messages )
     {

@@ -34,6 +34,7 @@ import java.util.Set;
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
+ * @since 2.0
  * @goal testCompile
  * @phase test-compile
  * @requiresDependencyResolution test
