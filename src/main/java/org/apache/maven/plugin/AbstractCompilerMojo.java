@@ -520,6 +520,21 @@ public abstract class AbstractCompilerMojo
 
         if ( compilationError && failOnError )
         {
+            getLog().info( "-------------------------------------------------------------" );
+            getLog().error( "COMPILATION ERROR : " );
+            getLog().info( "-------------------------------------------------------------" );
+            if ( messages != null )
+            {
+                for ( Iterator i = messages.iterator(); i.hasNext(); )
+                {
+                    CompilerError message = (CompilerError) i.next();
+
+                    getLog().error( message.toString() );
+
+                }
+                getLog().info( messages.size() + ( ( messages.size() > 1 ) ? " errors " : "error" ) );
+                getLog().info( "-------------------------------------------------------------" );
+            }
             throw new CompilationFailureException( messages );
         }
         else
