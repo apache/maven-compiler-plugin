@@ -42,6 +42,12 @@
     <url>http://jira.codehaus.org/browse/MCOMPILER</url>
   </issueManagement>
 
+  <scm>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</developerConnection>
+    <url>http://svn.apache.org/viewvc/maven/plugins/trunk/maven-compiler-plugin/</url>
+  </scm>
+
   <dependencies>
     <!-- Maven -->
     <dependency>
@@ -92,6 +98,11 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.4</version>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.0.4</version>
+      </plugin>      
     </plugins>
   </build>
 </project>
