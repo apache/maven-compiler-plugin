@@ -36,6 +36,19 @@
   <prerequisites>
     <maven>2.0</maven>
   </prerequisites>
+  
+  <repositories>
+    <repository>
+      <id>codehaus.snapshots</id>
+      <url>http://snapshots.repository.codehaus.org/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+  </repositories>
 
   <issueManagement>
     <system>JIRA</system>
@@ -53,7 +66,7 @@
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-container-default</artifactId>
       <version>1.0-alpha-9-stable-1</version>
-      <scope>provided</scope>
+      <scope>test</scope>
     </dependency>
     
     <!-- Maven -->
@@ -72,7 +85,7 @@
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
-      <version>1.4.9</version>
+      <version>1.0.4</version>
     </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
