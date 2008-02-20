@@ -216,6 +216,15 @@ public abstract class AbstractCompilerMojo
      * @parameter expression="${project.build.finalName}"
      */
     private String outputFileName;
+    
+    /**
+     * Keyword list to be appended to the -g  command-line switch. Legal values are none or a comma-separated list of the following keywords: lines, vars, and source.
+     * If debuglevel is not specified, by default, nothing will be appended to -g. If debug is not turned on, this attribute will be ignored.
+     *
+     * @parameter expression="${maven.compiler.debuglevel}"
+     * @since 2.1
+     */
+    private String debuglevel;    
 
     // ----------------------------------------------------------------------
     // Read-only parameters
@@ -314,6 +323,21 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setDebug( debug );
 
+        if ( debug && StringUtils.isNotEmpty( debuglevel ) )
+        {
+            String[] split = StringUtils.split( debuglevel, "," );
+            for ( int i = 0; i < split.length; i++ )
+            {
+                if ( !( split[i].equalsIgnoreCase( "none" ) || split[i].equalsIgnoreCase( "lines" )
+                    || split[i].equalsIgnoreCase( "vars" ) || split[i].equalsIgnoreCase( "source" ) ) )
+                {
+                    throw new IllegalArgumentException( "The specified debug level: '" + split[i]
+                        + "' is unsupported. " + "Legal values are 'none', 'lines', 'vars', and 'source'." );
+                }
+            }
+            compilerConfiguration.setDebugLevel( debuglevel );
+        }        
+        
         compilerConfiguration.setVerbose( verbose );
 
         compilerConfiguration.setShowWarnings( showWarnings );
