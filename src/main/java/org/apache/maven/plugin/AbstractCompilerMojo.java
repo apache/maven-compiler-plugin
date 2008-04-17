@@ -122,7 +122,7 @@ public abstract class AbstractCompilerMojo
      * <br/>
      * <b>Note</b>: Since 2.1, the default value is locked to <code>ISO-8859-1</code> to better reproducing build.
      *
-     * @parameter expression="${maven.compiler.encoding}" default-value="ISO-8859-1"
+     * @parameter expression="${maven.compiler.encoding}" default-value="${project.build.sourceEncoding}"
      */
     private String encoding;
 
@@ -255,6 +255,16 @@ public abstract class AbstractCompilerMojo
      */
     private CompilerManager compilerManager;
 
+    /**
+     * Gets the source file encoding.
+     *
+     * @return The source file encoding, never <code>null</code>.
+     */
+    protected String getEncoding()
+    {
+        return ( encoding == null ) ? "ISO-8859-1" : encoding;
+    }
+
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
@@ -348,7 +358,7 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setTargetVersion( target );
 
-        compilerConfiguration.setSourceEncoding( encoding );
+        compilerConfiguration.setSourceEncoding( getEncoding() );
 
         if ( ( compilerArguments != null ) || ( compilerArgument != null ) )
         {
