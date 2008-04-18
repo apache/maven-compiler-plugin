@@ -126,7 +126,7 @@ public abstract class AbstractCompilerMojo
      * <br/>
      * <b>Note</b>: Since 2.1, the default value is locked to <code>ISO-8859-1</code> to better reproducing build.
      *
-     * @parameter expression="${maven.compiler.encoding}" default-value="${project.build.sourceEncoding}"
+     * @parameter expression="${encoding}" default-value="${project.build.sourceEncoding}"
      */
     private String encoding;
 
