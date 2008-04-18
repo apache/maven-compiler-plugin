@@ -41,6 +41,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.toolchain.Toolchain;
+import org.apache.maven.toolchain.ToolchainManager;
+import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 
 /**
  * TODO: At least one step could be optimized, currently the plugin will do two
@@ -254,7 +258,17 @@ public abstract class AbstractCompilerMojo
      * @component
      */
     private CompilerManager compilerManager;
-
+    
+    /**
+     * The current build session instance. This is used for
+     * toolchain manager API calls.
+     *
+     * @parameter expression="${session}"
+     * @required
+     * @readonly
+     */
+    private MavenSession session;
+    
     /**
      * Gets the source file encoding.
      *
@@ -296,7 +310,24 @@ public abstract class AbstractCompilerMojo
         {
             throw new MojoExecutionException( "No such compiler '" + e.getCompilerId() + "'." );
         }
-
+        
+        //-----------toolchains start here ----------------------------------
+        //use the compilerId as identifier for toolchains as well.
+        Toolchain tc = getToolchain();
+        if ( tc != null ) 
+        {
+            getLog().info( "Toolchain in compiler-plugin: " + tc );
+            if ( executable  != null ) 
+            { 
+                getLog().warn( "Toolchains are ignored, 'executable' parameter is set to " + executable );
+            } 
+            else 
+            {
+                fork = true;
+                //TODO somehow shaky dependency between compilerId and tool executable.
+                executable = tc.findTool( compilerId );
+            }
+        }
         // ----------------------------------------------------------------------
         //
         // ----------------------------------------------------------------------
@@ -600,6 +631,27 @@ public abstract class AbstractCompilerMojo
             }
         }
         return value;
+    }
+
+    //TODO remove the part with ToolchainManager lookup once we depend on
+    //3.0.9 (have it as prerequisite). Define as regular component field then.
+    private Toolchain getToolchain() 
+    {
+        Toolchain tc = null;
+        try 
+        {
+            if (session != null) //session is null in tests..
+            {
+                ToolchainManager toolchainManager = (ToolchainManager) session.getContainer().lookup(ToolchainManager.ROLE);
+                if (toolchainManager != null) 
+                {
+                    tc = toolchainManager.getToolchainFromBuildContext("jdk", session);
+                }
+            }
+        } catch (ComponentLookupException componentLookupException) {
+            //just ignore, could happen in pre-3.0.9 builds..
+        }
+        return tc;
     }
 
     private boolean isDigits( String string )
