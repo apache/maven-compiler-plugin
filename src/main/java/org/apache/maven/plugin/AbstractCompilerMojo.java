@@ -123,8 +123,6 @@ public abstract class AbstractCompilerMojo
 
     /**
      * The -encoding argument for the Java compiler.
-     * <br/>
-     * <b>Note</b>: Since 2.1, the default value is locked to <code>ISO-8859-1</code> to better reproducing build.
      *
      * @parameter expression="${encoding}" default-value="${project.build.sourceEncoding}"
      */
@@ -268,16 +266,6 @@ public abstract class AbstractCompilerMojo
      * @readonly
      */
     private MavenSession session;
-    
-    /**
-     * Gets the source file encoding.
-     *
-     * @return The source file encoding, never <code>null</code>.
-     */
-    protected String getEncoding()
-    {
-        return ( encoding == null ) ? "ISO-8859-1" : encoding;
-    }
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
@@ -389,7 +377,7 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setTargetVersion( target );
 
-        compilerConfiguration.setSourceEncoding( getEncoding() );
+        compilerConfiguration.setSourceEncoding( encoding );
 
         if ( ( compilerArguments != null ) || ( compilerArgument != null ) )
         {
