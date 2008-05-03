@@ -31,6 +31,7 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
+import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
 
 import java.io.File;
@@ -545,6 +546,13 @@ public abstract class AbstractCompilerMojo
         // ----------------------------------------------------------------------
         // Compile!
         // ----------------------------------------------------------------------
+
+        if ( StringUtils.isEmpty( compilerConfiguration.getSourceEncoding() ) )
+        {
+            getLog().warn(
+                           "File encoding has not been set, using platform encoding " + ReaderFactory.FILE_ENCODING
+                               + ", i.e. build is platform dependent!" );
+        }
 
         List messages;
 
