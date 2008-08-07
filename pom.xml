@@ -136,4 +136,33 @@
     </dependency>
   </dependencies>
 
+  <profiles>
+    <profile>
+      <id>run-its</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>integration-test</id>
+                <phase>integration-test</phase>
+                <configuration>
+                  <tasks>
+                    <echo/><echo/><echo/><echo/><echo/>
+                    <echo level="warning">NO INTEGRATION TESTS DEFINED</echo>
+                    <echo/><echo/><echo/><echo/><echo/>
+                  </tasks>
+                </configuration>
+                <goals>
+                  <goal>run</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
