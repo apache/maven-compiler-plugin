@@ -28,8 +28,9 @@
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <packaging>maven-plugin</packaging>
   <version>2.1-SNAPSHOT</version>
+  <packaging>maven-plugin</packaging>
+
   <name>Maven Compiler Plugin</name>
   <inceptionYear>2001</inceptionYear>
 
@@ -37,31 +38,15 @@
     <maven>2.0.6</maven>
   </prerequisites>
 
-  <repositories>
-    <repository>
-      <id>codehaus.snapshots</id>
-      <url>http://snapshots.repository.codehaus.org/</url>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-    </repository>
-  </repositories>
-
+  <scm>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</developerConnection>
+    <url>http://svn.apache.org/viewvc/maven/plugins/trunk/maven-compiler-plugin/</url>
+  </scm>
   <issueManagement>
     <system>JIRA</system>
     <url>http://jira.codehaus.org/browse/MCOMPILER</url>
   </issueManagement>
-
-  <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</connection>
-    <developerConnection>
-      scm:svn:https://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/
-    </developerConnection>
-    <url>http://svn.apache.org/viewvc/maven/plugins/trunk/maven-compiler-plugin/</url>
-  </scm>
 
   <dependencies>
     <dependency>
@@ -135,6 +120,19 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <repositories>
+    <repository>
+      <id>codehaus.snapshots</id>
+      <url>http://snapshots.repository.codehaus.org/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+  </repositories>
 
   <profiles>
     <profile>
