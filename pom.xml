@@ -32,6 +32,7 @@
   <packaging>maven-plugin</packaging>
 
   <name>Maven Compiler Plugin</name>
+  <description>The Compiler Plugin is used to compile the sources of your project.</description>
   <inceptionYear>2001</inceptionYear>
 
   <prerequisites>
@@ -140,20 +141,29 @@
       <build>
         <plugins>
           <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-antrun-plugin</artifactId>
+            <artifactId>maven-invoker-plugin</artifactId>
+            <configuration>
+              <debug>true</debug>
+              <projectsDirectory>src/it</projectsDirectory>
+              <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
+              <pomIncludes>
+                <pomInclude>**/pom.xml</pomInclude>
+              </pomIncludes>
+              <pomExcludes>
+                <pomExclude>pom.xml</pomExclude>
+              </pomExcludes>
+              <postBuildHookScript>verify.bsh</postBuildHookScript>
+              <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+              <settingsFile>src/it/settings.xml</settingsFile>
+              <goals>
+                <goal>test-compile</goal>
+              </goals>
+            </configuration>
             <executions>
               <execution>
                 <id>integration-test</id>
-                <phase>integration-test</phase>
-                <configuration>
-                  <tasks>
-                    <echo/><echo/><echo/><echo/><echo/>
-                    <echo level="warning">NO INTEGRATION TESTS DEFINED</echo>
-                    <echo/><echo/><echo/><echo/><echo/>
-                  </tasks>
-                </configuration>
                 <goals>
+                  <goal>install</goal>
                   <goal>run</goal>
                 </goals>
               </execution>
