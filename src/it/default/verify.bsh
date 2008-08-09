@@ -1,0 +1,27 @@
+import java.io.*;
+import java.util.*;
+import java.util.regex.*;
+
+try
+{
+    File mainClass = new File( basedir, "target/classes/MyClass.class" );
+    if ( !mainClass.isFile() )
+    {
+        System.out.println( "Main class not existent: " + mainClass );
+        return false;
+    }
+
+    File testClass = new File( basedir, "target/test-classes/MyTest.class" );
+    if ( !testClass.isFile() )
+    {
+        System.out.println( "Test class not existent: " + testClass );
+        return false;
+    }
+}
+catch( Throwable t )
+{
+    t.printStackTrace();
+    return false;
+}
+
+return true;
