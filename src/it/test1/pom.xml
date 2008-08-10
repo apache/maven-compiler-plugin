@@ -29,6 +29,10 @@
   <name>Test for fork configuration</name>
   <description>Test for forking compiler configuration</description>
 
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
   <dependencies>
   </dependencies>
 
