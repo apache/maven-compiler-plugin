@@ -154,6 +154,7 @@ under the License.
               <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
               <settingsFile>src/it/settings.xml</settingsFile>
               <goals>
+                <goal>clean</goal>
                 <goal>test-compile</goal>
               </goals>
             </configuration>
