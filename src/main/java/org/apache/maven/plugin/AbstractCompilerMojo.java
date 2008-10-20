@@ -113,14 +113,14 @@ public abstract class AbstractCompilerMojo
      *
      * @parameter expression="${maven.compiler.source}"
      */
-    private String source;
+    protected String source;
 
     /**
      * The -target argument for the Java compiler.
      *
      * @parameter expression="${maven.compiler.target}"
      */
-    private String target;
+    protected String target;
 
     /**
      * The -encoding argument for the Java compiler.
@@ -197,7 +197,7 @@ public abstract class AbstractCompilerMojo
      * @parameter
      * @since 2.0.1
      */
-    private Map compilerArguments;
+    protected Map compilerArguments;
 
     /**
      * <p>
@@ -210,7 +210,7 @@ public abstract class AbstractCompilerMojo
      *
      * @parameter
      */
-    private String compilerArgument;
+    protected String compilerArgument;
 
     /**
      * Sets the name of the output file when compiling a set of
@@ -277,6 +277,14 @@ public abstract class AbstractCompilerMojo
     protected abstract List getCompileSourceRoots();
 
     protected abstract File getOutputDirectory();
+    
+    protected abstract String getSource();
+    
+    protected abstract String getTarget();
+    
+    protected abstract String getCompilerArgument();
+    
+    protected abstract Map getCompilerArguments();
 
     public void execute()
         throws MojoExecutionException, CompilationFailureException
@@ -374,18 +382,22 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setShowDeprecation( showDeprecation );
 
-        compilerConfiguration.setSourceVersion( source );
+        compilerConfiguration.setSourceVersion( getSource() );
 
-        compilerConfiguration.setTargetVersion( target );
+        compilerConfiguration.setTargetVersion( getTarget() );
 
         compilerConfiguration.setSourceEncoding( encoding );
+        
+        Map effectiveCompilerArguments = getCompilerArguments();
 
-        if ( ( compilerArguments != null ) || ( compilerArgument != null ) )
+        String effectiveCompilerArgument = getCompilerArgument();
+
+        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) )
         {
             LinkedHashMap cplrArgsCopy = new LinkedHashMap();
-            if ( compilerArguments != null )
+            if ( effectiveCompilerArguments != null )
             {
-                for ( Iterator i = compilerArguments.entrySet().iterator(); i.hasNext(); )
+                for ( Iterator i = effectiveCompilerArguments.entrySet().iterator(); i.hasNext(); )
                 {
                     Map.Entry me = (Map.Entry) i.next();
                     String key = (String) me.getKey();
@@ -397,9 +409,9 @@ public abstract class AbstractCompilerMojo
                     cplrArgsCopy.put( key, value );
                 }
             }
-            if ( !StringUtils.isEmpty( compilerArgument ) )
+            if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
             {
-                cplrArgsCopy.put( compilerArgument, null );
+                cplrArgsCopy.put( effectiveCompilerArgument, null );
             }
             compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
         }

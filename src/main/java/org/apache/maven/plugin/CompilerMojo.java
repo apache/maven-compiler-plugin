@@ -28,6 +28,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -156,6 +157,26 @@ public class CompilerMojo
         }
 
         return scanner;
+    }
+
+    protected String getSource()
+    {
+      return source;
+    }
+
+    protected String getTarget()
+    {
+      return target;
+    }
+
+    protected String getCompilerArgument()
+    {
+      return compilerArgument;
+    }
+
+    protected Map getCompilerArguments()
+    {
+      return compilerArguments;
     }
 
 }

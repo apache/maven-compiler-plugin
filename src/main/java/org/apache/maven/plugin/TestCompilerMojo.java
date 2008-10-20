@@ -27,10 +27,11 @@ import java.io.File;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
- * Compiles application test sources
+ * Compiles application test sources.
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
@@ -90,6 +91,48 @@ public class TestCompilerMojo
      * @parameter
      */
     private Set testExcludes = new HashSet();
+
+    /**
+     * The -source argument for the test Java compiler.
+     *
+     * @parameter expression="${maven.compiler.testSource}"
+     */
+    private String testSource;
+
+    /**
+     * The -target argument for the test Java compiler.
+     *
+     * @parameter expression="${maven.compiler.testTarget}"
+     */
+    private String testTarget;
+
+
+    /**
+     * <p>
+     * Sets the arguments to be passed to test compiler (prepending a dash) if fork is set to true.
+     * </p>
+     * <p>
+     * This is because the list of valid arguments passed to a Java compiler
+     * varies based on the compiler version.
+     * </p>
+     *
+     * @parameter
+     * @since 2.0.1
+     */
+    private Map testCompilerArguments;
+
+    /**
+     * <p>
+     * Sets the unformatted argument string to be passed to test compiler if fork is set to true.
+     * </p>
+     * <p>
+     * This is because the list of valid arguments passed to a Java compiler
+     * varies based on the compiler version.
+     * </p>
+     *
+     * @parameter
+     */
+    private String testCompilerArgument;
 
     public void execute()
         throws MojoExecutionException, CompilationFailureException
@@ -158,6 +201,26 @@ public class TestCompilerMojo
         }
 
         return scanner;
+    }
+
+    protected String getSource()
+    {
+      return testSource == null ? source : testSource;
+    }
+
+    protected String getTarget()
+    {
+      return testTarget == null ? target : testTarget;
+    }
+
+    protected String getCompilerArgument()
+    {
+      return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
+    }
+
+    protected Map getCompilerArguments()
+    {
+      return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
     }
 
 }
