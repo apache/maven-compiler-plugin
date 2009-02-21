@@ -25,7 +25,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>13-SNAPSHOT</version>
+    <version>13</version>
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
