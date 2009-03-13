@@ -48,7 +48,7 @@ public class CompilerMojo
      * The default source directories containing the sources to be compiled.
      *
      * @parameter default-value="${project.compileSourceRoots}"
-     * 
+     * @readonly
      */
     private List defaultCompileSourceRoots;
 

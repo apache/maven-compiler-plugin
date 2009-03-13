@@ -56,7 +56,6 @@ public class TestCompilerMojo
      *
      * @parameter default-value="${project.testCompileSourceRoots}"
      * @readonly
-     * @required
      */
     private List defaultCompileSourceRoots;
 
