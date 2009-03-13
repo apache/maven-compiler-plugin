@@ -52,11 +52,18 @@ public class TestCompilerMojo
     private boolean skip;
 
     /**
+     * The default source directories containing the test-source to be compiled.
+     *
+     * @parameter default-value="${project.testCompileSourceRoots}"
+     * @readonly
+     * @required
+     */
+    private List defaultCompileSourceRoots;
+
+    /**
      * The source directories containing the test-source to be compiled.
      *
-     * @parameter expression="${project.testCompileSourceRoots}"
-     * @required
-     * @readonly
+     * @parameter
      */
     private List compileSourceRoots;
 
@@ -72,9 +79,8 @@ public class TestCompilerMojo
     /**
      * The directory where compiled test classes go.
      *
-     * @parameter expression="${project.build.testOutputDirectory}"
+     * @parameter default-value="${project.build.testOutputDirectory}"
      * @required
-     * @readonly
      */
     private File outputDirectory;
 
@@ -149,6 +155,10 @@ public class TestCompilerMojo
 
     protected List getCompileSourceRoots()
     {
+        if( compileSourceRoots == null ) 
+        {
+            compileSourceRoots = defaultCompileSourceRoots;
+        }
         return compileSourceRoots;
     }
 

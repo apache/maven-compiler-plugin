@@ -45,11 +45,18 @@ public class CompilerMojo
     extends AbstractCompilerMojo
 {
     /**
+     * The default source directories containing the sources to be compiled.
+     *
+     * @parameter default-value="${project.compileSourceRoots}"
+     * 
+     */
+    private List defaultCompileSourceRoots;
+
+    /**
      * The source directories containing the sources to be compiled.
      *
-     * @parameter expression="${project.compileSourceRoots}"
-     * @required
-     * @readonly
+     * @parameter
+     * 
      */
     private List compileSourceRoots;
 
@@ -65,9 +72,8 @@ public class CompilerMojo
     /**
      * The directory for compiled classes.
      *
-     * @parameter expression="${project.build.outputDirectory}"
+     * @parameter default-value="${project.build.outputDirectory}"
      * @required
-     * @readonly
      */
     private File outputDirectory;
 
@@ -97,6 +103,10 @@ public class CompilerMojo
 
     protected List getCompileSourceRoots()
     {
+        if( compileSourceRoots == null ) 
+        {
+            compileSourceRoots = defaultCompileSourceRoots;
+        }
         return compileSourceRoots;
     }
 
