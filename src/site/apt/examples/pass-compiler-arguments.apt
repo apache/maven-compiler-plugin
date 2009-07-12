@@ -41,6 +41,7 @@ Pass Compiler Arguments
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.0.2</version>
         <configuration>
           <compilerArgument>-verbose -bootclasspath ${java.home}\lib\rt.jar</compilerArgument>
         </configuration>
@@ -63,6 +64,7 @@ Pass Compiler Arguments
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <version>2.0.2</version>
         <configuration>
           <compilerArguments>
             <verbose />
