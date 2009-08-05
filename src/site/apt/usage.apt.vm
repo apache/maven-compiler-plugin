@@ -1,10 +1,9 @@
  ------
- Compile Using Memory Allocation Enhancements
+ Usage
  ------
  Edwin Punzalan
  ------
  05 July 2006
- ------
 
 ~~ Copyright 2006 The Apache Software Foundation.
 ~~
@@ -24,31 +23,48 @@
 ~~ http://maven.apache.org/doxia/references/apt-format.html
 
 
-Compile Using Memory Allocation Enhancements
+Maven 2 Compiler Plugin: Usage
 
-  The Compiler Plugin accepts configurations for <<<meminitial>>> and
-  <<<maxmem>>>.  You can follow the example below to set the initial memory
-  size to 128MB and the maximum memory usage to 512MB:
+* Compiling Your Java Sources
+
+  The goals for the Compiler Plugin are bound to their respective phases in the
+  build lifecycle.  So to compile your sources, you need only to tell maven
+  until which lifecycle to execute.  The following will compile your sources:
+
++-----
+mvn compile
++-----
+
+  To compile your test sources, you'll do:
+
++-----
+mvn test-compile
++-----
+
+  The above command will execute both <<<compiler:compile>>> and
+  <<<compiler:test-compile>>> since the compile phase happens a few phases
+  before the test-compile phase.
+
+* Configuring Your Compiler Plugin
+
+  Since the Compiler Plugin executes automatically during their phases, you
+  don't have to put <<<executions>>> unlike the other plugins.
 
 +-----
 <project>
-  [...]
+  ...
   <build>
-    [...]
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.0.2</version>
+        <version>${project.version}</version>
         <configuration>
-          <fork>true</fork>
-          <meminitial>128m</meminitial>
-          <maxmem>512m</maxmem>
+          <!-- put your configurations here -->
         </configuration>
       </plugin>
     </plugins>
-    [...]
   </build>
-  [...]
+  ...
 </project>
 +-----

@@ -1,5 +1,5 @@
  ------
- Pass Compiler Arguments
+ Compile Using Memory Allocation Enhancements
  ------
  Edwin Punzalan
  ------
@@ -24,13 +24,11 @@
 ~~ http://maven.apache.org/doxia/references/apt-format.html
 
 
-Pass Compiler Arguments
+Compile Using Memory Allocation Enhancements
 
-  Sometimes, you need to pass other compiler arguments that are not handled by
-  the Compiler Plugin itself but is supported by the <<<compilerId>>> selected.
-  For such arguments, the Compiler Plugin's <<<compilerArguments>>> will be
-  used.  The following example passes compiler arguments to the <<<javac>>>
-  compiler:
+  The Compiler Plugin accepts configurations for <<<meminitial>>> and
+  <<<maxmem>>>.  You can follow the example below to set the initial memory
+  size to 128MB and the maximum memory usage to 512MB:
 
 +-----
 <project>
@@ -41,35 +39,11 @@ Pass Compiler Arguments
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.0.2</version>
+        <version>${project.version}</version>
         <configuration>
-          <compilerArgument>-verbose -bootclasspath ${java.home}\lib\rt.jar</compilerArgument>
-        </configuration>
-      </plugin>
-    </plugins>
-    [...]
-  </build>
-  [...]
-</project>
-+-----
-
-  Or you can also use the Map version:
-
-+-----
-<project>
-  [...]
-  <build>
-    [...]
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>2.0.2</version>
-        <configuration>
-          <compilerArguments>
-            <verbose />
-            <bootclasspath>${java.home}\lib\rt.jar</bootclasspath>
-          </compilerArguments>
+          <fork>true</fork>
+          <meminitial>128m</meminitial>
+          <maxmem>512m</maxmem>
         </configuration>
       </plugin>
     </plugins>
