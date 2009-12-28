@@ -155,7 +155,7 @@ public abstract class AbstractCompilerMojo
      * Allows running the compiler in a separate process.
      * If "false" it uses the built in compiler, while if "true" it will use an executable.
      *
-     * @parameter default-value="false"
+     * @parameter expression="${maven.compiler.fork}" default-value="false"
      */
     private boolean fork;
 
