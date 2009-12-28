@@ -238,7 +238,7 @@ public abstract class AbstractCompilerMojo
     /**
      * The directory to run the compiler from if fork is true.
      *
-     * @parameter expression="${basedir}"
+     * @parameter default-value="${basedir}"
      * @required
      * @readonly
      */
@@ -247,7 +247,7 @@ public abstract class AbstractCompilerMojo
     /**
      * The target directory of the compiler if fork is true.
      *
-     * @parameter expression="${project.build.directory}"
+     * @parameter default-value="${project.build.directory}"
      * @required
      * @readonly
      */
@@ -264,7 +264,7 @@ public abstract class AbstractCompilerMojo
      * The current build session instance. This is used for
      * toolchain manager API calls.
      *
-     * @parameter expression="${session}"
+     * @parameter default-value="${session}"
      * @required
      * @readonly
      */

@@ -54,7 +54,7 @@ public class TestCompilerMojo
     /**
      * The source directories containing the test-source to be compiled.
      *
-     * @parameter expression="${project.testCompileSourceRoots}"
+     * @parameter default-value="${project.testCompileSourceRoots}"
      * @required
      * @readonly
      */
@@ -63,7 +63,7 @@ public class TestCompilerMojo
     /**
      * Project test classpath.
      *
-     * @parameter expression="${project.testClasspathElements}"
+     * @parameter default-value="${project.testClasspathElements}"
      * @required
      * @readonly
      */
@@ -72,7 +72,7 @@ public class TestCompilerMojo
     /**
      * The directory where compiled test classes go.
      *
-     * @parameter expression="${project.build.testOutputDirectory}"
+     * @parameter default-value="${project.build.testOutputDirectory}"
      * @required
      * @readonly
      */

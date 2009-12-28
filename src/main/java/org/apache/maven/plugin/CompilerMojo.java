@@ -47,7 +47,7 @@ public class CompilerMojo
     /**
      * The source directories containing the sources to be compiled.
      *
-     * @parameter expression="${project.compileSourceRoots}"
+     * @parameter default-value="${project.compileSourceRoots}"
      * @required
      * @readonly
      */
@@ -56,7 +56,7 @@ public class CompilerMojo
     /**
      * Project classpath.
      *
-     * @parameter expression="${project.compileClasspathElements}"
+     * @parameter default-value="${project.compileClasspathElements}"
      * @required
      * @readonly
      */
@@ -65,7 +65,7 @@ public class CompilerMojo
     /**
      * The directory for compiled classes.
      *
-     * @parameter expression="${project.build.outputDirectory}"
+     * @parameter default-value="${project.build.outputDirectory}"
      * @required
      * @readonly
      */
@@ -74,7 +74,7 @@ public class CompilerMojo
     /**
      * Project artifacts.
      *
-     * @parameter expression="${project.artifact}"
+     * @parameter default-value="${project.artifact}"
      * @required
      * @readonly
      * @todo this is an export variable, really
