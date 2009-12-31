@@ -24,17 +24,6 @@ under the License.
   xsi:schemaLocation="http://maven.apache.org/FML/1.0.1 http://maven.apache.org/xsd/fml-1.0.1.xsd"
   title="Frequently Asked Questions">
   <part id="General">
-    <faq id="compile-error-reports">
-      <question>Is there a way to get Maven to report the number of compile errors found?</question>
-      <answer>
-        <p>
-          Currently, this type of summary information is not built into the compiler plugin, but it
-          would be possible to add. If this feature is important to you, add your vote to
-          <a href="http://jira.codehaus.org/browse/MNG-1854">MNG-1854</a>
-          .
-        </p>
-      </answer>
-    </faq>
     <faq id="how-to-add-generated-sources">
       <question>How do I add my generated sources to the compile path of Maven, when using modello?</question>
       <answer>
