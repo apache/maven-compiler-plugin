@@ -25,16 +25,16 @@ under the License.
   title="Frequently Asked Questions">
   <part id="General">
     <faq id="how-to-add-generated-sources">
-      <question>How do I add my generated sources to the compile path of Maven, when using modello?</question>
+      <question>How do I add my generated sources to the compile path of Maven, when using Modello?</question>
       <answer>
         <p>Modello generate the sources in the generate-sources phase and automatically adds the
-          source directory for compilation in maven. So you don't have to copy the generated sources.
+          source directory for compilation in Maven. So you don't have to copy the generated sources.
         </p>
-        <p>You have to declare the modello-plugin in the build of your plugin for source generation
-          (in that way the sources are generated each time).
+        <p>You have to declare the <a href="http://modello.codehaus.org/modello-maven-plugin/">Modello Maven Plugin</a>
+          in the build of your project for source generation (in that way the sources are generated each time).
         </p>
-        <p>The Modello website can be found
-          <a href="http://modello.codehaus.org/">here</a>
+        <p>For more information about Modello, please visit the
+          <a href="http://modello.codehaus.org/">Modello website</a>
           .
         </p>
       </answer>
