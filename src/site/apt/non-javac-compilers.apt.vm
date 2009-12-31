@@ -73,7 +73,7 @@ Using Non-Javac Compilers
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-compiler-csharp</artifactId>
-            <version>1.5.2</version>
+            <version>1.6</version>
           </dependency>
         </dependencies>
       </plugin>
