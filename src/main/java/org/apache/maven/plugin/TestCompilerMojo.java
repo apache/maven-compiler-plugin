@@ -96,6 +96,7 @@ public class TestCompilerMojo
      * The -source argument for the test Java compiler.
      *
      * @parameter expression="${maven.compiler.testSource}"
+     * @since 2.1
      */
     private String testSource;
 
@@ -103,6 +104,7 @@ public class TestCompilerMojo
      * The -target argument for the test Java compiler.
      *
      * @parameter expression="${maven.compiler.testTarget}"
+     * @since 2.1
      */
     private String testTarget;
 
@@ -117,7 +119,7 @@ public class TestCompilerMojo
      * </p>
      *
      * @parameter
-     * @since 2.0.1
+     * @since 2.1
      */
     private Map testCompilerArguments;
 
@@ -131,6 +133,7 @@ public class TestCompilerMojo
      * </p>
      *
      * @parameter
+     * @since 2.1
      */
     private String testCompilerArgument;
 
