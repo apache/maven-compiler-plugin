@@ -526,34 +526,34 @@ public abstract class AbstractCompilerMojo
                 getLog().debug( " " + root );
             }
 
-            if ( fork )
+            try
             {
-                try
+                if ( fork )
                 {
                     if ( compilerConfiguration.getExecutable() != null )
                     {
                         getLog().debug( "Excutable: " );
                         getLog().debug( " " + compilerConfiguration.getExecutable() );
                     }
+                }
 
-                    String[] cl = compiler.createCommandLine( compilerConfiguration );
-                    if ( cl != null && cl.length > 0 )
-                    {
-                        StringBuffer sb = new StringBuffer();
-                        sb.append( cl[0] );
-                        for ( int i = 1; i < cl.length; i++ )
-                        {
-                            sb.append( " " );
-                            sb.append( cl[i] );
-                        }
-                        getLog().debug( "Command line options:" );
-                        getLog().debug( sb );
-                    }
-                }
-                catch ( CompilerException ce )
+                String[] cl = compiler.createCommandLine( compilerConfiguration );
+                if ( cl != null && cl.length > 0 )
                 {
-                    getLog().debug( ce );
+                    StringBuffer sb = new StringBuffer();
+                    sb.append( cl[0] );
+                    for ( int i = 1; i < cl.length; i++ )
+                    {
+                        sb.append( " " );
+                        sb.append( cl[i] );
+                    }
+                    getLog().debug( "Command line options:" );
+                    getLog().debug( sb );
                 }
+            }
+            catch ( CompilerException ce )
+            {
+                getLog().debug( ce );
             }
         }
 
