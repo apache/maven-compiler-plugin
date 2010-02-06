@@ -36,10 +36,6 @@ under the License.
   <description>The Compiler Plugin is used to compile the sources of your project.</description>
   <inceptionYear>2001</inceptionYear>
 
-  <properties>
-  	<plexus-compiler-version>1.7</plexus-compiler-version>
-  </properties>
-  
   <prerequisites>
     <maven>2.0.9</maven>
   </prerequisites>
@@ -82,7 +78,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-api</artifactId>
-      <version>${plexus-compiler-version}</version>
+      <version>1.7</version>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
@@ -98,7 +94,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-manager</artifactId>
-      <version>${plexus-compiler-version}</version>
+      <version>1.7</version>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
@@ -109,7 +105,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-javac</artifactId>
-      <version>${plexus-compiler-version}</version>
+      <version>1.7.1</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>
