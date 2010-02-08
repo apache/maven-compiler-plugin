@@ -576,35 +576,50 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Fatal error compiling", e );
         }
 
-        boolean compilationError = false;
-
+        List<CompilerError> warnings = new ArrayList<CompilerError>();
+        List<CompilerError> errors = new ArrayList<CompilerError>();
         if ( messages != null )
         {
             for ( CompilerError message : messages )
             {
                 if ( message.isError() )
                 {
-                    compilationError = true;
-                    break;
+                    errors.add( message );
+                }
+                else
+                {
+                    warnings.add( message );
                 }
             }
         }
 
-        if ( compilationError && failOnError )
+        if ( failOnError && !errors.isEmpty() )
         {
+            if ( !warnings.isEmpty() )
+            {
+                getLog().info( "-------------------------------------------------------------" );
+                getLog().warn( "COMPILATION WARNING : " );
+                getLog().info( "-------------------------------------------------------------" );
+                for ( CompilerError warning : warnings )
+                {
+                    getLog().warn( warning.toString() );
+                }
+                getLog().info( warnings.size() + ( ( warnings.size() > 1 ) ? " warnings " : "warning" ) );
+                getLog().info( "-------------------------------------------------------------" );
+            }
+            
             getLog().info( "-------------------------------------------------------------" );
             getLog().error( "COMPILATION ERROR : " );
             getLog().info( "-------------------------------------------------------------" );
-            if ( messages != null )
+            
+            for ( CompilerError error : errors )
             {
-                for ( CompilerError message : messages )
-                {
-                    getLog().error( message.toString() );
-                }
-                getLog().info( messages.size() + ( ( messages.size() > 1 ) ? " errors " : "error" ) );
-                getLog().info( "-------------------------------------------------------------" );
+                    getLog().error( error.toString() );
             }
-            throw new CompilationFailureException( messages );
+            getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : "error" ) );
+            getLog().info( "-------------------------------------------------------------" );
+            
+            throw new CompilationFailureException( errors );
         }
         else
         {
