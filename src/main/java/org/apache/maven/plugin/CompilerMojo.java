@@ -51,7 +51,7 @@ public class CompilerMojo
      * @required
      * @readonly
      */
-    private List compileSourceRoots;
+    private List<String> compileSourceRoots;
 
     /**
      * Project classpath.
@@ -60,7 +60,7 @@ public class CompilerMojo
      * @required
      * @readonly
      */
-    private List classpathElements;
+    private List<String> classpathElements;
 
     /**
      * The directory for compiled classes.
@@ -86,21 +86,21 @@ public class CompilerMojo
      *
      * @parameter
      */
-    private Set includes = new HashSet();
+    private Set<String> includes = new HashSet<String>();
 
     /**
      * A list of exclusion filters for the compiler.
      *
      * @parameter
      */
-    private Set excludes = new HashSet();
+    private Set<String> excludes = new HashSet<String>();
 
-    protected List getCompileSourceRoots()
+    protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
     }
 
-    protected List getClasspathElements()
+    protected List<String> getClasspathElements()
     {
         return classpathElements;
     }
@@ -174,7 +174,7 @@ public class CompilerMojo
       return compilerArgument;
     }
 
-    protected Map getCompilerArguments()
+    protected Map<String, String> getCompilerArguments()
     {
       return compilerArguments;
     }

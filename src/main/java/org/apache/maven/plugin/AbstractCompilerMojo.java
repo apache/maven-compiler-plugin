@@ -196,7 +196,7 @@ public abstract class AbstractCompilerMojo
      * @parameter
      * @since 2.0.1
      */
-    protected Map compilerArguments;
+    protected Map<String, String> compilerArguments;
 
     /**
      * <p>
@@ -274,9 +274,9 @@ public abstract class AbstractCompilerMojo
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
 
-    protected abstract List getClasspathElements();
+    protected abstract List<String> getClasspathElements();
 
-    protected abstract List getCompileSourceRoots();
+    protected abstract List<String> getCompileSourceRoots();
 
     protected abstract File getOutputDirectory();
     
@@ -286,8 +286,9 @@ public abstract class AbstractCompilerMojo
     
     protected abstract String getCompilerArgument();
     
-    protected abstract Map getCompilerArguments();
+    protected abstract Map<String, String> getCompilerArguments();
 
+    @SuppressWarnings( "unchecked" )
     public void execute()
         throws MojoExecutionException, CompilationFailureException
     {
@@ -331,7 +332,7 @@ public abstract class AbstractCompilerMojo
         //
         // ----------------------------------------------------------------------
 
-        List compileSourceRoots = removeEmptyCompileSourceRoots( getCompileSourceRoots() );
+        List<String> compileSourceRoots = removeEmptyCompileSourceRoots( getCompileSourceRoots() );
 
         if ( compileSourceRoots.isEmpty() )
         {
@@ -390,18 +391,17 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setSourceEncoding( encoding );
         
-        Map effectiveCompilerArguments = getCompilerArguments();
+        Map<String, String> effectiveCompilerArguments = getCompilerArguments();
 
         String effectiveCompilerArgument = getCompilerArgument();
 
         if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) )
         {
-            LinkedHashMap cplrArgsCopy = new LinkedHashMap();
+            LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
             if ( effectiveCompilerArguments != null )
             {
-                for ( Iterator i = effectiveCompilerArguments.entrySet().iterator(); i.hasNext(); )
+                for ( Map.Entry<String, String> me : effectiveCompilerArguments.entrySet() )
                 {
-                    Map.Entry me = (Map.Entry) i.next();
                     String key = (String) me.getKey();
                     String value = (String) me.getValue();
                     if ( !key.startsWith( "-" ) )
@@ -462,7 +462,7 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setOutputFileName( outputFileName );
 
         // TODO: have an option to always compile (without need to clean)
-        Set staleSources;
+        Set<File> staleSources;
 
         boolean canUpdateTarget;
 
@@ -480,7 +480,7 @@ public abstract class AbstractCompilerMojo
                 // TODO: This second scan for source files is sub-optimal
                 String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
 
-                Set sources = computeStaleSources( compilerConfiguration, compiler,
+                Set<File> sources = computeStaleSources( compilerConfiguration, compiler,
                                                    getSourceInclusionScanner( inputFileEnding ) );
 
                 compilerConfiguration.setSourceFiles( sources );
@@ -510,19 +510,15 @@ public abstract class AbstractCompilerMojo
         {
             getLog().debug( "Classpath:" );
 
-            for ( Iterator it = getClasspathElements().iterator(); it.hasNext(); )
+            for ( String s : getClasspathElements() )
             {
-                String s = (String) it.next();
-
                 getLog().debug( " " + s );
             }
 
             getLog().debug( "Source roots:" );
 
-            for ( Iterator it = getCompileSourceRoots().iterator(); it.hasNext(); )
+            for ( String root : getCompileSourceRoots() )
             {
-                String root = (String) it.next();
-
                 getLog().debug( " " + root );
             }
 
@@ -568,7 +564,7 @@ public abstract class AbstractCompilerMojo
                                + ", i.e. build is platform dependent!" );
         }
 
-        List messages;
+        List<CompilerError> messages;
 
         try
         {
@@ -582,14 +578,15 @@ public abstract class AbstractCompilerMojo
 
         boolean compilationError = false;
 
-        for ( Iterator i = messages.iterator(); i.hasNext(); )
+        if ( messages != null )
         {
-            CompilerError message = (CompilerError) i.next();
-
-            if ( message.isError() )
+            for ( CompilerError message : messages )
             {
-                compilationError = true;
-                break;
+                if ( message.isError() )
+                {
+                    compilationError = true;
+                    break;
+                }
             }
         }
 
@@ -600,12 +597,9 @@ public abstract class AbstractCompilerMojo
             getLog().info( "-------------------------------------------------------------" );
             if ( messages != null )
             {
-                for ( Iterator i = messages.iterator(); i.hasNext(); )
+                for ( CompilerError message : messages )
                 {
-                    CompilerError message = (CompilerError) i.next();
-
                     getLog().error( message.toString() );
-
                 }
                 getLog().info( messages.size() + ( ( messages.size() > 1 ) ? " errors " : "error" ) );
                 getLog().info( "-------------------------------------------------------------" );
@@ -614,10 +608,8 @@ public abstract class AbstractCompilerMojo
         }
         else
         {
-            for ( Iterator i = messages.iterator(); i.hasNext(); )
+            for ( CompilerError message : messages )
             {
-                CompilerError message = (CompilerError) i.next();
-
                 getLog().warn( message.toString() );
             }
         }
@@ -667,7 +659,8 @@ public abstract class AbstractCompilerMojo
         return true;
     }
 
-    private Set computeStaleSources( CompilerConfiguration compilerConfiguration, Compiler compiler,
+    @SuppressWarnings( "unchecked" )
+    private Set<File> computeStaleSources( CompilerConfiguration compilerConfiguration, Compiler compiler,
                                      SourceInclusionScanner scanner )
         throws MojoExecutionException, CompilerException
     {
@@ -698,12 +691,10 @@ public abstract class AbstractCompilerMojo
 
         scanner.addSourceMapping( mapping );
 
-        Set staleSources = new HashSet();
+        Set<File> staleSources = new HashSet<File>();
 
-        for ( Iterator it = getCompileSourceRoots().iterator(); it.hasNext(); )
+        for ( String sourceRoot : getCompileSourceRoots() )
         {
-            String sourceRoot = (String) it.next();
-
             File rootFile = new File( sourceRoot );
 
             if ( !rootFile.isDirectory() )
@@ -729,15 +720,14 @@ public abstract class AbstractCompilerMojo
      * @todo also in ant plugin. This should be resolved at some point so that it does not need to
      * be calculated continuously - or should the plugins accept empty source roots as is?
      */
-    private static List removeEmptyCompileSourceRoots( List compileSourceRootsList )
+    private static List<String> removeEmptyCompileSourceRoots( List<String> compileSourceRootsList )
     {
-        List newCompileSourceRootsList = new ArrayList();
+        List<String> newCompileSourceRootsList = new ArrayList<String>();
         if ( compileSourceRootsList != null )
         {
             // copy as I may be modifying it
-            for ( Iterator i = compileSourceRootsList.iterator(); i.hasNext(); )
+            for ( String srcDir : compileSourceRootsList )
             {
-                String srcDir = (String) i.next();
                 if ( !newCompileSourceRootsList.contains( srcDir ) && new File( srcDir ).exists() )
                 {
                     newCompileSourceRootsList.add( srcDir );

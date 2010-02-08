@@ -58,7 +58,7 @@ public class TestCompilerMojo
      * @required
      * @readonly
      */
-    private List compileSourceRoots;
+    private List<String> compileSourceRoots;
 
     /**
      * Project test classpath.
@@ -67,7 +67,7 @@ public class TestCompilerMojo
      * @required
      * @readonly
      */
-    private List classpathElements;
+    private List<String> classpathElements;
 
     /**
      * The directory where compiled test classes go.
@@ -83,14 +83,14 @@ public class TestCompilerMojo
      *
      * @parameter
      */
-    private Set testIncludes = new HashSet();
+    private Set<String> testIncludes = new HashSet<String>();
 
     /**
      * A list of exclusion filters for the compiler.
      *
      * @parameter
      */
-    private Set testExcludes = new HashSet();
+    private Set<String> testExcludes = new HashSet<String>();
 
     /**
      * The -source argument for the test Java compiler.
@@ -121,7 +121,7 @@ public class TestCompilerMojo
      * @parameter
      * @since 2.1
      */
-    private Map testCompilerArguments;
+    private Map<String, String> testCompilerArguments;
 
     /**
      * <p>
@@ -150,12 +150,12 @@ public class TestCompilerMojo
         }
     }
 
-    protected List getCompileSourceRoots()
+    protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
     }
 
-    protected List getClasspathElements()
+    protected List<String> getClasspathElements()
     {
         return classpathElements;
     }
@@ -221,7 +221,7 @@ public class TestCompilerMojo
       return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
     }
 
-    protected Map getCompilerArguments()
+    protected Map<String, String> getCompilerArguments()
     {
       return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
     }

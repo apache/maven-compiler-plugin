@@ -21,7 +21,6 @@ package org.apache.maven.plugin;
 
 import org.codehaus.plexus.compiler.CompilerError;
 
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -29,25 +28,27 @@ import java.util.List;
  * @version $Id$
  * @since 2.0
  */
+@SuppressWarnings( "serial" )
 public class CompilationFailureException
     extends MojoFailureException
 {
     private static final String LS = System.getProperty( "line.separator" );
 
-    public CompilationFailureException( List messages )
+    public CompilationFailureException( List<CompilerError> messages )
     {
         super( null, shortMessage( messages ), longMessage( messages ) );
     }
 
-    public static String longMessage( List messages )
+    public static String longMessage( List<CompilerError> messages )
     {
         StringBuffer sb = new StringBuffer();
 
-        for ( Iterator it = messages.iterator(); it.hasNext(); )
+        if ( messages != null )
         {
-            CompilerError compilerError = (CompilerError) it.next();
-
-            sb.append( compilerError ).append( LS );
+            for ( CompilerError compilerError : messages )
+            {
+                sb.append( compilerError ).append( LS );
+            }
         }
         return sb.toString();
     }
@@ -59,7 +60,7 @@ public class CompilationFailureException
      * @return the short error message
      * @since 2.0.2
      */
-    public static String shortMessage( List messages )
+    public static String shortMessage( List<CompilerError> messages )
     {
         StringBuffer sb = new StringBuffer();
 
