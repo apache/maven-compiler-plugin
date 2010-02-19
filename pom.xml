@@ -50,6 +50,15 @@ under the License.
     <url>http://jira.codehaus.org/browse/MCOMPILER</url>
   </issueManagement>
 
+  <!-- FIXME: remove once not depending on snapshots -->
+  <repositories>
+      <repository>
+          <id>plexus.snapshot</id>
+          <url>http://oss.repository.sonatype.org/content/repositories/plexus-snapshots</url>
+      </repository>
+  </repositories>
+
+
   <dependencies>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
@@ -78,7 +87,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-api</artifactId>
-      <version>1.7</version>
+      <version>1.8-SNAPSHOT</version>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
@@ -94,7 +103,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-manager</artifactId>
-      <version>1.7</version>
+      <version>1.8-SNAPSHOT</version>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
@@ -105,7 +114,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-javac</artifactId>
-      <version>1.7.1</version>
+      <version>1.8-SNAPSHOT</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>

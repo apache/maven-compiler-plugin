@@ -21,6 +21,7 @@ package org.apache.maven.plugin;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -186,6 +187,22 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
+     * Sets whether annotation processing is performed or not. Only applies to JDK 1.6+
+     * If not set, both compilation and annotation processing are performed at the same time.
+     * </p>
+     * <p>
+     * Allowed values are:
+     *    none - no annotation processing is performed.
+     *    only - only annotation processing is done, no compilation.
+     * </p>
+     *
+     * @parameter
+     * @since 2.2
+     */
+    private String proc;
+
+    /**
+     * <p>
      * Sets the arguments to be passed to the compiler (prepending a dash) if fork is set to true.
      * </p>
      * <p>
@@ -288,6 +305,8 @@ public abstract class AbstractCompilerMojo
     
     protected abstract Map<String, String> getCompilerArguments();
 
+    protected abstract File getGeneratedSourcesDirectory();
+
     @SuppressWarnings( "unchecked" )
     public void execute()
         throws MojoExecutionException, CompilationFailureException
@@ -388,6 +407,10 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setSourceVersion( getSource() );
 
         compilerConfiguration.setTargetVersion( getTarget() );
+
+        compilerConfiguration.setProc(proc);
+
+        compilerConfiguration.setGeneratedSourcesDirectory( getGeneratedSourcesDirectory() );
 
         compilerConfiguration.setSourceEncoding( encoding );
         

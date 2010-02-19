@@ -137,6 +137,17 @@ public class TestCompilerMojo
      */
     private String testCompilerArgument;
 
+    /**
+     * <p>
+     * Specify where to place generated source files created by annotation processing.
+     * Only applies to JDK 1.6+
+     * </p>
+     * @parameter default-value="${project.build.directory}/generated-sources/test-annotations"
+     * @since 2.2
+     */
+    private File generatedTestSourcesDirectory;
+
+
     public void execute()
         throws MojoExecutionException, CompilationFailureException
     {
@@ -224,6 +235,11 @@ public class TestCompilerMojo
     protected Map<String, String> getCompilerArguments()
     {
       return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
+    }
+
+    protected File getGeneratedSourcesDirectory() 
+    {
+        return generatedTestSourcesDirectory;
     }
 
 }

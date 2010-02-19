@@ -95,6 +95,17 @@ public class CompilerMojo
      */
     private Set<String> excludes = new HashSet<String>();
 
+    /**
+     * <p>
+     * Specify where to place generated source files created by annotation processing.
+     * Only applies to JDK 1.6+
+     * </p>
+     * @parameter default-value="${project.build.directory}/generated-sources/annotations"
+     * @since 2.2
+     */
+    private File generatedSourcesDirectory;
+
+
     protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
@@ -177,6 +188,11 @@ public class CompilerMojo
     protected Map<String, String> getCompilerArguments()
     {
       return compilerArguments;
+    }
+
+    protected File getGeneratedSourcesDirectory()
+    {
+        return generatedSourcesDirectory;
     }
 
 }
