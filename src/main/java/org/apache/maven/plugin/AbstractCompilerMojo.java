@@ -21,9 +21,7 @@ package org.apache.maven.plugin;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -200,6 +198,17 @@ public abstract class AbstractCompilerMojo
      * @since 2.2
      */
     private String proc;
+
+    /**
+     * <p>
+     *  Names of annotation processors to run. Only applies to JDK 1.6+
+     * If not set, the default annotation processors discovery process applies.
+     * </p>
+     *
+     * @parameter
+     * @since 2.2
+     */
+    private String[] annotationProcessors;
 
     /**
      * <p>
@@ -408,9 +417,11 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setTargetVersion( getTarget() );
 
-        compilerConfiguration.setProc(proc);
+        compilerConfiguration.setProc( proc );
 
         compilerConfiguration.setGeneratedSourcesDirectory( getGeneratedSourcesDirectory() );
+
+        compilerConfiguration.setAnnotationProcessors( annotationProcessors );
 
         compilerConfiguration.setSourceEncoding( encoding );
         
