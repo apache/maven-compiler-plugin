@@ -29,7 +29,7 @@ under the License.
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>2.2</version>
+  <version>2.3-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Maven Compiler Plugin</name>
@@ -41,9 +41,9 @@ under the License.
   </prerequisites>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/tags/maven-compiler-plugin-2.2</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/tags/maven-compiler-plugin-2.2</developerConnection>
-    <url>http://svn.apache.org/viewvc/maven/plugins/tags/maven-compiler-plugin-2.2</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</developerConnection>
+    <url>http://svn.apache.org/viewvc/maven/plugins/trunk/maven-compiler-plugin/</url>
   </scm>
   <issueManagement>
     <system>JIRA</system>
