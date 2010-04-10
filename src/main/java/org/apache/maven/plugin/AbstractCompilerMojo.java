@@ -109,14 +109,14 @@ public abstract class AbstractCompilerMojo
     /**
      * The -source argument for the Java compiler.
      *
-     * @parameter expression="${maven.compiler.source}"
+     * @parameter expression="${maven.compiler.source}" default-value="1.5"
      */
     protected String source;
 
     /**
      * The -target argument for the Java compiler.
      *
-     * @parameter expression="${maven.compiler.target}"
+     * @parameter expression="${maven.compiler.target}" default-value="1.5"
      */
     protected String target;
 
