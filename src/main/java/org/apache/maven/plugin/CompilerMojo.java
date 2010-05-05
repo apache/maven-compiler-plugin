@@ -39,6 +39,7 @@ import java.util.Set;
  * @since 2.0
  * @goal compile
  * @phase compile
+ * @threadSafe
  * @requiresDependencyResolution compile
  */
 public class CompilerMojo

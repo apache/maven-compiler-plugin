@@ -38,6 +38,7 @@ import java.util.Set;
  * @since 2.0
  * @goal testCompile
  * @phase test-compile
+ * @threadSafe
  * @requiresDependencyResolution test
  */
 public class TestCompilerMojo
