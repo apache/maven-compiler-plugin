@@ -19,7 +19,7 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
-import static org.codehaus.plexus.util.FileUtils.copyDirectory;
+import static org.codehaus.plexus.util.FileUtils.copyDirectoryStructure;
 
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
@@ -154,7 +154,8 @@ public class CompileExtrasMojo
         {
             try
             {
-                copyDirectory( outputDirectory, mainOutputDirectory );
+                mainOutputDirectory.mkdirs();
+                copyDirectoryStructure( outputDirectory, mainOutputDirectory );
             }
             catch ( final IOException e )
             {

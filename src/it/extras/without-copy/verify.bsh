@@ -1,0 +1,63 @@
+import java.io.*;
+import java.util.*;
+import java.util.regex.*;
+
+try
+{
+    File targetDir = new File( basedir, "target" );
+
+    File mainClass = new File( targetDir, "classes/org/apache/maven/it0055/Person.class" );
+    System.out.println( "Checking for existence of: " + mainClass );
+    if ( !mainClass.isFile() )
+    {
+        System.err.println( "FAILED!" );
+        return false;
+    }
+
+    File extraMainClassOrigin = new File( targetDir, "extra-classes/org/apache/maven/it0055/PersonTwo.class" );
+    System.out.println( "Checking for existence of: " + extraMainClassOrigin );
+    if ( !extraMainClassOrigin.exists() )
+    {
+        System.err.println( "FAILED!" );
+        return false;
+    }
+
+    File extraMainClass = new File( targetDir, "classes/org/apache/maven/it0055/PersonTwo.class" );
+    System.out.println( "Checking for absence of: " + extraMainClass );
+    if ( extraMainClass.exists() )
+    {
+        System.err.println( "FAILED!" );
+        return false;
+    }
+
+    File testClass = new File( targetDir, "test-classes/org/apache/maven/it0055/PersonTest.class" );
+    System.out.println( "Checking for existence of: " + testClass );
+    if ( !testClass.isFile() )
+    {
+        System.err.println( "FAILED!" );
+        return false;
+    }
+
+    File extraTestClassOrigin = new File( targetDir, "extra-test-classes/org/apache/maven/it0055/PersonTwoTest.class" );
+    System.out.println( "Checking for existence of: " + extraTestClassOrigin );
+    if ( !extraTestClassOrigin.exists() )
+    {
+        System.err.println( "FAILED!" );
+        return false;
+    }
+
+    File extraTestClass = new File( targetDir, "test-classes/org/apache/maven/it0055/PersonTwoTest.class" );
+    System.out.println( "Checking for absence of: " + extraTestClass );
+    if ( extraTestClass.exists() )
+    {
+        System.err.println( "FAILED!" );
+        return false;
+    }
+}
+catch( Throwable t )
+{
+    t.printStackTrace();
+    return false;
+}
+
+return true;
