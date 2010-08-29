@@ -99,7 +99,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-manager</artifactId>
-      <version>1.8</version>
+      <version>1.8.1</version>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
@@ -110,7 +110,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-javac</artifactId>
-      <version>1.8</version>
+      <version>1.8.1</version>
       <scope>runtime</scope>
       <exclusions>
         <exclusion>

@@ -1,0 +1,15 @@
+import java.io.*;
+import java.util.*;
+import java.util.regex.*;
+
+File mainClass = new File( basedir, "target/classes/MyClass.class" );
+if ( !mainClass.isFile() )
+{
+    throw new FileNotFoundException( "Main class not existent: " + mainClass );
+}
+
+File testClass = new File( basedir, "target/test-classes/MyTest.class" );
+if ( !testClass.isFile() )
+{
+    throw new FileNotFoundException( "Test class not existent: " + testClass );
+}
