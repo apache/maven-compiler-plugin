@@ -638,7 +638,7 @@ public abstract class AbstractCompilerMojo
                 {
                     getLog().warn( warning.toString() );
                 }
-                getLog().info( warnings.size() + ( ( warnings.size() > 1 ) ? " warnings " : "warning" ) );
+                getLog().info( warnings.size() + ( ( warnings.size() > 1 ) ? " warnings " : " warning" ) );
                 getLog().info( "-------------------------------------------------------------" );
             }
             
@@ -650,7 +650,7 @@ public abstract class AbstractCompilerMojo
             {
                     getLog().error( error.toString() );
             }
-            getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : "error" ) );
+            getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : " error" ) );
             getLog().info( "-------------------------------------------------------------" );
             
             throw new CompilationFailureException( errors );
