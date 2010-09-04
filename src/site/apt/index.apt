@@ -30,7 +30,7 @@ Maven Compiler Plugin
 
   The Compiler Plugin is used to compile the sources of your project.  The
   default compiler is <<<javac>>> and is used to compile Java sources.
-  The default <<<source>>> setting is <<<1.5>>> and the default <<<target>>>
+  Also note that at present the default <<<source>>> setting is <<<1.5>>> and the default <<<target>>>
   setting is <<<1.5>>>, independently of the JDK you run Maven with.
   If you want to change these defaults, you should set <<<source>>> and <<<target>>>
   as described in
@@ -41,8 +41,8 @@ Maven Compiler Plugin
 
   This Compiler Plugin is the Maven 2 version of Maven 1.x's Java Plugin.
 
-  <<NOTE:>> <To know more about the Java JDK 1.4 javac, please see:
-  {{http://java.sun.com/j2se/1.4.2/docs/tooldocs/tools.html#basic}}.>
+  <<NOTE:>> <To know more about the JDK javac, please see:
+  {{http://download.oracle.com/javase/6/docs/technotes/tools/windows/javac.html}}.>
 
 * Goals Overview
 

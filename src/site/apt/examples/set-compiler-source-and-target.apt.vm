@@ -58,3 +58,10 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   [...]
 </project>
 +-----
+
+  <<Note:>> Merely setting the <<<target>>> option does not guarantee that your code actually runs on a JRE with the
+  specified version. The pitfall is unintended usage of APIs that only exist in later JREs which would make your code
+  fail at runtime with a linkage error. To avoid this issue, you can either configure the compiler's boot classpath
+  to match the target JRE or use the
+  {{{http://mojo.codehaus.org/animal-sniffer-maven-plugin/}Animal Sniffer Maven Plugin}} to verify your code doesn't
+  use unintended APIs.
