@@ -39,7 +39,7 @@ Maven Compiler Plugin
   Other compilers than <<<javac>>> can be used and work has already started
   on AspectJ, .NET, and C#.
 
-  This Compiler Plugin is the Maven 2 version of Maven 1.x's Java Plugin.
+  This Compiler Plugin corresponds to Maven 1.x's Java Plugin.
 
   <<NOTE:>> <To know more about the JDK javac, please see:
   {{http://download.oracle.com/javase/6/docs/technotes/tools/windows/javac.html}}.>
