@@ -45,7 +45,7 @@ public class TestCompilerMojo
     extends AbstractCompilerMojo
 {
     /**
-     * Set this to 'true' to bypass unit tests entirely.
+     * Set this to 'true' to bypass compilation of test sources.
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
      *
      * @parameter expression="${maven.test.skip}"
