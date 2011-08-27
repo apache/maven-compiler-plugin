@@ -127,7 +127,10 @@ public class CompilerMojo
     {
         super.execute();
 
-        projectArtifact.setFile( outputDirectory );
+        if ( outputDirectory.isDirectory() )
+        {
+            projectArtifact.setFile( outputDirectory );
+        }
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )

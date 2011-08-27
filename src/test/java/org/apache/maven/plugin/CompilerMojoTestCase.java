@@ -19,17 +19,18 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
-import org.apache.maven.plugin.stubs.CompilerManagerStub;
-import org.apache.maven.plugin.stubs.DebugEnabledLog;
-import org.apache.maven.plugin.testing.AbstractMojoTestCase;
-import org.apache.maven.plugin.testing.stubs.ArtifactStub;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugin.stubs.CompilerManagerStub;
+import org.apache.maven.plugin.stubs.DebugEnabledLog;
+import org.apache.maven.plugin.testing.AbstractMojoTestCase;
+import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 
 public class CompilerMojoTestCase
     extends AbstractMojoTestCase
@@ -54,6 +55,9 @@ public class CompilerMojoTestCase
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-basic-test/plugin-config.xml" );
 
         testCompileMojo.execute();
+        
+        Artifact projectArtifact = (Artifact) getVariableValueFromObject( compileMojo, "projectArtifact" );
+        assertNotNull( "MCOMPILER-94: artifact file should only be null if there is nothing to compile", projectArtifact.getFile() );
 
         testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile0Test.class" );
 
@@ -74,6 +78,9 @@ public class CompilerMojoTestCase
         compileMojo.execute();
 
         assertFalse( compileMojo.getOutputDirectory().exists() );
+
+        Artifact projectArtifact = (Artifact) getVariableValueFromObject( compileMojo, "projectArtifact" );
+        assertNull( "MCOMPILER-94: artifact file should be null if there is nothing to compile", projectArtifact.getFile() );
 
         TestCompilerMojo testCompileMojo =
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-empty-source-test/plugin-config.xml" );
