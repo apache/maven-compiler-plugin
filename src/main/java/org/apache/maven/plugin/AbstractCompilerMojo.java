@@ -64,7 +64,7 @@ public abstract class AbstractCompilerMojo
     // ----------------------------------------------------------------------
 
     /**
-     * Indicates whether the build will continue even if there are compilation errors; defaults to true.
+     * Indicates whether the build will continue even if there are compilation errors.
      *
      * @parameter expression="${maven.compiler.failOnError}" default-value="true"
      * @since 2.0.2
@@ -72,14 +72,14 @@ public abstract class AbstractCompilerMojo
     private boolean failOnError = true;
 
     /**
-     * Set to true to include debugging information in the compiled class files.
+     * Set to <code>true</code> to include debugging information in the compiled class files.
      *
      * @parameter expression="${maven.compiler.debug}" default-value="true"
      */
     private boolean debug = true;
 
     /**
-     * Set to true to show messages about what the compiler is doing.
+     * Set to <code>true</code> to show messages about what the compiler is doing.
      *
      * @parameter expression="${maven.compiler.verbose}" default-value="false"
      */
@@ -93,14 +93,14 @@ public abstract class AbstractCompilerMojo
     private boolean showDeprecation;
 
     /**
-     * Set to true to optimize the compiled code using the compiler's optimization methods.
+     * Set to <code>true</code> to optimize the compiled code using the compiler's optimization methods.
      *
      * @parameter expression="${maven.compiler.optimize}" default-value="false"
      */
     private boolean optimize;
 
     /**
-     * Set to true to show compilation warnings.
+     * Set to <code>true</code> to show compilation warnings.
      *
      * @parameter expression="${maven.compiler.showWarnings}" default-value="false"
      */
@@ -144,7 +144,7 @@ public abstract class AbstractCompilerMojo
     private String compilerId;
 
     /**
-     * Version of the compiler to use, ex. "1.3", "1.5", if fork is set to true.
+     * Version of the compiler to use, ex. "1.3", "1.5", if {@link #fork} is set to <code>true</code>.
      *
      * @parameter expression="${maven.compiler.compilerVersion}"
      */
@@ -152,7 +152,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Allows running the compiler in a separate process.
-     * If "false" it uses the built in compiler, while if "true" it will use an executable.
+     * If <code>false</code> it uses the built in compiler, while if <code>true</code> it will use an executable.
      *
      * @parameter expression="${maven.compiler.fork}" default-value="false"
      */
@@ -160,7 +160,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m"
-     * if fork is set to true.
+     * if {@link #fork} is set to <code>true</code>.
      *
      * @parameter expression="${maven.compiler.meminitial}"
      * @since 2.0.1
@@ -169,7 +169,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Sets the maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m"
-     * if fork is set to true.
+     * if {@link #fork} is set to <code>true</code>.
      *
      * @parameter expression="${maven.compiler.maxmem}"
      * @since 2.0.1
@@ -177,7 +177,7 @@ public abstract class AbstractCompilerMojo
     private String maxmem;
 
     /**
-     * Sets the executable of the compiler to use when fork is true.
+     * Sets the executable of the compiler to use when {@link #fork} is <code>true</code>.
      *
      * @parameter expression="${maven.compiler.executable}"
      */
@@ -212,13 +212,22 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Sets the arguments to be passed to the compiler (prepending a dash) if fork is set to true.
+     * Sets the arguments to be passed to the compiler (prepending a dash) if {@link #fork} is set to <code>true</code>.
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
      * </p>
-     *
+     * <p>
+     * To pass <code>-Xmaxerrs 1000 -Xlint -Xlint:-path</code> you should include the following:
+     * </p>
+     * <pre>
+     * &lt;compilerArguments&gt;
+     *   &lt;Xmaxerrs&gt;1000&lt;/Xmaxerrs&gt;
+     *   &lt;Xlint/&gt;
+     *   &lt;Xlint:-path/&gt;
+     * &lt;/compilerArguments&gt;
+     * </pre>
      * @parameter
      * @since 2.0.1
      */
@@ -226,7 +235,8 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Sets the unformatted argument string to be passed to the compiler if fork is set to true.
+     * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to <code>true</code>. 
+     * To pass multiple arguments such as <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArguments}. 
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler
