@@ -44,29 +44,35 @@ mvn test-compile
 +-----
 
   The above command will execute both <<<compiler:compile>>> and
-  <<<compiler:test-compile>>> since the compile phase happens a few phases
-  before the test-compile phase.
+  <<<compiler:testCompile>>> since the <<<compile>>> phase happens a few phases
+  before the <<<test-compile>>> phase.
 
 * Configuring Your Compiler Plugin
 
   Since the Compiler Plugin executes automatically during their phases, you
-  don't have to put <<<executions>>> unlike the other plugins.
+  don't have to put <<<executions>>> unlike many other plugins. However, you
+  should specify the version of the Compiler Plugin.
 
 +-----
 <project>
   ...
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <!-- put your configurations here -->
-        </configuration>
-      </plugin>
-    </plugins>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>${project.version}</version>
+          <configuration>
+            <!-- put your configurations here -->
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
   ...
 </project>
 +-----
+
+  <<Note>>: Maven 3.0 will issue warnings if you do not specify the version of a
+  plugin.
