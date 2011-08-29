@@ -124,6 +124,7 @@ public abstract class AbstractCompilerMojo
      * The -encoding argument for the Java compiler.
      *
      * @parameter expression="${encoding}" default-value="${project.build.sourceEncoding}"
+     * @since 2.1
      */
     private String encoding;
 
