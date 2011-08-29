@@ -219,13 +219,14 @@ public abstract class AbstractCompilerMojo
      * varies based on the compiler version.
      * </p>
      * <p>
-     * To pass <code>-Xmaxerrs 1000 -Xlint -Xlint:-path</code> you should include the following:
+     * To pass <code>-Xmaxerrs 1000 -Xlint -Xlint:-path -Averbose=true</code> you should include the following:
      * </p>
      * <pre>
      * &lt;compilerArguments&gt;
      *   &lt;Xmaxerrs&gt;1000&lt;/Xmaxerrs&gt;
      *   &lt;Xlint/&gt;
      *   &lt;Xlint:-path/&gt;
+     *   &lt;Averbose&gt;true&lt;/Averbose&gt;
      * &lt;/compilerArguments&gt;
      * </pre>
      * @parameter
