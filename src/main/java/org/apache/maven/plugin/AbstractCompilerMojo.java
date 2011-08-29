@@ -452,7 +452,15 @@ public abstract class AbstractCompilerMojo
                     {
                         key = "-" + key;
                     }
-                    cplrArgsCopy.put( key, value );
+
+                    if( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
+                    {
+                        cplrArgsCopy.put( key + "=" + value, null );
+                    }
+                    else
+                    {
+                        cplrArgsCopy.put( key, value );
+                    }
                 }
             }
             if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
