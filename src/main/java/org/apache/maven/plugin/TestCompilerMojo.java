@@ -143,7 +143,7 @@ public class TestCompilerMojo
      * Specify where to place generated source files created by annotation processing.
      * Only applies to JDK 1.6+
      * </p>
-     * @parameter default-value="${project.build.directory}/generated-sources/test-annotations"
+     * @parameter default-value="${project.build.directory}/generated-test-sources/test-annotations"
      * @since 2.2
      */
     private File generatedTestSourcesDirectory;
