@@ -19,14 +19,6 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.ToolchainManager;
@@ -44,6 +36,14 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * TODO: At least one step could be optimized, currently the plugin will do two
@@ -191,8 +191,8 @@ public abstract class AbstractCompilerMojo
      * </p>
      * <p>
      * Allowed values are:
-     *    none - no annotation processing is performed.
-     *    only - only annotation processing is done, no compilation.
+     * none - no annotation processing is performed.
+     * only - only annotation processing is done, no compilation.
      * </p>
      *
      * @parameter
@@ -202,7 +202,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     *  Names of annotation processors to run. Only applies to JDK 1.6+
+     * Names of annotation processors to run. Only applies to JDK 1.6+
      * If not set, the default annotation processors discovery process applies.
      * </p>
      *
@@ -230,6 +230,7 @@ public abstract class AbstractCompilerMojo
      *   &lt;Averbose&gt;true&lt;/Averbose&gt;
      * &lt;/compilerArguments&gt;
      * </pre>
+     *
      * @parameter
      * @since 2.0.1
      */
@@ -237,8 +238,8 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to <code>true</code>. 
-     * To pass multiple arguments such as <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArguments}. 
+     * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to <code>true</code>.
+     * To pass multiple arguments such as <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArguments}.
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler
@@ -256,7 +257,7 @@ public abstract class AbstractCompilerMojo
      * @parameter expression="${project.build.finalName}"
      */
     private String outputFileName;
-    
+
     /**
      * Keyword list to be appended to the -g  command-line switch. Legal values are none or a comma-separated list of the following keywords: lines, vars, and source.
      * If debuglevel is not specified, by default, nothing will be appended to -g. If debug is not turned on, this attribute will be ignored.
@@ -264,11 +265,13 @@ public abstract class AbstractCompilerMojo
      * @parameter expression="${maven.compiler.debuglevel}"
      * @since 2.1
      */
-    private String debuglevel;    
+    private String debuglevel;
 
-    /** @component */
+    /**
+     * @component
+     */
     private ToolchainManager toolchainManager;
-    
+
     // ----------------------------------------------------------------------
     // Read-only parameters
     // ----------------------------------------------------------------------
@@ -297,7 +300,7 @@ public abstract class AbstractCompilerMojo
      * @component
      */
     private CompilerManager compilerManager;
-    
+
     /**
      * The current build session instance. This is used for
      * toolchain manager API calls.
@@ -317,13 +320,13 @@ public abstract class AbstractCompilerMojo
     protected abstract List<String> getCompileSourceRoots();
 
     protected abstract File getOutputDirectory();
-    
+
     protected abstract String getSource();
-    
+
     protected abstract String getTarget();
-    
+
     protected abstract String getCompilerArgument();
-    
+
     protected abstract Map<String, String> getCompilerArguments();
 
     protected abstract File getGeneratedSourcesDirectory();
@@ -350,18 +353,18 @@ public abstract class AbstractCompilerMojo
         {
             throw new MojoExecutionException( "No such compiler '" + e.getCompilerId() + "'." );
         }
-        
+
         //-----------toolchains start here ----------------------------------
         //use the compilerId as identifier for toolchains as well.
         Toolchain tc = getToolchain();
-        if ( tc != null ) 
+        if ( tc != null )
         {
             getLog().info( "Toolchain in compiler-plugin: " + tc );
-            if ( executable  != null ) 
-            { 
+            if ( executable != null )
+            {
                 getLog().warn( "Toolchains are ignored, 'executable' parameter is set to " + executable );
-            } 
-            else 
+            }
+            else
             {
                 fork = true;
                 //TODO somehow shaky dependency between compilerId and tool executable.
@@ -412,13 +415,13 @@ public abstract class AbstractCompilerMojo
                 if ( !( split[i].equalsIgnoreCase( "none" ) || split[i].equalsIgnoreCase( "lines" )
                     || split[i].equalsIgnoreCase( "vars" ) || split[i].equalsIgnoreCase( "source" ) ) )
                 {
-                    throw new IllegalArgumentException( "The specified debug level: '" + split[i]
-                        + "' is unsupported. " + "Legal values are 'none', 'lines', 'vars', and 'source'." );
+                    throw new IllegalArgumentException( "The specified debug level: '" + split[i] + "' is unsupported. "
+                                                            + "Legal values are 'none', 'lines', 'vars', and 'source'." );
                 }
             }
             compilerConfiguration.setDebugLevel( debuglevel );
-        }        
-        
+        }
+
         compilerConfiguration.setVerbose( verbose );
 
         compilerConfiguration.setShowWarnings( showWarnings );
@@ -436,7 +439,7 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setAnnotationProcessors( annotationProcessors );
 
         compilerConfiguration.setSourceEncoding( encoding );
-        
+
         Map<String, String> effectiveCompilerArguments = getCompilerArguments();
 
         String effectiveCompilerArgument = getCompilerArgument();
@@ -455,7 +458,7 @@ public abstract class AbstractCompilerMojo
                         key = "-" + key;
                     }
 
-                    if( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
+                    if ( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
                     {
                         cplrArgsCopy.put( key + "=" + value, null );
                     }
@@ -527,15 +530,15 @@ public abstract class AbstractCompilerMojo
 
             canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
 
-            if ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) &&
-                !canUpdateTarget )
+            if ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
+                && !canUpdateTarget )
             {
                 getLog().info( "RESCANNING!" );
                 // TODO: This second scan for source files is sub-optimal
                 String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
 
                 Set<File> sources = computeStaleSources( compilerConfiguration, compiler,
-                                                   getSourceInclusionScanner( inputFileEnding ) );
+                                                         getSourceInclusionScanner( inputFileEnding ) );
 
                 compilerConfiguration.setSourceFiles( sources );
             }
@@ -613,8 +616,7 @@ public abstract class AbstractCompilerMojo
 
         if ( StringUtils.isEmpty( compilerConfiguration.getSourceEncoding() ) )
         {
-            getLog().warn(
-                           "File encoding has not been set, using platform encoding " + ReaderFactory.FILE_ENCODING
+            getLog().warn( "File encoding has not been set, using platform encoding " + ReaderFactory.FILE_ENCODING
                                + ", i.e. build is platform dependent!" );
         }
 
@@ -661,18 +663,18 @@ public abstract class AbstractCompilerMojo
                 getLog().info( warnings.size() + ( ( warnings.size() > 1 ) ? " warnings " : " warning" ) );
                 getLog().info( "-------------------------------------------------------------" );
             }
-            
+
             getLog().info( "-------------------------------------------------------------" );
             getLog().error( "COMPILATION ERROR : " );
             getLog().info( "-------------------------------------------------------------" );
-            
+
             for ( CompilerError error : errors )
             {
-                    getLog().error( error.toString() );
+                getLog().error( error.toString() );
             }
             getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : " error" ) );
             getLog().info( "-------------------------------------------------------------" );
-            
+
             throw new CompilationFailureException( errors );
         }
         else
@@ -695,8 +697,8 @@ public abstract class AbstractCompilerMojo
         }
         else
         {
-            if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) ) &&
-                ( setting.toLowerCase().endsWith( "m" ) ) )
+            if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) ) && ( setting.toLowerCase().endsWith(
+                "m" ) ) )
             {
                 value = setting;
             }
@@ -730,7 +732,7 @@ public abstract class AbstractCompilerMojo
 
     @SuppressWarnings( "unchecked" )
     private Set<File> computeStaleSources( CompilerConfiguration compilerConfiguration, Compiler compiler,
-                                     SourceInclusionScanner scanner )
+                                           SourceInclusionScanner scanner )
         throws MojoExecutionException, CompilerException
     {
         CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
@@ -741,15 +743,15 @@ public abstract class AbstractCompilerMojo
 
         if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE )
         {
-            mapping = new SuffixMapping( compiler.getInputFileEnding( compilerConfiguration ), compiler
-                .getOutputFileEnding( compilerConfiguration ) );
+            mapping = new SuffixMapping( compiler.getInputFileEnding( compilerConfiguration ),
+                                         compiler.getOutputFileEnding( compilerConfiguration ) );
 
             outputDirectory = getOutputDirectory();
         }
         else if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
         {
-            mapping = new SingleTargetSourceMapping( compiler.getInputFileEnding( compilerConfiguration ), compiler
-                .getOutputFile( compilerConfiguration ) );
+            mapping = new SingleTargetSourceMapping( compiler.getInputFileEnding( compilerConfiguration ),
+                                                     compiler.getOutputFile( compilerConfiguration ) );
 
             outputDirectory = buildDirectory;
         }
