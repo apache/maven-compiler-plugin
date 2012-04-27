@@ -41,7 +41,7 @@ public class CompilationFailureException
 
     public static String longMessage( List<CompilerError> messages )
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         if ( messages != null )
         {

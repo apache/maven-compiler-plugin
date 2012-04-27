@@ -593,7 +593,7 @@ public abstract class AbstractCompilerMojo
                 String[] cl = compiler.createCommandLine( compilerConfiguration );
                 if ( cl != null && cl.length > 0 )
                 {
-                    StringBuffer sb = new StringBuffer();
+                    StringBuilder sb = new StringBuilder();
                     sb.append( cl[0] );
                     for ( int i = 1; i < cl.length; i++ )
                     {
