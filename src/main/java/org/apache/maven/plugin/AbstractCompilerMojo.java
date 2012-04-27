@@ -451,8 +451,8 @@ public abstract class AbstractCompilerMojo
             {
                 for ( Map.Entry<String, String> me : effectiveCompilerArguments.entrySet() )
                 {
-                    String key = (String) me.getKey();
-                    String value = (String) me.getValue();
+                    String key = me.getKey();
+                    String value = me.getValue();
                     if ( !key.startsWith( "-" ) )
                     {
                         key = "-" + key;
