@@ -311,6 +311,14 @@ public abstract class AbstractCompilerMojo
      */
     private MavenSession session;
 
+    /**
+     * Strategy to re use javacc class created. Possible values: reuseCreated, reuseSame or alwaysNew
+     *
+     * @parameter default-value="${reuseCreated}" expression="${maven.compiler.compilerReuseStrategy}"
+     * @since 2.5
+     */
+    private String compilerReuseStrategy = "reuseSame";
+
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
@@ -517,6 +525,22 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setBuildDirectory( buildDirectory );
 
         compilerConfiguration.setOutputFileName( outputFileName );
+
+        if ( CompilerConfiguration.CompilerReuseStrategy.AlwaysNew.getStrategy().equals( this.compilerReuseStrategy ) )
+        {
+            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.AlwaysNew );
+        }
+        else if ( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated.getStrategy().equals(
+            this.compilerReuseStrategy ) )
+        {
+            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated );
+        }
+        else
+        {
+            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
+        }
+
+        getLog().debug( "CompilerReuseStrategy:" + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
 
         // TODO: have an option to always compile (without need to clean)
         Set<File> staleSources;
