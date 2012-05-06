@@ -317,7 +317,7 @@ public abstract class AbstractCompilerMojo
      * @parameter default-value="${reuseCreated}" expression="${maven.compiler.compilerReuseStrategy}"
      * @since 2.5
      */
-    private String compilerReuseStrategy = "reuseSame";
+    private String compilerReuseStrategy = "reuseCreated";
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
@@ -530,14 +530,15 @@ public abstract class AbstractCompilerMojo
         {
             compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.AlwaysNew );
         }
-        else if ( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated.getStrategy().equals(
+        else if ( CompilerConfiguration.CompilerReuseStrategy.ReuseSame.getStrategy().equals(
             this.compilerReuseStrategy ) )
         {
-            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated );
+            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
         }
         else
         {
-            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
+
+            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated );
         }
 
         getLog().debug( "CompilerReuseStrategy:" + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
