@@ -545,10 +545,10 @@ public abstract class AbstractCompilerMojo
                 if ( !skipMultiThreadWarning )
                 {
                     StringBuilder sb = new StringBuilder(
-                        "You are in a multi thread build and use reuseSame strategy this can issues on some os/jdk, consider using reuseCreated strategy" );
+                        "You are in a multi-thread build and compilerReuseStrategy is set to reuseSame. This can cause issues in some environments (os/jdk)! Consider using reuseCreated strategy." );
                     sb.append( System.getProperty( "line.separator" ) );
                     sb.append(
-                        "If you env is fine with that, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true" );
+                        "If your env is fine with reuseSame, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true" );
                     getLog().warn( sb.toString() );
                 }
             }
