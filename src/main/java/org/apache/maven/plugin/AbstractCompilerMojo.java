@@ -38,6 +38,7 @@ import org.codehaus.plexus.util.ReaderFactory;
 import org.codehaus.plexus.util.StringUtils;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -319,6 +320,12 @@ public abstract class AbstractCompilerMojo
      */
     private String compilerReuseStrategy = "reuseCreated";
 
+    /**
+     * @parameter default-value="${false}" expression="${maven.compiler.skipMultiThreadWarning}"
+     * @since 2.5
+     */
+    private boolean skipMultiThreadWarning;
+
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
@@ -533,6 +540,14 @@ public abstract class AbstractCompilerMojo
         else if ( CompilerConfiguration.CompilerReuseStrategy.ReuseSame.getStrategy().equals(
             this.compilerReuseStrategy ) )
         {
+            if ( getRequestThreadCount() > 1 )
+            {
+                if ( !skipMultiThreadWarning )
+                {
+                    getLog().warn(
+                        "You are in a multi thread build and use reuseSame strategy this can issues on some os/jdk, consider using reuseCreated strategy" );
+                }
+            }
             compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
         }
         else
@@ -709,6 +724,28 @@ public abstract class AbstractCompilerMojo
                 getLog().warn( message.toString() );
             }
         }
+    }
+
+    /**
+     * try to get thread count if a maven 3 build, using reflection as the plugin must not be maven3 api dependant
+     *
+     * @return number of thread for this build or 1 if not multi thread build
+     */
+    protected int getRequestThreadCount()
+    {
+        try
+        {
+            Method getRequestMethod = this.session.getClass().getMethod( "getRequest", null );
+            Object mavenExecutionRequest = getRequestMethod.invoke( this.session, null );
+            Method getThreadCountMethod = mavenExecutionRequest.getClass().getMethod( "getThreadCount" );
+            String threadCount = (String) getThreadCountMethod.invoke( mavenExecutionRequest, null );
+            return Integer.valueOf( threadCount );
+        }
+        catch ( Exception e )
+        {
+            getLog().debug( "impossible to get threadCount for the current build:" + e.getMessage() );
+        }
+        return 1;
     }
 
     private String getMemoryValue( String setting )
