@@ -313,7 +313,14 @@ public abstract class AbstractCompilerMojo
     private MavenSession session;
 
     /**
-     * Strategy to re use javacc class created. Possible values: reuseCreated, reuseSame or alwaysNew
+     * Strategy to re use javacc class created.
+     * <ul>
+     *   <li>reuseCreated (default): will reuse already created but in case of multi thread builds, each thread will have
+     *   his own instance</li>
+     *   <li>reuseSame: the same Javacc class will be use for each compilation even for multi threaded build</li>
+     *   <li>alwaysNew: a new Javacc class will be created for each compilation</li>
+     * </ul>
+     * Note this parameter value depends on the os/jdk you are using but the default value must work on most of env.
      *
      * @parameter default-value="${reuseCreated}" expression="${maven.compiler.compilerReuseStrategy}"
      * @since 2.5
