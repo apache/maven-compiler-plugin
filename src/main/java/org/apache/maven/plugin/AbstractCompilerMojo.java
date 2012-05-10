@@ -353,7 +353,6 @@ public abstract class AbstractCompilerMojo
 
     protected abstract File getGeneratedSourcesDirectory();
 
-    @SuppressWarnings( "unchecked" )
     public void execute()
         throws MojoExecutionException, CompilationFailureException
     {
@@ -746,10 +745,10 @@ public abstract class AbstractCompilerMojo
     {
         try
         {
-            Method getRequestMethod = this.session.getClass().getMethod( "getRequest", null );
-            Object mavenExecutionRequest = getRequestMethod.invoke( this.session, null );
+            Method getRequestMethod = this.session.getClass().getMethod( "getRequest" );
+            Object mavenExecutionRequest = getRequestMethod.invoke( this.session );
             Method getThreadCountMethod = mavenExecutionRequest.getClass().getMethod( "getThreadCount" );
-            String threadCount = (String) getThreadCountMethod.invoke( mavenExecutionRequest, null );
+            String threadCount = (String) getThreadCountMethod.invoke( mavenExecutionRequest );
             return Integer.valueOf( threadCount );
         }
         catch ( Exception e )
@@ -803,7 +802,6 @@ public abstract class AbstractCompilerMojo
         return true;
     }
 
-    @SuppressWarnings( "unchecked" )
     private Set<File> computeStaleSources( CompilerConfiguration compilerConfiguration, Compiler compiler,
                                            SourceInclusionScanner scanner )
         throws MojoExecutionException, CompilerException
