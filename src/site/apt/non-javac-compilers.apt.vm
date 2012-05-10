@@ -3,7 +3,7 @@
  ------
  Edwin Punzalan
  ------
- 19 July 2006
+ 2006-07-19
  ------
 
 ~~ Licensed to the Apache Software Foundation (ASF) under one
@@ -37,7 +37,7 @@ Using Non-Javac Compilers
   which can be seen as one of the dependencies declared inside the Compiler
   Plugin's POM.
 
-  Plexus have some other compiler Ids available under the groupId
+  Plexus Compiler component has some other compiler Ids available under the groupId
   <<<org.codehaus.plexus>>>:
 
   * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>>.
@@ -53,7 +53,7 @@ Using Non-Javac Compilers
 
   To use any of the non-javac compilers, you need to make the artifact available
   in the classpath when the Compiler Plugin runs. This is possible by adding the
-  dependency when declaring the plugin in your project's pom.xml. The example
+  dependency when declaring the plugin in your project's <<<pom.xml>>>. The example
   below shows how to use the <<<csharp>>> compiler:
 
 +-----
