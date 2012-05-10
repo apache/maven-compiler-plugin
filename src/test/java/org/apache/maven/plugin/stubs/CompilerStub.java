@@ -76,7 +76,7 @@ public class CompilerStub
         return false;
     }
 
-    public List compile( CompilerConfiguration compilerConfiguration )
+    public List<CompilerError> compile( CompilerConfiguration compilerConfiguration )
         throws CompilerException
     {
         File outputDir = new File( compilerConfiguration.getOutputLocation() );

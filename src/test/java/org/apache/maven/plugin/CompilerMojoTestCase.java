@@ -57,7 +57,8 @@ public class CompilerMojoTestCase
         testCompileMojo.execute();
         
         Artifact projectArtifact = (Artifact) getVariableValueFromObject( compileMojo, "projectArtifact" );
-        assertNotNull( "MCOMPILER-94: artifact file should only be null if there is nothing to compile", projectArtifact.getFile() );
+        assertNotNull( "MCOMPILER-94: artifact file should only be null if there is nothing to compile",
+                       projectArtifact.getFile() );
 
         testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile0Test.class" );
 
@@ -80,7 +81,8 @@ public class CompilerMojoTestCase
         assertFalse( compileMojo.getOutputDirectory().exists() );
 
         Artifact projectArtifact = (Artifact) getVariableValueFromObject( compileMojo, "projectArtifact" );
-        assertNull( "MCOMPILER-94: artifact file should be null if there is nothing to compile", projectArtifact.getFile() );
+        assertNull( "MCOMPILER-94: artifact file should be null if there is nothing to compile",
+                    projectArtifact.getFile() );
 
         TestCompilerMojo testCompileMojo =
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-empty-source-test/plugin-config.xml" );
@@ -101,11 +103,11 @@ public class CompilerMojoTestCase
         CompilerMojo compileMojo =
             getCompilerMojo( "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
 
-        Set includes = new HashSet();
+        Set<String> includes = new HashSet<String>();
         includes.add( "**/TestCompile4*.java" );
         setVariableValueToObject( compileMojo, "includes", includes );
 
-        Set excludes = new HashSet();
+        Set<String> excludes = new HashSet<String>();
         excludes.add( "**/TestCompile2*.java" );
         excludes.add( "**/TestCompile3*.java" );
         setVariableValueToObject( compileMojo, "excludes", excludes );
@@ -121,8 +123,9 @@ public class CompilerMojoTestCase
         testClass = new File( compileMojo.getOutputDirectory(), "TestCompile4.class" );
         assertTrue( testClass.exists() );
 
-        TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
-                                                                "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
+        TestCompilerMojo testCompileMojo =
+            getTestCompilerMojo( compileMojo,
+                                 "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
 
         setVariableValueToObject( testCompileMojo, "testIncludes", includes );
         setVariableValueToObject( testCompileMojo, "testExcludes", excludes );
@@ -176,8 +179,9 @@ public class CompilerMojoTestCase
         File testClass = new File( compileMojo.getOutputDirectory(), "compiled.class" );
         assertTrue( testClass.exists() );
 
-        TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
-                                                                "target/test-classes/unit/compiler-one-output-file-test/plugin-config.xml" );
+        TestCompilerMojo testCompileMojo =
+            getTestCompilerMojo( compileMojo,
+                                 "target/test-classes/unit/compiler-one-output-file-test/plugin-config.xml" );
 
         setVariableValueToObject( testCompileMojo, "compilerManager", new CompilerManagerStub() );
 
@@ -208,11 +212,11 @@ public class CompilerMojoTestCase
 
         setVariableValueToObject( compileMojo, "compilerManager", new CompilerManagerStub() );
 
-        Set includes = new HashSet();
+        Set<String> includes = new HashSet<String>();
         includes.add( "**/TestCompile4*.java" );
         setVariableValueToObject( compileMojo, "includes", includes );
 
-        Set excludes = new HashSet();
+        Set<String> excludes = new HashSet<String>();
         excludes.add( "**/TestCompile2*.java" );
         excludes.add( "**/TestCompile3*.java" );
         setVariableValueToObject( compileMojo, "excludes", excludes );
@@ -222,8 +226,9 @@ public class CompilerMojoTestCase
         File testClass = new File( compileMojo.getOutputDirectory(), "compiled.class" );
         assertTrue( testClass.exists() );
 
-        TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
-                                                                "target/test-classes/unit/compiler-one-output-file-test2/plugin-config.xml" );
+        TestCompilerMojo testCompileMojo =
+            getTestCompilerMojo( compileMojo,
+                                 "target/test-classes/unit/compiler-one-output-file-test2/plugin-config.xml" );
 
         setVariableValueToObject( testCompileMojo, "compilerManager", new CompilerManagerStub() );
         setVariableValueToObject( testCompileMojo, "testIncludes", includes );
@@ -302,7 +307,7 @@ public class CompilerMojoTestCase
         File testClassesDir = new File( buildDir, "test-classes" );
         setVariableValueToObject( mojo, "outputDirectory", testClassesDir );
 
-        List testClasspathList = new ArrayList();
+        List<String> testClasspathList = new ArrayList<String>();
         testClasspathList.add( System.getProperty( "localRepository" ) + "/junit/junit/3.8.1/junit-3.8.1.jar" );
         testClasspathList.add( compilerMojo.getOutputDirectory().getPath() );
         setVariableValueToObject( mojo, "classpathElements", testClasspathList );
