@@ -190,11 +190,11 @@ public abstract class AbstractCompilerMojo
      * Sets whether annotation processing is performed or not. Only applies to JDK 1.6+
      * If not set, both compilation and annotation processing are performed at the same time.
      * </p>
-     * <p>
-     * Allowed values are:
-     * none - no annotation processing is performed.
-     * only - only annotation processing is done, no compilation.
-     * </p>
+     * <p>Allowed values are:</p>
+     * <ul>
+     * <li><code>none</code> - no annotation processing is performed.</li>
+     * <li><code>only</code> - only annotation processing is done, no compilation.</li>
+     * </ul>
      *
      * @parameter
      * @since 2.2
@@ -260,8 +260,10 @@ public abstract class AbstractCompilerMojo
     private String outputFileName;
 
     /**
-     * Keyword list to be appended to the -g  command-line switch. Legal values are none or a comma-separated list of the following keywords: lines, vars, and source.
-     * If debuglevel is not specified, by default, nothing will be appended to -g. If debug is not turned on, this attribute will be ignored.
+     * Keyword list to be appended to the <code>-g</code> command-line switch. Legal values are none or a 
+     * comma-separated list of the following keywords: <code>lines</code>, <code>vars</code>, and <code>source</code>.
+     * If debug level is not specified, by default, nothing will be appended to <code>-g</code>.
+     * If debug is not turned on, this attribute will be ignored.
      *
      * @parameter expression="${maven.compiler.debuglevel}"
      * @since 2.1
@@ -303,8 +305,7 @@ public abstract class AbstractCompilerMojo
     private CompilerManager compilerManager;
 
     /**
-     * The current build session instance. This is used for
-     * toolchain manager API calls.
+     * The current build session instance. This is used for toolchain manager API calls.
      *
      * @parameter default-value="${session}"
      * @required
