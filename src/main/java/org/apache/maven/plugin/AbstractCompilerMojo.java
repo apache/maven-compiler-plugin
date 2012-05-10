@@ -313,14 +313,14 @@ public abstract class AbstractCompilerMojo
     private MavenSession session;
 
     /**
-     * Strategy to re use javacc class created.
+     * Strategy to re use javacc class created:
      * <ul>
-     *   <li>reuseCreated (default): will reuse already created but in case of multi thread builds, each thread will have
-     *   his own instance</li>
-     *   <li>reuseSame: the same Javacc class will be use for each compilation even for multi threaded build</li>
-     *   <li>alwaysNew: a new Javacc class will be created for each compilation</li>
+     *   <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds,
+     *   each thread will have its own instance</li>
+     *   <li><code>reuseSame</code>: the same Javacc class will be used for each compilation even for multi-threaded build</li>
+     *   <li><code>alwaysNew</code>: a new Javacc class will be created for each compilation</li>
      * </ul>
-     * Note this parameter value depends on the os/jdk you are using but the default value must work on most of env.
+     * Note this parameter value depends on the os/jdk you are using, but the default value should work on most of env.
      *
      * @parameter default-value="${reuseCreated}" expression="${maven.compiler.compilerReuseStrategy}"
      * @since 2.5
@@ -566,7 +566,7 @@ public abstract class AbstractCompilerMojo
             compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated );
         }
 
-        getLog().debug( "CompilerReuseStrategy:" + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
+        getLog().debug( "CompilerReuseStrategy: " + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
 
         // TODO: have an option to always compile (without need to clean)
         Set<File> staleSources;
@@ -737,9 +737,9 @@ public abstract class AbstractCompilerMojo
     }
 
     /**
-     * try to get thread count if a maven 3 build, using reflection as the plugin must not be maven3 api dependant
+     * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependant
      *
-     * @return number of thread for this build or 1 if not multi thread build
+     * @return number of thread for this build or 1 if not multi-thread build
      */
     protected int getRequestThreadCount()
     {
@@ -753,7 +753,7 @@ public abstract class AbstractCompilerMojo
         }
         catch ( Exception e )
         {
-            getLog().debug( "impossible to get threadCount for the current build:" + e.getMessage() );
+            getLog().debug( "unable to get threadCount for the current build: " + e.getMessage() );
         }
         return 1;
     }
@@ -851,7 +851,7 @@ public abstract class AbstractCompilerMojo
             catch ( InclusionScanException e )
             {
                 throw new MojoExecutionException(
-                    "Error scanning source root: \'" + sourceRoot + "\' " + "for stale files to recompile.", e );
+                    "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e );
             }
         }
 
