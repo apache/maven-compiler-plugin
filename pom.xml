@@ -53,7 +53,7 @@ under the License.
 
   <properties>
     <mavenVersion>2.0.9</mavenVersion>
-    <plexusCompilerVersion>1.9</plexusCompilerVersion>
+    <plexusCompilerVersion>1.9.1-SNAPSHOT</plexusCompilerVersion>
   </properties>
 
   <dependencies>
@@ -197,5 +197,18 @@ under the License.
       </build>
     </profile>
   </profiles>
+
+  <repositories>
+    <repository>
+      <id>plexus-snapshots</id>
+      <url>https://oss.sonatype.org/content/repositories/plexus-snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 
 </project>
