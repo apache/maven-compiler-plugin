@@ -159,6 +159,12 @@ under the License.
     </dependency>
 
     <dependency>
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-container-default</artifactId>
+      <version>1.0-alpha-9-stable-1</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
       <version>1.1</version>
@@ -169,6 +175,10 @@ under the License.
   <profiles>
     <profile>
       <id>run-its</id>
+      <properties>
+        <groovyVersion>1.8.0</groovyVersion>
+        <groovyEclipseCompilerVersion>2.6.0-01</groovyEclipseCompilerVersion>
+      </properties>
       <build>
         <pluginManagement>
           <plugins>
@@ -195,6 +205,24 @@ under the License.
           </plugins>
         </pluginManagement>
       </build>
+      <!--
+      add those dependency just to have faster it test (for folks who doesn't have those locally
+      they will be downloaded from local repo rather than central
+      -->
+      <dependencies>
+        <dependency>
+          <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy-eclipse-compiler</artifactId>
+          <version>${groovyEclipseCompilerVersion}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy-all</artifactId>
+          <version>${groovyVersion}</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
     </profile>
   </profiles>
 
