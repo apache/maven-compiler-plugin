@@ -20,6 +20,9 @@ package org.apache.maven.plugin;
  */
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -37,63 +40,48 @@ import java.util.Set;
  * @author <a href="mailto:jason@maven.org">Jason van Zyl </a>
  * @version $Id$
  * @since 2.0
- * @goal compile
- * @phase compile
- * @threadSafe
- * @requiresDependencyResolution compile
  */
+@org.apache.maven.plugins.annotations.Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true,
+                                            requiresDependencyResolution = ResolutionScope.COMPILE )
 public class CompilerMojo
     extends AbstractCompilerMojo
 {
     /**
      * The source directories containing the sources to be compiled.
-     *
-     * @parameter default-value="${project.compileSourceRoots}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = true, required = true )
     private List<String> compileSourceRoots;
 
     /**
      * Project classpath.
-     *
-     * @parameter default-value="${project.compileClasspathElements}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
     private List<String> classpathElements;
 
     /**
      * The directory for compiled classes.
-     *
-     * @parameter default-value="${project.build.outputDirectory}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.build.outputDirectory}", required = true, readonly = true )
     private File outputDirectory;
 
     /**
      * Project artifacts.
      *
-     * @parameter default-value="${project.artifact}"
-     * @required
-     * @readonly
      * @todo this is an export variable, really
      */
+    @Parameter( defaultValue = "${project.artifact}", readonly = true, required = true )
     private Artifact projectArtifact;
 
     /**
      * A list of inclusion filters for the compiler.
-     *
-     * @parameter
      */
+    @Parameter
     private Set<String> includes = new HashSet<String>();
 
     /**
      * A list of exclusion filters for the compiler.
-     *
-     * @parameter
      */
+    @Parameter
     private Set<String> excludes = new HashSet<String>();
 
     /**
@@ -101,9 +89,10 @@ public class CompilerMojo
      * Specify where to place generated source files created by annotation processing.
      * Only applies to JDK 1.6+
      * </p>
-     * @parameter default-value="${project.build.directory}/generated-sources/annotations"
+     *
      * @since 2.2
      */
+    @Parameter( defaultValue = "${project.build.directory}/generated-sources/annotations" )
     private File generatedSourcesDirectory;
 
 
@@ -176,22 +165,22 @@ public class CompilerMojo
 
     protected String getSource()
     {
-      return source;
+        return source;
     }
 
     protected String getTarget()
     {
-      return target;
+        return target;
     }
 
     protected String getCompilerArgument()
     {
-      return compilerArgument;
+        return compilerArgument;
     }
 
     protected Map<String, String> getCompilerArguments()
     {
-      return compilerArguments;
+        return compilerArguments;
     }
 
     protected File getGeneratedSourcesDirectory()

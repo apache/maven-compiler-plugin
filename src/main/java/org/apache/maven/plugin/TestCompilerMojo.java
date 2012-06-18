@@ -19,6 +19,9 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
+import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -36,77 +39,63 @@ import java.util.Set;
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
  * @since 2.0
- * @goal testCompile
- * @phase test-compile
- * @threadSafe
- * @requiresDependencyResolution test
  */
+@org.apache.maven.plugins.annotations.Mojo( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE,
+                                            threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST )
 public class TestCompilerMojo
     extends AbstractCompilerMojo
 {
     /**
      * Set this to 'true' to bypass compilation of test sources.
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
-     *
-     * @parameter expression="${maven.test.skip}"
      */
+    @Parameter( property = "maven.test.skip" )
     private boolean skip;
 
     /**
      * The source directories containing the test-source to be compiled.
-     *
-     * @parameter default-value="${project.testCompileSourceRoots}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.testCompileSourceRoots}", readonly = true, required = true )
     private List<String> compileSourceRoots;
 
     /**
      * Project test classpath.
-     *
-     * @parameter default-value="${project.testClasspathElements}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.testClasspathElements}", required = true, readonly = true )
     private List<String> classpathElements;
 
     /**
      * The directory where compiled test classes go.
-     *
-     * @parameter default-value="${project.build.testOutputDirectory}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = true )
     private File outputDirectory;
 
     /**
      * A list of inclusion filters for the compiler.
-     *
-     * @parameter
      */
+    @Parameter
     private Set<String> testIncludes = new HashSet<String>();
 
     /**
      * A list of exclusion filters for the compiler.
-     *
-     * @parameter
      */
+    @Parameter
     private Set<String> testExcludes = new HashSet<String>();
 
     /**
      * The -source argument for the test Java compiler.
      *
-     * @parameter expression="${maven.compiler.testSource}"
      * @since 2.1
      */
+    @Parameter( property = "maven.compiler.testSource" )
     private String testSource;
 
     /**
      * The -target argument for the test Java compiler.
      *
-     * @parameter expression="${maven.compiler.testTarget}"
      * @since 2.1
      */
+    @Parameter( property = "maven.compiler.testTarget" )
     private String testTarget;
 
 
@@ -119,9 +108,9 @@ public class TestCompilerMojo
      * varies based on the compiler version.
      * </p>
      *
-     * @parameter
      * @since 2.1
      */
+    @Parameter
     private Map<String, String> testCompilerArguments;
 
     /**
@@ -133,9 +122,9 @@ public class TestCompilerMojo
      * varies based on the compiler version.
      * </p>
      *
-     * @parameter
      * @since 2.1
      */
+    @Parameter
     private String testCompilerArgument;
 
     /**
@@ -143,9 +132,10 @@ public class TestCompilerMojo
      * Specify where to place generated source files created by annotation processing.
      * Only applies to JDK 1.6+
      * </p>
-     * @parameter default-value="${project.build.directory}/generated-test-sources/test-annotations"
+     *
      * @since 2.2
      */
+    @Parameter( defaultValue = "${project.build.directory}/generated-test-sources/test-annotations" )
     private File generatedTestSourcesDirectory;
 
 
@@ -220,25 +210,25 @@ public class TestCompilerMojo
 
     protected String getSource()
     {
-      return testSource == null ? source : testSource;
+        return testSource == null ? source : testSource;
     }
 
     protected String getTarget()
     {
-      return testTarget == null ? target : testTarget;
+        return testTarget == null ? target : testTarget;
     }
 
     protected String getCompilerArgument()
     {
-      return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
+        return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
     }
 
     protected Map<String, String> getCompilerArguments()
     {
-      return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
+        return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
     }
 
-    protected File getGeneratedSourcesDirectory() 
+    protected File getGeneratedSourcesDirectory()
     {
         return generatedTestSourcesDirectory;
     }

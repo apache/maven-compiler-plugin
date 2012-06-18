@@ -20,6 +20,8 @@ package org.apache.maven.plugin;
  */
 
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.codehaus.plexus.compiler.Compiler;
@@ -67,122 +69,110 @@ public abstract class AbstractCompilerMojo
     /**
      * Indicates whether the build will continue even if there are compilation errors.
      *
-     * @parameter expression="${maven.compiler.failOnError}" default-value="true"
      * @since 2.0.2
      */
+    @Parameter( property = "maven.compiler.failOnError", defaultValue = "true" )
     private boolean failOnError = true;
 
     /**
      * Set to <code>true</code> to include debugging information in the compiled class files.
-     *
-     * @parameter expression="${maven.compiler.debug}" default-value="true"
      */
+    @Parameter( property = "maven.compiler.debug", defaultValue = "true" )
     private boolean debug = true;
 
     /**
      * Set to <code>true</code> to show messages about what the compiler is doing.
-     *
-     * @parameter expression="${maven.compiler.verbose}" default-value="false"
      */
+    @Parameter( property = "maven.compiler.verbose", defaultValue = "false" )
     private boolean verbose;
 
     /**
      * Sets whether to show source locations where deprecated APIs are used.
-     *
-     * @parameter expression="${maven.compiler.showDeprecation}" default-value="false"
      */
+    @Parameter( property = "maven.compiler.showDeprecation", defaultValue = "false" )
     private boolean showDeprecation;
 
     /**
      * Set to <code>true</code> to optimize the compiled code using the compiler's optimization methods.
-     *
-     * @parameter expression="${maven.compiler.optimize}" default-value="false"
      */
+    @Parameter( property = "maven.compiler.optimize", defaultValue = "false" )
     private boolean optimize;
 
     /**
      * Set to <code>true</code> to show compilation warnings.
-     *
-     * @parameter expression="${maven.compiler.showWarnings}" default-value="false"
      */
+    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "false" )
     private boolean showWarnings;
 
     /**
      * The -source argument for the Java compiler.
-     *
-     * @parameter expression="${maven.compiler.source}" default-value="1.5"
      */
+    @Parameter( property = "maven.compiler.source", defaultValue = "1.5" )
     protected String source;
 
     /**
      * The -target argument for the Java compiler.
-     *
-     * @parameter expression="${maven.compiler.target}" default-value="1.5"
      */
+    @Parameter( property = "maven.compiler.target", defaultValue = "1.5" )
     protected String target;
 
     /**
      * The -encoding argument for the Java compiler.
      *
-     * @parameter expression="${encoding}" default-value="${project.build.sourceEncoding}"
      * @since 2.1
      */
+    @Parameter( property = "encoding", defaultValue = "${project.build.sourceEncoding}" )
     private String encoding;
 
     /**
      * Sets the granularity in milliseconds of the last modification
      * date for testing whether a source needs recompilation.
-     *
-     * @parameter expression="${lastModGranularityMs}" default-value="0"
      */
+    @Parameter( property = "lastModGranularityMs", defaultValue = "0" )
     private int staleMillis;
 
     /**
      * The compiler id of the compiler to use. See this
      * <a href="non-javac-compilers.html">guide</a> for more information.
-     *
-     * @parameter expression="${maven.compiler.compilerId}" default-value="javac"
      */
+    @Parameter( property = "maven.compiler.compilerId", defaultValue = "javac" )
     private String compilerId;
 
     /**
      * Version of the compiler to use, ex. "1.3", "1.5", if {@link #fork} is set to <code>true</code>.
-     *
-     * @parameter expression="${maven.compiler.compilerVersion}"
      */
+    @Parameter( property = "maven.compiler.compilerVersion" )
     private String compilerVersion;
 
     /**
      * Allows running the compiler in a separate process.
      * If <code>false</code> it uses the built in compiler, while if <code>true</code> it will use an executable.
-     *
-     * @parameter expression="${maven.compiler.fork}" default-value="false"
      */
+    @Parameter( property = "maven.compiler.fork", defaultValue = "false" )
     private boolean fork;
 
     /**
      * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m"
      * if {@link #fork} is set to <code>true</code>.
      *
-     * @parameter expression="${maven.compiler.meminitial}"
      * @since 2.0.1
      */
+    @Parameter( property = "maven.compiler.meminitial" )
     private String meminitial;
 
     /**
      * Sets the maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m"
      * if {@link #fork} is set to <code>true</code>.
      *
-     * @parameter expression="${maven.compiler.maxmem}"
      * @since 2.0.1
      */
+    @Parameter( property = "maven.compiler.maxmem" )
     private String maxmem;
 
     /**
      * Sets the executable of the compiler to use when {@link #fork} is <code>true</code>.
-     *
-     * @parameter expression="${maven.compiler.executable}"
      */
+    @Parameter( property = "maven.compiler.executable" )
     private String executable;
 
     /**
@@ -196,9 +186,9 @@ public abstract class AbstractCompilerMojo
      * <li><code>only</code> - only annotation processing is done, no compilation.</li>
      * </ul>
      *
-     * @parameter
      * @since 2.2
      */
+    @Parameter
     private String proc;
 
     /**
@@ -207,9 +197,9 @@ public abstract class AbstractCompilerMojo
      * If not set, the default annotation processors discovery process applies.
      * </p>
      *
-     * @parameter
      * @since 2.2
      */
+    @Parameter
     private String[] annotationProcessors;
 
     /**
@@ -232,9 +222,9 @@ public abstract class AbstractCompilerMojo
      * &lt;/compilerArguments&gt;
      * </pre>
      *
-     * @parameter
      * @since 2.0.1
      */
+    @Parameter
     protected Map<String, String> compilerArguments;
 
     /**
@@ -246,33 +236,34 @@ public abstract class AbstractCompilerMojo
      * This is because the list of valid arguments passed to a Java compiler
      * varies based on the compiler version.
      * </p>
-     *
-     * @parameter
      */
+    @Parameter
     protected String compilerArgument;
 
     /**
      * Sets the name of the output file when compiling a set of
      * sources to a single file.
-     *
-     * @parameter expression="${project.build.finalName}"
+     * <p/>
+     * expression="${project.build.finalName}"
      */
+    @Parameter
     private String outputFileName;
 
     /**
-     * Keyword list to be appended to the <code>-g</code> command-line switch. Legal values are none or a 
+     * Keyword list to be appended to the <code>-g</code> command-line switch. Legal values are none or a
      * comma-separated list of the following keywords: <code>lines</code>, <code>vars</code>, and <code>source</code>.
      * If debug level is not specified, by default, nothing will be appended to <code>-g</code>.
      * If debug is not turned on, this attribute will be ignored.
      *
-     * @parameter expression="${maven.compiler.debuglevel}"
      * @since 2.1
      */
+    @Parameter( property = "maven.compiler.debuglevel" )
     private String debuglevel;
 
     /**
-     * @component
+     *
      */
+    @Component
     private ToolchainManager toolchainManager;
 
     // ----------------------------------------------------------------------
@@ -281,57 +272,47 @@ public abstract class AbstractCompilerMojo
 
     /**
      * The directory to run the compiler from if fork is true.
-     *
-     * @parameter default-value="${basedir}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${basedir}", required = true, readonly = true )
     private File basedir;
 
     /**
      * The target directory of the compiler if fork is true.
-     *
-     * @parameter default-value="${project.build.directory}"
-     * @required
-     * @readonly
      */
+    @Parameter( defaultValue = "${project.build.directory}", required = true, readonly = true )
     private File buildDirectory;
 
     /**
      * Plexus compiler manager.
-     *
-     * @component
      */
+    @Component
     private CompilerManager compilerManager;
 
     /**
      * The current build session instance. This is used for toolchain manager API calls.
-     *
-     * @parameter default-value="${session}"
-     * @required
-     * @readonly
      */
+    @Component
     private MavenSession session;
 
     /**
      * Strategy to re use javacc class created:
      * <ul>
-     *   <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds,
-     *   each thread will have its own instance</li>
-     *   <li><code>reuseSame</code>: the same Javacc class will be used for each compilation even for multi-threaded build</li>
-     *   <li><code>alwaysNew</code>: a new Javacc class will be created for each compilation</li>
+     * <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds,
+     * each thread will have its own instance</li>
+     * <li><code>reuseSame</code>: the same Javacc class will be used for each compilation even for multi-threaded build</li>
+     * <li><code>alwaysNew</code>: a new Javacc class will be created for each compilation</li>
      * </ul>
      * Note this parameter value depends on the os/jdk you are using, but the default value should work on most of env.
      *
-     * @parameter default-value="${reuseCreated}" expression="${maven.compiler.compilerReuseStrategy}"
      * @since 2.5
      */
+    @Parameter( defaultValue = "${reuseCreated}", property = "maven.compiler.compilerReuseStrategy" )
     private String compilerReuseStrategy = "reuseCreated";
 
     /**
-     * @parameter default-value="${false}" expression="${maven.compiler.skipMultiThreadWarning}"
      * @since 2.5
      */
+    @Parameter( defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning" )
     private boolean skipMultiThreadWarning;
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
