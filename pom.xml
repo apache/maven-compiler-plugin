@@ -54,13 +54,14 @@ under the License.
   <properties>
     <mavenVersion>2.0.9</mavenVersion>
     <plexusCompilerVersion>1.9.1</plexusCompilerVersion>
+    <mavenPluginPluginVersion>3.0</mavenPluginPluginVersion>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.apache.maven.plugin-tools</groupId>
       <artifactId>maven-plugin-annotations</artifactId>
-      <version>3.0</version>
+      <version>${mavenPluginPluginVersion}</version>
       <scope>compile</scope>
     </dependency>
     <!-- Maven -->
@@ -184,7 +185,7 @@ under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-plugin-plugin</artifactId>
-          <version>3.0</version>
+          <version>${mavenPluginPluginVersion}</version>
           <configuration>
             <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
           </configuration>
@@ -213,7 +214,7 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-plugin-plugin</artifactId>
-        <version>3.0</version>
+        <version>${mavenPluginPluginVersion}</version>
       </plugin>
     </plugins>
   </reporting>
