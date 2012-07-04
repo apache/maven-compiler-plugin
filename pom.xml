@@ -54,7 +54,7 @@ under the License.
   <properties>
     <mavenVersion>2.0.9</mavenVersion>
     <plexusCompilerVersion>1.9.1</plexusCompilerVersion>
-    <mavenPluginPluginVersion>3.0</mavenPluginPluginVersion>
+    <mavenPluginPluginVersion>3.1</mavenPluginPluginVersion>
   </properties>
 
   <dependencies>
