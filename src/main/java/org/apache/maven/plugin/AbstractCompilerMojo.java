@@ -19,6 +19,7 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -42,6 +43,8 @@ import org.codehaus.plexus.util.StringUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -315,6 +318,13 @@ public abstract class AbstractCompilerMojo
     @Parameter( defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning" )
     private boolean skipMultiThreadWarning;
 
+    /**
+     * We need this to determine the start timestamp of the build.
+     * @since 2.6
+     */
+    @Component
+    protected MavenSession mavenSession;
+
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
@@ -550,33 +560,27 @@ public abstract class AbstractCompilerMojo
 
         getLog().debug( "CompilerReuseStrategy: " + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
 
-        // TODO: have an option to always compile (without need to clean)
-        Set<File> staleSources;
-
         boolean canUpdateTarget;
 
         try
         {
-            staleSources =
-                computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
-
             canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
 
-            if ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-                && !canUpdateTarget )
+            if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
+                   && !canUpdateTarget )
+                 || isDependencyChanged(getArtifacts())
+                 || isSourceChanged(compilerConfiguration, compiler) )
             {
-                getLog().info( "RESCANNING!" );
-                // TODO: This second scan for source files is sub-optimal
-                String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
-
-                Set<File> sources = computeStaleSources( compilerConfiguration, compiler,
-                                                         getSourceInclusionScanner( inputFileEnding ) );
+                getLog().info( "Recompiling the module!" );
+                Set<File> sources = getCompileSources( compiler, compilerConfiguration );
 
                 compilerConfiguration.setSourceFiles( sources );
             }
             else
             {
-                compilerConfiguration.setSourceFiles( staleSources );
+                getLog().info( "Nothing to compile - all classes are up to date" );
+
+                return;
             }
         }
         catch ( CompilerException e )
@@ -584,12 +588,6 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Error while computing stale sources.", e );
         }
 
-        if ( staleSources.isEmpty() )
-        {
-            getLog().info( "Nothing to compile - all classes are up to date" );
-
-            return;
-        }
 
         // ----------------------------------------------------------------------
         // Dump configuration
@@ -719,6 +717,64 @@ public abstract class AbstractCompilerMojo
     }
 
     /**
+     * @return all source files for the compiler
+     */
+    private Set<File> getCompileSources( Compiler compiler, CompilerConfiguration compilerConfiguration ) throws MojoExecutionException, CompilerException
+    {
+        String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
+        SourceInclusionScanner scanner = getSourceInclusionScanner( inputFileEnding );
+
+        SourceMapping mapping = getSourceMapping( compilerConfiguration, compiler );
+
+        scanner.addSourceMapping( mapping );
+
+        Set<File> compileSources = new HashSet<File>();
+
+        for ( String sourceRoot : getCompileSourceRoots() )
+        {
+            File rootFile = new File( sourceRoot );
+
+            if ( !rootFile.isDirectory() )
+            {
+                continue;
+            }
+
+            try
+            {
+                compileSources.addAll( scanner.getIncludedSources( rootFile, null ) );
+            }
+            catch ( InclusionScanException e )
+            {
+                throw new MojoExecutionException(
+                        "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e );
+            }
+        }
+
+        return compileSources;
+    }
+
+    /**
+     *
+     * @return <code>true</code> if at least a single source file is newer than it's class file
+     * @param compilerConfiguration
+     * @param compiler
+     */
+    private boolean isSourceChanged( CompilerConfiguration compilerConfiguration, Compiler compiler )
+            throws CompilerException, MojoExecutionException
+    {
+        Set<File> staleSources =
+                computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
+
+        return staleSources != null && staleSources.size() > 0;
+    }
+
+
+    /**
+     * Get all the project artifacts for the current scope
+     */
+    protected abstract Collection<Artifact> getArtifacts();
+
+    /**
      * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependant
      *
      * @return number of thread for this build or 1 if not multi-thread build
@@ -727,7 +783,7 @@ public abstract class AbstractCompilerMojo
     {
         try
         {
-            Method getRequestMethod = this.session.getClass().getMethod( "getRequest" );
+            Method getRequestMethod = session.getClass().getMethod( "getRequest" );
             Object mavenExecutionRequest = getRequestMethod.invoke( this.session );
             Method getThreadCountMethod = mavenExecutionRequest.getClass().getMethod( "getThreadCount" );
             String threadCount = (String) getThreadCountMethod.invoke( mavenExecutionRequest );
@@ -739,6 +795,26 @@ public abstract class AbstractCompilerMojo
         }
         return 1;
     }
+
+    protected Date getBuildStartTime()
+    {
+        try
+        {
+            Method getRequestMethod = session.getClass().getMethod( "getRequest" );
+            Object mavenExecutionRequest = getRequestMethod.invoke( session );
+            Method getStartTimeMethod = mavenExecutionRequest.getClass().getMethod( "getStartTime" );
+            Date buildStartTime = (Date) getStartTimeMethod.invoke( mavenExecutionRequest );
+            return buildStartTime;
+        }
+        catch ( Exception e )
+        {
+            getLog().debug( "unable to get start time for the current build: " + e.getMessage() );
+        }
+
+        return new Date();
+    }
+
+
 
     private String getMemoryValue( String setting )
     {
@@ -788,29 +864,18 @@ public abstract class AbstractCompilerMojo
                                            SourceInclusionScanner scanner )
         throws MojoExecutionException, CompilerException
     {
-        CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
+        SourceMapping mapping = getSourceMapping( compilerConfiguration, compiler );
 
-        SourceMapping mapping;
 
         File outputDirectory;
-
-        if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE )
+        CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
+        if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
         {
-            mapping = new SuffixMapping( compiler.getInputFileEnding( compilerConfiguration ),
-                                         compiler.getOutputFileEnding( compilerConfiguration ) );
-
-            outputDirectory = getOutputDirectory();
-        }
-        else if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-        {
-            mapping = new SingleTargetSourceMapping( compiler.getInputFileEnding( compilerConfiguration ),
-                                                     compiler.getOutputFile( compilerConfiguration ) );
-
             outputDirectory = buildDirectory;
         }
         else
         {
-            throw new MojoExecutionException( "Unknown compiler output style: '" + outputStyle + "'." );
+            outputDirectory = getOutputDirectory();
         }
 
         scanner.addSourceMapping( mapping );
@@ -840,6 +905,30 @@ public abstract class AbstractCompilerMojo
         return staleSources;
     }
 
+    private SourceMapping getSourceMapping( CompilerConfiguration compilerConfiguration, Compiler compiler )
+            throws CompilerException, MojoExecutionException
+    {
+        CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
+
+        SourceMapping mapping;
+        if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE )
+        {
+            mapping = new SuffixMapping( compiler.getInputFileEnding( compilerConfiguration ),
+                                         compiler.getOutputFileEnding( compilerConfiguration ) );
+        }
+        else if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
+        {
+            mapping = new SingleTargetSourceMapping( compiler.getInputFileEnding( compilerConfiguration ),
+                                                     compiler.getOutputFile( compilerConfiguration ) );
+
+        }
+        else
+        {
+            throw new MojoExecutionException( "Unknown compiler output style: '" + outputStyle + "'." );
+        }
+        return mapping;
+    }
+
     /**
      * @todo also in ant plugin. This should be resolved at some point so that it does not need to
      * be calculated continuously - or should the plugins accept empty source roots as is?
@@ -859,5 +948,66 @@ public abstract class AbstractCompilerMojo
             }
         }
         return newCompileSourceRootsList;
+    }
+
+    /**
+     * We just compare the timestamps of all local dependency files (inter-module dependency classpath)
+     * and if we got a file which is >= the buid-started timestamp, then we catched a file which got
+     * changed during this build.
+     *
+     * @return <code>true</code> if at least one single dependency has changed.
+     */
+    protected boolean isDependencyChanged(Collection<Artifact> artifacts)
+    {
+        if ( mavenSession == null )
+        {
+            // we just cannot determine it, so don't do anything beside logging
+            getLog().info( "Cannot determine build start date, skipping incremental build detection." );
+            return false;
+        }
+
+        Date buildStartTime = getBuildStartTime();
+
+        for ( Artifact artifact : artifacts )
+        {
+            // ProjectArtifacts are artifacts which are available in the local project
+            // that's the only ones we are interested in now.
+            File artifactPath = artifact.getFile();
+            if ( artifactPath != null && artifactPath.isDirectory() )
+            {
+                if ( hasNewFile( artifactPath, buildStartTime ) )
+                {
+                    return true;
+                }
+            }
+        }
+
+        // obviously there was no new file detected.
+        return false;
+    }
+
+    private boolean hasNewFile( File classPathEntry, Date buildStartTime )
+    {
+        if ( ! classPathEntry.exists() )
+        {
+            return false;
+        }
+
+        if ( classPathEntry.isFile() )
+        {
+            return classPathEntry.lastModified() >= buildStartTime.getTime();
+        }
+
+        File[] children = classPathEntry.listFiles();
+
+        for ( File child : children )
+        {
+            if ( hasNewFile( child, buildStartTime ) )
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

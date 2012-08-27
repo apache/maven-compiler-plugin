@@ -28,6 +28,7 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -65,12 +66,18 @@ public class CompilerMojo
     private File outputDirectory;
 
     /**
-     * Project artifacts.
+     * Projects main artifact.
      *
      * @todo this is an export variable, really
      */
     @Parameter( defaultValue = "${project.artifact}", readonly = true, required = true )
     private Artifact projectArtifact;
+
+    /**
+     * We need all the projects artifacts to determine whether we shall force a re-compile.
+     */
+    @Parameter( defaultValue = "${project.artifacts}", readonly = true, required = true )
+    private Set<Artifact> projectArtifacts;
 
     /**
      * A list of inclusion filters for the compiler.
@@ -142,13 +149,20 @@ public class CompilerMojo
         return scanner;
     }
 
+    @Override
+    protected Collection<Artifact> getArtifacts()
+    {
+        return projectArtifacts;
+    }
+
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
     {
         SourceInclusionScanner scanner = null;
 
         if ( includes.isEmpty() && excludes.isEmpty() )
         {
-            includes = Collections.singleton( "**/*." + inputFileEnding );
+            String includePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
+            includes = Collections.singleton( includePattern );
             scanner = new SimpleSourceInclusionScanner( includes, Collections.EMPTY_SET );
         }
         else

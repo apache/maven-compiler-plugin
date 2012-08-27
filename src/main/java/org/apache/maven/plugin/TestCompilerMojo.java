@@ -19,6 +19,7 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -27,6 +28,7 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -139,6 +141,13 @@ public class TestCompilerMojo
     private File generatedTestSourcesDirectory;
 
 
+    /**
+     * We need all the projects test artifacts to determine whether we shall force a re-compile.
+     */
+    @Parameter( defaultValue = "${project.testArtifacts}", readonly = true, required = true )
+    private List<Artifact> testArtifacts;
+
+
     public void execute()
         throws MojoExecutionException, CompilationFailureException
     {
@@ -193,7 +202,8 @@ public class TestCompilerMojo
 
         if ( testIncludes.isEmpty() && testExcludes.isEmpty() )
         {
-            testIncludes = Collections.singleton( "**/*." + inputFileEnding );
+            String includePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
+            testIncludes = Collections.singleton( includePattern );
             scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.EMPTY_SET );
         }
         else
@@ -206,6 +216,11 @@ public class TestCompilerMojo
         }
 
         return scanner;
+    }
+
+    @Override
+    protected Collection<Artifact> getArtifacts() {
+        return testArtifacts;
     }
 
     protected String getSource()
