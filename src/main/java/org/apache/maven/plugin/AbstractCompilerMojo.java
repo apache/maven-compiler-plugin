@@ -19,7 +19,6 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -43,7 +42,6 @@ import org.codehaus.plexus.util.StringUtils;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -568,10 +566,10 @@ public abstract class AbstractCompilerMojo
 
             if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
                    && !canUpdateTarget )
-                 || isDependencyChanged( getArtifacts() )
-                 || isSourceChanged( compilerConfiguration, compiler) )
+                 || isDependencyChanged()
+                 || isSourceChanged(compilerConfiguration, compiler) )
             {
-                getLog().info( "Recompiling the module!" );
+                getLog().info( "Changes detected - recompiling the module!" );
                 Set<File> sources = getCompileSources( compiler, compilerConfiguration );
 
                 compilerConfiguration.setSourceFiles( sources );
@@ -771,11 +769,6 @@ public abstract class AbstractCompilerMojo
 
 
     /**
-     * Get all the project artifacts for the current scope
-     */
-    protected abstract Collection<Artifact> getArtifacts();
-
-    /**
      * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependant
      *
      * @return number of thread for this build or 1 if not multi-thread build
@@ -953,12 +946,13 @@ public abstract class AbstractCompilerMojo
 
     /**
      * We just compare the timestamps of all local dependency files (inter-module dependency classpath)
+     * and the own generated classes
      * and if we got a file which is >= the buid-started timestamp, then we catched a file which got
      * changed during this build.
      *
      * @return <code>true</code> if at least one single dependency has changed.
      */
-    protected boolean isDependencyChanged( Collection<Artifact> artifacts )
+    protected boolean isDependencyChanged()
     {
         if ( mavenSession == null )
         {
@@ -969,12 +963,12 @@ public abstract class AbstractCompilerMojo
 
         Date buildStartTime = getBuildStartTime();
 
-        for ( Artifact artifact : artifacts )
+        for ( String classPathElement : getClasspathElements() )
         {
             // ProjectArtifacts are artifacts which are available in the local project
             // that's the only ones we are interested in now.
-            File artifactPath = artifact.getFile();
-            if ( artifactPath != null && artifactPath.isDirectory() )
+            File artifactPath = new File( classPathElement );
+            if ( artifactPath.isDirectory() )
             {
                 if ( hasNewFile( artifactPath, buildStartTime ) )
                 {

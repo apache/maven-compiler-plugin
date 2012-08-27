@@ -28,7 +28,6 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 
 import java.io.File;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -72,12 +71,6 @@ public class CompilerMojo
      */
     @Parameter( defaultValue = "${project.artifact}", readonly = true, required = true )
     private Artifact projectArtifact;
-
-    /**
-     * We need all the projects artifacts to determine whether we shall force a re-compile.
-     */
-    @Parameter( defaultValue = "${project.artifacts}", readonly = true, required = true )
-    private Set<Artifact> projectArtifacts;
 
     /**
      * A list of inclusion filters for the compiler.
@@ -147,12 +140,6 @@ public class CompilerMojo
         }
 
         return scanner;
-    }
-
-    @Override
-    protected Collection<Artifact> getArtifacts()
-    {
-        return projectArtifacts;
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
