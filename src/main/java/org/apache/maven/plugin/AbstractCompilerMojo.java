@@ -568,8 +568,8 @@ public abstract class AbstractCompilerMojo
 
             if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
                    && !canUpdateTarget )
-                 || isDependencyChanged(getArtifacts())
-                 || isSourceChanged(compilerConfiguration, compiler) )
+                 || isDependencyChanged( getArtifacts() )
+                 || isSourceChanged( compilerConfiguration, compiler) )
             {
                 getLog().info( "Recompiling the module!" );
                 Set<File> sources = getCompileSources( compiler, compilerConfiguration );
@@ -719,7 +719,8 @@ public abstract class AbstractCompilerMojo
     /**
      * @return all source files for the compiler
      */
-    private Set<File> getCompileSources( Compiler compiler, CompilerConfiguration compilerConfiguration ) throws MojoExecutionException, CompilerException
+    private Set<File> getCompileSources( Compiler compiler, CompilerConfiguration compilerConfiguration )
+        throws MojoExecutionException, CompilerException
     {
         String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
         SourceInclusionScanner scanner = getSourceInclusionScanner( inputFileEnding );
@@ -827,8 +828,8 @@ public abstract class AbstractCompilerMojo
         }
         else
         {
-            if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) ) && ( setting.toLowerCase().endsWith(
-                "m" ) ) )
+            if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) )
+                && ( setting.toLowerCase().endsWith( "m" ) ) )
             {
                 value = setting;
             }
@@ -957,7 +958,7 @@ public abstract class AbstractCompilerMojo
      *
      * @return <code>true</code> if at least one single dependency has changed.
      */
-    protected boolean isDependencyChanged(Collection<Artifact> artifacts)
+    protected boolean isDependencyChanged( Collection<Artifact> artifacts )
     {
         if ( mavenSession == null )
         {
@@ -988,7 +989,7 @@ public abstract class AbstractCompilerMojo
 
     private boolean hasNewFile( File classPathEntry, Date buildStartTime )
     {
-        if ( ! classPathEntry.exists() )
+        if ( !classPathEntry.exists() )
         {
             return false;
         }

@@ -204,7 +204,7 @@ public class TestCompilerMojo
         {
             String includePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
             testIncludes = Collections.singleton( includePattern );
-            scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.EMPTY_SET );
+            scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.<String>emptySet() );
         }
         else
         {
@@ -219,7 +219,8 @@ public class TestCompilerMojo
     }
 
     @Override
-    protected Collection<Artifact> getArtifacts() {
+    protected Collection<Artifact> getArtifacts()
+    {
         return testArtifacts;
     }
 

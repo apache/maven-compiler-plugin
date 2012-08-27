@@ -163,7 +163,7 @@ public class CompilerMojo
         {
             String includePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
             includes = Collections.singleton( includePattern );
-            scanner = new SimpleSourceInclusionScanner( includes, Collections.EMPTY_SET );
+            scanner = new SimpleSourceInclusionScanner( includes, Collections.<String>emptySet() );
         }
         else
         {
