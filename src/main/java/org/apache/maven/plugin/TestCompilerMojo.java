@@ -191,17 +191,19 @@ public class TestCompilerMojo
     {
         SourceInclusionScanner scanner = null;
 
+        // it's not defined if we get the ending with or without the dot '.'
+        String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
+
         if ( testIncludes.isEmpty() && testExcludes.isEmpty() )
         {
-            String includePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
-            testIncludes = Collections.singleton( includePattern );
+            testIncludes = Collections.singleton( defaultIncludePattern );
             scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.<String>emptySet() );
         }
         else
         {
             if ( testIncludes.isEmpty() )
             {
-                testIncludes.add( "**/*." + inputFileEnding );
+                testIncludes.add( defaultIncludePattern );
             }
             scanner = new SimpleSourceInclusionScanner( testIncludes, testExcludes );
         }
