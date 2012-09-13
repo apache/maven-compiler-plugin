@@ -62,7 +62,7 @@ public class CompilationFailureException
      */
     public static String shortMessage( List<CompilerError> messages )
     {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
 
         sb.append( "Compilation failure" );
 
