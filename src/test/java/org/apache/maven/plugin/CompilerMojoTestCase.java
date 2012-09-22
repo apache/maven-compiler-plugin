@@ -27,10 +27,14 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.plugin.descriptor.MojoDescriptor;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.plugin.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.stubs.DebugEnabledLog;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
+import org.apache.maven.project.MavenProject;
 
 public class CompilerMojoTestCase
     extends AbstractMojoTestCase
@@ -288,6 +292,8 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "log", new DebugEnabledLog() );
         setVariableValueToObject( mojo, "projectArtifact", new ArtifactStub() );
         setVariableValueToObject( mojo, "classpathElements", Collections.EMPTY_LIST );
+        setVariableValueToObject( mojo, "mavenSession", getMockMavenSession() );
+        setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
 
         assertNotNull( mojo );
 
@@ -315,6 +321,40 @@ public class CompilerMojoTestCase
         String testSourceRoot = testPom.getParent() + "/src/test/java";
         setVariableValueToObject( mojo, "compileSourceRoots", Collections.singletonList( testSourceRoot ) );
 
+        setVariableValueToObject( mojo, "mavenSession", getMockMavenSession() );
+        setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
+
         return mojo;
+    }
+
+    private MavenProject getMockMavenProject()
+    {
+        MavenProject mp = new MavenProject();
+        mp.getBuild().setDirectory( "target" );
+
+        return mp;
+    }
+
+    private MavenSession getMockMavenSession()
+    {
+        //X MavenExecutionRequest er = new DefaultMavenExecutionRequest();
+        MavenSession ms = new MavenSession( null, null, null, null, null, null, null, null, null );
+        ms.setCurrentProject( getMockMavenProject() );
+
+        return ms;
+    }
+
+    private MojoExecution getMockMojoExecution()
+    {
+        MojoDescriptor md = new MojoDescriptor();
+        md.setGoal( "compile" );
+
+        MojoExecution me = new MojoExecution( md );
+
+        PluginDescriptor pd = new PluginDescriptor();
+        pd.setArtifactId( "maven-compiler-plugin" );
+        md.setPluginDescriptor( pd );
+
+        return me;
     }
 }

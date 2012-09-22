@@ -22,6 +22,8 @@ package org.apache.maven.plugin;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.shared.incremental.IncrementalBuildHelper;
+import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.codehaus.plexus.compiler.Compiler;
@@ -37,7 +39,6 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.util.ReaderFactory;
-import org.codehaus.plexus.util.StringUtils;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -317,6 +318,12 @@ public abstract class AbstractCompilerMojo
     private boolean skipMultiThreadWarning;
 
     /**
+     * @since 2.6 needed for storing the status for the incremental build support.
+     */
+    @Component
+    private MojoExecution mojoExecution;
+
+    /**
      * We need this to determine the start timestamp of the build.
      * @since 2.6
      */
@@ -560,17 +567,20 @@ public abstract class AbstractCompilerMojo
 
         boolean canUpdateTarget;
 
+        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, mavenSession );
+
         try
         {
             canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
+            Set<File> sources = getCompileSources( compiler, compilerConfiguration );
 
             if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
                    && !canUpdateTarget )
                  || isDependencyChanged()
-                 || isSourceChanged(compilerConfiguration, compiler) )
+                 || isSourceChanged( compilerConfiguration, compiler )
+                 || incrementalBuildHelper.inputFileTreeChanged( sources ) )
             {
                 getLog().info( "Changes detected - recompiling the module!" );
-                Set<File> sources = getCompileSources( compiler, compilerConfiguration );
 
                 compilerConfiguration.setSourceFiles( sources );
             }
@@ -650,6 +660,9 @@ public abstract class AbstractCompilerMojo
 
         List<CompilerError> messages;
 
+
+        incrementalBuildHelper.beforeRebuildExecution( getOutputDirectory() );
+
         try
         {
             messages = compiler.compile( compilerConfiguration );
@@ -659,6 +672,9 @@ public abstract class AbstractCompilerMojo
             // TODO: don't catch Exception
             throw new MojoExecutionException( "Fatal error compiling", e );
         }
+
+        // now scan the same directory again and create a diff
+        incrementalBuildHelper.afterRebuildExecution();
 
         List<CompilerError> warnings = new ArrayList<CompilerError>();
         List<CompilerError> errors = new ArrayList<CompilerError>();
