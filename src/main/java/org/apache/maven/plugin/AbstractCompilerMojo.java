@@ -38,7 +38,7 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
-import org.codehaus.plexus.util.ReaderFactory;
+import org.apache.maven.shared.utils.ReaderFactory;
 
 import java.io.File;
 import java.lang.reflect.Method;
@@ -320,7 +320,7 @@ public abstract class AbstractCompilerMojo
     /**
      * @since 2.6 needed for storing the status for the incremental build support.
      */
-    @Component
+    @Parameter( property = "mojoExecution")
     private MojoExecution mojoExecution;
 
     /**
