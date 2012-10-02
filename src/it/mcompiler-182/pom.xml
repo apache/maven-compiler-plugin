@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>org.apache.maven.plugins.compiler.its</groupId>
+  <artifactId>mcompiler-182</artifactId>
+  <version>1.0-SNAPSHOT</version>
+
+  <description>
+    This IT tests what happens if the class name (and filename) of BeanA gets changed.
+    In this case 'mvn compile' (without a clean) should fail as BeanA2
+    still uses the old BeanA.
+  </description>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>@project.version@</version>
+        </plugin>      
+      </plugins>
+    </pluginManagement> 
+    <plugins>
+      <plugin>
+        <!-- Called as second invoker goal to simulate file adjustment -->
+        <groupId>org.codehaus.gmaven</groupId>
+        <artifactId>gmaven-plugin</artifactId>
+        <version>1.4</version>
+        <configuration>
+          <source>
+            def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
+            
+            new File( project.basedir, 'src/main/java/BEANa.java' ).withWriter { file ->
+              beanAFile.eachLine { line ->
+                file.writeLine( line.replace( 'BeanA', 'BEANa' ) )
+              }
+            }
+            
+            beanAFile.delete()
+          </source>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
