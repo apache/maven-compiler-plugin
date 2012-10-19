@@ -318,6 +318,14 @@ public abstract class AbstractCompilerMojo
     private boolean skipMultiThreadWarning;
 
     /**
+     * compiler can now use javax.tools if available in your current jdk, you can disable this feature
+     * using -Dmaven.compiler.forceJavacCompilerUse=true or in the plugin configuration
+     * @since 2.6
+     */
+    @Parameter( defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse" )
+    private boolean forceJavacCompilerUse;
+
+    /**
      * @since 2.6 needed for storing the status for the incremental build support.
      */
     @Parameter( property = "mojoExecution")
@@ -564,6 +572,8 @@ public abstract class AbstractCompilerMojo
         }
 
         getLog().debug( "CompilerReuseStrategy: " + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
+
+        compilerConfiguration.setForceJavacCompilerUse( forceJavacCompilerUse );
 
         boolean canUpdateTarget;
 

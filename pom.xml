@@ -53,8 +53,11 @@ under the License.
 
   <properties>
     <mavenVersion>2.0.9</mavenVersion>
-    <plexusCompilerVersion>1.9.1</plexusCompilerVersion>
+    <plexusCompilerVersion>2.0-SNAPSHOT</plexusCompilerVersion>
     <mavenPluginPluginVersion>3.1</mavenPluginPluginVersion>
+
+    <groovyVersion>1.8.0</groovyVersion>
+    <groovyEclipseCompilerVersion>2.6.0-01</groovyEclipseCompilerVersion>
   </properties>
 
   <dependencies>
@@ -226,10 +229,6 @@ under the License.
   <profiles>
     <profile>
       <id>run-its</id>
-      <properties>
-        <groovyVersion>1.8.0</groovyVersion>
-        <groovyEclipseCompilerVersion>2.6.0-01</groovyEclipseCompilerVersion>
-      </properties>
       <build>
         <pluginManagement>
           <plugins>
