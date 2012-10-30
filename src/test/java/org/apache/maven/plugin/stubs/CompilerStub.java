@@ -22,7 +22,9 @@ package org.apache.maven.plugin.stubs;
 import org.codehaus.plexus.compiler.CompilerConfiguration;
 import org.codehaus.plexus.compiler.CompilerError;
 import org.codehaus.plexus.compiler.CompilerException;
+import org.codehaus.plexus.compiler.CompilerMessage;
 import org.codehaus.plexus.compiler.CompilerOutputStyle;
+import org.codehaus.plexus.compiler.CompilerResult;
 
 import java.io.File;
 import java.io.IOException;
@@ -97,6 +99,29 @@ public class CompilerStub
         }
 
         return Collections.singletonList( new CompilerError( "message 1", shouldFail ) );
+    }
+
+    public CompilerResult performCompile( CompilerConfiguration compilerConfiguration )
+        throws CompilerException
+    {
+        File outputDir = new File( compilerConfiguration.getOutputLocation() );
+
+        try
+        {
+            outputDir.mkdirs();
+
+            File outputFile = new File( outputDir, "compiled.class" );
+            if ( !outputFile.exists() && !outputFile.createNewFile() )
+            {
+                throw new CompilerException( "could not create output file: " + outputFile.getAbsolutePath() );
+            }
+        }
+        catch ( IOException e )
+        {
+            throw new CompilerException( "An exception occurred while creating output file", e );
+        }
+        return new CompilerResult().compilerMessages(
+            Collections.singletonList( new CompilerMessage( "message 1", shouldFail ) ) );
     }
 
     public String[] createCommandLine( CompilerConfiguration compilerConfiguration )

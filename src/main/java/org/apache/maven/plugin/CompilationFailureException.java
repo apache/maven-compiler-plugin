@@ -20,6 +20,7 @@ package org.apache.maven.plugin;
  */
 
 import org.codehaus.plexus.compiler.CompilerError;
+import org.codehaus.plexus.compiler.CompilerMessage;
 
 import java.util.List;
 
@@ -34,18 +35,18 @@ public class CompilationFailureException
 {
     private static final String LS = System.getProperty( "line.separator" );
 
-    public CompilationFailureException( List<CompilerError> messages )
+    public CompilationFailureException( List<CompilerMessage> messages )
     {
         super( null, shortMessage( messages ), longMessage( messages ) );
     }
 
-    public static String longMessage( List<CompilerError> messages )
+    public static String longMessage( List<CompilerMessage> messages )
     {
         StringBuilder sb = new StringBuilder();
 
         if ( messages != null )
         {
-            for ( CompilerError compilerError : messages )
+            for ( CompilerMessage compilerError : messages )
             {
                 sb.append( compilerError ).append( LS );
             }
@@ -60,7 +61,7 @@ public class CompilationFailureException
      * @return the short error message
      * @since 2.0.2
      */
-    public static String shortMessage( List<CompilerError> messages )
+    public static String shortMessage( List<CompilerMessage> messages )
     {
         StringBuilder sb = new StringBuilder();
 
@@ -70,7 +71,7 @@ public class CompilationFailureException
         {
             sb.append( LS );
 
-            CompilerError compilerError = (CompilerError) messages.get( 0 );
+            CompilerMessage compilerError = messages.get( 0 );
 
             sb.append( compilerError ).append( LS );
         }
