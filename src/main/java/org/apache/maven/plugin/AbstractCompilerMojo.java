@@ -684,7 +684,7 @@ public abstract class AbstractCompilerMojo
             catch ( CompilerNotImplementedException cnie )
             {
                 List<CompilerError> messages = compiler.compile( compilerConfiguration );
-                compilerResult = new CompilerResult().compilerMessages( makeCompilerMessages( messages ) );
+                compilerResult = convertToCompilerResult( messages );
             }
         }
         catch ( Exception e )
@@ -698,22 +698,19 @@ public abstract class AbstractCompilerMojo
 
         List<CompilerMessage> warnings = new ArrayList<CompilerMessage>();
         List<CompilerMessage> errors = new ArrayList<CompilerMessage>();
-
-
-            for ( CompilerMessage message : compilerResult.getCompilerMessages() )
+        for ( CompilerMessage message : compilerResult.getCompilerMessages() )
+        {
+            if ( message.isError() )
             {
-                if ( message.isError() || message.getKind() == CompilerMessage.Kind.ERROR )
-                {
-                    errors.add( message );
-                }
-                else
-                {
-                    warnings.add( message );
-                }
+                errors.add( message );
             }
+            else
+            {
+                warnings.add( message );
+            }
+        }
 
-
-        if ( failOnError && !errors.isEmpty() )
+        if ( failOnError && !compilerResult.isSuccess() )
         {
             if ( !warnings.isEmpty() )
             {
@@ -728,18 +725,27 @@ public abstract class AbstractCompilerMojo
                 getLog().info( "-------------------------------------------------------------" );
             }
 
-            getLog().info( "-------------------------------------------------------------" );
-            getLog().error( "COMPILATION ERROR : " );
-            getLog().info( "-------------------------------------------------------------" );
-
-            for ( CompilerMessage error : errors )
+            if ( !errors.isEmpty() )
             {
-                getLog().error( error.toString() );
+                getLog().info( "-------------------------------------------------------------" );
+                getLog().error( "COMPILATION ERROR : " );
+                getLog().info( "-------------------------------------------------------------" );
+                for ( CompilerMessage error : errors )
+                {
+                    getLog().error( error.toString() );
+                }
+                getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : " error" ) );
+                getLog().info( "-------------------------------------------------------------" );
             }
-            getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : " error" ) );
-            getLog().info( "-------------------------------------------------------------" );
 
-            throw new CompilationFailureException( errors );
+            if ( !errors.isEmpty() )
+            {
+                throw new CompilationFailureException( errors );
+            }
+            else
+            {
+                throw new CompilationFailureException( warnings );
+            }
         }
         else
         {
@@ -750,22 +756,27 @@ public abstract class AbstractCompilerMojo
         }
     }
 
-    protected List<CompilerMessage> makeCompilerMessages( List<CompilerError> compilerErrors )
+    protected CompilerResult convertToCompilerResult( List<CompilerError> compilerErrors )
     {
         if ( compilerErrors == null )
         {
-            return Collections.emptyList();
+            return new CompilerResult();
         }
         List<CompilerMessage> messages = new ArrayList<CompilerMessage>( compilerErrors.size() );
+        boolean success = true;
         for ( CompilerError compilerError : compilerErrors )
         {
             messages.add(
                 new CompilerMessage( compilerError.getFile(), compilerError.getKind(), compilerError.getStartLine(),
                                      compilerError.getStartColumn(), compilerError.getEndLine(),
                                      compilerError.getEndColumn(), compilerError.getMessage() ) );
+            if ( compilerError.isError() )
+            {
+                success = false;
+            }
         }
 
-        return messages;
+        return new CompilerResult( success, messages );
     }
 
     /**

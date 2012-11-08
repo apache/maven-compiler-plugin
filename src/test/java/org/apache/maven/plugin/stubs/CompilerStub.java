@@ -120,8 +120,9 @@ public class CompilerStub
         {
             throw new CompilerException( "An exception occurred while creating output file", e );
         }
-        return new CompilerResult().compilerMessages(
-            Collections.singletonList( new CompilerMessage( "message 1", shouldFail ) ) );
+        
+        return new CompilerResult( !shouldFail,
+            Collections.singletonList( new CompilerMessage( "message 1", CompilerMessage.Kind.OTHER ) ) );
     }
 
     public String[] createCommandLine( CompilerConfiguration compilerConfiguration )
