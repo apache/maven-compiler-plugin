@@ -19,7 +19,6 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
-import org.codehaus.plexus.compiler.CompilerError;
 import org.codehaus.plexus.compiler.CompilerMessage;
 
 import java.util.List;
