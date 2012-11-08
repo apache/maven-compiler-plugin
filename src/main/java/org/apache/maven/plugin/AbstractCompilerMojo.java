@@ -46,7 +46,6 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
