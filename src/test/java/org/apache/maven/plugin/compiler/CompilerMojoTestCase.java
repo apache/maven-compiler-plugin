@@ -1,4 +1,4 @@
-package org.apache.maven.plugin;
+package org.apache.maven.plugin.compiler;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +19,23 @@ package org.apache.maven.plugin;
  * under the License.
  */
 
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.plugin.MojoExecution;
+import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
+import org.apache.maven.plugin.compiler.stubs.DebugEnabledLog;
+import org.apache.maven.plugin.descriptor.MojoDescriptor;
+import org.apache.maven.plugin.descriptor.PluginDescriptor;
+import org.apache.maven.plugin.testing.AbstractMojoTestCase;
+import org.apache.maven.plugin.testing.stubs.ArtifactStub;
+import org.apache.maven.project.MavenProject;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.descriptor.MojoDescriptor;
-import org.apache.maven.plugin.descriptor.PluginDescriptor;
-import org.apache.maven.plugin.stubs.CompilerManagerStub;
-import org.apache.maven.plugin.stubs.DebugEnabledLog;
-import org.apache.maven.plugin.testing.AbstractMojoTestCase;
-import org.apache.maven.plugin.testing.stubs.ArtifactStub;
-import org.apache.maven.project.MavenProject;
 
 public class CompilerMojoTestCase
     extends AbstractMojoTestCase
@@ -59,7 +60,7 @@ public class CompilerMojoTestCase
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-basic-test/plugin-config.xml" );
 
         testCompileMojo.execute();
-        
+
         Artifact projectArtifact = (Artifact) getVariableValueFromObject( compileMojo, "projectArtifact" );
         assertNotNull( "MCOMPILER-94: artifact file should only be null if there is nothing to compile",
                        projectArtifact.getFile() );
@@ -127,9 +128,8 @@ public class CompilerMojoTestCase
         testClass = new File( compileMojo.getOutputDirectory(), "TestCompile4.class" );
         assertTrue( testClass.exists() );
 
-        TestCompilerMojo testCompileMojo =
-            getTestCompilerMojo( compileMojo,
-                                 "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
+        TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
+                                                                "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
 
         setVariableValueToObject( testCompileMojo, "testIncludes", includes );
         setVariableValueToObject( testCompileMojo, "testExcludes", excludes );
@@ -183,9 +183,8 @@ public class CompilerMojoTestCase
         File testClass = new File( compileMojo.getOutputDirectory(), "compiled.class" );
         assertTrue( testClass.exists() );
 
-        TestCompilerMojo testCompileMojo =
-            getTestCompilerMojo( compileMojo,
-                                 "target/test-classes/unit/compiler-one-output-file-test/plugin-config.xml" );
+        TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
+                                                                "target/test-classes/unit/compiler-one-output-file-test/plugin-config.xml" );
 
         setVariableValueToObject( testCompileMojo, "compilerManager", new CompilerManagerStub() );
 
@@ -230,9 +229,8 @@ public class CompilerMojoTestCase
         File testClass = new File( compileMojo.getOutputDirectory(), "compiled.class" );
         assertTrue( testClass.exists() );
 
-        TestCompilerMojo testCompileMojo =
-            getTestCompilerMojo( compileMojo,
-                                 "target/test-classes/unit/compiler-one-output-file-test2/plugin-config.xml" );
+        TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
+                                                                "target/test-classes/unit/compiler-one-output-file-test2/plugin-config.xml" );
 
         setVariableValueToObject( testCompileMojo, "compilerManager", new CompilerManagerStub() );
         setVariableValueToObject( testCompileMojo, "testIncludes", includes );

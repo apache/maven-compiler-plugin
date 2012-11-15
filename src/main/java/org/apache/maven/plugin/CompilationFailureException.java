@@ -27,54 +27,14 @@ import java.util.List;
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
  * @since 2.0
+ * @deprecated package change since 3.0
  */
-@SuppressWarnings( "serial" )
+@SuppressWarnings ( "serial" )
 public class CompilationFailureException
-    extends MojoFailureException
+    extends org.apache.maven.plugin.compiler.CompilationFailureException
 {
-    private static final String LS = System.getProperty( "line.separator" );
-
     public CompilationFailureException( List<CompilerMessage> messages )
     {
-        super( null, shortMessage( messages ), longMessage( messages ) );
-    }
-
-    public static String longMessage( List<CompilerMessage> messages )
-    {
-        StringBuilder sb = new StringBuilder();
-
-        if ( messages != null )
-        {
-            for ( CompilerMessage compilerError : messages )
-            {
-                sb.append( compilerError ).append( LS );
-            }
-        }
-        return sb.toString();
-    }
-
-    /**
-     * Short message will have the error message if there's only one, useful for errors forking the compiler
-     *
-     * @param messages
-     * @return the short error message
-     * @since 2.0.2
-     */
-    public static String shortMessage( List<CompilerMessage> messages )
-    {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append( "Compilation failure" );
-
-        if ( messages.size() == 1 )
-        {
-            sb.append( LS );
-
-            CompilerMessage compilerError = messages.get( 0 );
-
-            sb.append( compilerError ).append( LS );
-        }
-        
-        return sb.toString();
+        super( messages );
     }
 }
