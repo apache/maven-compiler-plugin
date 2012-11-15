@@ -19,7 +19,6 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
-import org.apache.maven.plugin.CompilationFailureException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -42,8 +41,8 @@ import java.util.Set;
  * @version $Id$
  * @since 2.0
  */
-@org.apache.maven.plugins.annotations.Mojo( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE,
-                                            threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST )
+@org.apache.maven.plugins.annotations.Mojo ( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE,
+                                             threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST )
 public class TestCompilerMojo
     extends AbstractCompilerMojo
 {
@@ -51,25 +50,25 @@ public class TestCompilerMojo
      * Set this to 'true' to bypass compilation of test sources.
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
      */
-    @Parameter( property = "maven.test.skip" )
+    @Parameter ( property = "maven.test.skip" )
     private boolean skip;
 
     /**
      * The source directories containing the test-source to be compiled.
      */
-    @Parameter( defaultValue = "${project.testCompileSourceRoots}", readonly = true, required = true )
+    @Parameter ( defaultValue = "${project.testCompileSourceRoots}", readonly = true, required = true )
     private List<String> compileSourceRoots;
 
     /**
      * Project test classpath.
      */
-    @Parameter( defaultValue = "${project.testClasspathElements}", required = true, readonly = true )
+    @Parameter ( defaultValue = "${project.testClasspathElements}", required = true, readonly = true )
     private List<String> classpathElements;
 
     /**
      * The directory where compiled test classes go.
      */
-    @Parameter( defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = true )
+    @Parameter ( defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = true )
     private File outputDirectory;
 
     /**
@@ -89,7 +88,7 @@ public class TestCompilerMojo
      *
      * @since 2.1
      */
-    @Parameter( property = "maven.compiler.testSource" )
+    @Parameter ( property = "maven.compiler.testSource" )
     private String testSource;
 
     /**
@@ -97,7 +96,7 @@ public class TestCompilerMojo
      *
      * @since 2.1
      */
-    @Parameter( property = "maven.compiler.testTarget" )
+    @Parameter ( property = "maven.compiler.testTarget" )
     private String testTarget;
 
 
@@ -137,7 +136,7 @@ public class TestCompilerMojo
      *
      * @since 2.2
      */
-    @Parameter( defaultValue = "${project.build.directory}/generated-test-sources/test-annotations" )
+    @Parameter ( defaultValue = "${project.build.directory}/generated-test-sources/test-annotations" )
     private File generatedTestSourcesDirectory;
 
 

@@ -20,7 +20,6 @@ package org.apache.maven.plugin.compiler;
  */
 
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.plugin.CompilationFailureException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Parameter;
