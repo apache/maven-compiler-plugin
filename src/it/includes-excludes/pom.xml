@@ -21,13 +21,11 @@ under the License.
 
 <project>
   <modelVersion>4.0.0</modelVersion>
+  
+  <groupId>org.apache.maven.plugins.compiler.it</groupId>
+  <artifactId>includes-excludes</artifactId>
+  <version>1.0-SNAPSHOT</version>
 
-  <groupId>org.apache.maven.its.it0055</groupId>
-  <artifactId>maven-it-it0055</artifactId>
-  <version>1.0</version>
-  <packaging>jar</packaging>
-
-  <name>Maven Integration Test :: it0055</name> 
   <description>
     Test that source includes/excludes with in the compiler plugin config.
     This will test excludes and testExcludes...
