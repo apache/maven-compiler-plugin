@@ -30,6 +30,7 @@ import java.util.List;
  * @deprecated package change since 3.0
  */
 @SuppressWarnings ( "serial" )
+@Deprecated
 public class CompilationFailureException
     extends org.apache.maven.plugin.compiler.CompilationFailureException
 {

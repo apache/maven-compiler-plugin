@@ -31,6 +31,7 @@ package org.apache.maven.plugin;
  * @since 2.0
  * @deprecated package change since 3.0
  */
+@Deprecated
 public abstract class AbstractCompilerMojo
     extends org.apache.maven.plugin.compiler.AbstractCompilerMojo
 {
