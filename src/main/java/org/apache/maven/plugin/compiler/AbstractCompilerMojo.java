@@ -28,6 +28,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.utils.ReaderFactory;
 import org.apache.maven.shared.utils.StringUtils;
+import org.apache.maven.shared.utils.io.FileUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.codehaus.plexus.compiler.Compiler;
@@ -345,6 +346,14 @@ public abstract class AbstractCompilerMojo
      */
     @Component
     protected MavenSession mavenSession;
+
+    /**
+     * file extensions to check timestamp for incremental build
+     * <b>default is .class</b>
+     * @since 3.1
+     */
+    @Parameter
+    private List<String> fileExtensions;
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
@@ -1025,6 +1034,12 @@ public abstract class AbstractCompilerMojo
             return false;
         }
 
+        if( fileExtensions == null || fileExtensions.isEmpty())
+        {
+            fileExtensions = new ArrayList();
+            fileExtensions.add( ".class" );
+        }
+
         Date buildStartTime = getBuildStartTime();
 
         for ( String classPathElement : getClasspathElements() )
@@ -1045,6 +1060,12 @@ public abstract class AbstractCompilerMojo
         return false;
     }
 
+    /**
+     *
+     * @param classPathEntry entry to check
+     * @param buildStartTime time build start
+     * @return if any changes occured
+     */
     private boolean hasNewFile( File classPathEntry, Date buildStartTime )
     {
         if ( !classPathEntry.exists() )
@@ -1054,7 +1075,8 @@ public abstract class AbstractCompilerMojo
 
         if ( classPathEntry.isFile() )
         {
-            return classPathEntry.lastModified() >= buildStartTime.getTime();
+            return classPathEntry.lastModified() >= buildStartTime.getTime() && fileExtensions.contains(
+                FileUtils.getExtension( classPathEntry.getName() ) );
         }
 
         File[] children = classPathEntry.listFiles();
