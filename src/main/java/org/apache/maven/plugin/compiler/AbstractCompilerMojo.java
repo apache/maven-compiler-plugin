@@ -349,7 +349,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * file extensions to check timestamp for incremental build
-     * <b>default contains only .class</b>
+     * <b>default contains only <code>.class</code></b>
      * @since 3.1
      */
     @Parameter
@@ -893,13 +893,10 @@ public abstract class AbstractCompilerMojo
         {
             value = setting + "m";
         }
-        else
+        else if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) )
+            && ( setting.toLowerCase().endsWith( "m" ) ) )
         {
-            if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) ) && ( setting.toLowerCase().endsWith(
-                "m" ) ) )
-            {
-                value = setting;
-            }
+            value = setting;
         }
         return value;
     }
@@ -1034,9 +1031,9 @@ public abstract class AbstractCompilerMojo
             return false;
         }
 
-        if( fileExtensions == null || fileExtensions.isEmpty())
+        if ( fileExtensions == null || fileExtensions.isEmpty() )
         {
-            fileExtensions = new ArrayList();
+            fileExtensions = new ArrayList<String>();
             fileExtensions.add( ".class" );
         }
 
@@ -1075,8 +1072,8 @@ public abstract class AbstractCompilerMojo
 
         if ( classPathEntry.isFile() )
         {
-            return classPathEntry.lastModified() >= buildStartTime.getTime() && fileExtensions.contains(
-                FileUtils.getExtension( classPathEntry.getName() ) );
+            return classPathEntry.lastModified() >= buildStartTime.getTime()
+                && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) );
         }
 
         File[] children = classPathEntry.listFiles();
