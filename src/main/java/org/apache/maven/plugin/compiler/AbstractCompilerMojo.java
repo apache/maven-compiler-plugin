@@ -839,6 +839,13 @@ public abstract class AbstractCompilerMojo
         Set<File> staleSources =
             computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
 
+        if (getLog().isDebugEnabled())
+        {
+            for (File f : staleSources)
+            {
+                getLog().debug("Stale source detected: " + f.getAbsolutePath());
+            }
+        }
         return staleSources != null && staleSources.size() > 0;
     }
 
@@ -1048,6 +1055,7 @@ public abstract class AbstractCompilerMojo
             {
                 if ( hasNewFile( artifactPath, buildStartTime ) )
                 {
+                    getLog().debug("New dependency detected: " + artifactPath.getAbsolutePath());
                     return true;
                 }
             }
