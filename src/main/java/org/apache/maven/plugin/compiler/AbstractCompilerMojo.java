@@ -26,6 +26,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
+import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
 import org.apache.maven.shared.utils.ReaderFactory;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.shared.utils.io.FileUtils;
@@ -596,14 +597,21 @@ public abstract class AbstractCompilerMojo
 
         IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, mavenSession );
 
+        Set<File> sources = null;
+
+        IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
+
         try
         {
             canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
-            Set<File> sources = getCompileSources( compiler, compilerConfiguration );
+
+            sources = getCompileSources( compiler, compilerConfiguration );
+
+            incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
 
             if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
                 && !canUpdateTarget ) || isDependencyChanged() || isSourceChanged( compilerConfiguration, compiler )
-                || incrementalBuildHelper.inputFileTreeChanged( sources ) )
+                || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
             {
                 getLog().info( "Changes detected - recompiling the module!" );
 
@@ -684,7 +692,11 @@ public abstract class AbstractCompilerMojo
 
         CompilerResult compilerResult;
 
-        incrementalBuildHelper.beforeRebuildExecution( getOutputDirectory() );
+        getLog().debug( "incrementalBuildHelper#beforeRebuildExecution" );
+
+        incrementalBuildHelperRequest.outputDirectory( getOutputDirectory() );
+
+        incrementalBuildHelper.beforeRebuildExecution( incrementalBuildHelperRequest );
 
         try
         {
@@ -704,8 +716,9 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Fatal error compiling", e );
         }
 
+        getLog().debug( "incrementalBuildHelper#afterRebuildExecution" );
         // now scan the same directory again and create a diff
-        incrementalBuildHelper.afterRebuildExecution();
+        incrementalBuildHelper.afterRebuildExecution( incrementalBuildHelperRequest );
 
         List<CompilerMessage> warnings = new ArrayList<CompilerMessage>();
         List<CompilerMessage> errors = new ArrayList<CompilerMessage>();
