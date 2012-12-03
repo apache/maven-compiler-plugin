@@ -716,9 +716,16 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Fatal error compiling", e );
         }
 
-        getLog().debug( "incrementalBuildHelper#afterRebuildExecution" );
-        // now scan the same directory again and create a diff
-        incrementalBuildHelper.afterRebuildExecution( incrementalBuildHelperRequest );
+        if ( incrementalBuildHelperRequest.getOutputDirectory().exists() )
+        {
+            getLog().debug( "incrementalBuildHelper#afterRebuildExecution" );
+            // now scan the same directory again and create a diff
+            incrementalBuildHelper.afterRebuildExecution( incrementalBuildHelperRequest );
+        }
+        else
+        {
+            getLog().debug( "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist" );
+        }
 
         List<CompilerMessage> warnings = new ArrayList<CompilerMessage>();
         List<CompilerMessage> errors = new ArrayList<CompilerMessage>();
