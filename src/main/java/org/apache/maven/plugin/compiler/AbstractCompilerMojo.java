@@ -329,13 +329,13 @@ public abstract class AbstractCompilerMojo
      * compiler can now use javax.tools if available in your current jdk, you can disable this feature
      * using -Dmaven.compiler.forceJavacCompilerUse=true or in the plugin configuration
      *
-     * @since 2.6
+     * @since 3.0
      */
     @Parameter ( defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse" )
     private boolean forceJavacCompilerUse;
 
     /**
-     * @since 2.6 needed for storing the status for the incremental build support.
+     * @since 3.0 needed for storing the status for the incremental build support.
      */
     @Parameter ( property = "mojoExecution" )
     private MojoExecution mojoExecution;
@@ -343,7 +343,7 @@ public abstract class AbstractCompilerMojo
     /**
      * We need this to determine the start timestamp of the build.
      *
-     * @since 2.6
+     * @since 3.0
      */
     @Component
     protected MavenSession mavenSession;
