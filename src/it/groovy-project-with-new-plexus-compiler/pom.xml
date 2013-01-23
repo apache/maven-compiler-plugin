@@ -25,6 +25,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
   <version>1.0-SNAPSHOT</version>
 
   <build>
+    <sourceDirectory>src/main/groovy</sourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -32,6 +33,11 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <version>@project.version@</version>
         <configuration>
           <compilerId>groovy-eclipse-compiler</compilerId>
+          <verbose>true</verbose>
+          <!-- see https://jira.codehaus.org/browse/MCOMPILER-199 -->
+          <includes>
+            <include>**/*.groovy</include>
+          </includes>
         </configuration>
         <dependencies>
           <dependency>
@@ -39,40 +45,29 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
             <artifactId>groovy-eclipse-compiler</artifactId>
             <version>@groovyEclipseCompilerVersion@</version>
           </dependency>
+          <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-eclipse-batch</artifactId>
+            <version>@groovy-eclipse-batch@</version>
+          </dependency>
         </dependencies>
       </plugin>
 
       <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <version>1.5</version>
-        <executions>
-          <execution>
-            <id>add-source</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/main/groovy</source>
-              </sources>
-            </configuration>
-          </execution>
-          <execution>
-            <id>add-test-source</id>
-            <phase>generate-test-sources</phase>
-            <goals>
-              <goal>add-test-source</goal>
-            </goals>
-            <configuration>
-              <sources>
-                <source>src/test/groovy</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
+        <groupId>org.codehaus.groovy</groupId>
+        <artifactId>groovy-eclipse-compiler</artifactId>
+        <version>@groovyEclipseCompilerVersion@</version>
+        <extensions>true</extensions>
+        <dependencies>
+          <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-eclipse-batch</artifactId>
+            <version>@groovy-eclipse-batch@</version>
+          </dependency>
+        </dependencies>
       </plugin>
+
+
     </plugins>
   </build>
 

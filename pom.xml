@@ -56,7 +56,9 @@ under the License.
     <mavenPluginPluginVersion>3.2</mavenPluginPluginVersion>
     <plexusCompilerVersion>2.2-SNAPSHOT</plexusCompilerVersion>
     <groovyVersion>1.8.0</groovyVersion>
-    <groovyEclipseCompilerVersion>2.6.0-01</groovyEclipseCompilerVersion>
+    <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
+    <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
+    <openJpaVersion>2.2.0</openJpaVersion>
   </properties>
 
   <dependencies>
@@ -275,9 +277,20 @@ under the License.
         </dependency>
         <dependency>
           <groupId>org.codehaus.groovy</groupId>
+          <artifactId>groovy-eclipse-batch</artifactId>
+          <version>${groovy-eclipse-batch}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.codehaus.groovy</groupId>
           <artifactId>groovy-all</artifactId>
           <version>${groovyVersion}</version>
           <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.openjpa</groupId>
+          <artifactId>openjpa</artifactId>
+          <version>${openJpaVersion}</version>
         </dependency>
       </dependencies>
     </profile>
