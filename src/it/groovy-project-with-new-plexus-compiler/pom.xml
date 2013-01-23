@@ -26,6 +26,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
 
   <build>
     <sourceDirectory>src/main/groovy</sourceDirectory>
+    <testSourceDirectory>src/test/groovy</testSourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -35,9 +36,9 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
           <compilerId>groovy-eclipse-compiler</compilerId>
           <verbose>true</verbose>
           <!-- see https://jira.codehaus.org/browse/MCOMPILER-199 -->
-          <includes>
+          <!--includes>
             <include>**/*.groovy</include>
-          </includes>
+          </includes-->
         </configuration>
         <dependencies>
           <dependency>
