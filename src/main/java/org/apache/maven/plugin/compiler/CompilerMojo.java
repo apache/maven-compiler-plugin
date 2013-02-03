@@ -96,6 +96,12 @@ public class CompilerMojo
     @Parameter( defaultValue = "${project.build.directory}/generated-sources/annotations" )
     private File generatedSourcesDirectory;
 
+    /**
+     * Set this to 'true' to bypass compilation of main sources.
+     * Its use is NOT RECOMMENDED, but quite convenient on occasion.
+     */
+    @Parameter ( property = "maven.compiler.main.skip" )
+    private boolean skip;
 
     protected List<String> getCompileSourceRoots()
     {
@@ -115,6 +121,11 @@ public class CompilerMojo
     public void execute()
         throws MojoExecutionException, CompilationFailureException
     {
+        if ( skip )
+        {
+            getLog().info( "Not compiling test sources" );
+            return;
+        }
         super.execute();
 
         if ( outputDirectory.isDirectory() )
