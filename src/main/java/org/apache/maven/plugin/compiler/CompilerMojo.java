@@ -123,7 +123,7 @@ public class CompilerMojo
     {
         if ( skipMain )
         {
-            getLog().info( "Not compiling test sources" );
+            getLog().info( "Not compiling main sources" );
             return;
         }
         super.execute();
