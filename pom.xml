@@ -61,6 +61,12 @@ under the License.
     <openJpaVersion>2.2.0</openJpaVersion>
   </properties>
 
+  <contributors>
+    <contributor>
+      <name>Jan Sievers</name>
+    </contributor>
+  </contributors>
+
   <dependencies>
     <dependency>
       <groupId>org.apache.maven.plugin-tools</groupId>
