@@ -32,6 +32,7 @@ import org.apache.maven.project.MavenProject;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -205,6 +206,7 @@ public class CompilerMojoTestCase
 
         File testClass = new File( compileMojo.getOutputDirectory(), "compiled.class" );
         assertTrue( testClass.exists() );
+        assertEquals( Arrays.asList( "key1=value1","-Xlint","-my&special:param-with+chars/not>allowed_in_XML_element_names" ), compileMojo.compilerArgs );
     }
 
     public void testOneOutputFileForAllInput2()

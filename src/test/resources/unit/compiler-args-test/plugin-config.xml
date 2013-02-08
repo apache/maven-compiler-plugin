@@ -36,6 +36,11 @@
               <param2>value2</param2>
             </compilerArgument>
           </compilerArguments>
+          <compilerArgs>
+              <arg>key1=value1</arg>
+              <arg>-Xlint</arg>
+              <arg><![CDATA[-my&special:param-with+chars/not>allowed_in_XML_element_names]]></arg>
+          </compilerArgs>
           <compilerArgument>param value</compilerArgument>
         </configuration>
       </plugin>

@@ -233,10 +233,28 @@ public abstract class AbstractCompilerMojo
      * </pre>
      *
      * @since 2.0.1
+     * @deprecated use {@link #compilerArgs} instead. 
      */
     @Parameter
+    @Deprecated
     protected Map<String, String> compilerArguments;
 
+    /**
+     * <p>
+     * Sets the arguments to be passed to the compiler if {@link #fork} is set to <code>true</code>.
+     * Example:
+     * <pre>
+     * &lt;compilerArgs&gt;
+     *   &lt;arg&gt;-Xmaxerrs=1000&lt;/arg&gt;
+     *   &lt;arg&gt;-Xlint&lt;/arg&gt;
+     * &lt;/compilerArgs&gt;
+     * </pre>
+     *
+     * @since 3.1
+     */
+    @Parameter
+    protected List<String> compilerArgs;
+    
     /**
      * <p>
      * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to <code>true</code>.
@@ -489,7 +507,7 @@ public abstract class AbstractCompilerMojo
 
         String effectiveCompilerArgument = getCompilerArgument();
 
-        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) )
+        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) || ( compilerArgs != null ) )
         {
             LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
             if ( effectiveCompilerArguments != null )
@@ -516,6 +534,13 @@ public abstract class AbstractCompilerMojo
             if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
             {
                 cplrArgsCopy.put( effectiveCompilerArgument, null );
+            }
+            if ( compilerArgs != null )
+            {
+                for ( String arg : compilerArgs )
+                {
+                    cplrArgsCopy.put( arg, null );
+                }
             }
             compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
         }
