@@ -375,6 +375,13 @@ public abstract class AbstractCompilerMojo
     @Parameter
     private List<String> fileExtensions;
 
+    /**
+     * to enable/disable incrementation compilation feature
+     * @since 3.1
+     */
+    @Parameter(defaultValue = "true", property = "maven.compiler.useIncrementalCompilation")
+    private boolean useIncrementalCompilation = true;
+
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
@@ -627,34 +634,77 @@ public abstract class AbstractCompilerMojo
 
         IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
 
-        try
+        if ( useIncrementalCompilation )
         {
-            canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
-
-            sources = getCompileSources( compiler, compilerConfiguration );
-
-            incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
-
-            if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-                && !canUpdateTarget ) || isDependencyChanged() || isSourceChanged( compilerConfiguration, compiler )
-                || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
+            getLog().debug( "useIncrementalCompilation enabled" );
+            try
             {
-                getLog().info( "Changes detected - recompiling the module!" );
+                canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
 
-                compilerConfiguration.setSourceFiles( sources );
+                sources = getCompileSources( compiler, compilerConfiguration );
+
+                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
+
+                if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
+                    && !canUpdateTarget ) || isDependencyChanged() || isSourceChanged( compilerConfiguration, compiler )
+                    || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
+                {
+                    getLog().info( "Changes detected - recompiling the module!" );
+
+                    compilerConfiguration.setSourceFiles( sources );
+                }
+                else
+                {
+                    getLog().info( "Nothing to compile - all classes are up to date" );
+
+                    return;
+                }
             }
-            else
+            catch ( CompilerException e )
+            {
+                throw new MojoExecutionException( "Error while computing stale sources.", e );
+            }
+        }
+        else
+        {
+            getLog().debug( "useIncrementalCompilation disabled" );
+            Set<File> staleSources;
+            try
+            {
+                staleSources =
+                    computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
+
+                canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
+
+                if ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
+                    && !canUpdateTarget )
+                {
+                    getLog().info( "RESCANNING!" );
+                    // TODO: This second scan for source files is sub-optimal
+                    String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
+
+                    sources = computeStaleSources( compilerConfiguration, compiler,
+                                                             getSourceInclusionScanner( inputFileEnding ) );
+
+                    compilerConfiguration.setSourceFiles( sources );
+                }
+                else
+                {
+                    compilerConfiguration.setSourceFiles( staleSources );
+                }
+            }
+            catch ( CompilerException e )
+            {
+                throw new MojoExecutionException( "Error while computing stale sources.", e );
+            }
+
+            if ( staleSources.isEmpty() )
             {
                 getLog().info( "Nothing to compile - all classes are up to date" );
 
                 return;
             }
         }
-        catch ( CompilerException e )
-        {
-            throw new MojoExecutionException( "Error while computing stale sources.", e );
-        }
-
         // ----------------------------------------------------------------------
         // Dump configuration
         // ----------------------------------------------------------------------
@@ -718,11 +768,15 @@ public abstract class AbstractCompilerMojo
 
         CompilerResult compilerResult;
 
-        getLog().debug( "incrementalBuildHelper#beforeRebuildExecution" );
 
-        incrementalBuildHelperRequest.outputDirectory( getOutputDirectory() );
+        if ( useIncrementalCompilation )
+        {
+            incrementalBuildHelperRequest.outputDirectory( getOutputDirectory() );
 
-        incrementalBuildHelper.beforeRebuildExecution( incrementalBuildHelperRequest );
+            incrementalBuildHelper.beforeRebuildExecution( incrementalBuildHelperRequest );
+
+            getLog().debug( "incrementalBuildHelper#beforeRebuildExecution" );
+        }
 
         try
         {
@@ -742,15 +796,19 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Fatal error compiling", e );
         }
 
-        if ( incrementalBuildHelperRequest.getOutputDirectory().exists() )
+        if ( useIncrementalCompilation )
         {
-            getLog().debug( "incrementalBuildHelper#afterRebuildExecution" );
-            // now scan the same directory again and create a diff
-            incrementalBuildHelper.afterRebuildExecution( incrementalBuildHelperRequest );
-        }
-        else
-        {
-            getLog().debug( "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist" );
+            if ( incrementalBuildHelperRequest.getOutputDirectory().exists() )
+            {
+                getLog().debug( "incrementalBuildHelper#afterRebuildExecution" );
+                // now scan the same directory again and create a diff
+                incrementalBuildHelper.afterRebuildExecution( incrementalBuildHelperRequest );
+            }
+            else
+            {
+                getLog().debug(
+                    "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist" );
+            }
         }
 
         List<CompilerMessage> warnings = new ArrayList<CompilerMessage>();
