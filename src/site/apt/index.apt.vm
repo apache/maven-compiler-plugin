@@ -3,7 +3,7 @@
  ------
  Edwin Punzalan
  ------
- 2012-11-19
+ 2013-07-22
  ------
 
 ~~ Licensed to the Apache Software Foundation (ASF) under one
@@ -26,7 +26,7 @@
 ~~ NOTE: For help with the syntax of this file, see:
 ~~ http://maven.apache.org/doxia/references/apt-format.html
 
-Maven Compiler Plugin
+${project.name}
 
   The Compiler Plugin is used to compile the sources of your project. Since 3.0, the
   default compiler is javax.tools.JavaCompiler (if you are using java 1.6) and is used to compile Java sources.

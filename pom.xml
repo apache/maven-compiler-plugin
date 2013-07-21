@@ -33,7 +33,7 @@ under the License.
   <version>3.2-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
-  <name>Maven Compiler Plugin</name>
+  <name>Apache Maven Compiler Plugin</name>
   <description>The Compiler Plugin is used to compile the sources of your project.</description>
   <inceptionYear>2001</inceptionYear>
 
