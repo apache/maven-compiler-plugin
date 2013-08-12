@@ -46,17 +46,32 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <!--
         <version>3.1</version>
+        -->
+        <version>@project.version@</version>
         <configuration>
-          <useIncrementalCompilation>false</useIncrementalCompilation>
           <compilerId>javac-with-errorprone</compilerId>
+          <forceJavacCompilerUse>true</forceJavacCompilerUse>
         </configuration>
         <dependencies>
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-compiler-javac-errorprone</artifactId>
             <version>@plexusCompilerVersion@</version>
+            <exclusions>
+              <exclusion>
+                <groupId>openjdk</groupId>
+                <artifactId>tools</artifactId>
+              </exclusion>
+            </exclusions>
           </dependency>
+          <dependency>
+            <groupId>org.codehaus.plexus</groupId>
+            <artifactId>plexus-compiler-javac</artifactId>
+            <version>@plexusCompilerVersion@</version>
+          </dependency>
+
           <dependency>
             <groupId>openjdk</groupId>
             <artifactId>tools</artifactId>
@@ -64,6 +79,7 @@
             <scope>system</scope>
             <systemPath>${java.home}/../lib/tools.jar</systemPath>
           </dependency>
+
         </dependencies>
       </plugin>
     </plugins>
