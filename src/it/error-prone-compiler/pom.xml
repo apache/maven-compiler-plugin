@@ -46,9 +46,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <!--
-        <version>3.1</version>
-        -->
         <version>@project.version@</version>
         <configuration>
           <compilerId>javac-with-errorprone</compilerId>
@@ -59,25 +56,11 @@
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-compiler-javac-errorprone</artifactId>
             <version>@plexusCompilerVersion@</version>
-            <exclusions>
-              <exclusion>
-                <groupId>openjdk</groupId>
-                <artifactId>tools</artifactId>
-              </exclusion>
-            </exclusions>
           </dependency>
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-compiler-javac</artifactId>
             <version>@plexusCompilerVersion@</version>
-          </dependency>
-
-          <dependency>
-            <groupId>openjdk</groupId>
-            <artifactId>tools</artifactId>
-            <version>1.6</version>
-            <scope>system</scope>
-            <systemPath>${toolsjar}</systemPath>
           </dependency>
 
         </dependencies>
@@ -107,20 +90,5 @@
       </snapshots>
     </repository>
   </repositories>
-
-  <profiles>
-    <profile>
-      <id>standardToolsJar-profile</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-        <file>
-          <exists>${java.home}/../lib/tools.jar</exists>
-        </file>
-      </activation>
-      <properties>
-        <toolsjar>${java.home}/../lib/tools.jar</toolsjar>
-      </properties>
-    </profile>
-  </profiles>
 
 </project>
