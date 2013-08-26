@@ -7,8 +7,7 @@
     <artifactId>mcompiler-170</artifactId>
     <version>1.0-SNAPSHOT</version>
   </parent>
-  <groupId>org.apache.maven.plugins.compiler.it</groupId>
-  <artifactId>mcompiler-170-3</artifactId>
+    <artifactId>mcompiler-170-3</artifactId>
   <version>1.0-SNAPSHOT</version>
   <name>mcompiler-170-1</name>
   <url>http://maven.apache.org</url>

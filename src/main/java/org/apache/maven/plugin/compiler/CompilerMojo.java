@@ -136,7 +136,7 @@ public class CompilerMojo
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
     {
-        SourceInclusionScanner scanner = null;
+        SourceInclusionScanner scanner;
 
         if ( includes.isEmpty() && excludes.isEmpty() )
         {
@@ -156,7 +156,7 @@ public class CompilerMojo
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
     {
-        SourceInclusionScanner scanner = null;
+        SourceInclusionScanner scanner;
 
         // it's not defined if we get the ending with or without the dot '.'
         String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;

@@ -480,13 +480,11 @@ public abstract class AbstractCompilerMojo
         if ( debug && StringUtils.isNotEmpty( debuglevel ) )
         {
             String[] split = StringUtils.split( debuglevel, "," );
-            for ( int i = 0; i < split.length; i++ )
-            {
-                if ( !( split[i].equalsIgnoreCase( "none" ) || split[i].equalsIgnoreCase( "lines" )
-                    || split[i].equalsIgnoreCase( "vars" ) || split[i].equalsIgnoreCase( "source" ) ) )
-                {
-                    throw new IllegalArgumentException( "The specified debug level: '" + split[i] + "' is unsupported. "
-                                                            + "Legal values are 'none', 'lines', 'vars', and 'source'." );
+            for (String aSplit : split) {
+                if (!(aSplit.equalsIgnoreCase("none") || aSplit.equalsIgnoreCase("lines")
+                        || aSplit.equalsIgnoreCase("vars") || aSplit.equalsIgnoreCase("source"))) {
+                    throw new IllegalArgumentException("The specified debug level: '" + aSplit + "' is unsupported. "
+                            + "Legal values are 'none', 'lines', 'vars', and 'source'.");
                 }
             }
             compilerConfiguration.setDebugLevel( debuglevel );
@@ -606,12 +604,7 @@ public abstract class AbstractCompilerMojo
             {
                 if ( !skipMultiThreadWarning )
                 {
-                    StringBuilder sb = new StringBuilder(
-                        "You are in a multi-thread build and compilerReuseStrategy is set to reuseSame. This can cause issues in some environments (os/jdk)! Consider using reuseCreated strategy." );
-                    sb.append( System.getProperty( "line.separator" ) );
-                    sb.append(
-                        "If your env is fine with reuseSame, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true" );
-                    getLog().warn( sb.toString() );
+                    getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame. This can cause issues in some environments (os/jdk)! Consider using reuseCreated strategy." + System.getProperty("line.separator") + "If your env is fine with reuseSame, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true");
                 }
             }
             compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
@@ -630,7 +623,7 @@ public abstract class AbstractCompilerMojo
 
         IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, mavenSession );
 
-        Set<File> sources = null;
+        Set<File> sources;
 
         IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
 

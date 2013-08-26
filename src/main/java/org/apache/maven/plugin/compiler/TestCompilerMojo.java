@@ -170,7 +170,7 @@ public class TestCompilerMojo
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
     {
-        SourceInclusionScanner scanner = null;
+        SourceInclusionScanner scanner;
 
         if ( testIncludes.isEmpty() && testExcludes.isEmpty() )
         {
@@ -190,7 +190,7 @@ public class TestCompilerMojo
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
     {
-        SourceInclusionScanner scanner = null;
+        SourceInclusionScanner scanner;
 
         // it's not defined if we get the ending with or without the dot '.'
         String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
