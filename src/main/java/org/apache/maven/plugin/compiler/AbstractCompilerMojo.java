@@ -81,49 +81,49 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.0.2
      */
-    @Parameter( property = "maven.compiler.failOnError", defaultValue = "true" )
+    @Parameter(property = "maven.compiler.failOnError", defaultValue = "true")
     private boolean failOnError = true;
 
     /**
      * Set to <code>true</code> to include debugging information in the compiled class files.
      */
-    @Parameter( property = "maven.compiler.debug", defaultValue = "true" )
+    @Parameter(property = "maven.compiler.debug", defaultValue = "true")
     private boolean debug = true;
 
     /**
      * Set to <code>true</code> to show messages about what the compiler is doing.
      */
-    @Parameter( property = "maven.compiler.verbose", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.verbose", defaultValue = "false")
     private boolean verbose;
 
     /**
      * Sets whether to show source locations where deprecated APIs are used.
      */
-    @Parameter( property = "maven.compiler.showDeprecation", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.showDeprecation", defaultValue = "false")
     private boolean showDeprecation;
 
     /**
      * Set to <code>true</code> to optimize the compiled code using the compiler's optimization methods.
      */
-    @Parameter( property = "maven.compiler.optimize", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.optimize", defaultValue = "false")
     private boolean optimize;
 
     /**
      * Set to <code>true</code> to show compilation warnings.
      */
-    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.showWarnings", defaultValue = "false")
     private boolean showWarnings;
 
     /**
      * The -source argument for the Java compiler.
      */
-    @Parameter( property = "maven.compiler.source", defaultValue = "1.5" )
+    @Parameter(property = "maven.compiler.source", defaultValue = "1.5")
     protected String source;
 
     /**
      * The -target argument for the Java compiler.
      */
-    @Parameter( property = "maven.compiler.target", defaultValue = "1.5" )
+    @Parameter(property = "maven.compiler.target", defaultValue = "1.5")
     protected String target;
 
     /**
@@ -131,34 +131,34 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.1
      */
-    @Parameter( property = "encoding", defaultValue = "${project.build.sourceEncoding}" )
+    @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
     private String encoding;
 
     /**
      * Sets the granularity in milliseconds of the last modification
      * date for testing whether a source needs recompilation.
      */
-    @Parameter( property = "lastModGranularityMs", defaultValue = "0" )
+    @Parameter(property = "lastModGranularityMs", defaultValue = "0")
     private int staleMillis;
 
     /**
      * The compiler id of the compiler to use. See this
      * <a href="non-javac-compilers.html">guide</a> for more information.
      */
-    @Parameter( property = "maven.compiler.compilerId", defaultValue = "javac" )
+    @Parameter(property = "maven.compiler.compilerId", defaultValue = "javac")
     private String compilerId;
 
     /**
      * Version of the compiler to use, ex. "1.3", "1.5", if {@link #fork} is set to <code>true</code>.
      */
-    @Parameter( property = "maven.compiler.compilerVersion" )
+    @Parameter(property = "maven.compiler.compilerVersion")
     private String compilerVersion;
 
     /**
      * Allows running the compiler in a separate process.
      * If <code>false</code> it uses the built in compiler, while if <code>true</code> it will use an executable.
      */
-    @Parameter( property = "maven.compiler.fork", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.fork", defaultValue = "false")
     private boolean fork;
 
     /**
@@ -167,7 +167,7 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.0.1
      */
-    @Parameter( property = "maven.compiler.meminitial" )
+    @Parameter(property = "maven.compiler.meminitial")
     private String meminitial;
 
     /**
@@ -176,13 +176,13 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.0.1
      */
-    @Parameter( property = "maven.compiler.maxmem" )
+    @Parameter(property = "maven.compiler.maxmem")
     private String maxmem;
 
     /**
      * Sets the executable of the compiler to use when {@link #fork} is <code>true</code>.
      */
-    @Parameter( property = "maven.compiler.executable" )
+    @Parameter(property = "maven.compiler.executable")
     private String executable;
 
     /**
@@ -233,14 +233,14 @@ public abstract class AbstractCompilerMojo
      * </pre>
      *
      * @since 2.0.1
-     * @deprecated use {@link #compilerArgs} instead.
+     * @deprecated use {@link #compilerArgs} instead. 
      */
     @Parameter
     @Deprecated
     protected Map<String, String> compilerArguments;
 
     /**
-     * <p/>
+     * <p>
      * Sets the arguments to be passed to the compiler if {@link #fork} is set to <code>true</code>.
      * Example:
      * <pre>
@@ -254,7 +254,7 @@ public abstract class AbstractCompilerMojo
      */
     @Parameter
     protected List<String> compilerArgs;
-
+    
     /**
      * <p>
      * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to <code>true</code>.
@@ -285,7 +285,7 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.1
      */
-    @Parameter( property = "maven.compiler.debuglevel" )
+    @Parameter(property = "maven.compiler.debuglevel")
     private String debuglevel;
 
     /**
@@ -301,13 +301,13 @@ public abstract class AbstractCompilerMojo
     /**
      * The directory to run the compiler from if fork is true.
      */
-    @Parameter( defaultValue = "${basedir}", required = true, readonly = true )
+    @Parameter(defaultValue = "${basedir}", required = true, readonly = true)
     private File basedir;
 
     /**
      * The target directory of the compiler if fork is true.
      */
-    @Parameter( defaultValue = "${project.build.directory}", required = true, readonly = true )
+    @Parameter(defaultValue = "${project.build.directory}", required = true, readonly = true)
     private File buildDirectory;
 
     /**
@@ -334,13 +334,13 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.5
      */
-    @Parameter( defaultValue = "${reuseCreated}", property = "maven.compiler.compilerReuseStrategy" )
+    @Parameter(defaultValue = "${reuseCreated}", property = "maven.compiler.compilerReuseStrategy")
     private String compilerReuseStrategy = "reuseCreated";
 
     /**
      * @since 2.5
      */
-    @Parameter( defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning" )
+    @Parameter(defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning")
     private boolean skipMultiThreadWarning;
 
     /**
@@ -349,13 +349,13 @@ public abstract class AbstractCompilerMojo
      *
      * @since 3.0
      */
-    @Parameter( defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse" )
+    @Parameter(defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse")
     private boolean forceJavacCompilerUse;
 
     /**
      * @since 3.0 needed for storing the status for the incremental build support.
      */
-    @Parameter( property = "mojoExecution" )
+    @Parameter(property = "mojoExecution")
     private MojoExecution mojoExecution;
 
     /**
@@ -377,10 +377,9 @@ public abstract class AbstractCompilerMojo
 
     /**
      * to enable/disable incrementation compilation feature
-     *
      * @since 3.1
      */
-    @Parameter( defaultValue = "true", property = "maven.compiler.useIncrementalCompilation" )
+    @Parameter(defaultValue = "true", property = "maven.compiler.useIncrementalCompilation")
     private boolean useIncrementalCompilation = true;
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
@@ -481,13 +480,11 @@ public abstract class AbstractCompilerMojo
         if ( debug && StringUtils.isNotEmpty( debuglevel ) )
         {
             String[] split = StringUtils.split( debuglevel, "," );
-            for ( String aSplit : split )
-            {
-                if ( !( aSplit.equalsIgnoreCase( "none" ) || aSplit.equalsIgnoreCase( "lines" )
-                    || aSplit.equalsIgnoreCase( "vars" ) || aSplit.equalsIgnoreCase( "source" ) ) )
-                {
-                    throw new IllegalArgumentException( "The specified debug level: '" + aSplit + "' is unsupported. "
-                                                            + "Legal values are 'none', 'lines', 'vars', and 'source'." );
+            for (String aSplit : split) {
+                if (!(aSplit.equalsIgnoreCase("none") || aSplit.equalsIgnoreCase("lines")
+                        || aSplit.equalsIgnoreCase("vars") || aSplit.equalsIgnoreCase("source"))) {
+                    throw new IllegalArgumentException("The specified debug level: '" + aSplit + "' is unsupported. "
+                            + "Legal values are 'none', 'lines', 'vars', and 'source'.");
                 }
             }
             compilerConfiguration.setDebugLevel( debuglevel );
@@ -515,8 +512,7 @@ public abstract class AbstractCompilerMojo
 
         String effectiveCompilerArgument = getCompilerArgument();
 
-        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) || ( compilerArgs
-            != null ) )
+        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) || ( compilerArgs != null ) )
         {
             LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
             if ( effectiveCompilerArguments != null )
@@ -608,10 +604,7 @@ public abstract class AbstractCompilerMojo
             {
                 if ( !skipMultiThreadWarning )
                 {
-                    getLog().warn(
-                        "You are in a multi-thread build and compilerReuseStrategy is set to reuseSame. This can cause issues in some environments (os/jdk)! Consider using reuseCreated strategy."
-                            + System.getProperty( "line.separator" )
-                            + "If your env is fine with reuseSame, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true" );
+                    getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame. This can cause issues in some environments (os/jdk)! Consider using reuseCreated strategy." + System.getProperty("line.separator") + "If your env is fine with reuseSame, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true");
                 }
             }
             compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
@@ -645,9 +638,8 @@ public abstract class AbstractCompilerMojo
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
 
-                if ( ( compiler.getCompilerOutputStyle().equals(
-                    CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget )
-                    || isDependencyChanged() || isSourceChanged( compilerConfiguration, compiler )
+                if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
+                    && !canUpdateTarget ) || isDependencyChanged() || isSourceChanged( compilerConfiguration, compiler )
                     || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
                 {
                     getLog().info( "Changes detected - recompiling the module!" );
@@ -685,7 +677,7 @@ public abstract class AbstractCompilerMojo
                     String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
 
                     sources = computeStaleSources( compilerConfiguration, compiler,
-                                                   getSourceInclusionScanner( inputFileEnding ) );
+                                                             getSourceInclusionScanner( inputFileEnding ) );
 
                     compilerConfiguration.setSourceFiles( sources );
                 }
@@ -768,6 +760,7 @@ public abstract class AbstractCompilerMojo
         }
 
         CompilerResult compilerResult;
+
 
         if ( useIncrementalCompilation )
         {

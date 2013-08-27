@@ -100,7 +100,7 @@ public class CompilerMojo
      * Set this to 'true' to bypass compilation of main sources.
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
      */
-    @Parameter( property = "maven.main.skip" )
+    @Parameter ( property = "maven.main.skip" )
     private boolean skipMain;
 
     protected List<String> getCompileSourceRoots()
