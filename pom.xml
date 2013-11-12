@@ -50,6 +50,12 @@ under the License.
     <system>JIRA</system>
     <url>http://jira.codehaus.org/browse/MCOMPILER</url>
   </issueManagement>
+  <distributionManagement>
+    <site>
+      <id>apache.website</id>
+      <url>scm:svn:https://svn.apache.org/repos/infra/websites/production/maven/content/${maven.site.path}</url>
+    </site>
+  </distributionManagement>
 
   <properties>
     <mavenVersion>2.0.9</mavenVersion>
@@ -59,6 +65,7 @@ under the License.
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
     <openJpaVersion>2.2.0</openJpaVersion>
+    <maven.site.path>plugins-archives/${project.artifactId}-LATEST</maven.site.path>
   </properties>
 
   <contributors>
