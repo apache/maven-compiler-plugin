@@ -157,6 +157,9 @@ public class CompilerMojoTestCase
     {
         CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-fork-test/plugin-config.xml" );
 
+        // JAVA_HOME doesn't have to be on the PATH.
+        setVariableValueToObject( compileMojo, "executable",  new File( System.getenv( "JAVA_HOME" ), "bin/javac" ).getPath() );
+
         compileMojo.execute();
 
         File testClass = new File( compileMojo.getOutputDirectory(), "TestCompile1.class" );
@@ -164,6 +167,9 @@ public class CompilerMojoTestCase
 
         TestCompilerMojo testCompileMojo =
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-fork-test/plugin-config.xml" );
+
+        // JAVA_HOME doesn't have to be on the PATH.
+        setVariableValueToObject( testCompileMojo, "executable",  new File( System.getenv( "JAVA_HOME" ), "bin/javac" ).getPath() );
 
         testCompileMojo.execute();
 
