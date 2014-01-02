@@ -247,6 +247,7 @@ public abstract class AbstractCompilerMojo
      * &lt;compilerArgs&gt;
      *   &lt;arg&gt;-Xmaxerrs=1000&lt;/arg&gt;
      *   &lt;arg&gt;-Xlint&lt;/arg&gt;
+     *   &lt;arg&gt;-J-Duser.language=en_us&lt;/arg&gt;
      * &lt;/compilerArgs&gt;
      * </pre>
      *
