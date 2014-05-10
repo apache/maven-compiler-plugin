@@ -311,4 +311,14 @@ under the License.
     </profile>
   </profiles>
 
+  <repositories>
+    <repository>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <id>plexus-snapshots</id>
+      <name>Plexus Snapshot Repository</name>
+      <url>https://oss.sonatype.org/content/repositories/plexus-snapshots</url>
+    </repository>
+  </repositories>
 </project>
