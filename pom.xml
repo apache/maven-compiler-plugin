@@ -258,6 +258,9 @@ under the License.
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-invoker-plugin</artifactId>
+              <executions>
+                <execution>
+                  <id>integration-test</id>
               <configuration>
                 <debug>true</debug>
                 <projectsDirectory>src/it</projectsDirectory>
@@ -274,6 +277,8 @@ under the License.
                   <goal>test-compile</goal>
                 </goals>
               </configuration>
+                </execution>
+              </executions>
             </plugin>
           </plugins>
         </pluginManagement>

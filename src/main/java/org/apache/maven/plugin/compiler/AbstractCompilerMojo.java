@@ -807,20 +807,33 @@ public abstract class AbstractCompilerMojo
 
         List<CompilerMessage> warnings = new ArrayList<CompilerMessage>();
         List<CompilerMessage> errors = new ArrayList<CompilerMessage>();
+        List<CompilerMessage> others = new ArrayList<CompilerMessage>();
         for ( CompilerMessage message : compilerResult.getCompilerMessages() )
         {
-            if ( message.isError() )
+            if ( message.getKind() == CompilerMessage.Kind.ERROR )
             {
                 errors.add( message );
             }
-            else
+            else if ( message.getKind() == CompilerMessage.Kind.WARNING || message.getKind() == CompilerMessage.Kind.MANDATORY_WARNING )
             {
                 warnings.add( message );
+            }
+            else
+            {
+                others.add( message );
             }
         }
 
         if ( failOnError && !compilerResult.isSuccess() )
         {
+            for ( CompilerMessage message : others )
+            {
+                assert
+                    message.getKind() != CompilerMessage.Kind.ERROR &&
+                    message.getKind() != CompilerMessage.Kind.WARNING &&
+                    message.getKind() != CompilerMessage.Kind.MANDATORY_WARNING;
+                getLog().info( message.toString() );
+            }
             if ( !warnings.isEmpty() )
             {
                 getLog().info( "-------------------------------------------------------------" );
@@ -860,7 +873,27 @@ public abstract class AbstractCompilerMojo
         {
             for ( CompilerMessage message : compilerResult.getCompilerMessages() )
             {
-                getLog().warn( message.toString() );
+                switch (message.getKind())
+                {
+                    case NOTE:
+                    case OTHER:
+                    {
+                        getLog().info( message.toString() );
+                        break;
+                    }
+                    case ERROR:
+                    {
+                        getLog().error( message.toString() );
+                        break;
+                    }
+                    case MANDATORY_WARNING:
+                    case WARNING:
+                    default:
+                    {
+                        getLog().warn( message.toString() );
+                        break;
+                    }
+                }
             }
         }
     }
