@@ -320,7 +320,7 @@ public abstract class AbstractCompilerMojo
     /**
      * The current build session instance. This is used for toolchain manager API calls.
      */
-    @Component
+    @Parameter( defaultValue = "${session}", readonly = true, required = true )
     private MavenSession session;
 
     /**
@@ -356,16 +356,8 @@ public abstract class AbstractCompilerMojo
     /**
      * @since 3.0 needed for storing the status for the incremental build support.
      */
-    @Parameter( property = "mojoExecution" )
+    @Parameter( property = "mojoExecution", readonly = true, required = true )
     private MojoExecution mojoExecution;
-
-    /**
-     * We need this to determine the start timestamp of the build.
-     *
-     * @since 3.0
-     */
-    @Component
-    protected MavenSession mavenSession;
 
     /**
      * file extensions to check timestamp for incremental build
@@ -622,7 +614,7 @@ public abstract class AbstractCompilerMojo
 
         boolean canUpdateTarget;
 
-        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, mavenSession );
+        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, session );
 
         Set<File> sources;
 
@@ -1168,7 +1160,7 @@ public abstract class AbstractCompilerMojo
      */
     protected boolean isDependencyChanged()
     {
-        if ( mavenSession == null )
+        if ( session == null )
         {
             // we just cannot determine it, so don't do anything beside logging
             getLog().info( "Cannot determine build start date, skipping incremental build detection." );
