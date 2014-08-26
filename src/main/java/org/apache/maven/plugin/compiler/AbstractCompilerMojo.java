@@ -360,14 +360,6 @@ public abstract class AbstractCompilerMojo
     private MojoExecution mojoExecution;
 
     /**
-     * We need this to determine the start timestamp of the build.
-     *
-     * @since 3.0
-     */
-    @Parameter( defaultValue = "${session}", readonly = true, required = true )
-    protected MavenSession mavenSession; // TODO why not reuse "session"?
-
-    /**
      * file extensions to check timestamp for incremental build
      * <b>default contains only <code>.class</code></b>
      *
@@ -622,7 +614,7 @@ public abstract class AbstractCompilerMojo
 
         boolean canUpdateTarget;
 
-        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, mavenSession );
+        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, session );
 
         Set<File> sources;
 
@@ -1168,7 +1160,7 @@ public abstract class AbstractCompilerMojo
      */
     protected boolean isDependencyChanged()
     {
-        if ( mavenSession == null )
+        if ( session == null )
         {
             // we just cannot determine it, so don't do anything beside logging
             getLog().info( "Cannot determine build start date, skipping incremental build detection." );
