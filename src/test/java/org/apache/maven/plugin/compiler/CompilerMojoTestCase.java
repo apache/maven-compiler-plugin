@@ -31,6 +31,7 @@ import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.apache.maven.project.MavenProject;
 
 import java.io.File;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -320,7 +321,20 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "outputDirectory", testClassesDir );
 
         List<String> testClasspathList = new ArrayList<String>();
-        testClasspathList.add( System.getProperty( "localRepository" ) + "/junit/junit/3.8.1/junit-3.8.1.jar" );
+
+        String localRepository = System.getProperty( "localRepository" );
+        if ( localRepository != null )
+        {
+            testClasspathList.add( localRepository + "/junit/junit/3.8.1/junit-3.8.1.jar" );
+        }
+        else
+        {
+            // for IDE
+            String junitURI = org.junit.Test.class.getResource( "Test.class" ).toURI().toString();
+            junitURI = junitURI.substring( "jar:".length(), junitURI.indexOf( '!' ) );
+            testClasspathList.add( new File( URI.create( junitURI ) ).getAbsolutePath() );
+        }
+        
         testClasspathList.add( compilerMojo.getOutputDirectory().getPath() );
         setVariableValueToObject( mojo, "classpathElements", testClasspathList );
 
