@@ -18,10 +18,10 @@
  */
 def log = new File( basedir, 'build.log').text
 
-def noteExists = log.contains( "[INFO] NOTE Test message." )
-def otherExists =  log.contains( "[INFO] OTHER Test message." )
-def warningExists = log.contains( "[WARNING] WARNING Test message." )
-def mandatoryWarningExists = log.contains( "[WARNING] MANDATORY_WARNING Test message." )
+def noteExists = log =~ /\[INFO\] (\w+: )?NOTE Test message\./
+def otherExists =  log =~ /\[INFO\] (\w+: )?OTHER Test message\./
+def warningExists = log =~ /\[WARNING\] (\w+: )?WARNING Test message\./
+def mandatoryWarningExists = log =~ /\[WARNING\] (\w+: )?MANDATORY_WARNING Test message\./
 
 def fail = false
 def messages = "The following assertions were violated:"
