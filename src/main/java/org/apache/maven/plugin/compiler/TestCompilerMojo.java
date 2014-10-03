@@ -237,4 +237,10 @@ public class TestCompilerMojo
         return generatedTestSourcesDirectory;
     }
 
+    @Override
+    protected boolean isTestCompile()
+    {
+        return true;
+    }
+
 }

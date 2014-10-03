@@ -25,6 +25,7 @@ import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
 import org.apache.maven.shared.utils.ReaderFactory;
@@ -72,6 +73,7 @@ import java.util.Set;
 public abstract class AbstractCompilerMojo
     extends AbstractMojo
 {
+
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
@@ -324,6 +326,12 @@ public abstract class AbstractCompilerMojo
     private MavenSession session;
 
     /**
+     * The current project instance. This is used for propagating generated-sources paths as compile/testCompile source roots.
+     */
+    @Parameter( defaultValue = "${project}", readonly = true, required = true )
+    private MavenProject project;
+
+    /**
      * Strategy to re use javacc class created:
      * <ul>
      * <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds,
@@ -464,8 +472,6 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setClasspathEntries( getClasspathElements() );
 
-        compilerConfiguration.setSourceLocations( compileSourceRoots );
-
         compilerConfiguration.setOptimize( optimize );
 
         compilerConfiguration.setDebug( debug );
@@ -473,7 +479,8 @@ public abstract class AbstractCompilerMojo
         if ( debug && StringUtils.isNotEmpty( debuglevel ) )
         {
             String[] split = StringUtils.split( debuglevel, "," );
-            for (String aSplit : split) {
+            for ( String aSplit : split )
+            {
                 if (!(aSplit.equalsIgnoreCase("none") || aSplit.equalsIgnoreCase("lines")
                         || aSplit.equalsIgnoreCase("vars") || aSplit.equalsIgnoreCase("source"))) {
                     throw new IllegalArgumentException("The specified debug level: '" + aSplit + "' is unsupported. "
@@ -495,7 +502,41 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setProc( proc );
 
-        compilerConfiguration.setGeneratedSourcesDirectory( getGeneratedSourcesDirectory() );
+        File generatedSourcesDirectory = getGeneratedSourcesDirectory();
+        compilerConfiguration.setGeneratedSourcesDirectory( generatedSourcesDirectory );
+
+        if ( generatedSourcesDirectory != null )
+        {
+            String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
+
+            compileSourceRoots.add( generatedSourcesPath );
+
+            if ( isTestCompile() )
+            {
+                getLog().debug( "Adding " + generatedSourcesPath + " to test-compile source roots:\n  "
+                                    + StringUtils.join( project.getTestCompileSourceRoots()
+                                                               .iterator(), "\n  " ) );
+
+                project.addTestCompileSourceRoot( generatedSourcesPath );
+
+                getLog().debug( "New test-compile source roots:\n  "
+                                    + StringUtils.join( project.getTestCompileSourceRoots()
+                                                               .iterator(), "\n  " ) );
+            }
+            else
+            {
+                getLog().debug( "Adding " + generatedSourcesPath + " to compile source roots:\n  "
+                                    + StringUtils.join( project.getCompileSourceRoots()
+                                                               .iterator(), "\n  " ) );
+
+                project.addCompileSourceRoot( generatedSourcesPath );
+
+                getLog().debug( "New compile source roots:\n  " + StringUtils.join( project.getCompileSourceRoots()
+                                                                                           .iterator(), "\n  " ) );
+            }
+        }
+
+        compilerConfiguration.setSourceLocations( compileSourceRoots );
 
         compilerConfiguration.setAnnotationProcessors( annotationProcessors );
 
@@ -890,6 +931,11 @@ public abstract class AbstractCompilerMojo
         }
     }
 
+    protected boolean isTestCompile()
+    {
+        return false;
+    }
+
     protected CompilerResult convertToCompilerResult( List<CompilerError> compilerErrors )
     {
         if ( compilerErrors == null )
@@ -1224,4 +1270,5 @@ public abstract class AbstractCompilerMojo
 
         return false;
     }
+
 }

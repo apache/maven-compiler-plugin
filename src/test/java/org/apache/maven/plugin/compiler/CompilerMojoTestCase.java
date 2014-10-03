@@ -303,6 +303,7 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "projectArtifact", new ArtifactStub() );
         setVariableValueToObject( mojo, "classpathElements", Collections.EMPTY_LIST );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
+        setVariableValueToObject( mojo, "project", getMockMavenProject() );
         setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
 
         assertNotNull( mojo );
