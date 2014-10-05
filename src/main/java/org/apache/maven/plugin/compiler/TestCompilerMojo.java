@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
@@ -41,8 +42,8 @@ import java.util.Set;
  * @version $Id$
  * @since 2.0
  */
-@org.apache.maven.plugins.annotations.Mojo ( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE,
-                                             threadSafe = true, requiresDependencyResolution = ResolutionScope.TEST )
+@Mojo( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE, threadSafe = true,
+                requiresDependencyResolution = ResolutionScope.TEST )
 public class TestCompilerMojo
     extends AbstractCompilerMojo
 {

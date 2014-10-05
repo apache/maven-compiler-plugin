@@ -260,12 +260,12 @@ public abstract class AbstractCompilerMojo
     
     /**
      * <p>
-     * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to <code>true</code>.
-     * To pass multiple arguments such as <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArguments}.
+     * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to
+     * <code>true</code>. To pass multiple arguments such as <code>-Xmaxerrs 1000</code> (which are actually two
+     * arguments) you have to use {@link #compilerArguments}.
      * </p>
      * <p>
-     * This is because the list of valid arguments passed to a Java compiler
-     * varies based on the compiler version.
+     * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
      * </p>
      */
     @Parameter
@@ -326,7 +326,8 @@ public abstract class AbstractCompilerMojo
     private MavenSession session;
 
     /**
-     * The current project instance. This is used for propagating generated-sources paths as compile/testCompile source roots.
+     * The current project instance. This is used for propagating generated-sources paths as compile/testCompile source
+     * roots.
      */
     @Parameter( defaultValue = "${project}", readonly = true, required = true )
     private MavenProject project;
@@ -334,9 +335,10 @@ public abstract class AbstractCompilerMojo
     /**
      * Strategy to re use javacc class created:
      * <ul>
-     * <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds,
-     * each thread will have its own instance</li>
-     * <li><code>reuseSame</code>: the same Javacc class will be used for each compilation even for multi-threaded build</li>
+     * <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds, each
+     * thread will have its own instance</li>
+     * <li><code>reuseSame</code>: the same Javacc class will be used for each compilation even for multi-threaded build
+     * </li>
      * <li><code>alwaysNew</code>: a new Javacc class will be created for each compilation</li>
      * </ul>
      * Note this parameter value depends on the os/jdk you are using, but the default value should work on most of env.
@@ -481,10 +483,11 @@ public abstract class AbstractCompilerMojo
             String[] split = StringUtils.split( debuglevel, "," );
             for ( String aSplit : split )
             {
-                if (!(aSplit.equalsIgnoreCase("none") || aSplit.equalsIgnoreCase("lines")
-                        || aSplit.equalsIgnoreCase("vars") || aSplit.equalsIgnoreCase("source"))) {
-                    throw new IllegalArgumentException("The specified debug level: '" + aSplit + "' is unsupported. "
-                            + "Legal values are 'none', 'lines', 'vars', and 'source'.");
+                if ( !( aSplit.equalsIgnoreCase( "none" ) || aSplit.equalsIgnoreCase( "lines" )
+                    || aSplit.equalsIgnoreCase( "vars" ) || aSplit.equalsIgnoreCase( "source" ) ) )
+                {
+                    throw new IllegalArgumentException( "The specified debug level: '" + aSplit + "' is unsupported. "
+                        + "Legal values are 'none', 'lines', 'vars', and 'source'." );
                 }
             }
             compilerConfiguration.setDebugLevel( debuglevel );
@@ -546,7 +549,8 @@ public abstract class AbstractCompilerMojo
 
         String effectiveCompilerArgument = getCompilerArgument();
 
-        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null ) || ( compilerArgs != null ) )
+        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null )
+                        || ( compilerArgs != null ) )
         {
             LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
             if ( effectiveCompilerArguments != null )
@@ -638,7 +642,13 @@ public abstract class AbstractCompilerMojo
             {
                 if ( !skipMultiThreadWarning )
                 {
-                    getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame. This can cause issues in some environments (os/jdk)! Consider using reuseCreated strategy." + System.getProperty("line.separator") + "If your env is fine with reuseSame, you can skip this warning with the configuration field skipMultiThreadWarning or -Dmaven.compiler.skipMultiThreadWarning=true");
+                    getLog().warn( "You are in a multi-thread build and compilerReuseStrategy is set to reuseSame."
+                                       + " This can cause issues in some environments (os/jdk)!"
+                                       + " Consider using reuseCreated strategy."
+                                       + System.getProperty( "line.separator" )
+                                       + "If your env is fine with reuseSame, you can skip this warning with the "
+                                       + "configuration field skipMultiThreadWarning "
+                                       + "or -Dmaven.compiler.skipMultiThreadWarning=true" );
                 }
             }
             compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
@@ -672,8 +682,9 @@ public abstract class AbstractCompilerMojo
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
 
-                if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-                    && !canUpdateTarget ) || isDependencyChanged() || isSourceChanged( compilerConfiguration, compiler )
+                if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget )
+                    || isDependencyChanged()
+                    || isSourceChanged( compilerConfiguration, compiler )
                     || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
                 {
                     getLog().info( "Changes detected - recompiling the module!" );
@@ -847,7 +858,8 @@ public abstract class AbstractCompilerMojo
             {
                 errors.add( message );
             }
-            else if ( message.getKind() == CompilerMessage.Kind.WARNING || message.getKind() == CompilerMessage.Kind.MANDATORY_WARNING )
+            else if ( message.getKind() == CompilerMessage.Kind.WARNING
+                || message.getKind() == CompilerMessage.Kind.MANDATORY_WARNING )
             {
                 warnings.add( message );
             }
@@ -861,10 +873,9 @@ public abstract class AbstractCompilerMojo
         {
             for ( CompilerMessage message : others )
             {
-                assert
-                    message.getKind() != CompilerMessage.Kind.ERROR &&
-                    message.getKind() != CompilerMessage.Kind.WARNING &&
-                    message.getKind() != CompilerMessage.Kind.MANDATORY_WARNING;
+                assert message.getKind() != CompilerMessage.Kind.ERROR
+                    && message.getKind() != CompilerMessage.Kind.WARNING
+                    && message.getKind() != CompilerMessage.Kind.MANDATORY_WARNING;
                 getLog().info( message.toString() );
             }
             if ( !warnings.isEmpty() )
@@ -906,26 +917,22 @@ public abstract class AbstractCompilerMojo
         {
             for ( CompilerMessage message : compilerResult.getCompilerMessages() )
             {
-                switch (message.getKind())
+                switch ( message.getKind() )
                 {
                     case NOTE:
                     case OTHER:
-                    {
                         getLog().info( message.toString() );
                         break;
-                    }
+
                     case ERROR:
-                    {
                         getLog().error( message.toString() );
                         break;
-                    }
+
                     case MANDATORY_WARNING:
                     case WARNING:
                     default:
-                    {
                         getLog().warn( message.toString() );
                         break;
-                    }
                 }
             }
         }
@@ -1026,7 +1033,7 @@ public abstract class AbstractCompilerMojo
 
 
     /**
-     * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependant
+     * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependent
      *
      * @return number of thread for this build or 1 if not multi-thread build
      */
@@ -1075,8 +1082,8 @@ public abstract class AbstractCompilerMojo
         {
             value = setting + "m";
         }
-        else if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) ) && ( setting.toLowerCase().endsWith(
-            "m" ) ) )
+        else if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) )
+            && ( setting.toLowerCase().endsWith( "m" ) ) )
         {
             value = setting;
         }
@@ -1243,7 +1250,7 @@ public abstract class AbstractCompilerMojo
     /**
      * @param classPathEntry entry to check
      * @param buildStartTime time build start
-     * @return if any changes occured
+     * @return if any changes occurred
      */
     private boolean hasNewFile( File classPathEntry, Date buildStartTime )
     {
@@ -1254,8 +1261,8 @@ public abstract class AbstractCompilerMojo
 
         if ( classPathEntry.isFile() )
         {
-            return classPathEntry.lastModified() >= buildStartTime.getTime() && fileExtensions.contains(
-                FileUtils.getExtension( classPathEntry.getName() ) );
+            return classPathEntry.lastModified() >= buildStartTime.getTime()
+                && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) );
         }
 
         File[] children = classPathEntry.listFiles();
