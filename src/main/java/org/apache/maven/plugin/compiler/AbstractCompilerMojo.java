@@ -432,7 +432,7 @@ public abstract class AbstractCompilerMojo
         Toolchain tc = getToolchain();
         if ( tc != null )
         {
-            getLog().info( "Toolchain in compiler-plugin: " + tc );
+            getLog().info( "Toolchain in maven-compiler-plugin: " + tc );
             if ( executable != null )
             {
                 getLog().warn( "Toolchains are ignored, 'executable' parameter is set to " + executable );
