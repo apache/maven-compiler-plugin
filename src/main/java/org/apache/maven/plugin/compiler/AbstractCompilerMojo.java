@@ -682,10 +682,12 @@ public abstract class AbstractCompilerMojo
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
 
+                // CHECKSTYLE_OFF: LineLength
                 if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget )
                     || isDependencyChanged()
                     || isSourceChanged( compilerConfiguration, compiler )
                     || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
+                    // CHECKSTYLE_ON: LineLength
                 {
                     getLog().info( "Changes detected - recompiling the module!" );
 

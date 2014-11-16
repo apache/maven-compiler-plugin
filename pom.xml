@@ -25,7 +25,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>25</version>
+    <version>27</version>
     <relativePath>../maven-plugins/pom.xml</relativePath>
   </parent>
 
@@ -219,7 +219,7 @@ under the License.
           <groupId>org.apache.rat</groupId>
           <artifactId>apache-rat-plugin</artifactId>
           <configuration>
-            <excludes>
+            <excludes combine.children="append">
               <exclude>src/it/jdk16-annotation/src/main/resources/META-INF/services/javax.annotation.processing.Processor</exclude>
             </excludes>
           </configuration>
