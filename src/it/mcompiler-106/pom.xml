@@ -33,9 +33,7 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <fork>true</fork>
-          <source>1.5</source>
-          <target>1.5</target>
-           <compilerArguments>
+          <compilerArguments>
              <Xlint/>
              <Xlint:-path/>
            </compilerArguments>

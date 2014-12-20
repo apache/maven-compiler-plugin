@@ -46,8 +46,6 @@
         <version>@pom.version@</version>
         <configuration>
           <fork>false</fork>
-          <source>1.4</source>
-          <target>1.4</target>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
         </configuration>

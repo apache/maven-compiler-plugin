@@ -38,8 +38,6 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <fork>true</fork>
-          <source>1.5</source>
-          <target>1.5</target>
           <!-- this has been deprecated, but still works  
             <compilerArguments>
               <J-Duser.language>en_us</J-Duser.language>
