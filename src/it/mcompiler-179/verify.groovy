@@ -21,15 +21,7 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-// JDK (,1.9): 1 warning: 
-// [WARNING] bootstrap class path not set in conjunction with -source 1.6
-// [INFO] 1 warning
-// 
-// JDK [1.9,):
-// [WARNING] bootstrap class path not set in conjunction with -source 1.6
-// [WARNING] source value 1.6 is obsolete and will be removed in a future release
-// [WARNING] target value 1.6 is obsolete and will be removed in a future release
-// [WARNING] To suppress warnings about obsolete options, use -Xlint:-options.
-// [INFO] 4 warnings 
-assert content.contains( '[WARNING] bootstrap class path not set in conjunction with -source 1.6' )
+// messages differ per vendor 
+assert content.contains( '[WARNING] COMPILATION WARNING :' )
+assert content =~ /\d+ warnings?/
 assert content.contains( '1 error' )

@@ -366,7 +366,7 @@ public abstract class AbstractCompilerMojo
     /**
      * @since 3.0 needed for storing the status for the incremental build support.
      */
-    @Parameter( property = "mojoExecution", readonly = true, required = true )
+    @Parameter( defaultValue = "${mojoExecution}", readonly = true, required = true )
     private MojoExecution mojoExecution;
 
     /**
