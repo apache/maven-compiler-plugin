@@ -59,7 +59,10 @@ under the License.
 
   <properties>
     <mavenVersion>2.2.1</mavenVersion>
-    <mavenPluginPluginVersion>3.2</mavenPluginPluginVersion>
+    <!--
+      ! The following property is used in the integration tests MCOMPILER-157
+    -->
+    <mavenPluginPluginVersion>3.3</mavenPluginPluginVersion>
     <plexusCompilerVersion>2.4</plexusCompilerVersion>
     <groovyVersion>1.8.0</groovyVersion>
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
@@ -223,23 +226,6 @@ under the License.
               <exclude>src/it/jdk16-annotation/src/main/resources/META-INF/services/javax.annotation.processing.Processor</exclude>
             </excludes>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-plugin-plugin</artifactId>
-          <version>${mavenPluginPluginVersion}</version>
-          <configuration>
-            <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
-          </configuration>
-          <executions>
-            <execution>
-              <id>mojo-descriptor</id>
-              <phase>process-classes</phase>
-              <goals>
-                <goal>descriptor</goal>
-              </goals>
-            </execution>
-          </executions>
         </plugin>
         <plugin>
           <artifactId>maven-enforcer-plugin</artifactId>
