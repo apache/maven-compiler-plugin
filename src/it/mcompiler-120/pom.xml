@@ -49,10 +49,18 @@ under the License.
         <configuration>
           <source>1.6</source>
           <target>1.6</target>
-          <compilerArgument>-Xlint:all, -path</compilerArgument>
-          <compilerArguments>
-            <Werror />
-          </compilerArguments>
+          <verbose>true</verbose>
+          <debug>true</debug>
+          <optimize>true</optimize>
+          <!-- commented out until fixed
+               <showDeprecation>true</showDeprecation>
+               <showWarnings>true</showWarnings>
+          -->
+          <compilerArgs>
+            <arg>-Werror</arg>
+            <arg>-Xlint:all</arg>
+            <arg>-Xlint:-path</arg>
+          </compilerArgs>
           <fork>true</fork>
         </configuration>
       </plugin>

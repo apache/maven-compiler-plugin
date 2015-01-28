@@ -22,3 +22,6 @@ assert logFile.exists()
 content = logFile.text
 
 assert content.contains( 'Compilation failure' )
+assert !content.contains( 'invalid flag' )
+assert content.contains( 'unchecked call to add(E) as a member of the raw type List' )
+
