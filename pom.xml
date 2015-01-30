@@ -323,6 +323,9 @@ under the License.
       <releases>
         <enabled>false</enabled>
       </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
       <id>plexus-snapshots</id>
       <name>Plexus Snapshot Repository</name>
       <url>https://oss.sonatype.org/content/repositories/plexus-snapshots</url>
