@@ -52,14 +52,11 @@ under the License.
           <verbose>true</verbose>
           <debug>true</debug>
           <optimize>true</optimize>
-          <!-- commented out until fixed
-               <showDeprecation>true</showDeprecation>
-               <showWarnings>true</showWarnings>
-          -->
+          <showDeprecation>true</showDeprecation>
+          <showWarnings>true</showWarnings>
           <compilerArgs>
             <arg>-Werror</arg>
-            <arg>-Xlint:all</arg>
-            <arg>-Xlint:-path</arg>
+            <arg>-Xlint:all,-options,-path</arg>
           </compilerArgs>
           <fork>true</fork>
         </configuration>

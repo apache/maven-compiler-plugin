@@ -30,8 +30,8 @@ Pass Compiler Arguments
 
   Sometimes, you need to pass other compiler arguments that are not handled by
   the Compiler Plugin itself but is supported by the <<<compilerId>>> selected.
-  For such arguments, the Compiler Plugin's <<<compilerArguments>>> will be
-  used.  The following example passes compiler arguments to the <<<javac>>>
+  For such arguments, use the Compiler Plugin's <<<compilerArgs>>> parameter
+  The following example passes compiler arguments to the <<<javac>>>
   compiler:
 
 +-----
@@ -44,35 +44,10 @@ Pass Compiler Arguments
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${project.version}</version>
-        <configuration>
-          <compilerArgument>-verbose -bootclasspath ${java.home}\lib\rt.jar</compilerArgument>
-        </configuration>
-      </plugin>
-    </plugins>
-    [...]
-  </build>
-  [...]
-</project>
-+-----
-
-  Or you can also use the Map version:
-
-+-----
-<project>
-  [...]
-  <build>
-    [...]
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${project.version}</version>
-        <configuration>
-          <compilerArguments>
-            <verbose />
-            <bootclasspath>${java.home}\lib\rt.jar</bootclasspath>
-          </compilerArguments>
-        </configuration>
+        <compilerArgs>
+            <arg>-verbose</arg>
+            <arg>-Xlint:all,-options,-path</arg>
+          </compilerArgs>
       </plugin>
     </plugins>
     [...]
