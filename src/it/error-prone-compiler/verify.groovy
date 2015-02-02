@@ -21,4 +21,4 @@ assert logFile.exists()
 content = logFile.text
 
 assert content.contains( 'Compilation failure' )
-assert content.contains( '[EmptyIf] Empty statement after if' )
+assert content.contains( '[DeadException] Exception created but not thrown' )
