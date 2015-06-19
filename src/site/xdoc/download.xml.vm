@@ -39,7 +39,7 @@ under the License.
 
       <p>${project.name} is distributed under the <a href="http://www.apache.org/licenses/">Apache License, version 2.0</a>.</p>
 
-      <p></p>We <b>strongly</b> encourage our users to configure a Maven repository mirror closer to their location, please read <a href="./guides/mini/guide-mirror-settings.html">How to Use Mirrors for Repositories</a>.</p>
+      <p></p>We <b>strongly</b> encourage our users to configure a Maven repository mirror closer to their location, please read <a href="/guides/mini/guide-mirror-settings.html">How to Use Mirrors for Repositories</a>.</p>
 
       <a name="mirror"/>
       <subsection name="Mirror">
