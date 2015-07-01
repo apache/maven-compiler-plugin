@@ -44,10 +44,12 @@ Pass Compiler Arguments
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${project.version}</version>
-        <compilerArgs>
+        <configuration>
+          <compilerArgs>
             <arg>-verbose</arg>
             <arg>-Xlint:all,-options,-path</arg>
           </compilerArgs>
+        </configuration>
       </plugin>
     </plugins>
     [...]
