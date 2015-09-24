@@ -25,7 +25,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>27</version>
+    <version>28-SNAPSHOT</version>
     <relativePath>../maven-plugins/pom.xml</relativePath>
   </parent>
 
