@@ -26,7 +26,7 @@ under the License.
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
     <version>28</version>
-    <relativePath>../maven-plugins/pom.xml</relativePath>
+    <relativePath>../../pom/maven/maven-plugins/pom.xml</relativePath>
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
