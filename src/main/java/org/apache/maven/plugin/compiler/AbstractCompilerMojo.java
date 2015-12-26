@@ -60,9 +60,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * TODO: At least one step could be optimized, currently the plugin will do two
- * scans of all the source code if the compiler has to have the entire set of
- * sources. This is currently the case for at least the C# compiler and most
+ * TODO: At least one step could be optimized, currently the plugin will do two scans of all the source code if the
+ * compiler has to have the entire set of sources. This is currently the case for at least the C# compiler and most
  * likely all the other .NET compilers too.
  *
  * @author others
@@ -219,12 +218,12 @@ public abstract class AbstractCompilerMojo
      * Sets the arguments to be passed to the compiler (prepending a dash) if {@link #fork} is set to <code>true</code>.
      * </p>
      * <p>
-     * This is because the list of valid arguments passed to a Java compiler
-     * varies based on the compiler version.
+     * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
      * </p>
      * <p>
      * To pass <code>-Xmaxerrs 1000 -Xlint -Xlint:-path -Averbose=true</code> you should include the following:
      * </p>
+     *
      * <pre>
      * &lt;compilerArguments&gt;
      *   &lt;Xmaxerrs&gt;1000&lt;/Xmaxerrs&gt;
@@ -235,7 +234,7 @@ public abstract class AbstractCompilerMojo
      * </pre>
      *
      * @since 2.0.1
-     * @deprecated use {@link #compilerArgs} instead. 
+     * @deprecated use {@link #compilerArgs} instead.
      */
     @Parameter
     @Deprecated
@@ -257,7 +256,7 @@ public abstract class AbstractCompilerMojo
      */
     @Parameter
     protected List<String> compilerArgs;
-    
+
     /**
      * <p>
      * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to
@@ -405,6 +404,7 @@ public abstract class AbstractCompilerMojo
 
     protected abstract File getGeneratedSourcesDirectory();
 
+    @Override
     public void execute()
         throws MojoExecutionException, CompilationFailureException
     {
@@ -1058,20 +1058,25 @@ public abstract class AbstractCompilerMojo
 
     protected Date getBuildStartTime()
     {
+        Date buildStartTime = null;
         try
         {
             Method getRequestMethod = session.getClass().getMethod( "getRequest" );
             Object mavenExecutionRequest = getRequestMethod.invoke( session );
             Method getStartTimeMethod = mavenExecutionRequest.getClass().getMethod( "getStartTime" );
-            Date buildStartTime = (Date) getStartTimeMethod.invoke( mavenExecutionRequest );
-            return buildStartTime;
+            buildStartTime = (Date) getStartTimeMethod.invoke( mavenExecutionRequest );
         }
         catch ( Exception e )
         {
             getLog().debug( "unable to get start time for the current build: " + e.getMessage() );
         }
 
-        return new Date();
+        if ( buildStartTime == null )
+        {
+            return new Date();
+        }
+
+        return buildStartTime;
     }
 
 
