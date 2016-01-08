@@ -19,6 +19,14 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DefaultArtifact;
+import org.apache.maven.artifact.handler.ArtifactHandler;
+import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
+import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
+import org.apache.maven.artifact.resolver.ResolutionErrorHandler;
+import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -26,6 +34,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
 import org.apache.maven.shared.utils.ReaderFactory;
@@ -60,8 +69,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * TODO: At least one step could be optimized, currently the plugin will do two scans of all the source code if the
- * compiler has to have the entire set of sources. This is currently the case for at least the C# compiler and most
+ * TODO: At least one step could be optimized, currently the plugin will do two
+ * scans of all the source code if the compiler has to have the entire set of
+ * sources. This is currently the case for at least the C# compiler and most
  * likely all the other .NET compilers too.
  *
  * @author others
@@ -212,6 +222,35 @@ public abstract class AbstractCompilerMojo
      */
     @Parameter
     private String[] annotationProcessors;
+
+    /**
+     * <p>
+     * Classpath elements to supply as annotation processor path. If specified, the compiler will detect annotation
+     * processors only in those classpath elements. If omitted, the default classpath is used to detect annotation
+     * processors. The detection itself depends on the configuration of {@code annotationProcessors}.
+     * </p>
+     * <p>
+     * Each classpath element is specified using their Maven coordinates (groupId, artifactId, version, classifier,
+     * type). Transitive dependencies are added automatically. Example:
+     * </p>
+     *
+     * <pre>
+     * &lt;configuration&gt;
+     *   &lt;annotationProcessorPaths&gt;
+     *     &lt;path&gt;
+     *       &lt;groupId&gt;org.sample&lt;/groupId&gt;
+     *       &lt;artifactId&gt;sample-annotation-processor&lt;/artifactId&gt;
+     *       &lt;version&gt;1.2.3&lt;/version&gt;
+     *     &lt;/path&gt;
+     *     &lt;!-- ... more ... --&gt;
+     *   &lt;/annotationProcessorPaths&gt;
+     * &lt;/configuration&gt;
+     * </pre>
+     *
+     * @since 3.5
+     */
+    @Parameter
+    private List<DependencyCoordinate> annotationProcessorPaths;
 
     /**
      * <p>
@@ -384,6 +423,24 @@ public abstract class AbstractCompilerMojo
     @Parameter( defaultValue = "true", property = "maven.compiler.useIncrementalCompilation" )
     private boolean useIncrementalCompilation = true;
 
+    /**
+     * Resolves the artifacts needed.
+     */
+    @Component
+    private RepositorySystem repositorySystem;
+
+    /**
+     * Artifact handler manager.
+     */
+    @Component
+    private ArtifactHandlerManager artifactHandlerManager;
+
+    /**
+     * Throws an exception on artifact resolution errors.
+     */
+    @Component
+    private ResolutionErrorHandler resolutionErrorHandler;
+
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
@@ -542,6 +599,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setSourceLocations( compileSourceRoots );
 
         compilerConfiguration.setAnnotationProcessors( annotationProcessors );
+
+        compilerConfiguration.setProcessorPathEntries( resolveProcessorPathEntries() );
 
         compilerConfiguration.setSourceEncoding( encoding );
 
@@ -1285,4 +1344,60 @@ public abstract class AbstractCompilerMojo
         return false;
     }
 
+    private List<String> resolveProcessorPathEntries()
+        throws MojoExecutionException
+    {
+        if ( annotationProcessorPaths == null || annotationProcessorPaths.isEmpty() )
+        {
+            return null;
+        }
+
+        try
+        {
+            Set<Artifact> requiredArtifacts = new HashSet<Artifact>();
+
+            for ( DependencyCoordinate coord : annotationProcessorPaths )
+            {
+                ArtifactHandler handler = artifactHandlerManager.getArtifactHandler( coord.getType() );
+
+                Artifact artifact = new DefaultArtifact(
+                     coord.getGroupId(),
+                     coord.getArtifactId(),
+                     VersionRange.createFromVersionSpec( coord.getVersion() ),
+                     Artifact.SCOPE_RUNTIME,
+                     coord.getType(),
+                     coord.getClassifier(),
+                     handler,
+                     false );
+
+                requiredArtifacts.add( artifact );
+            }
+
+            ArtifactResolutionRequest request = new ArtifactResolutionRequest()
+                            .setArtifact( project.getArtifact() )
+                            .setResolveRoot( false )
+                            .setResolveTransitively( true )
+                            .setArtifactDependencies( requiredArtifacts )
+                            .setLocalRepository( session.getLocalRepository() )
+                            .setRemoteRepositories( project.getRemoteArtifactRepositories() );
+
+            ArtifactResolutionResult resolutionResult = repositorySystem.resolve( request );
+
+            resolutionErrorHandler.throwErrors( request, resolutionResult );
+
+            List<String> classpathElements = new ArrayList<String>( resolutionResult.getArtifacts().size() );
+
+            for ( Object resolved : resolutionResult.getArtifacts() )
+            {
+                classpathElements.add( ( (Artifact) resolved ).getFile().getAbsolutePath() );
+            }
+
+            return classpathElements;
+        }
+        catch ( Exception e )
+        {
+            throw new MojoExecutionException( "Resolution of annotationProcessorPath dependencies failed: "
+                + e.getLocalizedMessage(), e );
+        }
+    }
 }
