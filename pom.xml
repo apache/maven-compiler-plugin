@@ -19,8 +19,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -31,7 +30,7 @@ under the License.
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>3.5-SNAPSHOT</version>
+  <version>3.5</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
@@ -43,9 +42,9 @@ under the License.
   </prerequisites>
 
   <scm>
-    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</connection>
-    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/trunk/maven-compiler-plugin/</developerConnection>
-    <url>http://svn.apache.org/viewvc/maven/plugins/trunk/maven-compiler-plugin/</url>
+    <connection>scm:svn:http://svn.apache.org/repos/asf/maven/plugins/tags/maven-compiler-plugin-3.5</connection>
+    <developerConnection>scm:svn:https://svn.apache.org/repos/asf/maven/plugins/tags/maven-compiler-plugin-3.5</developerConnection>
+    <url>http://svn.apache.org/viewvc/maven/plugins/tags/maven-compiler-plugin-3.5</url>
   </scm>
   <issueManagement>
     <system>JIRA</system>
