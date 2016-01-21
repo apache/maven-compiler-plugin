@@ -563,7 +563,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setProc( proc );
 
         File generatedSourcesDirectory = getGeneratedSourcesDirectory();
-        compilerConfiguration.setGeneratedSourcesDirectory( generatedSourcesDirectory );
+        compilerConfiguration.setGeneratedSourcesDirectory( generatedSourcesDirectory != null
+                        ? generatedSourcesDirectory.getAbsoluteFile() : null );
 
         if ( generatedSourcesDirectory != null )
         {
@@ -1052,7 +1053,8 @@ public abstract class AbstractCompilerMojo
         {
             File rootFile = new File( sourceRoot );
 
-            if ( !rootFile.isDirectory() )
+            if ( !rootFile.isDirectory()
+                || rootFile.getAbsoluteFile().equals( compilerConfiguration.getGeneratedSourcesDirectory() ) )
             {
                 continue;
             }
