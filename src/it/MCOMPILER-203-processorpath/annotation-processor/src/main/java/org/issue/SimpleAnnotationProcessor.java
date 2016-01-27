@@ -52,6 +52,29 @@ public class SimpleAnnotationProcessor
             return true;
         }
 
+        // assert that commons-lang3 is on the classpath
+        try
+        {
+            getClass().getClassLoader().loadClass( "org.apache.commons.lang3.StringUtils" );
+        }
+        catch ( ClassNotFoundException expected )
+        {
+            throw new RuntimeException( "Expected org.apache.commons.lang3.StringUtils to be on the processorpath,"
+                + "because it is a declared dependency of the annotation processor." );
+        }
+
+        // assert that commons-io is NOT on the classpath, as it is only a project dependency in "annotation-user"
+        try
+        {
+            getClass().getClassLoader().loadClass( "org.apache.commons.io.IOUtils" );
+            throw new RuntimeException( "Expected a ClassNotFoundException because "
+                + "org.apache.commons.io.IOUtils is not supposed to be on the processorpath." );
+        }
+        catch ( ClassNotFoundException expected )
+        {
+            // expected.
+        }
+
         Filer filer = processingEnv.getFiler();
 
         Elements elementUtils = processingEnv.getElementUtils();

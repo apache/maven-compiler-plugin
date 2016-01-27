@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1356,7 +1357,7 @@ public abstract class AbstractCompilerMojo
 
         try
         {
-            Set<Artifact> requiredArtifacts = new HashSet<Artifact>();
+            Set<Artifact> requiredArtifacts = new LinkedHashSet<Artifact>();
 
             for ( DependencyCoordinate coord : annotationProcessorPaths )
             {
@@ -1376,8 +1377,8 @@ public abstract class AbstractCompilerMojo
             }
 
             ArtifactResolutionRequest request = new ArtifactResolutionRequest()
-                            .setArtifact( project.getArtifact() )
-                            .setResolveRoot( false )
+                            .setArtifact( requiredArtifacts.iterator().next() )
+                            .setResolveRoot( true )
                             .setResolveTransitively( true )
                             .setArtifactDependencies( requiredArtifacts )
                             .setLocalRepository( session.getLocalRepository() )
@@ -1387,14 +1388,14 @@ public abstract class AbstractCompilerMojo
 
             resolutionErrorHandler.throwErrors( request, resolutionResult );
 
-            List<String> classpathElements = new ArrayList<String>( resolutionResult.getArtifacts().size() );
+            List<String> elements = new ArrayList<String>( resolutionResult.getArtifacts().size() );
 
             for ( Object resolved : resolutionResult.getArtifacts() )
             {
-                classpathElements.add( ( (Artifact) resolved ).getFile().getAbsolutePath() );
+                elements.add( ( (Artifact) resolved ).getFile().getAbsolutePath() );
             }
 
-            return classpathElements;
+            return elements;
         }
         catch ( Exception e )
         {
