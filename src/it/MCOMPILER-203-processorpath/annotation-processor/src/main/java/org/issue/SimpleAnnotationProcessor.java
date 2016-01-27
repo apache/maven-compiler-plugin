@@ -35,6 +35,7 @@ import javax.lang.model.element.PackageElement;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.util.Elements;
 import javax.tools.FileObject;
+import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 
 @SupportedSourceVersion( SourceVersion.RELEASE_6 )
@@ -65,13 +66,25 @@ public class SimpleAnnotationProcessor
 
             try
             {
+                Name packageName = packageElement.getQualifiedName();
                 FileObject resource =
-                    filer.createResource( StandardLocation.SOURCE_OUTPUT, packageElement.getQualifiedName(), name
+                    filer.createResource( StandardLocation.SOURCE_OUTPUT, packageName, name
                         + ".txt", element );
 
                 Writer writer = resource.openWriter();
                 writer.write( name.toString() );
                 writer.close();
+
+                String className = name + "Companion";
+                JavaFileObject javaFile = filer.createSourceFile( packageName + "." + className, element );
+
+                Writer javaWriter = javaFile.openWriter();
+                javaWriter.append( "package " ).append( packageName ).append( ";\n\n" );
+                javaWriter.append( "public class " ).append( className ).append( " {\n" );
+                javaWriter.append( "    public " ).append( className ).append( "() {\n" );
+                javaWriter.append( "        System.out.println(\"Hey there!\");\n" );
+                javaWriter.append( "    }\n}\n" );
+                javaWriter.close();
             }
             catch ( IOException e )
             {
