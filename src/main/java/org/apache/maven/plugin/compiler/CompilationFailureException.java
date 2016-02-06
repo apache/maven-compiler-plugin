@@ -26,7 +26,6 @@ import java.util.List;
 
 /**
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
- * @version $Id$
  * @since 2.0
  */
 @SuppressWarnings( "serial" )
@@ -57,7 +56,7 @@ public class CompilationFailureException
     /**
      * Short message will have the error message if there's only one, useful for errors forking the compiler
      *
-     * @param messages
+     * @param messages the messages
      * @return the short error message
      * @since 2.0.2
      */
@@ -75,7 +74,7 @@ public class CompilationFailureException
 
             sb.append( compilerError ).append( LS );
         }
-        
+
         return sb.toString();
     }
 }

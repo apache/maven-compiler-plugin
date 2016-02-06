@@ -1273,10 +1273,9 @@ public abstract class AbstractCompilerMojo
     }
 
     /**
-     * We just compare the timestamps of all local dependency files (inter-module dependency classpath)
-     * and the own generated classes
-     * and if we got a file which is >= the buid-started timestamp, then we catched a file which got
-     * changed during this build.
+     * We just compare the timestamps of all local dependency files (inter-module dependency classpath) and the own
+     * generated classes and if we got a file which is &gt;= the buid-started timestamp, then we catched a file which
+     * got changed during this build.
      *
      * @return <code>true</code> if at least one single dependency has changed.
      */
