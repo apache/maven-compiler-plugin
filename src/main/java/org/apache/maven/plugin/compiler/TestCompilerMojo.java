@@ -100,6 +100,13 @@ public class TestCompilerMojo
     @Parameter ( property = "maven.compiler.testTarget" )
     private String testTarget;
 
+    /**
+     * the -release argument for the test Java compiler
+     * 
+     * @since 3.6
+     */
+    @Parameter ( property = "maven.compiler.testRelease" )
+    private String testRelease;
 
     /**
      * <p>
@@ -221,6 +228,12 @@ public class TestCompilerMojo
     protected String getTarget()
     {
         return testTarget == null ? target : testTarget;
+    }
+    
+    @Override
+    protected String getRelease()
+    {
+        return testRelease == null ? release : testRelease;
     }
 
     protected String getCompilerArgument()

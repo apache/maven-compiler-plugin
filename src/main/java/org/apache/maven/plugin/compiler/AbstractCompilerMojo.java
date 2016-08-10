@@ -139,6 +139,14 @@ public abstract class AbstractCompilerMojo
     protected String target;
 
     /**
+     * The -release argument for the Java compiler, supported since Java9
+     * 
+     * @since 3.6
+     */
+    @Parameter( property = "maven.compiler.release" )
+    protected String release;
+    
+    /**
      * The -encoding argument for the Java compiler.
      *
      * @since 2.1
@@ -456,6 +464,8 @@ public abstract class AbstractCompilerMojo
 
     protected abstract String getTarget();
 
+    protected abstract String getRelease();
+
     protected abstract String getCompilerArgument();
 
     protected abstract Map<String, String> getCompilerArguments();
@@ -560,6 +570,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setSourceVersion( getSource() );
 
         compilerConfiguration.setTargetVersion( getTarget() );
+        
+        compilerConfiguration.setReleaseVersion( getRelease() );
 
         compilerConfiguration.setProc( proc );
 
