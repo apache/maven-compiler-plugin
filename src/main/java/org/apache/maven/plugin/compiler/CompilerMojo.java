@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
  */
 
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -52,12 +53,6 @@ public class CompilerMojo
      */
     @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = true, required = true )
     private List<String> compileSourceRoots;
-
-    /**
-     * Project classpath.
-     */
-    @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
-    private List<String> classpathElements;
 
     /**
      * The directory for compiled classes.
@@ -103,6 +98,10 @@ public class CompilerMojo
     @Parameter ( property = "maven.main.skip" )
     private boolean skipMain;
 
+    private List<String> classpathElements;
+
+    private List<String> modulepathElements;
+    
     protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
@@ -111,6 +110,12 @@ public class CompilerMojo
     protected List<String> getClasspathElements()
     {
         return classpathElements;
+    }
+
+    @Override
+    protected List<String> getModulepathElements()
+    {
+        return modulepathElements;
     }
 
     protected File getOutputDirectory()
@@ -126,11 +131,43 @@ public class CompilerMojo
             getLog().info( "Not compiling main sources" );
             return;
         }
+
+        try
+        {
+            preparePaths();
+        }
+        catch ( DependencyResolutionRequiredException e )
+        {
+            throw new MojoExecutionException( e.getMessage() );
+        }
+
         super.execute();
 
         if ( outputDirectory.isDirectory() )
         {
             projectArtifact.setFile( outputDirectory );
+        }
+    }
+    
+    private void preparePaths() throws DependencyResolutionRequiredException
+    {
+        boolean hasModuleDescriptor = false;
+        for ( String sourceRoot : getProject().getCompileSourceRoots() )
+        {
+            hasModuleDescriptor |= new File( sourceRoot, "module-info.java" ).exists();
+        }
+
+        List<String> pathElements = getProject().getCompileClasspathElements();
+        
+        if ( hasModuleDescriptor )
+        {
+            modulepathElements = pathElements;
+            classpathElements = Collections.emptyList();
+        }
+        else
+        {
+            classpathElements = pathElements;
+            modulepathElements = Collections.emptyList();
         }
     }
 

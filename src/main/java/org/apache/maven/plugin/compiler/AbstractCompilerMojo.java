@@ -19,6 +19,17 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.ArtifactHandler;
@@ -57,17 +68,6 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
-
-import java.io.File;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * TODO: At least one step could be optimized, currently the plugin will do two
@@ -456,6 +456,8 @@ public abstract class AbstractCompilerMojo
 
     protected abstract List<String> getClasspathElements();
 
+    protected abstract List<String> getModulepathElements();
+
     protected abstract List<String> getCompileSourceRoots();
 
     protected abstract File getOutputDirectory();
@@ -471,6 +473,11 @@ public abstract class AbstractCompilerMojo
     protected abstract Map<String, String> getCompilerArguments();
 
     protected abstract File getGeneratedSourcesDirectory();
+
+    protected final MavenProject getProject()
+    {
+        return project;
+    }
 
     @Override
     public void execute()
@@ -529,6 +536,7 @@ public abstract class AbstractCompilerMojo
         {
             getLog().debug( "Source directories: " + compileSourceRoots.toString().replace( ',', '\n' ) );
             getLog().debug( "Classpath: " + getClasspathElements().toString().replace( ',', '\n' ) );
+            getLog().debug( "Modulepath: " + getModulepathElements().toString().replace( ',', '\n' ) );
             getLog().debug( "Output directory: " + getOutputDirectory() );
         }
 
@@ -541,6 +549,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setOutputLocation( getOutputDirectory().getAbsolutePath() );
 
         compilerConfiguration.setClasspathEntries( getClasspathElements() );
+
+        compilerConfiguration.setModulepathEntries( getModulepathElements() );
 
         compilerConfiguration.setOptimize( optimize );
 
@@ -829,6 +839,15 @@ public abstract class AbstractCompilerMojo
             for ( String s : getClasspathElements() )
             {
                 getLog().debug( " " + s );
+            }
+
+            if ( !getModulepathElements().isEmpty() )
+            {
+                getLog().debug( "Modulepath:" );
+                for ( String s : getModulepathElements() )
+                {
+                    getLog().debug( " " + s );
+                }
             }
 
             getLog().debug( "Source roots:" );
@@ -1308,11 +1327,15 @@ public abstract class AbstractCompilerMojo
 
         Date buildStartTime = getBuildStartTime();
 
-        for ( String classPathElement : getClasspathElements() )
+        List<String> pathElements = new ArrayList<String>();
+        pathElements.addAll( getClasspathElements() );
+        pathElements.addAll( getModulepathElements() );
+        
+        for ( String pathElement : pathElements )
         {
             // ProjectArtifacts are artifacts which are available in the local project
             // that's the only ones we are interested in now.
-            File artifactPath = new File( classPathElement );
+            File artifactPath = new File( pathElement );
             if ( artifactPath.isDirectory() )
             {
                 if ( hasNewFile( artifactPath, buildStartTime ) )
