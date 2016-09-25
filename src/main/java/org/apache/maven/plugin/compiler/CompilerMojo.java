@@ -20,7 +20,6 @@ package org.apache.maven.plugin.compiler;
  */
 
 import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -98,6 +97,9 @@ public class CompilerMojo
     @Parameter ( property = "maven.main.skip" )
     private boolean skipMain;
 
+    @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
+    private List<String> compilePath;
+    
     private List<String> classpathElements;
 
     private List<String> modulepathElements;
@@ -132,15 +134,6 @@ public class CompilerMojo
             return;
         }
 
-        try
-        {
-            preparePaths();
-        }
-        catch ( DependencyResolutionRequiredException e )
-        {
-            throw new MojoExecutionException( e.getMessage() );
-        }
-
         super.execute();
 
         if ( outputDirectory.isDirectory() )
@@ -149,26 +142,33 @@ public class CompilerMojo
         }
     }
     
-    private void preparePaths() throws DependencyResolutionRequiredException
+    @Override
+    protected void preparePaths( Set<File> sourceFiles )
     {
+        assert compilePath != null;
+        
         boolean hasModuleDescriptor = false;
-        for ( String sourceRoot : getProject().getCompileSourceRoots() )
+        for ( File sourceFile : sourceFiles )
         {
-            hasModuleDescriptor |= new File( sourceRoot, "module-info.java" ).exists();
+            if ( "module-info.java".equals( sourceFile.getName() ) )
+            {
+                hasModuleDescriptor = true;
+                break;
+            }
         }
 
-        List<String> pathElements = getProject().getCompileClasspathElements();
-        
         if ( hasModuleDescriptor )
         {
-            modulepathElements = pathElements;
+            modulepathElements = compilePath;
             classpathElements = Collections.emptyList();
         }
         else
         {
-            classpathElements = pathElements;
+            classpathElements = compilePath;
             modulepathElements = Collections.emptyList();
         }
+        
+        getLog().debug( "classpathElements: " + getClasspathElements() );
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )

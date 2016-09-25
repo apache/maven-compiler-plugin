@@ -18,8 +18,4 @@
  */
 def log = new File( basedir, 'build.log').text
 
-assert log.count( " -release" ) == 2
-
-assert !( log =~  /\s-source\s/ )
-assert !( log =~  /\s-target\s/ )
-
+assert log.count( " --module-path" ) == 2

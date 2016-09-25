@@ -84,6 +84,13 @@ public abstract class AbstractCompilerMojo
     extends AbstractMojo
 {
 
+    static final String DEFAULT_SOURCE = "1.5";
+    
+    static final String DEFAULT_TARGET = "1.5";
+    
+    // Used to compare with older targets
+    static final String MODULE_INFO_TARGET = "1.9";
+    
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
@@ -129,13 +136,13 @@ public abstract class AbstractCompilerMojo
     /**
      * The -source argument for the Java compiler.
      */
-    @Parameter( property = "maven.compiler.source", defaultValue = "1.5" )
+    @Parameter( property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE )
     protected String source;
 
     /**
      * The -target argument for the Java compiler.
      */
-    @Parameter( property = "maven.compiler.target", defaultValue = "1.5" )
+    @Parameter( property = "maven.compiler.target", defaultValue = DEFAULT_TARGET )
     protected String target;
 
     /**
@@ -459,6 +466,8 @@ public abstract class AbstractCompilerMojo
     protected abstract List<String> getModulepathElements();
 
     protected abstract List<String> getCompileSourceRoots();
+    
+    protected abstract void preparePaths( Set<File> sourceFiles );
 
     protected abstract File getOutputDirectory();
 
@@ -532,14 +541,6 @@ public abstract class AbstractCompilerMojo
             return;
         }
 
-        if ( getLog().isDebugEnabled() )
-        {
-            getLog().debug( "Source directories: " + compileSourceRoots.toString().replace( ',', '\n' ) );
-            getLog().debug( "Classpath: " + getClasspathElements().toString().replace( ',', '\n' ) );
-            getLog().debug( "Modulepath: " + getModulepathElements().toString().replace( ',', '\n' ) );
-            getLog().debug( "Output directory: " + getOutputDirectory() );
-        }
-
         // ----------------------------------------------------------------------
         // Create the compiler configuration
         // ----------------------------------------------------------------------
@@ -547,10 +548,6 @@ public abstract class AbstractCompilerMojo
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
 
         compilerConfiguration.setOutputLocation( getOutputDirectory().getAbsolutePath() );
-
-        compilerConfiguration.setClasspathEntries( getClasspathElements() );
-
-        compilerConfiguration.setModulepathEntries( getModulepathElements() );
 
         compilerConfiguration.setOptimize( optimize );
 
@@ -627,49 +624,6 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setProcessorPathEntries( resolveProcessorPathEntries() );
 
         compilerConfiguration.setSourceEncoding( encoding );
-
-        Map<String, String> effectiveCompilerArguments = getCompilerArguments();
-
-        String effectiveCompilerArgument = getCompilerArgument();
-
-        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null )
-                        || ( compilerArgs != null ) )
-        {
-            LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
-            if ( effectiveCompilerArguments != null )
-            {
-                for ( Map.Entry<String, String> me : effectiveCompilerArguments.entrySet() )
-                {
-                    String key = me.getKey();
-                    String value = me.getValue();
-                    if ( !key.startsWith( "-" ) )
-                    {
-                        key = "-" + key;
-                    }
-
-                    if ( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
-                    {
-                        cplrArgsCopy.put( key + "=" + value, null );
-                    }
-                    else
-                    {
-                        cplrArgsCopy.put( key, value );
-                    }
-                }
-            }
-            if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
-            {
-                cplrArgsCopy.put( effectiveCompilerArgument, null );
-            }
-            if ( compilerArgs != null )
-            {
-                for ( String arg : compilerArgs )
-                {
-                    cplrArgsCopy.put( arg, null );
-                }
-            }
-            compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
-        }
 
         compilerConfiguration.setFork( fork );
 
@@ -762,6 +716,8 @@ public abstract class AbstractCompilerMojo
                 canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
 
                 sources = getCompileSources( compiler, compilerConfiguration );
+                
+                preparePaths( sources );
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
 
@@ -815,6 +771,8 @@ public abstract class AbstractCompilerMojo
                 {
                     compilerConfiguration.setSourceFiles( staleSources );
                 }
+                
+                preparePaths( compilerConfiguration.getSourceFiles() );
             }
             catch ( CompilerException e )
             {
@@ -828,10 +786,58 @@ public abstract class AbstractCompilerMojo
                 return;
             }
         }
+        
+        // Dividing pathElements of classPath and modulePath is based on sourceFiles
+        compilerConfiguration.setClasspathEntries( getClasspathElements() );
+
+        compilerConfiguration.setModulepathEntries( getModulepathElements() );
+        
+        Map<String, String> effectiveCompilerArguments = getCompilerArguments();
+
+        String effectiveCompilerArgument = getCompilerArgument();
+
+        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null )
+                        || ( compilerArgs != null ) )
+        {
+            LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
+            if ( effectiveCompilerArguments != null )
+            {
+                for ( Map.Entry<String, String> me : effectiveCompilerArguments.entrySet() )
+                {
+                    String key = me.getKey();
+                    String value = me.getValue();
+                    if ( !key.startsWith( "-" ) )
+                    {
+                        key = "-" + key;
+                    }
+
+                    if ( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
+                    {
+                        cplrArgsCopy.put( key + "=" + value, null );
+                    }
+                    else
+                    {
+                        cplrArgsCopy.put( key, value );
+                    }
+                }
+            }
+            if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
+            {
+                cplrArgsCopy.put( effectiveCompilerArgument, null );
+            }
+            if ( compilerArgs != null )
+            {
+                for ( String arg : compilerArgs )
+                {
+                    cplrArgsCopy.put( arg, null );
+                }
+            }
+            compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
+        }
+
         // ----------------------------------------------------------------------
         // Dump configuration
         // ----------------------------------------------------------------------
-
         if ( getLog().isDebugEnabled() )
         {
             getLog().debug( "Classpath:" );
@@ -869,7 +875,7 @@ public abstract class AbstractCompilerMojo
                 }
 
                 String[] cl = compiler.createCommandLine( compilerConfiguration );
-                if ( cl != null && cl.length > 0 )
+                if ( getLog().isDebugEnabled() && cl != null && cl.length > 0 )
                 {
                     StringBuilder sb = new StringBuilder();
                     sb.append( cl[0] );

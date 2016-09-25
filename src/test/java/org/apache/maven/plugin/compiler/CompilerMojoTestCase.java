@@ -47,9 +47,9 @@ public class CompilerMojoTestCase
     extends AbstractMojoTestCase
 {
     
-    private String source;
-    
-    private String target;
+    private String source = AbstractCompilerMojo.DEFAULT_SOURCE;
+
+    private String target = AbstractCompilerMojo.DEFAULT_TARGET;
     
     @Override
     protected void setUp()
@@ -321,7 +321,7 @@ public class CompilerMojoTestCase
 
         setVariableValueToObject( mojo, "log", new DebugEnabledLog() );
         setVariableValueToObject( mojo, "projectArtifact", new ArtifactStub() );
-        setVariableValueToObject( mojo, "classpathElements", Collections.EMPTY_LIST );
+        setVariableValueToObject( mojo, "compilePath", Collections.EMPTY_LIST );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
         setVariableValueToObject( mojo, "project", getMockMavenProject() );
         setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
@@ -366,6 +366,7 @@ public class CompilerMojoTestCase
         }
         when ( junitArtifact.getFile() ).thenReturn( artifactFile );
         
+        testClasspathList.add( artifactFile.getAbsolutePath() );
         testClasspathList.add( compilerMojo.getOutputDirectory().getPath() );
 
         String testSourceRoot = testPom.getParent() + "/src/test/java";
@@ -375,6 +376,8 @@ public class CompilerMojoTestCase
         project.setArtifacts( Collections.singleton( junitArtifact )  );
         project.getBuild().setOutputDirectory( new File( buildDir, "classes" ).getAbsolutePath() );
         setVariableValueToObject( mojo, "project", project );
+        setVariableValueToObject( mojo, "compilePath", Collections.EMPTY_LIST );
+        setVariableValueToObject( mojo, "testPath", testClasspathList );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
         setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
         setVariableValueToObject( mojo, "source", source );
@@ -382,7 +385,7 @@ public class CompilerMojoTestCase
 
         return mojo;
     }
-
+    
     private MavenProject getMockMavenProject()
     {
         MavenProject mp = new MavenProject();

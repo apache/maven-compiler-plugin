@@ -19,7 +19,6 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
-import org.apache.maven.artifact.DependencyResolutionRequiredException;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -145,6 +144,12 @@ public class TestCompilerMojo
     @Parameter ( defaultValue = "${project.build.directory}/generated-test-sources/test-annotations" )
     private File generatedTestSourcesDirectory;
 
+    @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true )
+    private List<String> compilePath;
+
+    @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
+    private List<String> testPath;
+
     private List<String> classpathElements;
 
     private List<String> modulepathElements;
@@ -156,19 +161,7 @@ public class TestCompilerMojo
         {
             getLog().info( "Not compiling test sources" );
         }
-        else
-        {
-            try
-            {
-                preparePaths();
-            }
-            catch ( DependencyResolutionRequiredException e )
-            {
-                throw new MojoExecutionException( e.getMessage() );
-            }
-            
-            super.execute();
-        }
+        super.execute();
     }
 
     protected List<String> getCompileSourceRoots()
@@ -192,8 +185,8 @@ public class TestCompilerMojo
         return outputDirectory;
     }
 
-    private void preparePaths()
-        throws DependencyResolutionRequiredException
+    @Override
+    protected void preparePaths( Set<File> sourceFiles )
     {
         File mainOutputDirectory = new File( getProject().getBuild().getOutputDirectory() );
 
@@ -202,20 +195,38 @@ public class TestCompilerMojo
         boolean hasMainModuleDescriptor = mainModuleInfo.exists();
         
         boolean hasTestModuleDescriptor = false;
-        for ( String sourceRoot : getProject().getTestCompileSourceRoots() )
+        for ( File sourceFile : sourceFiles )
         {
-            hasTestModuleDescriptor |= new File( sourceRoot, "module-info.java" ).exists();
+            // @todo verify if it is the root of a sourcedirectory?
+            if ( "module-info.java".equals( sourceFile.getName() ) ) 
+            {
+                hasTestModuleDescriptor = true;
+                break;
+            }
         }
         
-        List<String> compilePathElements = getProject().getCompileClasspathElements();
-        List<String> testPathElements = getProject().getTestClasspathElements();
-
-        List<String> testScopedElements = new ArrayList<String>( testPathElements );
-        testScopedElements.removeAll( compilePathElements );
+        List<String> testScopedElements = new ArrayList<String>( testPath );
+        testScopedElements.removeAll( compilePath );
         
+        if ( release != null )
+        {
+            if ( Integer.valueOf( release ) < 9 )
+            {
+                modulepathElements = Collections.emptyList();
+                classpathElements = testPath;
+                return;
+            }
+        }
+        else if ( Double.valueOf( getTarget() ) < Double.valueOf( MODULE_INFO_TARGET ) )
+        {
+            modulepathElements = Collections.emptyList();
+            classpathElements = testPath;
+            return;
+        }
+            
         if ( hasTestModuleDescriptor )
         {
-            modulepathElements = testPathElements;
+            modulepathElements = testPath;
             classpathElements = Collections.emptyList();
 
             if ( hasMainModuleDescriptor )
@@ -236,7 +247,7 @@ public class TestCompilerMojo
         {
             if ( hasMainModuleDescriptor )
             {
-                modulepathElements = compilePathElements;
+                modulepathElements = compilePath;
                 classpathElements = testScopedElements;
                 if ( compilerArgs == null )
                 {
@@ -249,6 +260,8 @@ public class TestCompilerMojo
                     compilerArgs.add( "-Xmodule:" + moduleName );
                     compilerArgs.add( "--add-modules" );
                     compilerArgs.add( moduleName );
+                    compilerArgs.add( "--add-reads" );
+                    compilerArgs.add( moduleName + "=ALL-UNNAMED" );
                 }
                 catch ( IOException e )
                 {
@@ -258,7 +271,7 @@ public class TestCompilerMojo
             else
             {
                 modulepathElements = Collections.emptyList();
-                classpathElements = testPathElements;
+                classpathElements = testPath;
             }
         }
     }
