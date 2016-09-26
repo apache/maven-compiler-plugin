@@ -1231,7 +1231,7 @@ public abstract class AbstractCompilerMojo
 
                 if ( tcs != null && tcs.size() > 0 )
                 {
-                    tc = tcs.get( tcs.size() - 1 );
+                    tc = tcs.get( 0 );
                 }
             }
             catch ( NoSuchMethodException e )
