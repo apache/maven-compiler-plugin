@@ -353,7 +353,13 @@ public abstract class AbstractCompilerMojo
     private ToolchainManager toolchainManager;
 
     /**
-     * Specify the requirements for this jdk toolchain
+     * <p>
+     * Specify the requirements for this jdk toolchain.
+     * This overrules the toolchain selected by the maven-toolchain-plugin.
+     * </p>
+     * <strong>note:</strong> requires at least Maven 3.3.1
+     * 
+     * @since 3.6
      */
     @Parameter
     private Map<String, String> jdkToolchain;
