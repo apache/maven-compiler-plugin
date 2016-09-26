@@ -72,7 +72,6 @@
               <jdkToolchain>
                 <version>9</version>
               </jdkToolchain>
-              <fork>true</fork>
               <release>9</release>
             </configuration>
           </execution>

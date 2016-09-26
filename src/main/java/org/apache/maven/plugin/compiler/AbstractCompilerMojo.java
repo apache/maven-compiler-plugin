@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
  */
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
@@ -350,6 +351,12 @@ public abstract class AbstractCompilerMojo
      */
     @Component
     private ToolchainManager toolchainManager;
+
+    /**
+     * Specify the requirements for this jdk toolchain
+     */
+    @Parameter
+    private Map<String, String> jdkToolchain;
 
     // ----------------------------------------------------------------------
     // Read-only parameters
@@ -1201,10 +1208,53 @@ public abstract class AbstractCompilerMojo
     private Toolchain getToolchain()
     {
         Toolchain tc = null;
-        if ( toolchainManager != null )
+        
+        if ( jdkToolchain != null )
+        {
+            // Maven 3.2.6 has plugin execution scoped Toolchain Support
+            try
+            {
+                Method getToolchainsMethod =
+                    toolchainManager.getClass().getMethod( "getToolchains", MavenSession.class, String.class,
+                                                           Map.class );
+
+                @SuppressWarnings( "unchecked" )
+                List<Toolchain> tcs =
+                    (List<Toolchain>) getToolchainsMethod.invoke( toolchainManager, session, "jdk",
+                                                                  jdkToolchain );
+
+                if ( tcs != null && tcs.size() > 0 )
+                {
+                    tc = tcs.get( tcs.size() - 1 );
+                }
+            }
+            catch ( NoSuchMethodException e )
+            {
+                // ignore
+            }
+            catch ( SecurityException e )
+            {
+                // ignore
+            }
+            catch ( IllegalAccessException e )
+            {
+                // ignore
+            }
+            catch ( IllegalArgumentException e )
+            {
+                // ignore
+            }
+            catch ( InvocationTargetException e )
+            {
+                // ignore
+            }
+        }
+        
+        if ( tc == null )
         {
             tc = toolchainManager.getToolchainFromBuildContext( "jdk", session );
         }
+        
         return tc;
     }
 
