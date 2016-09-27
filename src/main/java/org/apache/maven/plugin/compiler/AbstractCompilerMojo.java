@@ -1217,7 +1217,7 @@ public abstract class AbstractCompilerMojo
         
         if ( jdkToolchain != null )
         {
-            // Maven 3.2.6 has plugin execution scoped Toolchain Support
+            // Maven 3.3.1 has plugin execution scoped Toolchain Support
             try
             {
                 Method getToolchainsMethod =
