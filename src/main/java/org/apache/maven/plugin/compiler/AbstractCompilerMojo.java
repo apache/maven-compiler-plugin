@@ -25,7 +25,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -812,7 +811,6 @@ public abstract class AbstractCompilerMojo
         if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null )
                         || ( compilerArgs != null ) )
         {
-            LinkedHashMap<String, String> cplrArgsCopy = new LinkedHashMap<String, String>();
             if ( effectiveCompilerArguments != null )
             {
                 for ( Map.Entry<String, String> me : effectiveCompilerArguments.entrySet() )
@@ -826,26 +824,25 @@ public abstract class AbstractCompilerMojo
 
                     if ( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
                     {
-                        cplrArgsCopy.put( key + "=" + value, null );
+                        compilerConfiguration.addCompilerCustomArgument( key + "=" + value, null );
                     }
                     else
                     {
-                        cplrArgsCopy.put( key, value );
+                        compilerConfiguration.addCompilerCustomArgument( key, value );
                     }
                 }
             }
             if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
             {
-                cplrArgsCopy.put( effectiveCompilerArgument, null );
+                compilerConfiguration.addCompilerCustomArgument( effectiveCompilerArgument, null );
             }
             if ( compilerArgs != null )
             {
                 for ( String arg : compilerArgs )
                 {
-                    cplrArgsCopy.put( arg, null );
+                    compilerConfiguration.addCompilerCustomArgument( arg, null );
                 }
             }
-            compilerConfiguration.setCustomCompilerArguments( cplrArgsCopy );
         }
 
         // ----------------------------------------------------------------------
