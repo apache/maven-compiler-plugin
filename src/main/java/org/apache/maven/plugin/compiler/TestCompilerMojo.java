@@ -258,8 +258,6 @@ public class TestCompilerMojo
                 {
                     String moduleName = new AsmModuleInfoParser().getModuleName( mainOutputDirectory  );
                     compilerArgs.add( "-Xmodule:" + moduleName );
-                    compilerArgs.add( "--add-modules" );
-                    compilerArgs.add( moduleName );
                     compilerArgs.add( "--add-reads" );
                     compilerArgs.add( moduleName + "=ALL-UNNAMED" );
                 }
