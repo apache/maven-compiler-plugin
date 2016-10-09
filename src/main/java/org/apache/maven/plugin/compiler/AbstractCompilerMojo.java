@@ -102,6 +102,14 @@ public abstract class AbstractCompilerMojo
      */
     @Parameter( property = "maven.compiler.failOnError", defaultValue = "true" )
     private boolean failOnError = true;
+    
+    /**
+     * Indicates whether the build will continue even if there are compilation warnings.
+     *
+     * @since 3.6
+     */
+    @Parameter( property = "maven.compiler.failOnWarning", defaultValue = "false" )
+    private boolean failOnWarning;  
 
     /**
      * Set to <code>true</code> to include debugging information in the compiled class files.
@@ -583,6 +591,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setVerbose( verbose );
 
         compilerConfiguration.setShowWarnings( showWarnings );
+
+        compilerConfiguration.setFailOnWarning( failOnWarning );
 
         compilerConfiguration.setShowDeprecation( showDeprecation );
 
