@@ -33,9 +33,9 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   such command using <<<-source>>> and <<<-target>>>.  The Compiler Plugin
   can also be configured to provide these options during compilation.
 
-  For example, if you want to enable assertions (<<<-source 1.4>>>) and also want the
-  compiled classes to be compatible with JVM 1.4 (<<<-target 1.4>>>), you can then
-  put:
+  For example, if you want to use the Java 8 language features (<<<-source 1.8>>>)
+  and also want the compiled classes to be compatible with JVM 1.8 (<<<-target 1.8>>>),
+  you can then put:
 
 +-----
 <project>
@@ -48,8 +48,8 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <source>1.4</source>
-          <target>1.4</target>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
     </plugins>
