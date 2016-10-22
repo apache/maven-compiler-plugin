@@ -35,7 +35,20 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
 
   For example, if you want to use the Java 8 language features (<<<-source 1.8>>>)
   and also want the compiled classes to be compatible with JVM 1.8 (<<<-target 1.8>>>),
-  you can then put:
+  you can either add the two following properties, which are the default property names for the plugin parameters:
+
++-----
+<project>
+  [...]
+  <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+  </properties>
+  [...]
+</project>
++-----
+
+  or configure the plugin directly:
 
 +-----
 <project>
@@ -63,5 +76,8 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   specified version. The pitfall is unintended usage of APIs that only exist in later JREs which would make your code
   fail at runtime with a linkage error. To avoid this issue, you can either configure the compiler's boot classpath
   to match the target JRE or use the
-  {{{http://mojo.codehaus.org/animal-sniffer-maven-plugin/}Animal Sniffer Maven Plugin}} to verify your code doesn't
-  use unintended APIs.
+  {{{http://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/}Animal Sniffer Maven Plugin}}
+  to verify your code doesn't use unintended APIs. In the same way, setting the <<<source>>> option does not guarantee 
+  that your code actually compiles on a JDK with the specified version. To compile your code with a specific JDK 
+  version, different than the one used to launch Maven, refer to the
+  {{{../examples/compile-using-different-jdk.html}Compile Using A Different JDK}} example.
