@@ -37,8 +37,8 @@ Using Non-Javac Compilers
   which can be seen as one of the dependencies declared inside the Compiler
   Plugin's POM.
 
-  Plexus Compiler component has some other compiler Ids available under the groupId
-  <<<org.codehaus.plexus>>>:
+  {{{http://codehaus-plexus.github.io/plexus-compiler/}Plexus Compiler}} component 
+  has some other compiler Ids available under the groupId <<<org.codehaus.plexus>>>:
 
   * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>>.
 
@@ -48,6 +48,7 @@ Using Non-Javac Compilers
 
   * <<<jikes>>> with artifactId <<<plexus-compiler-jikes>>>.
 
+  []
 
 * Using The Other Plexus Compilers
 
