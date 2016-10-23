@@ -39,6 +39,11 @@ Compiling Sources Using A Different JDK
   To set this up, refer to the {{{/guides/mini/guide-using-toolchains.html}Guide to Using Toolchains}}, which makes use
   of the {{{/plugins/maven-toolchains-plugin/}Maven Toolchains Plugin}}.
 
+  With the maven-toolchains-plugin you configure 1 default JDK toolchain for all related maven-plugins. 
+  Since maven-compiler-plugin 3.6.0 when using with Maven 3.3.1+ it is also possible to give the plugin its own 
+  toolchain, which can be useful in case of different JDK calls per execution block (e.g. the test sources require a 
+  different compiler compared to the main sources).  
+
 * Configuring the Compiler Plugin
 
   Outside of a toolchains, it is still possible to tell the Compiler Plugin the specific JDK to use during compilation.

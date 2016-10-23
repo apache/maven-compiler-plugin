@@ -54,6 +54,7 @@ Older projects with module-info
             <id>default-compile</id>
             <configuration>
               <!-- compile everything to ensure module-info contains right entries -->
+              <!-- required when JAVA_HOME is JDK 8 or below -->
               <jdkToolchain>
                 <version>9</version>
               </jdkToolchain>
@@ -74,6 +75,13 @@ Older projects with module-info
             </configuration>
           </execution>
         </executions>
+        <configuration>
+          <!-- default for compile and testCompile, required when JAVA_HOME is JDK 9 or above -->
+          <jdkToolchain>
+            <version>[1.5,9)</version>
+          </jdkToolchain>
+          <release>9</release>
+        </configuration>
       </plugin>
     </plugins>
     [...]
