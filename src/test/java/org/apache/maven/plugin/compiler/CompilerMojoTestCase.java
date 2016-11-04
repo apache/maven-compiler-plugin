@@ -311,6 +311,48 @@ public class CompilerMojoTestCase
             fail( "The compilation error should have been consumed because failOnError = false" );
         }
     }
+    
+    /**
+     * Tests that setting 'skipMain' to true skips compilation of the main Java source files, but that test Java source
+     * files are still compiled.
+     * @throws Exception
+     */
+    public void testCompileSkipMain()
+        throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-skip-main/plugin-config.xml" );
+        setVariableValueToObject( compileMojo, "skipMain", true );
+        compileMojo.execute();
+        File testClass = new File( compileMojo.getOutputDirectory(), "TestSkipMainCompile0.class" );
+        assertFalse( testClass.exists() );
+
+        TestCompilerMojo testCompileMojo =
+            getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-skip-main/plugin-config.xml" );
+        testCompileMojo.execute();
+        testClass = new File( testCompileMojo.getOutputDirectory(), "TestSkipMainCompile0Test.class" );
+        assertTrue( testClass.exists() );
+    }
+    
+    /**
+     * Tests that setting 'skip' to true skips compilation of the test Java source files, but that main Java source
+     * files are still compiled.
+     * @throws Exception
+     */
+    public void testCompileSkipTest()
+        throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-skip-test/plugin-config.xml" );
+        compileMojo.execute();
+        File testClass = new File( compileMojo.getOutputDirectory(), "TestSkipTestCompile0.class" );
+        assertTrue( testClass.exists() );
+
+        TestCompilerMojo testCompileMojo =
+            getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-skip-test/plugin-config.xml" );
+        setVariableValueToObject( testCompileMojo, "skip", true );
+        testCompileMojo.execute();
+        testClass = new File( testCompileMojo.getOutputDirectory(), "TestSkipTestCompile0Test.class" );
+        assertFalse( testClass.exists() );
+    }
 
     private CompilerMojo getCompilerMojo( String pomXml )
         throws Exception

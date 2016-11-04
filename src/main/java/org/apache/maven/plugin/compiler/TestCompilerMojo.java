@@ -160,6 +160,7 @@ public class TestCompilerMojo
         if ( skip )
         {
             getLog().info( "Not compiling test sources" );
+            return;
         }
         super.execute();
     }
