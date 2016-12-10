@@ -35,7 +35,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/ma
         <configuration>
           <compilerId>groovy-eclipse-compiler</compilerId>
           <verbose>true</verbose>
-          <!-- see https://jira.codehaus.org/browse/MCOMPILER-199 -->
+          <!-- see https://issues.apache.org/jira/browse/MCOMPILER-199 -->
           <!--includes>
             <include>**/*.groovy</include>
           </includes-->
