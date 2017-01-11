@@ -19,7 +19,19 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.compiler.ModuleInfoParser.Type;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -27,16 +39,6 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
-
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Compiles application test sources.
@@ -149,6 +151,9 @@ public class TestCompilerMojo
 
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
+    
+    @Component
+    private Map<String, ModuleInfoParser> moduleInfoParsers;
 
     private List<String> classpathElements;
 
@@ -191,11 +196,11 @@ public class TestCompilerMojo
     {
         File mainOutputDirectory = new File( getProject().getBuild().getOutputDirectory() );
 
-        File mainModuleInfo = new File( mainOutputDirectory, "module-info.class" );
-        
-        boolean hasMainModuleDescriptor = mainModuleInfo.exists();
+        boolean hasMainModuleDescriptor = new File( mainOutputDirectory, "module-info.class" ).exists();
         
         boolean hasTestModuleDescriptor = false;
+        
+        // Go through the source files to respect includes/excludes 
         for ( File sourceFile : sourceFiles )
         {
             // @todo verify if it is the root of a sourcedirectory?
@@ -255,17 +260,71 @@ public class TestCompilerMojo
                     compilerArgs = new ArrayList<String>();
                 }
                 
-                try
+                String moduleName = null;
+                
+                Map<String, Exception> exceptionMap = new LinkedHashMap<String, Exception>( moduleInfoParsers.size() ); 
+                
+                // Prefer ASM over QDox, since we're missing the info where the module-info.class is coming from. 
+                // With QDox it is just the best possible guess 
+                List<String> parserKeys = Arrays.asList( "asm", "qdox" );
+                
+                // The class format is still changing, for that reason provide multiple strategies to parse module-info 
+                for ( String parserKey: parserKeys )
                 {
-                    String moduleName = new AsmModuleInfoParser().getModuleName( mainOutputDirectory  );
-                    compilerArgs.add( "-Xmodule:" + moduleName );
-                    compilerArgs.add( "--add-reads" );
-                    compilerArgs.add( moduleName + "=ALL-UNNAMED" );
+                    ModuleInfoParser parser = moduleInfoParsers.get( parserKey );
+
+                    File modulePath = null;
+                    if ( Type.CLASS.equals( parser.getType() ) )
+                    {
+                        modulePath = mainOutputDirectory;
+                    }
+                    else if ( Type.SOURCE.equals( parser.getType() ) )
+                    {
+                        for ( String compileSourceRoot : getProject().getCompileSourceRoots() )
+                        {
+                            File sourceRoot = new File( compileSourceRoot );
+                            
+                            if ( new File( sourceRoot, "module-info.java" ).exists() )
+                            {
+                                modulePath = sourceRoot;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        throw new RuntimeException( "Unmapped type: " + parser.getType()  );
+                    }
+                    
+                    try
+                    {
+                        moduleName = parser.getModuleName( modulePath  );
+                        
+                        if ( moduleName != null )
+                        {
+                            break;
+                        }
+                    }
+                    catch ( Exception e )
+                    {
+                        exceptionMap.put( parserKey, e );
+                    }
                 }
-                catch ( IOException e )
+                
+                if ( moduleName == null )
                 {
-                    throw new RuntimeException( "Failed to parse module-info: " + e.getMessage() );
+                    getLog().error( "Failed to parse module-info:" );
+                    
+                    for ( Map.Entry<String, Exception> exception : exceptionMap.entrySet() )
+                    {
+                        getLog().error( "With " + exception.getKey() + ": " + exception.getValue().getMessage() );
+                    }
+                    
+                    throw new RuntimeException( "Failed to parse module-info" );
                 }
+                
+                compilerArgs.add( "-Xmodule:" + moduleName );
+                compilerArgs.add( "--add-reads" );
+                compilerArgs.add( moduleName + "=ALL-UNNAMED" );
             }
             else
             {

@@ -22,37 +22,32 @@ package org.apache.maven.plugin.compiler;
 import java.io.File;
 import java.io.IOException;
 
+import org.codehaus.plexus.component.annotations.Component;
+
+import com.thoughtworks.qdox.JavaProjectBuilder;
+
 /**
- * Extract information from the module-info file
+ * Extract information from module with QDox
  * 
  * @author Robert Scholte
- * @since 3.6.0
+ * @since 3.6.1
  */
-public interface ModuleInfoParser
+@Component( role = ModuleInfoParser.class, hint = "qdox" )
+public class QDoxModuleInfoParser
+    implements ModuleInfoParser
 {
-    /**
-     * Defines the type of parser, i.e. using the source or the class files
-     */
-    public enum Type
-    {
-        SOURCE, CLASS
-    }
 
-    /**
-     * What kind of file does the parser use
-     * 
-     * @return the type
-     */
-    Type getType();
+    @Override
+    public Type getType()
+    {
+        return Type.SOURCE;
+    }
     
-    /**
-     * Extracts the name from the module-info file
-     * 
-     * @param modulePath
-     * @return
-     * @throws IOException
-     */
-    String getModuleName( File modulePath )
-        throws IOException;
+    @Override
+    public String getModuleName( File modulePath )
+        throws IOException
+    {
+        return new JavaProjectBuilder().addSourceFolder( modulePath ).getName();
+    }
 
 }

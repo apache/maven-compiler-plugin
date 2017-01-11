@@ -433,6 +433,7 @@ public class CompilerMojoTestCase
         MavenProject mp = new MavenProject();
         mp.getBuild().setDirectory( "target" );
         mp.getBuild().setOutputDirectory( "target/classes" );
+        mp.getBuild().setSourceDirectory( "src/main/java" );
         mp.getBuild().setTestOutputDirectory( "target/test-classes" );
         return mp;
     }

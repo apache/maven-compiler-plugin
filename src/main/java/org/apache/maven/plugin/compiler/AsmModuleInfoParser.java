@@ -27,16 +27,24 @@ import java.io.InputStream;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.codehaus.plexus.component.annotations.Component;
 import org.objectweb.asm.ClassReader;
 
 /**
  * Extract information from module with ASM
  * 
  * @author Robert Scholte
- * @since 3.5
+ * @since 3.6
  */
+@Component( role = ModuleInfoParser.class, hint = "asm" )
 public class AsmModuleInfoParser implements ModuleInfoParser
 {
+    @Override
+    public Type getType()
+    {
+        return Type.CLASS;
+    }
+    
     @Override
     public String getModuleName( File modulePath )
         throws IOException
