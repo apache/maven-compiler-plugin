@@ -66,21 +66,22 @@ Older projects with module-info
             <goals>
               <goal>compile</goal>
             </goals>
+            <!-- recompile everything for target VM except the module-info.java
             <configuration>
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
-              <source>1.5</source>
-              <target>1.5</target>
             </configuration>
           </execution>
         </executions>
+        <!-- defaults for compile and testCompile -->
         <configuration>
-          <!-- default for compile and testCompile, required when JAVA_HOME is JDK 9 or above -->
+          <!-- jdkToolchain required when JAVA_HOME is JDK 9 or above -->
           <jdkToolchain>
             <version>[1.5,9)</version>
           </jdkToolchain>
-          <release>9</release>
+          <source>1.5</source>
+          <target>1.5</target>
         </configuration>
       </plugin>
     </plugins>
@@ -118,19 +119,21 @@ Older projects with module-info
             <goals>
               <goal>compile</goal>
             </goals>
+            <!-- recompile everything for target VM except the module-info.java
             <configuration>
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
-              <release>6</release>
             </configuration>
           </execution>
         </executions>
+        <!-- defaults for compile and testCompile -->
         <configuration>
           <!-- Only required when JAVA_HOME isn't at least Java 9 and when haven't configured the maven-toolchains-plugin -->
           <jdkToolchain>
             <version>9</version>
           </jdkToolchain>
+          <release>6</release>
         </configuration>
       </plugin>
     </plugins>
