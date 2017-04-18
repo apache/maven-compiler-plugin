@@ -1,4 +1,4 @@
-package org.apache.maven.plugin.compiler;
+package org.apache.maven.plugin.compiler.module;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,6 +29,9 @@ import java.util.jar.JarFile;
 
 import org.codehaus.plexus.component.annotations.Component;
 import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ModuleVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  * Extract information from module with ASM
@@ -37,35 +40,53 @@ import org.objectweb.asm.ClassReader;
  * @since 3.6
  */
 @Component( role = ModuleInfoParser.class, hint = "asm" )
-public class AsmModuleInfoParser implements ModuleInfoParser
+public class AsmModuleInfoParser
+    implements ModuleInfoParser
 {
     @Override
     public Type getType()
     {
         return Type.CLASS;
     }
+
     
     @Override
-    public String getModuleName( File modulePath )
+    public JavaModuleDescriptor getModuleDescriptor( File modulePath )
         throws IOException
     {
+        final JavaModuleDescriptorWrapper wrapper = new JavaModuleDescriptorWrapper();
+
         InputStream in = getModuleInfoClass( modulePath );
 
-        ClassReader reader = new ClassReader( in );
-        String className = reader.getClassName();
-        int index = className.indexOf( "/module-info" );
-
-        String moduleName;
-        if ( index >= 1 )
+        if ( in != null )
         {
-            moduleName = className.substring( 0, index ).replace( '/', '.' );
+            ClassReader reader = new ClassReader( in );
+            reader.accept( new ClassVisitor( Opcodes.ASM6 )
+            {
+                @Override
+                public ModuleVisitor visitModule( String name, int arg1, String arg2 )
+                {
+                    wrapper.builder = JavaModuleDescriptor.newModule( name );
+
+                    return new ModuleVisitor( Opcodes.ASM6 )
+                    {
+                        @Override
+                        public void visitRequire( String module, int access, String version )
+                        {
+                            wrapper.builder.requires( module );
+                        }
+                    };
+                }
+            }, 0 );
+
+            in.close();
         }
         else
         {
-            moduleName = null;
+            wrapper.builder = JavaModuleDescriptor.newAutomaticModule( null );
         }
 
-        return moduleName;
+        return wrapper.builder.build();
     }
 
     private InputStream getModuleInfoClass( File modulePath )
@@ -78,21 +99,24 @@ public class AsmModuleInfoParser implements ModuleInfoParser
         }
         else
         {
-            JarFile jarFile = null;
-            try
+            // 
+            JarFile jarFile = new JarFile( modulePath );
+            JarEntry moduleInfo = jarFile.getJarEntry( "/module-info.class" );
+            
+            if ( moduleInfo != null )
             {
-                jarFile = new JarFile( modulePath );
-                JarEntry moduleInfo = jarFile.getJarEntry( "/module-info.class" );
                 in = jarFile.getInputStream( moduleInfo );
             }
-            finally
+            else
             {
-                if ( jarFile != null )
-                {
-                    jarFile.close();
-                }
+                in = null;
             }
         }
         return in;
+    }
+    
+    private static class JavaModuleDescriptorWrapper 
+    {
+        private JavaModuleDescriptor.Builder builder;
     }
 }

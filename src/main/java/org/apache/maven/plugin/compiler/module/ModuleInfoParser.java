@@ -1,4 +1,4 @@
-package org.apache.maven.plugin.compiler;
+package org.apache.maven.plugin.compiler.module;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -26,7 +26,7 @@ import java.io.IOException;
  * Extract information from the module-info file
  * 
  * @author Robert Scholte
- * @since 3.6.1
+ * @since 3.6.0
  */
 public interface ModuleInfoParser
 {
@@ -44,7 +44,7 @@ public interface ModuleInfoParser
      * @return the type
      */
     Type getType();
-    
+
     /**
      * Extracts the name from the module-info file
      * 
@@ -52,7 +52,6 @@ public interface ModuleInfoParser
      * @return
      * @throws IOException
      */
-    String getModuleName( File modulePath )
+    JavaModuleDescriptor getModuleDescriptor( File modulePath )
         throws IOException;
-
 }

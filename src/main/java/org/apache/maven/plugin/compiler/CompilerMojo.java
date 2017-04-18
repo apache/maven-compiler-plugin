@@ -19,21 +19,34 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
-import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
-import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
-
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.compiler.module.JavaModuleDescriptor;
+import org.apache.maven.plugin.compiler.module.ModuleInfoParser;
+import org.apache.maven.plugin.compiler.module.ProjectAnalyzer;
+import org.apache.maven.plugin.compiler.module.ProjectAnalyzerRequest;
+import org.apache.maven.plugin.compiler.module.ProjectAnalyzerResult;
+import org.apache.maven.plugins.annotations.Component;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.shared.utils.StringUtils;
+import org.apache.maven.shared.utils.logging.MessageUtils;
+import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
+import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
+import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 
 /**
  * Compiles application sources
@@ -42,8 +55,8 @@ import java.util.Set;
  * @version $Id$
  * @since 2.0
  */
-@org.apache.maven.plugins.annotations.Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true,
-                                            requiresDependencyResolution = ResolutionScope.COMPILE )
+@Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true, 
+    requiresDependencyResolution = ResolutionScope.COMPILE )
 public class CompilerMojo
     extends AbstractCompilerMojo
 {
@@ -81,8 +94,7 @@ public class CompilerMojo
 
     /**
      * <p>
-     * Specify where to place generated source files created by annotation processing.
-     * Only applies to JDK 1.6+
+     * Specify where to place generated source files created by annotation processing. Only applies to JDK 1.6+
      * </p>
      *
      * @since 2.2
@@ -91,19 +103,27 @@ public class CompilerMojo
     private File generatedSourcesDirectory;
 
     /**
-     * Set this to 'true' to bypass compilation of main sources.
-     * Its use is NOT RECOMMENDED, but quite convenient on occasion.
+     * Set this to 'true' to bypass compilation of main sources. Its use is NOT RECOMMENDED, but quite convenient on
+     * occasion.
      */
-    @Parameter ( property = "maven.main.skip" )
+    @Parameter( property = "maven.main.skip" )
     private boolean skipMain;
 
     @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
     private List<String> compilePath;
     
+    private final boolean allowPartialRequirements = false;
+
+    @Component( hint = "qdox" )
+    private ModuleInfoParser moduleInfoParser;
+
+    @Component
+    private ProjectAnalyzer projectAnalyzer;
+
     private List<String> classpathElements;
 
     private List<String> modulepathElements;
-    
+
     protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
@@ -141,17 +161,27 @@ public class CompilerMojo
             projectArtifact.setFile( outputDirectory );
         }
     }
-    
+
     @Override
     protected void preparePaths( Set<File> sourceFiles )
     {
         assert compilePath != null;
-        
+
+        JavaModuleDescriptor moduleDescriptor = null;
+
         boolean hasModuleDescriptor = false;
         for ( File sourceFile : sourceFiles )
         {
             if ( "module-info.java".equals( sourceFile.getName() ) )
             {
+                try
+                {
+                    moduleDescriptor = moduleInfoParser.getModuleDescriptor( sourceFile.getParentFile() );
+                }
+                catch ( IOException e )
+                {
+                    getLog().warn( "Failed to parse module-info.java: " + e.getMessage() );
+                }
                 hasModuleDescriptor = true;
                 break;
             }
@@ -159,18 +189,105 @@ public class CompilerMojo
 
         if ( hasModuleDescriptor )
         {
-            modulepathElements = compilePath;
-            classpathElements = Collections.emptyList();
+            // For now only allow named modules. Once we can create a graph with ASM we can specify exactly the modules
+            // and we can detect if auto modules are used. In that case, MavenProject.setFile() should not be used, so
+            // you cannot depend on this project and so it won't be distributed.
+
+            modulepathElements = new ArrayList<String>( compilePath.size() );
+            classpathElements = new ArrayList<String>( compilePath.size() );
+
+            ProjectAnalyzerResult analyzerResult;
+            try
+            {
+                Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() );
+
+                ProjectAnalyzerRequest analyzerRequest = new ProjectAnalyzerRequest()
+                                .setBaseModuleDescriptor( moduleDescriptor )
+                                .setDependencyArtifacts( dependencyArtifacts );
+
+                analyzerResult = projectAnalyzer.analyze( analyzerRequest );
+
+                if ( !analyzerResult.getRequiredAutomaticModules().isEmpty() )
+                {
+                    final String message = "Required automodules detected. "
+                        + "Please don't publish this project to a public artifact repository!"; 
+                    if ( moduleDescriptor.exports().isEmpty() )
+                    {
+                        // application
+                        getLog().info( message );
+                    }
+                    else
+                    {
+                        // library
+                        writeBoxedWarning( message );
+                    }
+                }
+                
+                for ( Map.Entry<File, JavaModuleDescriptor> entry : analyzerResult.getPathElements().entrySet() )
+                {
+                    if ( !allowPartialRequirements )
+                    {
+                        modulepathElements.add( entry.getKey().getPath() );
+                    }
+                    else if ( entry.getValue() == null )
+                    {
+                        classpathElements.add( entry.getKey().getPath() );
+                    }
+                    else if ( analyzerResult.getRequiredNormalModules().contains( entry.getValue().name() ) )
+                    {
+                        modulepathElements.add( entry.getKey().getPath() );
+                    }
+                    else if ( analyzerResult.getRequiredAutomaticModules().contains( entry.getValue().name() ) )
+                    {
+                        modulepathElements.add( entry.getKey().getPath() );
+                    }
+                    else
+                    {
+                        classpathElements.add( entry.getKey().getPath() );
+                    }
+                }
+            }
+            catch ( IOException e )
+            {
+                getLog().warn( e.getMessage() );
+            }
+
+            if ( !classpathElements.isEmpty() )
+            {
+                if ( compilerArgs == null )
+                {
+                    compilerArgs = new ArrayList<String>();
+                }
+                compilerArgs.add( "--add-reads" );
+                compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
+
+                if ( !modulepathElements.isEmpty() )
+                {
+                    compilerArgs.add( "--add-reads" );
+                    compilerArgs.add( "ALL-MODULE-PATH=ALL-UNNAMED" );
+                }
+            }
         }
         else
         {
             classpathElements = compilePath;
             modulepathElements = Collections.emptyList();
         }
-        
-        getLog().debug( "classpathElements: " + getClasspathElements() );
     }
+    
+    private List<File> getCompileClasspathElements( MavenProject project )
+    {
+        List<File> list = new ArrayList<File>( project.getArtifacts().size() + 1 );
 
+        list.add( new File( project.getBuild().getOutputDirectory() ) );
+
+        for ( Artifact a : project.getArtifacts() )
+        {
+            list.add( a.getFile() );
+        }
+        return list;
+    }
+    
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
     {
         SourceInclusionScanner scanner;
@@ -224,13 +341,12 @@ public class CompilerMojo
     {
         return target;
     }
-    
+
     @Override
     protected String getRelease()
     {
         return release;
     }
-    
 
     protected String getCompilerArgument()
     {
@@ -247,4 +363,11 @@ public class CompilerMojo
         return generatedSourcesDirectory;
     }
 
+    private void writeBoxedWarning( String message )
+    {
+        String line = StringUtils.repeat( "*", message.length() + 4 );
+        getLog().warn( line );
+        getLog().warn( "* " + MessageUtils.buffer().strong( message )  + " *" );
+        getLog().warn( line );
+    }
 }

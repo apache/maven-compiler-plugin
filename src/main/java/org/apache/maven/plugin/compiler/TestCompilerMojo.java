@@ -30,7 +30,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.compiler.ModuleInfoParser.Type;
+import org.apache.maven.plugin.compiler.module.ModuleInfoParser;
+import org.apache.maven.plugin.compiler.module.ModuleInfoParser.Type;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -260,67 +261,7 @@ public class TestCompilerMojo
                     compilerArgs = new ArrayList<String>();
                 }
                 
-                String moduleName = null;
-                
-                Map<String, Exception> exceptionMap = new LinkedHashMap<String, Exception>( moduleInfoParsers.size() ); 
-                
-                // Prefer ASM over QDox, since we're missing the info where the module-info.class is coming from. 
-                // With QDox it is just the best possible guess 
-                List<String> parserKeys = Arrays.asList( "asm", "qdox" );
-                
-                // The class format is still changing, for that reason provide multiple strategies to parse module-info 
-                for ( String parserKey: parserKeys )
-                {
-                    ModuleInfoParser parser = moduleInfoParsers.get( parserKey );
-
-                    File modulePath = null;
-                    if ( Type.CLASS.equals( parser.getType() ) )
-                    {
-                        modulePath = mainOutputDirectory;
-                    }
-                    else if ( Type.SOURCE.equals( parser.getType() ) )
-                    {
-                        for ( String compileSourceRoot : getProject().getCompileSourceRoots() )
-                        {
-                            File sourceRoot = new File( compileSourceRoot );
-                            
-                            if ( new File( sourceRoot, "module-info.java" ).exists() )
-                            {
-                                modulePath = sourceRoot;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        throw new RuntimeException( "Unmapped type: " + parser.getType()  );
-                    }
-                    
-                    try
-                    {
-                        moduleName = parser.getModuleName( modulePath  );
-                        
-                        if ( moduleName != null )
-                        {
-                            break;
-                        }
-                    }
-                    catch ( Exception e )
-                    {
-                        exceptionMap.put( parserKey, e );
-                    }
-                }
-                
-                if ( moduleName == null )
-                {
-                    getLog().error( "Failed to parse module-info:" );
-                    
-                    for ( Map.Entry<String, Exception> exception : exceptionMap.entrySet() )
-                    {
-                        getLog().error( "With " + exception.getKey() + ": " + exception.getValue().getMessage() );
-                    }
-                    
-                    throw new RuntimeException( "Failed to parse module-info" );
-                }
+                String moduleName = getModuleName( mainOutputDirectory );
                 
                 compilerArgs.add( "-Xmodule:" + moduleName );
                 compilerArgs.add( "--add-reads" );
@@ -332,6 +273,72 @@ public class TestCompilerMojo
                 classpathElements = testPath;
             }
         }
+    }
+
+    private String getModuleName( File mainOutputDirectory )
+    {
+        String moduleName = null;
+        
+        Map<String, Exception> exceptionMap = new LinkedHashMap<String, Exception>( moduleInfoParsers.size() ); 
+        
+        // Prefer ASM over QDox, since we're missing the info where the module-info.class is coming from. 
+        // With QDox it is just the best possible guess 
+        List<String> parserKeys = Arrays.asList( "asm" );
+        
+        // The class format is still changing, for that reason provide multiple strategies to parse module-info 
+        for ( String parserKey: parserKeys )
+        {
+            ModuleInfoParser parser = moduleInfoParsers.get( parserKey );
+
+            File modulePath = null;
+            if ( Type.CLASS.equals( parser.getType() ) )
+            {
+                modulePath = mainOutputDirectory;
+            }
+            else if ( Type.SOURCE.equals( parser.getType() ) )
+            {
+                for ( String compileSourceRoot : getProject().getCompileSourceRoots() )
+                {
+                    File sourceRoot = new File( compileSourceRoot );
+                    
+                    if ( new File( sourceRoot, "module-info.java" ).exists() )
+                    {
+                        modulePath = sourceRoot;
+                    }
+                }
+            }
+            else
+            {
+                throw new RuntimeException( "Unmapped type: " + parser.getType()  );
+            }
+            
+            try
+            {
+                moduleName = parser.getModuleDescriptor( modulePath  ).name();
+                
+                if ( moduleName != null )
+                {
+                    break;
+                }
+            }
+            catch ( Exception e )
+            {
+                exceptionMap.put( parserKey, e );
+            }
+        }
+        
+        if ( moduleName == null )
+        {
+            getLog().error( "Failed to parse module-info:" );
+            
+            for ( Map.Entry<String, Exception> exception : exceptionMap.entrySet() )
+            {
+                getLog().error( "With " + exception.getKey() + ": " + exception.getValue().getMessage() );
+            }
+            
+            throw new RuntimeException( "Failed to parse module-info" );
+        }
+        return moduleName;
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
