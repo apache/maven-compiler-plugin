@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler.module;
  */
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -32,13 +33,23 @@ import java.util.Set;
  */
 public class ProjectAnalyzerResult
 {
+    /**
+     * Source of the modulename 
+     */
+    public enum ModuleNameSource
+    {
+        FILENAME, MANIFEST, MODULEDESCRIPTOR
+    }
+    
     private JavaModuleDescriptor baseModuleDescriptor;
     
     /**
      * Ordered map, respects the classpath order
      */
     private Map<File, JavaModuleDescriptor> pathElements;
-
+    
+    private Map<String, ModuleNameSource> moduleNameSources = new HashMap<String, ModuleNameSource>();
+    
     private Set<String> requiredNormalModules = new HashSet<String>();
 
     private Set<String> requiredAutomaticModules = new HashSet<String>();
@@ -64,6 +75,16 @@ public class ProjectAnalyzerResult
     public Map<File, JavaModuleDescriptor> getPathElements()
     {
         return pathElements;
+    }
+    
+    public void setModuleNameSources( Map<String, ModuleNameSource> moduleNameSources )
+    {
+        this.moduleNameSources = moduleNameSources;
+    }
+    
+    public ModuleNameSource getModuleNameSource( String name )
+    {
+        return moduleNameSources.get( name );
     }
     
     public void setRequiredNormalModules( Set<String> requiredNormalModules )

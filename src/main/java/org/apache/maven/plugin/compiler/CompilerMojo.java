@@ -112,7 +112,8 @@ public class CompilerMojo
     @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
     private List<String> compilePath;
     
-    private final boolean allowPartialRequirements = false;
+    @Parameter
+    private boolean allowPartialRequirements;
 
     @Component( hint = "qdox" )
     private ModuleInfoParser moduleInfoParser;
@@ -209,17 +210,32 @@ public class CompilerMojo
 
                 if ( !analyzerResult.getRequiredAutomaticModules().isEmpty() )
                 {
-                    final String message = "Required automodules detected. "
-                        + "Please don't publish this project to a public artifact repository!"; 
-                    if ( moduleDescriptor.exports().isEmpty() )
+                    boolean filenameBased = false;
+                    
+                    for ( String automodule : analyzerResult.getRequiredAutomaticModules() )
                     {
-                        // application
-                        getLog().info( message );
-                    }
-                    else
-                    {
-                        // library
-                        writeBoxedWarning( message );
+                        filenameBased =
+                            ProjectAnalyzerResult.ModuleNameSource.FILENAME.equals( 
+                                                            analyzerResult.getModuleNameSource( automodule ) );
+                        
+                        if ( filenameBased )
+                        {
+                            final String message = "Required automodules detected. "
+                                + "Please don't publish this project to a public artifact repository!";
+                            
+                            if ( moduleDescriptor.exports().isEmpty() )
+                            {
+                                // application
+                                getLog().info( message );
+                            }
+                            else
+                            {
+                                // library
+                                writeBoxedWarning( message );
+                            }
+                            
+                            break;
+                        }
                     }
                 }
                 
@@ -252,21 +268,21 @@ public class CompilerMojo
                 getLog().warn( e.getMessage() );
             }
 
-            if ( !classpathElements.isEmpty() )
-            {
-                if ( compilerArgs == null )
-                {
-                    compilerArgs = new ArrayList<String>();
-                }
-                compilerArgs.add( "--add-reads" );
-                compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
-
-                if ( !modulepathElements.isEmpty() )
-                {
-                    compilerArgs.add( "--add-reads" );
-                    compilerArgs.add( "ALL-MODULE-PATH=ALL-UNNAMED" );
-                }
-            }
+//            if ( !classpathElements.isEmpty() )
+//            {
+//                if ( compilerArgs == null )
+//                {
+//                    compilerArgs = new ArrayList<String>();
+//                }
+//                compilerArgs.add( "--add-reads" );
+//                compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
+//
+//                if ( !modulepathElements.isEmpty() )
+//                {
+//                    compilerArgs.add( "--add-reads" );
+//                    compilerArgs.add( "ALL-MODULE-PATH=ALL-UNNAMED" );
+//                }
+//            }
         }
         else
         {

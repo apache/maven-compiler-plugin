@@ -1,5 +1,3 @@
-package org.maven.test;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,15 +16,7 @@ package org.maven.test;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import org.codehaus.plexus.util.StringUtils;
-
-public class Main {
-    
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {
-        System.out.println( StringUtils.concatenate( args ) );
-    }
+module app 
+{
+    requires com.ta3;    
 }

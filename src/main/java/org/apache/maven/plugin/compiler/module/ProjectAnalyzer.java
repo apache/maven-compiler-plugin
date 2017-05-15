@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler.module;
  */
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +28,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
+import org.apache.maven.plugin.compiler.module.ProjectAnalyzerResult.ModuleNameSource;
 import org.codehaus.plexus.component.annotations.Component;
 import org.codehaus.plexus.component.annotations.Requirement;
 import org.codehaus.plexus.logging.AbstractLogEnabled;
@@ -59,6 +63,8 @@ public class ProjectAnalyzer extends AbstractLogEnabled
 
         Map<String, JavaModuleDescriptor> availableNamedModules = new HashMap<String, JavaModuleDescriptor>(); 
         
+        Map<String, ModuleNameSource> moduleNameSources = new HashMap<String, ModuleNameSource>();
+        
         // start from root
         result.setBaseModuleDescriptor( baseModuleDescriptor );
 
@@ -66,15 +72,42 @@ public class ProjectAnalyzer extends AbstractLogEnabled
         for ( File file : request.getDependencyArtifacts() )
         {
             JavaModuleDescriptor descriptor = extractDescriptor( file );
-            
+
             if ( descriptor != null )
             {
                 availableNamedModules.put( descriptor.name(), descriptor );
             }
             
+            if ( descriptor == null || descriptor.isAutomatic() )
+            {
+                Manifest manifest = extractManifest( file );
+
+                String modulename = null;
+                
+                if ( manifest != null )
+                {
+                    modulename = manifest.getMainAttributes().getValue( "Automatic-Module-Name" );
+                }
+
+                if ( modulename != null )
+                {
+                    moduleNameSources.put( modulename, ModuleNameSource.MANIFEST );
+                }
+                else if ( descriptor != null )
+                {
+                    moduleNameSources.put( descriptor.name(), ModuleNameSource.FILENAME );
+                }
+            }
+            else
+            {
+                moduleNameSources.put( descriptor.name(), ModuleNameSource.MODULEDESCRIPTOR );
+            }
+            
             pathElements.put( file, descriptor );
         }
         result.setPathElements( pathElements );
+        
+        result.setModuleNameSources( moduleNameSources );
 
         if ( baseModuleDescriptor != null )
         {
@@ -110,7 +143,37 @@ public class ProjectAnalyzer extends AbstractLogEnabled
         }
         return moduleDescriptor;
     }
-    
+
+    private Manifest extractManifest( File file )
+        throws IOException
+    {
+        Manifest manifest;
+        if ( file.isFile() )
+        {
+            JarFile jarFile = null;
+            try
+            {
+                jarFile = new JarFile( file );
+                manifest = jarFile.getManifest();
+            }
+            finally
+            {
+                jarFile.close();
+            }
+        }
+        else if ( new File( file, "META-INF/MANIFEST.MF" ).exists() )
+        {
+            manifest = new Manifest( new FileInputStream( new File( file, "META-INF/MANIFEST.MF" ) ) );
+        }
+        else
+        {
+            manifest = null;
+        }
+
+        return manifest;
+    }
+
+
     private void select( JavaModuleDescriptor module, Map<String, JavaModuleDescriptor> availableModules,
                          Set<String> namedModules, Set<String> unnamedModules )
     {

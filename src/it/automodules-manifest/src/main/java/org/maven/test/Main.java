@@ -19,14 +19,10 @@ package org.maven.test;
  * under the License.
  */
 
-import org.codehaus.plexus.util.StringUtils;
-
-public class Main {
-    
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {
-        System.out.println( StringUtils.concatenate( args ) );
+public class Main 
+{
+    public static void main( String[] args )
+    {
+        System.out.println( com.ta3.MyClass.class.getName() );
     }
 }

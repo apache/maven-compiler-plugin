@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.compiler.module.ModuleInfoParser;
-import org.apache.maven.plugin.compiler.module.ModuleInfoParser.Type;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -53,6 +52,8 @@ import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 public class TestCompilerMojo
     extends AbstractCompilerMojo
 {
+    protected static final String PS = System.getProperty( "path.separator" );
+    
     /**
      * Set this to 'true' to bypass compilation of test sources.
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
@@ -263,7 +264,19 @@ public class TestCompilerMojo
                 
                 String moduleName = getModuleName( mainOutputDirectory );
                 
-                compilerArgs.add( "-Xmodule:" + moduleName );
+                compilerArgs.add( "--patch-module" );
+                
+                StringBuilder addReadsValue = new StringBuilder( moduleName )
+                                .append( '=' )
+                                .append( mainOutputDirectory )
+                                .append( PS );
+                for ( String root : compileSourceRoots )
+                {
+                    addReadsValue.append( root ).append( PS );
+                }
+                
+                compilerArgs.add( addReadsValue.toString() );
+                
                 compilerArgs.add( "--add-reads" );
                 compilerArgs.add( moduleName + "=ALL-UNNAMED" );
             }
@@ -281,40 +294,16 @@ public class TestCompilerMojo
         
         Map<String, Exception> exceptionMap = new LinkedHashMap<String, Exception>( moduleInfoParsers.size() ); 
         
-        // Prefer ASM over QDox, since we're missing the info where the module-info.class is coming from. 
-        // With QDox it is just the best possible guess 
-        List<String> parserKeys = Arrays.asList( "asm" );
+        List<String> parserKeys = Arrays.asList( "reflect", "asm" );
         
         // The class format is still changing, for that reason provide multiple strategies to parse module-info 
         for ( String parserKey: parserKeys )
         {
             ModuleInfoParser parser = moduleInfoParsers.get( parserKey );
 
-            File modulePath = null;
-            if ( Type.CLASS.equals( parser.getType() ) )
-            {
-                modulePath = mainOutputDirectory;
-            }
-            else if ( Type.SOURCE.equals( parser.getType() ) )
-            {
-                for ( String compileSourceRoot : getProject().getCompileSourceRoots() )
-                {
-                    File sourceRoot = new File( compileSourceRoot );
-                    
-                    if ( new File( sourceRoot, "module-info.java" ).exists() )
-                    {
-                        modulePath = sourceRoot;
-                    }
-                }
-            }
-            else
-            {
-                throw new RuntimeException( "Unmapped type: " + parser.getType()  );
-            }
-            
             try
             {
-                moduleName = parser.getModuleDescriptor( modulePath  ).name();
+                moduleName = parser.getModuleDescriptor( mainOutputDirectory  ).name();
                 
                 if ( moduleName != null )
                 {

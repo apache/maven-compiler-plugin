@@ -1,4 +1,4 @@
-package org.maven.test;
+package com.ta2;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,14 +19,7 @@ package org.maven.test;
  * under the License.
  */
 
-import org.codehaus.plexus.util.StringUtils;
+public class MyClass
+{
 
-public class Main {
-    
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {
-        System.out.println( StringUtils.concatenate( args ) );
-    }
 }

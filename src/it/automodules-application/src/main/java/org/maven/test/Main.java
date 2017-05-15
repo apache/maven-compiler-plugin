@@ -19,17 +19,14 @@ package org.maven.test;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.List;
-
-
+import org.codehaus.plexus.util.StringUtils;
 
 public class Main {
+    
     /**
      * @param args
      */
     public static void main(String[] args) {
-        List blah = new ArrayList();
-        blah.add("hello");
+        System.out.println( StringUtils.concatenate( args ) );
     }
 }
