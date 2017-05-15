@@ -66,20 +66,20 @@ public class AsmModuleInfoParser
             {
 //  REQUIRES ASM 6.0_ALPHA2
                 
-                @Override
-                public ModuleVisitor visitModule( String name, int arg1, String arg2 )
-                {
-                    wrapper.builder = JavaModuleDescriptor.newModule( name );
-
-                    return new ModuleVisitor( Opcodes.ASM6 )
-                    {
-                        @Override
-                        public void visitRequire( String module, int access, String version )
-                        {
-                            wrapper.builder.requires( module );
-                        }
-                    };
-                }
+//                @Override
+//                public ModuleVisitor visitModule( String name, int arg1, String arg2 )
+//                {
+//                    wrapper.builder = JavaModuleDescriptor.newModule( name );
+//
+//                    return new ModuleVisitor( Opcodes.ASM6 )
+//                    {
+//                        @Override
+//                        public void visitRequire( String module, int access, String version )
+//                        {
+//                            wrapper.builder.requires( module );
+//                        }
+//                    };
+//                }
             }, 0 );
 
             in.close();
