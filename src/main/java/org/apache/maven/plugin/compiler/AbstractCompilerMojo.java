@@ -119,6 +119,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Set to <code>true</code> to generate metadata for reflection on method parameters.
+     * @since 3.6.2
      */
     @Parameter( property = "maven.compiler.parameters", defaultValue = "false" )
     private boolean parameters;
