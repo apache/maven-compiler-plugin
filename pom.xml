@@ -63,7 +63,7 @@ under the License.
       ! The following property is used in the integration tests MCOMPILER-157
     -->
     <mavenPluginPluginVersion>3.5</mavenPluginPluginVersion>
-    <plexusCompilerVersion>2.8.1</plexusCompilerVersion>
+    <plexusCompilerVersion>2.8.2-SNAPSHOT</plexusCompilerVersion>
     <groovyVersion>1.8.0</groovyVersion>
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>

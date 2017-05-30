@@ -118,6 +118,12 @@ public abstract class AbstractCompilerMojo
     private boolean debug = true;
 
     /**
+     * Set to <code>true</code> to generate metadata for reflection on method parameters.
+     */
+    @Parameter( property = "maven.compiler.parameters", defaultValue = "false" )
+    private boolean parameters;
+
+    /**
      * Set to <code>true</code> to show messages about what the compiler is doing.
      */
     @Parameter( property = "maven.compiler.verbose", defaultValue = "false" )
@@ -587,6 +593,8 @@ public abstract class AbstractCompilerMojo
             }
             compilerConfiguration.setDebugLevel( debuglevel );
         }
+
+        compilerConfiguration.setParameters( parameters );
 
         compilerConfiguration.setVerbose( verbose );
 
