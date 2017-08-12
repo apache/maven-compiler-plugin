@@ -30,6 +30,7 @@ import java.util.jar.JarFile;
 import org.codehaus.plexus.component.annotations.Component;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ModuleVisitor;
 //import org.objectweb.asm.ModuleVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -63,22 +64,20 @@ public class AsmModuleInfoParser
             ClassReader reader = new ClassReader( in );
             reader.accept( new ClassVisitor( Opcodes.ASM6 )
             {
-//  REQUIRES ASM 6.0_ALPHA2
-                
-//                @Override
-//                public ModuleVisitor visitModule( String name, int arg1, String arg2 )
-//                {
-//                    wrapper.builder = JavaModuleDescriptor.newModule( name );
-//
-//                    return new ModuleVisitor( Opcodes.ASM6 )
-//                    {
-//                        @Override
-//                        public void visitRequire( String module, int access, String version )
-//                        {
-//                            wrapper.builder.requires( module );
-//                        }
-//                    };
-//                }
+                @Override
+                public ModuleVisitor visitModule( String name, int arg1, String arg2 )
+                {
+                    wrapper.builder = JavaModuleDescriptor.newModule( name );
+
+                    return new ModuleVisitor( Opcodes.ASM6 )
+                    {
+                        @Override
+                        public void visitRequire( String module, int access, String version )
+                        {
+                            wrapper.builder.requires( module );
+                        }
+                    };
+                }
             }, 0 );
 
             in.close();

@@ -112,7 +112,7 @@ under the License.
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
-      <version>6.0_ALPHA</version>
+      <version>6.0_BETA</version>
     </dependency>
     <dependency>
       <groupId>com.thoughtworks.qdox</groupId>
