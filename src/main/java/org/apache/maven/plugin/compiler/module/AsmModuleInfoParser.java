@@ -31,7 +31,6 @@ import org.codehaus.plexus.component.annotations.Component;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ModuleVisitor;
-//import org.objectweb.asm.ModuleVisitor;
 import org.objectweb.asm.Opcodes;
 
 /**
