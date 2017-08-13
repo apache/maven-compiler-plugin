@@ -19,4 +19,4 @@
 
 buildLog = new File( basedir, 'build.log' ).text;
 
-assert buildLog.contains("[WARNING] * Required automodules detected. Please don't publish this project to a public artifact repository! *");
+assert buildLog.contains("[WARNING] * Required filename-based automodules detected. Please don't publish this project to a public artifact repository! *");

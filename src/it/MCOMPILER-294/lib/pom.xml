@@ -23,42 +23,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>org.apache.maven.plugins.compiler.it</groupId>
-  <artifactId>mcompiler270</artifactId>
-  <version>1.0-SNAPSHOT</version>
-
-  <url>https://issues.apache.org/jira/browse/MCOMPILER-270</url>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.6</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.2</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>@project.version@</version>
-        <configuration>
-          <source>9</source>
-          <target>9</target>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
+  <parent>
+    <groupId>org.apache.maven.plugins.compiler.it</groupId>
+    <artifactId>mcompiler294</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>lib</artifactId>
 
 </project>

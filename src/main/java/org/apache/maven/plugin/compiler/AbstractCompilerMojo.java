@@ -1227,7 +1227,7 @@ public abstract class AbstractCompilerMojo
 
     //TODO remove the part with ToolchainManager lookup once we depend on
     //3.0.9 (have it as prerequisite). Define as regular component field then.
-    private Toolchain getToolchain()
+    protected final Toolchain getToolchain()
     {
         Toolchain tc = null;
         

@@ -31,12 +31,6 @@ import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.compiler.module.JavaModuleDescriptor;
-import org.apache.maven.plugin.compiler.module.ModuleInfoParser;
-import org.apache.maven.plugin.compiler.module.ProjectAnalyzer;
-import org.apache.maven.plugin.compiler.module.ProjectAnalyzerRequest;
-import org.apache.maven.plugin.compiler.module.ProjectAnalyzerResult;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -44,9 +38,17 @@ import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.shared.utils.logging.MessageUtils;
+import org.apache.maven.toolchain.Toolchain;
+import org.apache.maven.toolchain.java.DefaultJavaToolChain;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
+import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
+import org.codehaus.plexus.languages.java.jpms.LocationManager;
+import org.codehaus.plexus.languages.java.jpms.QDoxModuleInfoParser;
+import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
+import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
+import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult.ModuleNameSource;
 
 /**
  * Compiles application sources
@@ -115,11 +117,9 @@ public class CompilerMojo
     @Parameter
     private boolean allowPartialRequirements;
 
-    @Component( hint = "qdox" )
-    private ModuleInfoParser moduleInfoParser;
+    private QDoxModuleInfoParser moduleInfoParser = new QDoxModuleInfoParser();
 
-    @Component
-    private ProjectAnalyzer projectAnalyzer;
+    private LocationManager locationManager = new LocationManager();
 
     private List<String> classpathElements;
 
@@ -177,7 +177,7 @@ public class CompilerMojo
             {
                 try
                 {
-                    moduleDescriptor = moduleInfoParser.getModuleDescriptor( sourceFile.getParentFile() );
+                    moduleDescriptor = moduleInfoParser.fromSourcePath( sourceFile.getParentFile().toPath() );
                 }
                 catch ( IOException e )
                 {
@@ -197,92 +197,57 @@ public class CompilerMojo
             modulepathElements = new ArrayList<String>( compilePath.size() );
             classpathElements = new ArrayList<String>( compilePath.size() );
 
-            ProjectAnalyzerResult analyzerResult;
+            ResolvePathsResult<File> analyzerResult;
             try
             {
                 Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() );
-
-                ProjectAnalyzerRequest analyzerRequest = new ProjectAnalyzerRequest()
-                                .setBaseModuleDescriptor( moduleDescriptor )
-                                .setDependencyArtifacts( dependencyArtifacts );
-
-                analyzerResult = projectAnalyzer.analyze( analyzerRequest );
-
-                if ( !analyzerResult.getRequiredAutomaticModules().isEmpty() )
+                
+                ResolvePathsRequest<File> request =
+                    ResolvePathsRequest.withFiles( dependencyArtifacts ).setMainModuleDescriptor( moduleDescriptor );
+                
+                Toolchain toolchain = getToolchain();
+                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
                 {
-                    boolean filenameBased = false;
-                    
-                    for ( String automodule : analyzerResult.getRequiredAutomaticModules() )
+                    request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
+                }
+
+                analyzerResult = locationManager.resolvePaths( request );
+
+                for ( Map.Entry<File, ModuleNameSource> entry : analyzerResult.getModulepathElements().entrySet() )
+                {
+                    if ( ModuleNameSource.FILENAME.equals( entry.getValue() ) )
                     {
-                        filenameBased =
-                            ProjectAnalyzerResult.ModuleNameSource.FILENAME.equals( 
-                                                            analyzerResult.getModuleNameSource( automodule ) );
-                        
-                        if ( filenameBased )
+                        final String message = "Required filename-based automodules detected. "
+                            + "Please don't publish this project to a public artifact repository!";
+
+                        if ( moduleDescriptor.exports().isEmpty() )
                         {
-                            final String message = "Required automodules detected. "
-                                + "Please don't publish this project to a public artifact repository!";
-                            
-                            if ( moduleDescriptor.exports().isEmpty() )
-                            {
-                                // application
-                                getLog().info( message );
-                            }
-                            else
-                            {
-                                // library
-                                writeBoxedWarning( message );
-                            }
-                            
-                            break;
+                            // application
+                            getLog().info( message );
                         }
+                        else
+                        {
+                            // library
+                            writeBoxedWarning( message );
+                        }
+                        break;
                     }
                 }
                 
-                for ( Map.Entry<File, JavaModuleDescriptor> entry : analyzerResult.getPathElements().entrySet() )
+                for ( File file : analyzerResult.getClasspathElements() )
                 {
-                    if ( !allowPartialRequirements )
-                    {
-                        modulepathElements.add( entry.getKey().getPath() );
-                    }
-                    else if ( entry.getValue() == null )
-                    {
-                        classpathElements.add( entry.getKey().getPath() );
-                    }
-                    else if ( analyzerResult.getRequiredNormalModules().contains( entry.getValue().name() ) )
-                    {
-                        modulepathElements.add( entry.getKey().getPath() );
-                    }
-                    else if ( analyzerResult.getRequiredAutomaticModules().contains( entry.getValue().name() ) )
-                    {
-                        modulepathElements.add( entry.getKey().getPath() );
-                    }
-                    else
-                    {
-                        classpathElements.add( entry.getKey().getPath() );
-                    }
+                    classpathElements.add( file.getPath() );
+                }
+                
+                for ( File file : analyzerResult.getModulepathElements().keySet() )
+                {
+                    modulepathElements.add( file.getPath() );
                 }
             }
             catch ( IOException e )
             {
                 getLog().warn( e.getMessage() );
             }
-
-//            if ( !classpathElements.isEmpty() )
-//            {
-//                if ( compilerArgs == null )
-//                {
-//                    compilerArgs = new ArrayList<String>();
-//                }
-//                compilerArgs.add( "--add-reads" );
-//                compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
-//
-//                if ( !modulepathElements.isEmpty() )
-//                {
-//                    compilerArgs.add( "--add-reads" );
-//                    compilerArgs.add( "ALL-MODULE-PATH=ALL-UNNAMED" );
-//                }
-//            }
         }
         else
         {

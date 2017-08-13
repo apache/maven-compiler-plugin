@@ -18,5 +18,5 @@
  */
 
 module M.N {
-    
+    requires org.apache.commons.lang3;
 }

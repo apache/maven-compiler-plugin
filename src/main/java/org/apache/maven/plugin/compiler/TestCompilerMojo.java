@@ -20,25 +20,30 @@ package org.apache.maven.plugin.compiler;
  */
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugin.compiler.module.ModuleInfoParser;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.toolchain.Toolchain;
+import org.apache.maven.toolchain.java.DefaultJavaToolChain;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
+import org.codehaus.plexus.languages.java.jpms.AsmModuleInfoParser;
+import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
+import org.codehaus.plexus.languages.java.jpms.LocationManager;
+import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
+import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
 
 /**
  * Compiles application test sources.
@@ -153,13 +158,14 @@ public class TestCompilerMojo
 
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
+
+    private AsmModuleInfoParser asmModuleInfoParser = new AsmModuleInfoParser();
     
-    @Component
-    private Map<String, ModuleInfoParser> moduleInfoParsers;
+    private LocationManager locationManager = new LocationManager();
 
-    private List<String> classpathElements;
+    private Collection<String> classpathElements;
 
-    private List<String> modulepathElements;
+    private Collection<String> modulepathElements;
 
     public void execute()
         throws MojoExecutionException, CompilationFailureException
@@ -179,13 +185,13 @@ public class TestCompilerMojo
 
     protected List<String> getClasspathElements()
     {
-        return classpathElements;
+        return new ArrayList<>( classpathElements );
     }
-    
+
     @Override
     protected List<String> getModulepathElements()
     {
-        return modulepathElements;
+        return new ArrayList<>( modulepathElements );
     }
 
     protected File getOutputDirectory()
@@ -212,9 +218,6 @@ public class TestCompilerMojo
                 break;
             }
         }
-        
-        List<String> testScopedElements = new ArrayList<String>( testPath );
-        testScopedElements.removeAll( compilePath );
         
         if ( release != null )
         {
@@ -255,18 +258,39 @@ public class TestCompilerMojo
         {
             if ( hasMainModuleDescriptor )
             {
-                modulepathElements = compilePath;
-                classpathElements = testScopedElements;
+                JavaModuleDescriptor moduleDescriptor;
+                ResolvePathsResult<String> result;
+                
+                try
+                {
+                    moduleDescriptor = getModuleDescriptor( mainOutputDirectory );
+
+                    ResolvePathsRequest<String> request =
+                        ResolvePathsRequest.withStrings( testPath ).setMainModuleDescriptor( moduleDescriptor );
+                    
+                    Toolchain toolchain = getToolchain();
+                    if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                    {
+                        request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
+                    }
+                    
+                    result = locationManager.resolvePaths( request );
+                }
+                catch ( IOException e )
+                {
+                    throw new RuntimeException( e );
+                }
+                
+                modulepathElements = result.getModulepathElements().keySet();
+                classpathElements = result.getClasspathElements();
+                
                 if ( compilerArgs == null )
                 {
                     compilerArgs = new ArrayList<String>();
                 }
-                
-                String moduleName = getModuleName( mainOutputDirectory );
-                
                 compilerArgs.add( "--patch-module" );
                 
-                StringBuilder addReadsValue = new StringBuilder( moduleName )
+                StringBuilder addReadsValue = new StringBuilder( moduleDescriptor.name() )
                                 .append( '=' )
                                 .append( mainOutputDirectory )
                                 .append( PS );
@@ -278,7 +302,7 @@ public class TestCompilerMojo
                 compilerArgs.add( addReadsValue.toString() );
                 
                 compilerArgs.add( "--add-reads" );
-                compilerArgs.add( moduleName + "=ALL-UNNAMED" );
+                compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
             }
             else
             {
@@ -288,46 +312,9 @@ public class TestCompilerMojo
         }
     }
 
-    private String getModuleName( File mainOutputDirectory )
+    private JavaModuleDescriptor getModuleDescriptor( File mainOutputDirectory ) throws IOException
     {
-        String moduleName = null;
-        
-        Map<String, Exception> exceptionMap = new LinkedHashMap<String, Exception>( moduleInfoParsers.size() ); 
-        
-        List<String> parserKeys = Arrays.asList( "reflect", "asm" );
-        
-        // The class format is still changing, for that reason provide multiple strategies to parse module-info 
-        for ( String parserKey: parserKeys )
-        {
-            ModuleInfoParser parser = moduleInfoParsers.get( parserKey );
-
-            try
-            {
-                moduleName = parser.getModuleDescriptor( mainOutputDirectory  ).name();
-                
-                if ( moduleName != null )
-                {
-                    break;
-                }
-            }
-            catch ( Exception e )
-            {
-                exceptionMap.put( parserKey, e );
-            }
-        }
-        
-        if ( moduleName == null )
-        {
-            getLog().error( "Failed to parse module-info:" );
-            
-            for ( Map.Entry<String, Exception> exception : exceptionMap.entrySet() )
-            {
-                getLog().error( "With " + exception.getKey() + ": " + exception.getValue().getMessage() );
-            }
-            
-            throw new RuntimeException( "Failed to parse module-info" );
-        }
-        return moduleName;
+        return asmModuleInfoParser.getModuleDescriptor( mainOutputDirectory.toPath() );
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )

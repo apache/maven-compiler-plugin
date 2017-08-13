@@ -68,6 +68,7 @@ under the License.
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
     <openJpaVersion>2.2.0</openJpaVersion>
+    <javaVersion>7</javaVersion>
   </properties>
 
   <contributors>
@@ -110,14 +111,9 @@ under the License.
     </dependency>
 
     <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm</artifactId>
-      <version>6.0_BETA</version>
-    </dependency>
-    <dependency>
-      <groupId>com.thoughtworks.qdox</groupId>
-      <artifactId>qdox</artifactId>
-      <version>2.0-M7</version>
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-java</artifactId>
+      <version>0.9.1</version>
     </dependency>
 
     <dependency>
@@ -313,18 +309,4 @@ under the License.
       </dependencies>
     </profile>
   </profiles>
-
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>plexus-snapshots</id>
-      <name>Plexus Snapshot Repository</name>
-      <url>https://oss.sonatype.org/content/repositories/plexus-snapshots</url>
-    </repository>
-  </repositories>
 </project>

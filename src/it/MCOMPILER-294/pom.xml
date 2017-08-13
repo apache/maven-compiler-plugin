@@ -24,28 +24,15 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.maven.plugins.compiler.it</groupId>
-  <artifactId>mcompiler270</artifactId>
+  <artifactId>mcompiler294</artifactId>
   <version>1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
 
-  <url>https://issues.apache.org/jira/browse/MCOMPILER-270</url>
+  <url>https://issues.apache.org/jira/browse/MCOMPILER-294</url>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
-      <version>3.6</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.2</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
 
   <build>
     <plugins>
@@ -54,11 +41,15 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <source>9</source>
-          <target>9</target>
+          <release>9</release>
         </configuration>
       </plugin>
     </plugins>
   </build>
+  
+  <modules>
+    <module>lib</module>
+    <module>app</module>
+  </modules>
 
 </project>

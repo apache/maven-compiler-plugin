@@ -1,3 +1,5 @@
+package org.maven.test.app;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,6 +19,14 @@
  * under the License.
  */
 
-buildLog = new File( basedir, 'build.log' ).text;
+import org.maven.test.lib.Sout;
 
-assert buildLog.contains("[INFO] Required filename-based automodules detected. Please don't publish this project to a public artifact repository!");
+public class Main {
+    
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {
+        Sout.println( args );
+    }
+}
