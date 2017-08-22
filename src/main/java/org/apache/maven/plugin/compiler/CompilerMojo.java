@@ -25,12 +25,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -45,7 +47,6 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.jpms.LocationManager;
-import org.codehaus.plexus.languages.java.jpms.QDoxModuleInfoParser;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult.ModuleNameSource;
@@ -117,19 +118,21 @@ public class CompilerMojo
     @Parameter
     private boolean allowPartialRequirements;
 
-    private QDoxModuleInfoParser moduleInfoParser = new QDoxModuleInfoParser();
-
-    private LocationManager locationManager = new LocationManager();
+    @Component
+    private LocationManager locationManager;
 
     private List<String> classpathElements;
 
     private List<String> modulepathElements;
+    
+    private Map<String, JavaModuleDescriptor> pathElements;
 
     protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
     }
 
+    @Override
     protected List<String> getClasspathElements()
     {
         return classpathElements;
@@ -141,6 +144,13 @@ public class CompilerMojo
         return modulepathElements;
     }
 
+    @Override
+    protected Map<String, JavaModuleDescriptor> getPathElements()
+    {
+        // TODO Auto-generated method stub
+        return null;
+    }
+    
     protected File getOutputDirectory()
     {
         return outputDirectory;
@@ -168,21 +178,14 @@ public class CompilerMojo
     {
         assert compilePath != null;
 
-        JavaModuleDescriptor moduleDescriptor = null;
+        File moduleDescriptorPath = null;
 
         boolean hasModuleDescriptor = false;
         for ( File sourceFile : sourceFiles )
         {
             if ( "module-info.java".equals( sourceFile.getName() ) )
             {
-                try
-                {
-                    moduleDescriptor = moduleInfoParser.fromSourcePath( sourceFile.getParentFile().toPath() );
-                }
-                catch ( IOException e )
-                {
-                    getLog().warn( "Failed to parse module-info.java: " + e.getMessage() );
-                }
+                moduleDescriptorPath = sourceFile;
                 hasModuleDescriptor = true;
                 break;
             }
@@ -196,14 +199,16 @@ public class CompilerMojo
 
             modulepathElements = new ArrayList<String>( compilePath.size() );
             classpathElements = new ArrayList<String>( compilePath.size() );
+            pathElements = new LinkedHashMap<String, JavaModuleDescriptor>( compilePath.size() );
 
-            ResolvePathsResult<File> analyzerResult;
+            ResolvePathsResult<File> resolvePathsResult;
             try
             {
                 Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() );
                 
                 ResolvePathsRequest<File> request =
-                    ResolvePathsRequest.withFiles( dependencyArtifacts ).setMainModuleDescriptor( moduleDescriptor );
+                    ResolvePathsRequest.withFiles( dependencyArtifacts )
+                                       .setMainModuleDescriptor( moduleDescriptorPath );
                 
                 Toolchain toolchain = getToolchain();
                 if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
@@ -211,9 +216,11 @@ public class CompilerMojo
                     request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
                 }
 
-                analyzerResult = locationManager.resolvePaths( request );
+                resolvePathsResult = locationManager.resolvePaths( request );
+                
+                JavaModuleDescriptor moduleDescriptor = resolvePathsResult.getMainModuleDescriptor();
 
-                for ( Map.Entry<File, ModuleNameSource> entry : analyzerResult.getModulepathElements().entrySet() )
+                for ( Map.Entry<File, ModuleNameSource> entry : resolvePathsResult.getModulepathElements().entrySet() )
                 {
                     if ( ModuleNameSource.FILENAME.equals( entry.getValue() ) )
                     {
@@ -234,12 +241,17 @@ public class CompilerMojo
                     }
                 }
                 
-                for ( File file : analyzerResult.getClasspathElements() )
+                for ( Map.Entry<File, JavaModuleDescriptor> entry : resolvePathsResult.getPathElements().entrySet() )
+                {
+                    pathElements.put( entry.getKey().getPath(), entry.getValue() );
+                }
+                
+                for ( File file : resolvePathsResult.getClasspathElements() )
                 {
                     classpathElements.add( file.getPath() );
                 }
                 
-                for ( File file : analyzerResult.getModulepathElements().keySet() )
+                for ( File file : resolvePathsResult.getModulepathElements().keySet() )
                 {
                     modulepathElements.add( file.getPath() );
                 }

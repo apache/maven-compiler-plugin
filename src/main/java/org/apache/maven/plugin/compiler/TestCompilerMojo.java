@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,7 +40,6 @@ import org.apache.maven.toolchain.java.DefaultJavaToolChain;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
-import org.codehaus.plexus.languages.java.jpms.AsmModuleInfoParser;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.jpms.LocationManager;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
@@ -57,8 +57,6 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
 public class TestCompilerMojo
     extends AbstractCompilerMojo
 {
-    protected static final String PS = System.getProperty( "path.separator" );
-    
     /**
      * Set this to 'true' to bypass compilation of test sources.
      * Its use is NOT RECOMMENDED, but quite convenient on occasion.
@@ -159,10 +157,10 @@ public class TestCompilerMojo
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
 
-    private AsmModuleInfoParser asmModuleInfoParser = new AsmModuleInfoParser();
-    
     private LocationManager locationManager = new LocationManager();
 
+    private Map<String, JavaModuleDescriptor> pathElements;
+    
     private Collection<String> classpathElements;
 
     private Collection<String> modulepathElements;
@@ -181,6 +179,12 @@ public class TestCompilerMojo
     protected List<String> getCompileSourceRoots()
     {
         return compileSourceRoots;
+    }
+
+    @Override
+    protected Map<String, JavaModuleDescriptor> getPathElements()
+    {
+        return pathElements;
     }
 
     protected List<String> getClasspathElements()
@@ -223,6 +227,7 @@ public class TestCompilerMojo
         {
             if ( Integer.valueOf( release ) < 9 )
             {
+                pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
                 return;
@@ -230,6 +235,7 @@ public class TestCompilerMojo
         }
         else if ( Double.valueOf( getTarget() ) < Double.valueOf( MODULE_INFO_TARGET ) )
         {
+            pathElements = Collections.emptyMap();
             modulepathElements = Collections.emptyList();
             classpathElements = testPath;
             return;
@@ -258,20 +264,18 @@ public class TestCompilerMojo
         {
             if ( hasMainModuleDescriptor )
             {
-                JavaModuleDescriptor moduleDescriptor;
                 ResolvePathsResult<String> result;
                 
                 try
                 {
-                    moduleDescriptor = getModuleDescriptor( mainOutputDirectory );
-
                     ResolvePathsRequest<String> request =
-                        ResolvePathsRequest.withStrings( testPath ).setMainModuleDescriptor( moduleDescriptor );
+                        ResolvePathsRequest.withStrings( testPath )
+                                           .setMainModuleDescriptor( mainOutputDirectory.getAbsolutePath() );
                     
                     Toolchain toolchain = getToolchain();
                     if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
                     {
-                        request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
+                        request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
                     }
                     
                     result = locationManager.resolvePaths( request );
@@ -281,6 +285,11 @@ public class TestCompilerMojo
                     throw new RuntimeException( e );
                 }
                 
+                JavaModuleDescriptor moduleDescriptor = result.getMainModuleDescriptor();
+                
+                pathElements = new LinkedHashMap<String, JavaModuleDescriptor>( result.getPathElements().size() );
+                pathElements.putAll( result.getPathElements() );
+                                
                 modulepathElements = result.getModulepathElements().keySet();
                 classpathElements = result.getClasspathElements();
                 
@@ -290,16 +299,16 @@ public class TestCompilerMojo
                 }
                 compilerArgs.add( "--patch-module" );
                 
-                StringBuilder addReadsValue = new StringBuilder( moduleDescriptor.name() )
+                StringBuilder patchModuleValue = new StringBuilder( moduleDescriptor.name() )
                                 .append( '=' )
                                 .append( mainOutputDirectory )
                                 .append( PS );
                 for ( String root : compileSourceRoots )
                 {
-                    addReadsValue.append( root ).append( PS );
+                    patchModuleValue.append( root ).append( PS );
                 }
                 
-                compilerArgs.add( addReadsValue.toString() );
+                compilerArgs.add( patchModuleValue.toString() );
                 
                 compilerArgs.add( "--add-reads" );
                 compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
@@ -310,11 +319,6 @@ public class TestCompilerMojo
                 classpathElements = testPath;
             }
         }
-    }
-
-    private JavaModuleDescriptor getModuleDescriptor( File mainOutputDirectory ) throws IOException
-    {
-        return asmModuleInfoParser.getModuleDescriptor( mainOutputDirectory.toPath() );
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )

@@ -39,5 +39,11 @@ under the License.
         </p>
       </answer>
     </faq>
+    <faq id="jpms.args">
+      <question>Why is there sometimes a <code>META-INF/jpms.args</code> created?</question>
+      <answer>
+        <p>Read <a href="examples/jpms_args.html">jpms.args</a> for all the details.</p>
+      </answer>
+    </faq>
   </part>
 </faqs>

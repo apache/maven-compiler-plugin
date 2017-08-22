@@ -20,11 +20,18 @@ package org.apache.maven.plugin.compiler;
  */
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +75,7 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
+import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 
 /**
  * TODO: At least one step could be optimized, currently the plugin will do two
@@ -83,6 +91,7 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 public abstract class AbstractCompilerMojo
     extends AbstractMojo
 {
+    protected static final String PS = System.getProperty( "path.separator" );
 
     static final String DEFAULT_SOURCE = "1.5";
     
@@ -492,6 +501,8 @@ public abstract class AbstractCompilerMojo
 
     protected abstract List<String> getModulepathElements();
 
+    protected abstract Map<String, JavaModuleDescriptor> getPathElements();
+
     protected abstract List<String> getCompileSourceRoots();
     
     protected abstract void preparePaths( Set<File> sourceFiles );
@@ -863,7 +874,7 @@ public abstract class AbstractCompilerMojo
                 }
             }
         }
-
+        
         // ----------------------------------------------------------------------
         // Dump configuration
         // ----------------------------------------------------------------------
@@ -922,6 +933,118 @@ public abstract class AbstractCompilerMojo
                 getLog().debug( ce );
             }
         }
+        
+
+        List<String> jpmsLines = new ArrayList<String>();
+        
+        // See http://openjdk.java.net/jeps/261
+        final List<String> runtimeArgs = Arrays.asList( "--upgrade-module-path", 
+                                                  "--add-exports",
+                                                  "--add-reads", 
+                                                  "--add-modules", 
+                                                  "--limit-modules" );
+        
+        // Custom arguments are all added as keys to an ordered Map
+        Iterator<Map.Entry<String, String>> entryIter =
+            compilerConfiguration.getCustomCompilerArgumentsEntries().iterator();
+        while ( entryIter.hasNext() )
+        {
+            Map.Entry<String, String> entry = entryIter.next();
+            
+            if ( runtimeArgs.contains( entry.getKey() ) )
+            {
+                jpmsLines.add( entry.getKey() );
+                
+                String value = entry.getValue();
+                if ( value == null )
+                {
+                    entry = entryIter.next();
+                    value = entry.getKey();
+                }
+                jpmsLines.add( value );
+            }
+            else if ( "--patch-module".equals( entry.getKey() ) )
+            {
+                jpmsLines.add( "--patch-module" );
+                
+                String value = entry.getValue();
+                if ( value == null )
+                {
+                    entry = entryIter.next();
+                    value = entry.getKey();
+                }
+                
+                String[] values = value.split( "=" );
+
+                StringBuilder patchModule = new StringBuilder( values[0] );
+                patchModule.append( '=' );
+
+                Set<String> patchModules = new LinkedHashSet<>();
+                Set<Path> sourceRoots = new HashSet<>( getCompileSourceRoots().size() );
+                for ( String sourceRoot : getCompileSourceRoots() )
+                {
+                    sourceRoots.add( Paths.get( sourceRoot ) );
+                }
+
+                String[] files = values[1].split( PS );
+
+                for ( String file : files )
+                {
+                    Path filePath = Paths.get( file );
+                    if ( getOutputDirectory().toPath().equals( filePath ) )
+                    {
+                        patchModules.add( "_" ); // this jar
+                    }
+                    else if ( sourceRoots.contains( filePath ) )
+                    {
+                        patchModules.add( "_" ); // this jar
+                    }
+                    else
+                    {
+                        JavaModuleDescriptor descriptor = getPathElements().get( file );
+                        
+                        if ( descriptor == null )
+                        {
+                            getLog().warn( "Can't locate " + file );
+                        }
+                        else if ( !values[0].equals( descriptor.name() ) )
+                        {
+                            patchModules.add( descriptor.name() );
+                        }
+                    }
+                }
+
+                StringBuilder sb = new StringBuilder();
+                
+                for ( String mod : patchModules )
+                {
+                    if ( sb.length() > 0 )
+                    {
+                        sb.append( ", " );
+                    }
+                    // use 'invalid' separator to ensure values are transformed
+                    sb.append( mod );
+                }
+
+                jpmsLines.add( patchModule + sb.toString() );
+            }
+        }
+        
+        if ( !jpmsLines.isEmpty() ) 
+        {
+            Path jpmsArgs = Paths.get( getOutputDirectory().getAbsolutePath(), "META-INF/jpms.args" );
+            try
+            {
+                Files.createDirectories( jpmsArgs.getParent() );
+                
+                Files.write( jpmsArgs, jpmsLines, Charset.defaultCharset() );
+            }
+            catch ( IOException e )
+            {
+                getLog().warn( e.getMessage() );
+            }
+        }
+
 
         // ----------------------------------------------------------------------
         // Compile!
