@@ -207,9 +207,9 @@ public class TestCompilerMojo
     protected void preparePaths( Set<File> sourceFiles )
     {
         File mainOutputDirectory = new File( getProject().getBuild().getOutputDirectory() );
-
-        boolean hasMainModuleDescriptor = new File( mainOutputDirectory, "module-info.class" ).exists();
         
+        File mainModuleDescriptor = new File( mainOutputDirectory, "module-info.class" );
+
         boolean hasTestModuleDescriptor = false;
         
         // Go through the source files to respect includes/excludes 
@@ -246,7 +246,7 @@ public class TestCompilerMojo
             modulepathElements = testPath;
             classpathElements = Collections.emptyList();
 
-            if ( hasMainModuleDescriptor )
+            if ( mainModuleDescriptor.exists() )
             {
                 // maybe some extra analysis required
             }
@@ -262,7 +262,7 @@ public class TestCompilerMojo
         }
         else
         {
-            if ( hasMainModuleDescriptor )
+            if ( mainModuleDescriptor.exists() )
             {
                 ResolvePathsResult<String> result;
                 
@@ -270,7 +270,7 @@ public class TestCompilerMojo
                 {
                     ResolvePathsRequest<String> request =
                         ResolvePathsRequest.withStrings( testPath )
-                                           .setMainModuleDescriptor( mainOutputDirectory.getAbsolutePath() );
+                                           .setMainModuleDescriptor( mainModuleDescriptor.getAbsolutePath() );
                     
                     Toolchain toolchain = getToolchain();
                     if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
