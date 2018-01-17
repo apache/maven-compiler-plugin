@@ -163,6 +163,14 @@ public class TestCompilerMojo
     @Component
     private LocationManager locationManager;
 
+    /**
+     * A list of additional filesystem paths to include on the compile class path beyond the resolved dependency
+     * set.  This is useful in conjunction with the dependency plugin for cases where there are items that must not
+     * be included in other phases of the build, but are nevertheless required during compilation.
+     */
+    @Parameter
+    private List<String> additionalClasspathElements = new ArrayList<>();
+
     private Map<String, JavaModuleDescriptor> pathElements;
     
     private Collection<String> classpathElements;
@@ -306,7 +314,10 @@ public class TestCompilerMojo
             {
                 pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
-                classpathElements = testPath;
+                List<String> list = new ArrayList<>( testPath.size() + additionalClasspathElements.size() );
+                list.addAll( testPath );
+                list.addAll( additionalClasspathElements );
+                classpathElements = list;
                 return;
             }
         }
@@ -314,14 +325,17 @@ public class TestCompilerMojo
         {
             pathElements = Collections.emptyMap();
             modulepathElements = Collections.emptyList();
-            classpathElements = testPath;
+            List<String> list = new ArrayList<>( testPath.size() + additionalClasspathElements.size() );
+            list.addAll( testPath );
+            list.addAll( additionalClasspathElements );
+            classpathElements = list;
             return;
         }
             
         if ( testModuleDescriptor != null )
         {
             modulepathElements = testPath;
-            classpathElements = Collections.emptyList();
+            classpathElements = new ArrayList<>( additionalClasspathElements );
 
             if ( mainModuleDescriptor != null )
             {
@@ -392,6 +406,10 @@ public class TestCompilerMojo
                 {
                     patchModuleValue.append( root ).append( PS );
                 }
+                for ( String item : additionalClasspathElements )
+                {
+                    patchModuleValue.append( item ).append( PS );
+                }
                 
                 compilerArgs.add( patchModuleValue.toString() );
                 
@@ -401,7 +419,10 @@ public class TestCompilerMojo
             else
             {
                 modulepathElements = Collections.emptyList();
-                classpathElements = testPath;
+                List<String> list = new ArrayList<>( compilePath.size() + additionalClasspathElements.size() );
+                list.addAll( compilePath );
+                list.addAll( additionalClasspathElements );
+                classpathElements = list;
             }
         }
     }
