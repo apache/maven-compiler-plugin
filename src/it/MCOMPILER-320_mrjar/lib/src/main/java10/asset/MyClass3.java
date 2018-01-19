@@ -22,16 +22,12 @@ package asset;
 import java.io.IOException;
 import java.util.Base64;
 
-public class MyClass
+public class MyClass3
 {
-    public void decode( String bufferString ) throws IOException
-    {
-        byte    mydata[] = Base64.getDecoder().decode( bufferString + MyClass2.getTheString() );
+
+    public static void test() {
+        MyClass.exampleMethod();
         // will fail to compile if the toxic supplement is present
         Base64.getMimeEncoder();
-    }
-
-    public static void exampleMethod() {
-        System.gc();
     }
 }

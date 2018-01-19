@@ -76,6 +76,21 @@
               <outputDirectory>${project.build.directory}/classes/META-INF/versions/9</outputDirectory>
             </configuration>
           </execution>
+          <execution>
+            <id>compile-java10</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>10</release>
+              <buildDirectory>${project.build.directory}</buildDirectory>
+              <compileSourceRoots>${project.basedir}/src/main/java10</compileSourceRoots>
+              <!-- we can output directly into the appropriate target directory;
+                this works out nicely -->
+              <outputDirectory>${project.build.directory}/classes/META-INF/versions/10</outputDirectory>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

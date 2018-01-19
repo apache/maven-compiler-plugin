@@ -29,6 +29,6 @@ public class MyClass
         byte    mydata[];
         BASE64Decoder base64 = new BASE64Decoder();
 
-        mydata = base64.decodeBuffer( bufferString );
+        mydata = base64.decodeBuffer( bufferString + MyClass2.getTheString() );
     }
 }
