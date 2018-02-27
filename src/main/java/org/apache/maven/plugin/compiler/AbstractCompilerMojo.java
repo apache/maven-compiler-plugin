@@ -750,7 +750,7 @@ public abstract class AbstractCompilerMojo
 
         IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
 
-        if ( useIncrementalCompilation )
+        if ( !useIncrementalCompilation )
         {
             getLog().debug( "useIncrementalCompilation enabled" );
             try
@@ -758,28 +758,8 @@ public abstract class AbstractCompilerMojo
                 canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
 
                 sources = getCompileSources( compiler, compilerConfiguration );
-                
+                compilerConfiguration.setSourceFiles( sources );
                 preparePaths( sources );
-
-                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
-
-                // CHECKSTYLE_OFF: LineLength
-                if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget )
-                    || isDependencyChanged()
-                    || isSourceChanged( compilerConfiguration, compiler )
-                    || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
-                    // CHECKSTYLE_ON: LineLength
-                {
-                    getLog().info( "Changes detected - recompiling the module!" );
-
-                    compilerConfiguration.setSourceFiles( sources );
-                }
-                else
-                {
-                    getLog().info( "Nothing to compile - all classes are up to date" );
-
-                    return;
-                }
             }
             catch ( CompilerException e )
             {
