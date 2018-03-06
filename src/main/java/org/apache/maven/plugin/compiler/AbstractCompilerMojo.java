@@ -752,7 +752,7 @@ public abstract class AbstractCompilerMojo
 
         if ( !useIncrementalCompilation )
         {
-            getLog().debug( "useIncrementalCompilation enabled" );
+            getLog().debug( "useIncrementalCompilation disabled" );
             try
             {
                 canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
@@ -768,7 +768,7 @@ public abstract class AbstractCompilerMojo
         }
         else
         {
-            getLog().debug( "useIncrementalCompilation disabled" );
+            getLog().debug( "useIncrementalCompilation enabled" );
             Set<File> staleSources;
             try
             {
