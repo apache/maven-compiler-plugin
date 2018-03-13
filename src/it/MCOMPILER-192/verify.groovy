@@ -21,5 +21,7 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( 'Usage: javac <options> <source files>' )
+if(!content.contains( 'Usage: javac <options> <source files>' )){
+  throw new RuntimeException( "log not containing Usage: javac <options> <source files> but " + content )
+}
 
