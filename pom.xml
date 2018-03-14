@@ -262,6 +262,9 @@ under the License.
                 <execution>
                   <id>integration-test</id>
                   <configuration>
+                    <environmentVariables>
+                      <JENKINS_MAVEN_AGENT_DISABLED>true</JENKINS_MAVEN_AGENT_DISABLED>
+                    </environmentVariables>
                     <debug>true</debug>
                     <projectsDirectory>src/it</projectsDirectory>
                     <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
