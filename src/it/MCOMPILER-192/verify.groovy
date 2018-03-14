@@ -22,6 +22,6 @@ assert logFile.exists()
 content = logFile.text
 
 if(!content.contains( 'Usage: javac <options> <source files>' )){
-  throw new RuntimeException( "log not containing Usage: javac <options> <source files> but " + content )
+  throw new RuntimeException( "log not containing Usage: javac <options> <source files> but <startLog>" + content + "</startLog>")
 }
 
