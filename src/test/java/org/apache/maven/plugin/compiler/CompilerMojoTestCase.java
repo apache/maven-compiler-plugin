@@ -58,7 +58,11 @@ public class CompilerMojoTestCase
         super.setUp();
         
         String javaSpec = System.getProperty( "java.specification.version" );
-        if ( "9".equals( javaSpec ) )
+        // It is needed to set target/source to JDK 6 for JDK9 and JDK10
+        // cause this is the lowest version which is supported by those JDK's.
+        // The default source/target "5" is not supported anymore.
+        // See https://issues.apache.org/jira/browse/MCOMPILER-338
+        if ( "9".equals( javaSpec ) || "10".equals ( javaSpec ) )
         {
             source = "6";
             target = "6";
