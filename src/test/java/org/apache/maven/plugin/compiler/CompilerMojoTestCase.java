@@ -419,6 +419,8 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "compileSourceRoots", Collections.singletonList( testSourceRoot ) );
 
         MavenProject project = getMockMavenProject();
+        project.setFile( testPom );
+        project.addCompileSourceRoot("/src/main/java" );
         project.setArtifacts( Collections.singleton( junitArtifact )  );
         project.getBuild().setOutputDirectory( new File( buildDir, "classes" ).getAbsolutePath() );
         setVariableValueToObject( mojo, "project", project );
