@@ -746,7 +746,7 @@ public abstract class AbstractCompilerMojo
 
         IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, session );
 
-        Set<File> sources;
+        final Set<File> sources;
 
         IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
 
@@ -789,6 +789,7 @@ public abstract class AbstractCompilerMojo
         else
         {
             getLog().debug( "useIncrementalCompilation disabled" );
+            
             Set<File> staleSources;
             try
             {
@@ -804,17 +805,10 @@ public abstract class AbstractCompilerMojo
                     // TODO: This second scan for source files is sub-optimal
                     String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
 
-                    sources = computeStaleSources( compilerConfiguration, compiler,
+                    staleSources = computeStaleSources( compilerConfiguration, compiler,
                                                              getSourceInclusionScanner( inputFileEnding ) );
-
-                    compilerConfiguration.setSourceFiles( sources );
-                }
-                else
-                {
-                    compilerConfiguration.setSourceFiles( staleSources );
                 }
                 
-                preparePaths( compilerConfiguration.getSourceFiles() );
             }
             catch ( CompilerException e )
             {
@@ -827,8 +821,28 @@ public abstract class AbstractCompilerMojo
 
                 return;
             }
+
+            compilerConfiguration.setSourceFiles( staleSources );
+            
+            try
+            {
+                // MCOMPILER-366: if sources contain the module-descriptor it must be used to define the modulepath
+                sources = getCompileSources( compiler, compilerConfiguration );
+                
+                getLog().debug( "#sources: " + sources.size() );
+                for ( File file : sources )
+                {
+                    getLog().debug( file.getPath() );
+                }
+
+                preparePaths( sources );
+            }
+            catch ( CompilerException e )
+            {
+                throw new MojoExecutionException( "Error while computing stale sources.", e );
+            }
         }
-        
+       
         // Dividing pathElements of classPath and modulePath is based on sourceFiles
         compilerConfiguration.setClasspathEntries( getClasspathElements() );
 
