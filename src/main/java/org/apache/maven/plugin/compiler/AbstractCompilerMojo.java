@@ -1019,7 +1019,14 @@ public abstract class AbstractCompilerMojo
                         
                         if ( descriptor == null )
                         {
-                            getLog().warn( "Can't locate " + file );
+                            if ( Files.isDirectory( filePath ) )
+                            {
+                                patchModules.add( file );
+                            }
+                            else
+                            {
+                                getLog().warn( "Can't locate " + file );
+                            }
                         }
                         else if ( !values[0].equals( descriptor.name() ) )
                         {
