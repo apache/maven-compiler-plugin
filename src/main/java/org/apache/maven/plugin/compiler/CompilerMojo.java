@@ -207,7 +207,7 @@ public class CompilerMojo
                 Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() );
                 
                 ResolvePathsRequest<File> request =
-                    ResolvePathsRequest.withFiles( dependencyArtifacts )
+                    ResolvePathsRequest.ofFiles( dependencyArtifacts )
                                        .setMainModuleDescriptor( moduleDescriptorPath );
                 
                 Toolchain toolchain = getToolchain();

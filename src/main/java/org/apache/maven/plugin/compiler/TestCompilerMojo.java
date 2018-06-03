@@ -235,7 +235,7 @@ public class TestCompilerMojo
             try
             {
                 ResolvePathsRequest<String> request =
-                        ResolvePathsRequest.withStrings( testPath )
+                        ResolvePathsRequest.ofStrings( testPath )
                                 .setMainModuleDescriptor( mainModuleDescriptorClassFile.getAbsolutePath() );
 
                 Toolchain toolchain = getToolchain();
@@ -268,7 +268,7 @@ public class TestCompilerMojo
             try
             {
                 ResolvePathsRequest<String> request =
-                        ResolvePathsRequest.withStrings( testPath )
+                        ResolvePathsRequest.ofStrings( testPath )
                                 .setMainModuleDescriptor( testModuleDescriptorJavaFile.getAbsolutePath() );
 
                 Toolchain toolchain = getToolchain();
