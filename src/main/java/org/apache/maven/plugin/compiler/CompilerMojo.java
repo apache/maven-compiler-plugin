@@ -147,8 +147,7 @@ public class CompilerMojo
     @Override
     protected Map<String, JavaModuleDescriptor> getPathElements()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return pathElements;
     }
     
     protected File getOutputDirectory()
