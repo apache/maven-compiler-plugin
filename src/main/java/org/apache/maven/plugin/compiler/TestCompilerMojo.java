@@ -30,9 +30,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -159,7 +161,8 @@ public class TestCompilerMojo
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
 
-    private LocationManager locationManager = new LocationManager();
+    @Component
+    private LocationManager locationManager;
 
     private Map<String, JavaModuleDescriptor> pathElements;
     
@@ -245,6 +248,17 @@ public class TestCompilerMojo
                 }
 
                 result = locationManager.resolvePaths( request );
+                
+                for ( Entry<String, Exception> pathException : result.getPathExceptions().entrySet() )
+                {
+                    Throwable cause = pathException.getValue().getCause();
+                    while ( cause.getCause() != null )
+                    {
+                        cause = cause.getCause();
+                    }
+                    String fileName = Paths.get( pathException.getKey() ).getFileName().toString();
+                    getLog().warn( "Can't extract module name from " + fileName + ": " + cause.getMessage() );
+                }
             }
             catch ( IOException e )
             {

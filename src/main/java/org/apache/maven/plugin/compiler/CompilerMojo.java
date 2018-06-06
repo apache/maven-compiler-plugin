@@ -29,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -216,6 +217,17 @@ public class CompilerMojo
                 }
 
                 resolvePathsResult = locationManager.resolvePaths( request );
+                
+                for ( Entry<File, Exception> pathException : resolvePathsResult.getPathExceptions().entrySet() )
+                {
+                    Throwable cause = pathException.getValue().getCause();
+                    while ( cause.getCause() != null )
+                    {
+                        cause = cause.getCause();
+                    }
+                    String fileName = pathException.getKey().getName();
+                    getLog().warn( "Can't extract module name from " + fileName + ": " + cause.getMessage() );
+                }
                 
                 JavaModuleDescriptor moduleDescriptor = resolvePathsResult.getMainModuleDescriptor();
 
