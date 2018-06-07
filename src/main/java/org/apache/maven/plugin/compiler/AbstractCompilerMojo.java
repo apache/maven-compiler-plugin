@@ -147,7 +147,9 @@ public abstract class AbstractCompilerMojo
 
     /**
      * Set to <code>true</code> to optimize the compiled code using the compiler's optimization methods.
+     * @deprecated This property is a no-op in {@code javac}.
      */
+    @Deprecated
     @Parameter( property = "maven.compiler.optimize", defaultValue = "false" )
     private boolean optimize;
 
