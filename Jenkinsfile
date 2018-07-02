@@ -17,4 +17,4 @@
  * under the License.
  */
 
-asfMavenTlpStdBuild( [ 'failFast' : false ] )
+asfMavenTlpPlgnBuild()
