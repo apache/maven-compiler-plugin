@@ -981,8 +981,6 @@ public abstract class AbstractCompilerMojo
             }
             else if ( "--patch-module".equals( entry.getKey() ) )
             {
-                jpmsLines.add( "--patch-module" );
-                
                 String value = entry.getValue();
                 if ( value == null )
                 {
@@ -1010,6 +1008,11 @@ public abstract class AbstractCompilerMojo
                     if ( getOutputDirectory().toPath().equals( filePath ) )
                     {
                         patchModules.add( "_" ); // this jar
+                    }
+                    else if ( getOutputDirectory().toPath().startsWith( filePath ) )
+                    {
+                        // multirelease, can be ignored
+                        continue;
                     }
                     else if ( sourceRoots.contains( filePath ) )
                     {
@@ -1039,17 +1042,22 @@ public abstract class AbstractCompilerMojo
 
                 StringBuilder sb = new StringBuilder();
                 
-                for ( String mod : patchModules )
+                if ( patchModules.size() > 0 )
                 {
-                    if ( sb.length() > 0 )
+                    for ( String mod : patchModules )
                     {
-                        sb.append( ", " );
+                        if ( sb.length() > 0 )
+                        {
+                            sb.append( ", " );
+                        }
+                        // use 'invalid' separator to ensure values are transformed
+                        sb.append( mod );
                     }
-                    // use 'invalid' separator to ensure values are transformed
-                    sb.append( mod );
+
+                    jpmsLines.add( "--patch-module" );
+                    jpmsLines.add( patchModule + sb.toString() );
                 }
 
-                jpmsLines.add( patchModule + sb.toString() );
             }
         }
         

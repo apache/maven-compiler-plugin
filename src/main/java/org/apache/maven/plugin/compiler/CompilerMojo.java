@@ -115,9 +115,15 @@ public class CompilerMojo
 
     @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
     private List<String> compilePath;
-    
+
+    /**
+     * When set to {@code true}, the classes will be placed in <code>META-INF/versions/${release}</code>
+     * The release value must be set, otherwise the plugin will fail. 
+     * 
+     * @since 3.7.1
+     */
     @Parameter
-    private boolean allowPartialRequirements;
+    private boolean multiReleaseOutput;
 
     @Component
     private LocationManager locationManager;
@@ -153,7 +159,16 @@ public class CompilerMojo
     
     protected File getOutputDirectory()
     {
-        return outputDirectory;
+        File dir;
+        if ( !multiReleaseOutput )
+        {
+            dir = outputDirectory;
+        }
+        else
+        {
+            dir = new File( outputDirectory, "META-INF/versions/" + release );
+        }
+        return dir;
     }
 
     public void execute()
@@ -163,6 +178,11 @@ public class CompilerMojo
         {
             getLog().info( "Not compiling main sources" );
             return;
+        }
+        
+        if ( multiReleaseOutput && release == null )
+        {
+            throw new MojoExecutionException( "When using 'multiReleaseOutput' the release must be set" );
         }
 
         super.execute();
@@ -176,7 +196,7 @@ public class CompilerMojo
     @Override
     protected void preparePaths( Set<File> sourceFiles )
     {
-        assert compilePath != null;
+        //assert compilePath != null;
 
         File moduleDescriptorPath = null;
 
@@ -260,6 +280,25 @@ public class CompilerMojo
                 for ( File file : resolvePathsResult.getClasspathElements() )
                 {
                     classpathElements.add( file.getPath() );
+                    
+                    if ( multiReleaseOutput )
+                    {
+                        if ( compilerArgs == null )
+                        {
+                            compilerArgs = new ArrayList<String>();
+                        }
+                        
+                        if ( getOutputDirectory().toPath().startsWith( file.getPath() ) )
+                        {
+                            compilerArgs.add( "--patch-module" );
+                            
+                            StringBuilder patchModuleValue = new StringBuilder( moduleDescriptor.name() )
+                                            .append( '=' )
+                                            .append( file.getPath() );
+                            
+                            compilerArgs.add( patchModuleValue.toString() );
+                        }
+                    }
                 }
                 
                 for ( File file : resolvePathsResult.getModulepathElements().keySet() )
@@ -281,7 +320,23 @@ public class CompilerMojo
     
     private List<File> getCompileClasspathElements( MavenProject project )
     {
-        List<File> list = new ArrayList<File>( project.getArtifacts().size() + 1 );
+        // 3 is outputFolder + 2 preserved for multirelease  
+        List<File> list = new ArrayList<File>( project.getArtifacts().size() + 3 );
+
+        if ( multiReleaseOutput )
+        {
+            File versionsFolder = new File( project.getBuild().getOutputDirectory(), "META-INF/versions" );
+            
+            // in reverse order
+            for ( int version = Integer.parseInt( getRelease() ) - 1; version >= 9 ; version-- )
+            {
+                File versionSubFolder = new File( versionsFolder, String.valueOf( version ) );
+                if ( versionSubFolder.exists() )
+                {
+                    list.add( versionSubFolder );
+                }
+            }
+        }
 
         list.add( new File( project.getBuild().getOutputDirectory() ) );
 

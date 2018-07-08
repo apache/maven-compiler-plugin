@@ -26,7 +26,7 @@ under the License.
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
     <version>31</version>
-    <relativePath>../../pom/maven/maven-plugins/pom.xml</relativePath>
+    <relativePath>*</relativePath>
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
@@ -281,6 +281,7 @@ under the License.
                     <pomIncludes>
                       <pomInclude>*/pom.xml</pomInclude>
                       <pomInclude>extras/*/pom.xml</pomInclude>
+                      <pomInclude>multirelease-patterns/*/pom.xml</pomInclude>
                     </pomIncludes>
                     <!--
                       ! Unfortunately we can't define an execution order.
@@ -343,6 +344,29 @@ under the License.
           <!-- TODO: scope test? -->
         </dependency>
       </dependencies>
+    </profile>
+    <profile>
+      <id>Jenkins</id>
+      <activation>
+        <property>
+          <name>env.JENKINS_URL</name>
+        </property>
+      </activation>
+      <build>
+        <pluginManagement>
+          <plugins>
+            <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-invoker-plugin</artifactId>
+              <configuration>
+                <pomExcludes>
+                  <pomExclude>multirelease-patterns/singleproject-toolchains/pom.xml</pomExclude>
+                </pomExcludes>
+              </configuration>
+            </plugin>
+          </plugins>
+        </pluginManagement>
+      </build>
     </profile>
   </profiles>
 </project>
