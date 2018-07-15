@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -35,6 +36,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
@@ -58,6 +60,8 @@ import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
 import org.apache.maven.shared.utils.ReaderFactory;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.shared.utils.io.FileUtils;
+import org.apache.maven.shared.utils.logging.MessageBuilder;
+import org.apache.maven.shared.utils.logging.MessageUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.codehaus.plexus.compiler.Compiler;
@@ -76,6 +80,7 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
+import org.codehaus.plexus.languages.java.version.JavaVersion;
 
 /**
  * TODO: At least one step could be optimized, currently the plugin will do two
@@ -93,9 +98,9 @@ public abstract class AbstractCompilerMojo
 {
     protected static final String PS = System.getProperty( "path.separator" );
 
-    static final String DEFAULT_SOURCE = "1.5";
+    static final String DEFAULT_SOURCE = "1.6";
     
-    static final String DEFAULT_TARGET = "1.5";
+    static final String DEFAULT_TARGET = "1.6";
     
     // Used to compare with older targets
     static final String MODULE_INFO_TARGET = "1.9";
@@ -160,13 +165,17 @@ public abstract class AbstractCompilerMojo
     private boolean showWarnings;
 
     /**
-     * The -source argument for the Java compiler.
+     * <p>The -source argument for the Java compiler.</p>
+     * 
+     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6
      */
     @Parameter( property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE )
     protected String source;
 
     /**
-     * The -target argument for the Java compiler.
+     * <p>The -target argument for the Java compiler.</p>
+     * 
+     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6
      */
     @Parameter( property = "maven.compiler.target", defaultValue = DEFAULT_TARGET )
     protected String target;
@@ -528,6 +537,8 @@ public abstract class AbstractCompilerMojo
         return project;
     }
 
+    private boolean targetOrReleaseSet;
+
     @Override
     public void execute()
         throws MojoExecutionException, CompilationFailureException
@@ -579,6 +590,18 @@ public abstract class AbstractCompilerMojo
             getLog().info( "No sources to compile" );
 
             return;
+        }
+
+        // Verify that target or release is set
+        if ( !targetOrReleaseSet )
+        {
+            MessageBuilder mb = MessageUtils.buffer().a( "No explicit value set for target or release! " )
+                            .a( "To ensure the same result even after upgrading this plugin, please add " ).newline()
+                            .newline();
+
+            writePlugin( mb );
+
+            getLog().warn( mb.toString() );
         }
 
         // ----------------------------------------------------------------------
@@ -1668,5 +1691,75 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Resolution of annotationProcessorPath dependencies failed: "
                 + e.getLocalizedMessage(), e );
         }
+    }
+
+    private void writePlugin( MessageBuilder mb )
+    {
+        mb.a( "    <plugin>" ).newline();
+        mb.a( "      <groupId>org.apache.maven.plugins</groupId>" ).newline();
+        mb.a( "      <artifactId>maven-compiler-plugin</artifactId>" ).newline();
+        
+        String version = getMavenCompilerPluginVersion();
+        if ( version != null )
+        {
+            mb.a( "      <version>" ).a( version ).a( "</version>" ).newline();
+        }
+        writeConfig( mb );
+        
+        mb.a( "    </plugin>" ).newline();
+    }
+
+    private void writeConfig( MessageBuilder mb )
+    {
+        mb.a( "      <configuration>" ).newline();
+
+        if ( release != null )
+        {
+            mb.a( "        <release>" ).a( release ).a( "</release>" ).newline();
+        }
+        else if ( JavaVersion.JAVA_VERSION.isAtLeast( "9" ) )
+        {
+            String rls = target.replaceAll( ".\\.", "" );
+            // when using Java9+, motivate to use release instead of source/target
+            mb.a( "        <release>" ).a( rls ).a( "</release>" ).newline();
+        }
+        else
+        {
+            mb.a( "        <source>" ).a( source ).a( "</source>" ).newline();
+            mb.a( "        <target>" ).a( target ).a( "</target>" ).newline();
+        }
+        mb.a( "      </configuration>" ).newline();
+    }
+
+    private String getMavenCompilerPluginVersion()
+    {
+        Properties pomProperties = new Properties();
+
+        try ( InputStream is = AbstractCompilerMojo.class
+            .getResourceAsStream( "/META-INF/maven/org.apache.maven.plugins/maven-compiler-plugin/pom.properties" ) )
+        {
+            if ( is != null )
+            {
+                pomProperties.load( is );
+            }
+        }
+        catch ( IOException e )
+        {
+            // noop
+        }
+
+        return pomProperties.getProperty( "version" );
+    }
+
+    public void setTarget( String target )
+    {
+        this.target = target;
+        targetOrReleaseSet = true;
+    }
+
+    public void setRelease( String release )
+    {
+        this.release = release;
+        targetOrReleaseSet = true;
     }
 }

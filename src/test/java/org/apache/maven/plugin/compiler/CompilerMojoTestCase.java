@@ -19,7 +19,10 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -39,6 +42,7 @@ import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.compiler.stubs.DebugEnabledLog;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.apache.maven.project.MavenProject;
@@ -79,6 +83,10 @@ public class CompilerMojoTestCase
     {
         CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-basic-test/plugin-config.xml" );
         
+        Log log = mock( Log.class );
+        
+        compileMojo.setLog( log );
+        
         compileMojo.execute();
 
         File testClass = new File( compileMojo.getOutputDirectory(), "TestCompile0.class" );
@@ -95,8 +103,24 @@ public class CompilerMojoTestCase
                        projectArtifact.getFile() );
 
         testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile0Test.class" );
+        
+        verify( log ).warn( startsWith( "No explicit value set for target or release!" ) );
 
         assertTrue( testClass.exists() );
+    }
+    
+    public void testCompilerBasicSourceTarget()
+                    throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-basic-sourcetarget/plugin-config.xml" );
+        
+        Log log = mock( Log.class );
+        
+        compileMojo.setLog( log );
+        
+        compileMojo.execute();
+        
+        verify( log, never() ).warn( startsWith( "No explicit value set for target or release!" ) );
     }
 
     /**
