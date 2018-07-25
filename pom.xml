@@ -26,11 +26,11 @@ under the License.
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
     <version>31</version>
-    <relativePath>*</relativePath>
+    <relativePath>../../pom/maven/maven-plugins/pom.xml</relativePath>
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>3.8.0-SNAPSHOT</version>
+  <version>3.7.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
