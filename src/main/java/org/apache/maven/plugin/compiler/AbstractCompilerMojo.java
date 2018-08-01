@@ -1577,7 +1577,7 @@ public abstract class AbstractCompilerMojo
         if ( fileExtensions == null || fileExtensions.isEmpty() )
         {
             fileExtensions = new ArrayList<String>();
-            fileExtensions.add( ".class" );
+            fileExtensions.add( "class" );
         }
 
         Date buildStartTime = getBuildStartTime();
