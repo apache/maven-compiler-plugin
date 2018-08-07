@@ -305,6 +305,14 @@ public class CompilerMojo
                 {
                     modulepathElements.add( file.getPath() );
                 }
+                
+                if ( compilerArgs == null )
+                {
+                    compilerArgs = new ArrayList<String>();
+                }
+                compilerArgs.add( "--module-version" );
+                compilerArgs.add( getProject().getVersion() );
+                
             }
             catch ( IOException e )
             {
