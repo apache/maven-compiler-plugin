@@ -108,7 +108,7 @@ under the License.
           <tr>
             <td>${project.name} ${project.version} (Source zip)</td>
             <td><a href="[preferred]maven/plugins/${project.artifactId}-${project.version}-source-release.zip">maven/plugins/${project.artifactId}-${project.version}-source-release.zip</a></td>
-            <td><a href="https://www.apache.org/dist/maven/plugins/${project.artifactId}-${project.version}-source-release.zip.sha1">maven/plugins/${project.artifactId}-${project.version}-source-release.zip.sha1</a></td>
+            <td><a href="https://www.apache.org/dist/maven/plugins/${project.artifactId}-${project.version}-source-release.zip.sha512">maven/plugins/${project.artifactId}-${project.version}-source-release.zip.sha512</a></td>
             <td><a href="https://www.apache.org/dist/maven/plugins/${project.artifactId}-${project.version}-source-release.zip.asc">maven/plugins/${project.artifactId}-${project.version}-source-release.zip.asc</a></td>
           </tr>
         </tbody>
