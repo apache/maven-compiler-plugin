@@ -369,9 +369,11 @@ public class TestCompilerMojo
                 // very odd
                 // Means that main sources must be compiled with -modulesource and -Xmodule:<moduleName>
                 // However, this has a huge impact since you can't simply use it as a classpathEntry 
-                // due to extra folder in between
-                throw new UnsupportedOperationException( "Can't compile test sources "
-                    + "when main sources are missing a module descriptor" );
+                // due to extra folder in between ... or the user wants to test his main code on the
+                // classpath used by a named module ... or ...
+                getLog().warn( "Modular black-box test compilation with no main module?!" );
+
+                // TODO classpathElements = List.of( mainOutputDirectory );
             }
         }
         else
