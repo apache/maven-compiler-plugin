@@ -240,7 +240,7 @@ public class CompilerMojo
                 
                 for ( Entry<File, Exception> pathException : resolvePathsResult.getPathExceptions().entrySet() )
                 {
-                    Throwable cause = pathException.getValue().getCause();
+                    Throwable cause = pathException.getValue();
                     while ( cause.getCause() != null )
                     {
                         cause = cause.getCause();
