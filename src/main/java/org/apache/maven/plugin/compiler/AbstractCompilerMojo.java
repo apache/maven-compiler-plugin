@@ -786,13 +786,15 @@ public abstract class AbstractCompilerMojo
                 
                 preparePaths( sources );
 
-                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
+                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources )
+                        .classpathElements( getClasspathElements() );
 
                 // CHECKSTYLE_OFF: LineLength
                 if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget )
                     || isDependencyChanged()
                     || isSourceChanged( compilerConfiguration, compiler )
-                    || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
+                    || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest )
+                    || incrementalBuildHelper.dependencyTreeChanged( incrementalBuildHelperRequest ) )
                     // CHECKSTYLE_ON: LineLength
                 {
                     getLog().info( "Changes detected - recompiling the module!" );
@@ -1139,7 +1141,7 @@ public abstract class AbstractCompilerMojo
             // TODO: don't catch Exception
             throw new MojoExecutionException( "Fatal error compiling", e );
         }
-
+        incrementalBuildHelper.keepDependencyInfo();
         if ( useIncrementalCompilation )
         {
             if ( incrementalBuildHelperRequest.getOutputDirectory().exists() )
