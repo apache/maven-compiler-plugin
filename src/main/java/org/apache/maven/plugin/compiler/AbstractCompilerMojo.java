@@ -90,7 +90,6 @@ import org.codehaus.plexus.languages.java.version.JavaVersion;
  *
  * @author others
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
- * @version $Id$
  * @since 2.0
  */
 public abstract class AbstractCompilerMojo

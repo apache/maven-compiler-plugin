@@ -53,7 +53,6 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
  * Compiles application test sources.
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
- * @version $Id$
  * @since 2.0
  */
 @Mojo( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE, threadSafe = true,

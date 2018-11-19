@@ -56,7 +56,6 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult.ModuleNameSour
  * Compiles application sources
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl </a>
- * @version $Id$
  * @since 2.0
  */
 @Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true, 
