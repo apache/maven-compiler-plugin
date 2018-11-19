@@ -83,13 +83,13 @@ public class TestCompilerMojo
      * A list of inclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> testIncludes = new HashSet<String>();
+    private Set<String> testIncludes = new HashSet<>();
 
     /**
      * A list of exclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> testExcludes = new HashSet<String>();
+    private Set<String> testExcludes = new HashSet<>();
 
     /**
      * The -source argument for the test Java compiler.
@@ -266,7 +266,7 @@ public class TestCompilerMojo
 
             mainModuleDescriptor = result.getMainModuleDescriptor();
 
-            pathElements = new LinkedHashMap<String, JavaModuleDescriptor>( result.getPathElements().size() );
+            pathElements = new LinkedHashMap<>( result.getPathElements().size() );
             pathElements.putAll( result.getPathElements() );
 
             modulepathElements = result.getModulepathElements().keySet();

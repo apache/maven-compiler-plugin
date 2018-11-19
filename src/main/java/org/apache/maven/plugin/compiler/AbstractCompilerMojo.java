@@ -974,7 +974,7 @@ public abstract class AbstractCompilerMojo
         }
         
 
-        List<String> jpmsLines = new ArrayList<String>();
+        List<String> jpmsLines = new ArrayList<>();
         
         // See http://openjdk.java.net/jeps/261
         final List<String> runtimeArgs = Arrays.asList( "--upgrade-module-path", 
@@ -1155,9 +1155,9 @@ public abstract class AbstractCompilerMojo
             }
         }
 
-        List<CompilerMessage> warnings = new ArrayList<CompilerMessage>();
-        List<CompilerMessage> errors = new ArrayList<CompilerMessage>();
-        List<CompilerMessage> others = new ArrayList<CompilerMessage>();
+        List<CompilerMessage> warnings = new ArrayList<>();
+        List<CompilerMessage> errors = new ArrayList<>();
+        List<CompilerMessage> others = new ArrayList<>();
         for ( CompilerMessage message : compilerResult.getCompilerMessages() )
         {
             if ( message.getKind() == CompilerMessage.Kind.ERROR )
@@ -1255,7 +1255,7 @@ public abstract class AbstractCompilerMojo
         {
             return new CompilerResult();
         }
-        List<CompilerMessage> messages = new ArrayList<CompilerMessage>( compilerErrors.size() );
+        List<CompilerMessage> messages = new ArrayList<>( compilerErrors.size() );
         boolean success = true;
         for ( CompilerError compilerError : compilerErrors )
         {
@@ -1291,7 +1291,7 @@ public abstract class AbstractCompilerMojo
 
         scanner.addSourceMapping( mapping );
 
-        Set<File> compileSources = new HashSet<File>();
+        Set<File> compileSources = new HashSet<>();
 
         for ( String sourceRoot : getCompileSourceRoots() )
         {
@@ -1427,23 +1427,8 @@ public abstract class AbstractCompilerMojo
                     tc = tcs.get( 0 );
                 }
             }
-            catch ( NoSuchMethodException e )
-            {
-                // ignore
-            }
-            catch ( SecurityException e )
-            {
-                // ignore
-            }
-            catch ( IllegalAccessException e )
-            {
-                // ignore
-            }
-            catch ( IllegalArgumentException e )
-            {
-                // ignore
-            }
-            catch ( InvocationTargetException e )
+            catch ( NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+                | InvocationTargetException e )
             {
                 // ignore
             }
@@ -1488,7 +1473,7 @@ public abstract class AbstractCompilerMojo
 
         scanner.addSourceMapping( mapping );
 
-        Set<File> staleSources = new HashSet<File>();
+        Set<File> staleSources = new HashSet<>();
 
         for ( String sourceRoot : getCompileSourceRoots() )
         {
@@ -1543,7 +1528,7 @@ public abstract class AbstractCompilerMojo
      */
     private static List<String> removeEmptyCompileSourceRoots( List<String> compileSourceRootsList )
     {
-        List<String> newCompileSourceRootsList = new ArrayList<String>();
+        List<String> newCompileSourceRootsList = new ArrayList<>();
         if ( compileSourceRootsList != null )
         {
             // copy as I may be modifying it
@@ -1576,13 +1561,13 @@ public abstract class AbstractCompilerMojo
 
         if ( fileExtensions == null || fileExtensions.isEmpty() )
         {
-            fileExtensions = new ArrayList<String>();
+            fileExtensions = new ArrayList<>();
             fileExtensions.add( "class" );
         }
 
         Date buildStartTime = getBuildStartTime();
 
-        List<String> pathElements = new ArrayList<String>();
+        List<String> pathElements = new ArrayList<>();
         pathElements.addAll( getClasspathElements() );
         pathElements.addAll( getModulepathElements() );
         
@@ -1646,7 +1631,7 @@ public abstract class AbstractCompilerMojo
 
         try
         {
-            Set<Artifact> requiredArtifacts = new LinkedHashSet<Artifact>();
+            Set<Artifact> requiredArtifacts = new LinkedHashSet<>();
 
             for ( DependencyCoordinate coord : annotationProcessorPaths )
             {

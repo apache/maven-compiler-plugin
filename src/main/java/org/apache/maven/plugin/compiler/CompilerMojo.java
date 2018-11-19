@@ -87,13 +87,13 @@ public class CompilerMojo
      * A list of inclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> includes = new HashSet<String>();
+    private Set<String> includes = new HashSet<>();
 
     /**
      * A list of exclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> excludes = new HashSet<String>();
+    private Set<String> excludes = new HashSet<>();
 
     /**
      * <p>
@@ -216,9 +216,9 @@ public class CompilerMojo
             // and we can detect if auto modules are used. In that case, MavenProject.setFile() should not be used, so
             // you cannot depend on this project and so it won't be distributed.
 
-            modulepathElements = new ArrayList<String>( compilePath.size() );
-            classpathElements = new ArrayList<String>( compilePath.size() );
-            pathElements = new LinkedHashMap<String, JavaModuleDescriptor>( compilePath.size() );
+            modulepathElements = new ArrayList<>( compilePath.size() );
+            classpathElements = new ArrayList<>( compilePath.size() );
+            pathElements = new LinkedHashMap<>( compilePath.size() );
 
             ResolvePathsResult<File> resolvePathsResult;
             try
@@ -284,7 +284,7 @@ public class CompilerMojo
                     {
                         if ( compilerArgs == null )
                         {
-                            compilerArgs = new ArrayList<String>();
+                            compilerArgs = new ArrayList<>();
                         }
                         
                         if ( getOutputDirectory().toPath().startsWith( file.getPath() ) )
@@ -307,7 +307,7 @@ public class CompilerMojo
                 
                 if ( compilerArgs == null )
                 {
-                    compilerArgs = new ArrayList<String>();
+                    compilerArgs = new ArrayList<>();
                 }
                 compilerArgs.add( "--module-version" );
                 compilerArgs.add( getProject().getVersion() );
@@ -328,7 +328,7 @@ public class CompilerMojo
     private List<File> getCompileClasspathElements( MavenProject project )
     {
         // 3 is outputFolder + 2 preserved for multirelease  
-        List<File> list = new ArrayList<File>( project.getArtifacts().size() + 3 );
+        List<File> list = new ArrayList<>( project.getArtifacts().size() + 3 );
 
         if ( multiReleaseOutput )
         {
