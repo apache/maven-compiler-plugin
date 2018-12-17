@@ -241,6 +241,15 @@ under the License.
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>de.sormuras</groupId>
+        <artifactId>junit-platform-maven-plugin</artifactId>
+        <version>0.811.2</version>
+        <extensions>true</extensions>
+        <configuration>
+          <isolate>false</isolate>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
