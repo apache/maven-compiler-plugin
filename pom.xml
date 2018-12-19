@@ -182,7 +182,7 @@ under the License.
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>1.9.5</version>
+      <version>2.23.4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -242,12 +242,13 @@ under the License.
         </executions>
       </plugin>
       <plugin>
-        <groupId>de.sormuras</groupId>
+        <groupId>de.sormuras.junit</groupId>
         <artifactId>junit-platform-maven-plugin</artifactId>
-        <version>0.811.2</version>
+        <version>1.0.0-M1</version>
         <extensions>true</extensions>
         <configuration>
-          <isolate>false</isolate>
+          <executor>DIRECT</executor>
+          <isolation>MERGED</isolation>
         </configuration>
       </plugin>
     </plugins>
