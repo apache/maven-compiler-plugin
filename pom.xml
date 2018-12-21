@@ -73,6 +73,7 @@ under the License.
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
     <openJpaVersion>2.4.2</openJpaVersion>
+    <junitPlatformPluginVersion>1.0.0-M2</junitPlatformPluginVersion>
     <javaVersion>7</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
   </properties>
@@ -241,16 +242,6 @@ under the License.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>de.sormuras.junit</groupId>
-        <artifactId>junit-platform-maven-plugin</artifactId>
-        <version>1.0.0-M1</version>
-        <extensions>true</extensions>
-        <configuration>
-          <executor>DIRECT</executor>
-          <isolation>MERGED</isolation>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
 
@@ -361,6 +352,68 @@ under the License.
             </plugin>
           </plugins>
         </pluginManagement>
+      </build>
+    </profile>
+    <profile>
+      <id>java8+</id>
+      <activation>
+        <jdk>[1.8,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <!--
+            A plugin that launches the JUnit Platform using the Vintage
+            engine to start our junit suite "AllTests".
+            -->
+            <groupId>de.sormuras.junit</groupId>
+            <artifactId>junit-platform-maven-plugin</artifactId>
+            <version>${junitPlatformPluginVersion}</version>
+
+            <!--
+            Add this plugin's "launch" goal to test phase executions and
+            clear all executions of Surefire...
+            -->
+            <extensions>true</extensions>
+            <!--
+            ...or add this plugin manually without touching Surefire.
+            -->
+            <!--<executions>-->
+              <!--<execution>-->
+                <!--<id>launch-junit-platform</id>-->
+                <!--<phase>test</phase>-->
+                <!--<goals>-->
+                  <!--<goal>launch</goal>-->
+                <!--</goals>-->
+              <!--</execution>-->
+            <!--</executions>-->
+
+              <configuration>
+                  <!--
+                  Execution mode: One of DIRECT (default) | JAVA
+                  -->
+                  <!--<executor>DIRECT</executor>-->
+
+                  <!--
+                  Isolation level: One of ABSOLUTE | ALMOST | MERGED (default) | NONE
+                  -->
+                  <!--<isolation>MERGED</isolation>-->
+
+                  <!--
+                  Dry-run: Discover tests only - i.e. write test-plan and exit.
+                  -->
+                  <dryRun>false</dryRun>
+
+                  <!--
+                  JUnit Platform doesn't include ".*TestCase" per default. We
+                  add it here to the standard pattern.
+                  -->
+                  <classNamePatterns>
+                      <pattern>^(Test.*|.+[.$]Test.*|.*Tests|.*TestCase?)$</pattern>
+                  </classNamePatterns>
+              </configuration>
+          </plugin>
+        </plugins>
       </build>
     </profile>
   </profiles>
