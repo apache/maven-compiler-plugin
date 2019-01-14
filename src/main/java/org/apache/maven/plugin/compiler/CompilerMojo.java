@@ -250,26 +250,7 @@ public class CompilerMojo
                 
                 JavaModuleDescriptor moduleDescriptor = resolvePathsResult.getMainModuleDescriptor();
 
-                for ( Map.Entry<File, ModuleNameSource> entry : resolvePathsResult.getModulepathElements().entrySet() )
-                {
-                    if ( ModuleNameSource.FILENAME.equals( entry.getValue() ) )
-                    {
-                        final String message = "Required filename-based automodules detected. "
-                            + "Please don't publish this project to a public artifact repository!";
-
-                        if ( moduleDescriptor.exports().isEmpty() )
-                        {
-                            // application
-                            getLog().info( message );
-                        }
-                        else
-                        {
-                            // library
-                            writeBoxedWarning( message );
-                        }
-                        break;
-                    }
-                }
+                detectFilenameBasedAutomodules( resolvePathsResult, moduleDescriptor );
                 
                 for ( Map.Entry<File, JavaModuleDescriptor> entry : resolvePathsResult.getPathElements().entrySet() )
                 {
@@ -322,6 +303,37 @@ public class CompilerMojo
         {
             classpathElements = compilePath;
             modulepathElements = Collections.emptyList();
+        }
+    }
+
+    private void detectFilenameBasedAutomodules( final ResolvePathsResult<File> resolvePathsResult,
+            final JavaModuleDescriptor moduleDescriptor )
+    {
+        List<String> automodulesDetected = new ArrayList<>();
+        for ( Entry<File, ModuleNameSource> entry : resolvePathsResult.getModulepathElements().entrySet() )
+        {
+            if ( ModuleNameSource.FILENAME.equals( entry.getValue() ) )
+            {
+                automodulesDetected.add( entry.getKey().getName() );
+            }
+        }
+
+        if ( !automodulesDetected.isEmpty() )
+        {
+            final String message = "Required filename-based automodules detected: "
+                    +  automodulesDetected + ". "
+                    + "Please don't publish this project to a public artifact repository!";
+
+            if ( moduleDescriptor.exports().isEmpty() )
+            {
+                // application
+                getLog().info( message );
+            }
+            else
+            {
+                // library
+                writeBoxedWarning( message );
+            }
         }
     }
     
