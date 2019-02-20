@@ -33,64 +33,6 @@ Older projects with module-info
   <<<module-info.java>>> must be compiled with <<<release=9>>>, while the rest of the sources must be compiled with a
   lower version of <<<source>>>/<<<target>>>.
 
-  The preferred way to do this is by having 2 execution blocks are described below. JDK 9 only supports compilations for 
-  Java 6 and above, so projects wanting to be compatible with Java 5 or below need to use two different JDKs. With 
-  {{{/guides/mini/guide-using-toolchains.html}toolchains}} it is quite easy to achieve this. Be aware that you will
-  need at least Maven 3.3.1 to specify a custom jdkToolchain in your plugin configuration. You could add a jdkToolchain
-  to do base-compile execution-block as well referring to JDK 5. 
-
-+-------
-<project>
-  [...]
-  <build>
-    [...]
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${project.version}</version>
-        <executions>
-          <execution>
-            <id>default-compile</id>
-            <configuration>
-              <!-- compile everything to ensure module-info contains right entries -->
-              <!-- required when JAVA_HOME is JDK 8 or below -->
-              <jdkToolchain>
-                <version>9</version>
-              </jdkToolchain>
-              <release>9</release>
-            </configuration>
-          </execution>
-          <execution>
-            <id>base-compile</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <!-- recompile everything for target VM except the module-info.java -->
-            <configuration>
-              <excludes>
-                <exclude>module-info.java</exclude>
-              </excludes>
-            </configuration>
-          </execution>
-        </executions>
-        <!-- defaults for compile and testCompile -->
-        <configuration>
-          <!-- jdkToolchain required when JAVA_HOME is JDK 9 or above -->
-          <jdkToolchain>
-            <version>[1.5,9)</version>
-          </jdkToolchain>
-          <source>1.5</source>
-          <target>1.5</target>
-        </configuration>
-      </plugin>
-    </plugins>
-    [...]
-  </build>
-  [...]
-</project>
-+-------
-
   In case you want the project to be Java 6 compatible, the easiest to do this is to use Java 9 for both execution
   blocks. You can use the maven-toolchain-plugin to specify the shared JDK (supported since Maven 2.0.9) or a custom 
   jdkToolchain (supported since Maven 3.3.1) and refer to the JDK 9 installation on your system. Or simply use Java 9
@@ -109,21 +51,24 @@ Older projects with module-info
         <executions>
           <execution>
             <id>default-compile</id>
-            <configuration>
-              <!-- compile everything to ensure module-info contains right entries -->
-              <release>9</release>
-            </configuration>
-          </execution>
-          <execution>
-            <id>base-compile</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <!-- recompile everything for target VM except the module-info.java -->
+            <!-- compile everything for target VM except the module-info.java -->
             <configuration>
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>module-compile</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <!-- compile only the module-info file -->
+              <release>9</release>
+              <includes>
+                <include>module-info.java</include>
+              </includes>
             </configuration>
           </execution>
         </executions>
@@ -142,3 +87,66 @@ Older projects with module-info
   [...]
 </project>
 +-------
+
+  JDK 9 only supports compilations for Java 6 and above, so projects wanting to be compatible with Java 5 or below 
+  need to use two different JDKs. With {{{/guides/mini/guide-using-toolchains.html}toolchains}} it is quite easy to achieve this. 
+  Be aware that you will need at least Maven 3.3.1 to specify a custom jdkToolchain in your plugin configuration. You could add 
+  a jdkToolchain to do the default-compile execution-block as well referring to JDK 5. 
+
++-------
+<project>
+  [...]
+  <build>
+    [...]
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${project.version}</version>
+        <executions>          
+          <execution>
+            <id>default-compile</id>
+            <!-- compile everything for target VM except the module-info.java -->
+            <configuration>
+              <excludes>
+                <exclude>module-info.java</exclude>
+              </excludes>
+            </configuration>
+          </execution>
+          <execution>
+            <id>module-compile</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <!-- compile only the module-info file -->
+              <!-- required when JAVA_HOME is JDK 8 or below -->
+              <jdkToolchain>
+                <version>9</version>
+              </jdkToolchain>
+              <release>9</release>
+              <includes>
+                <include>module-info.java</include>
+              </includes>
+            </configuration>
+          </execution>
+
+        </executions>
+        <!-- defaults for compile and testCompile -->
+        <configuration>
+          <!-- jdkToolchain required when JAVA_HOME is JDK 9 or above -->
+          <jdkToolchain>
+            <version>[1.5,9)</version>
+          </jdkToolchain>
+          <source>1.5</source>
+          <target>1.5</target>
+        </configuration>
+      </plugin>
+    </plugins>
+    [...]
+  </build>
+  [...]
+</project>
++-------
+
+  
