@@ -69,8 +69,8 @@
                 <exclude>module-info.java</exclude>
               </excludes>
               <!-- ideally this would be 1.5, but with CI's it is hard to have a proper toolchains.xml in place -->
-              <source>1.6</source>
-              <target>1.6</target>
+              <source>8</source>
+              <target>8</target>
             </configuration>
           </execution>
         </executions>

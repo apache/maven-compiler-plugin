@@ -40,10 +40,6 @@ under the License.
             </configuration>
           </execution>
         </executions>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
       </plugin>
     </plugins>
   </build>

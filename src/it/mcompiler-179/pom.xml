@@ -38,8 +38,6 @@ under the License.
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <source>1.6</source>
-            <target>1.6</target>
             <compilerArgument>-Xlint:all</compilerArgument>
             <compilerArguments>
               <Werror />

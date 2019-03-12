@@ -46,6 +46,7 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.languages.java.version.JavaVersion;
 
 public class CompilerMojoTestCase
     extends AbstractMojoTestCase
@@ -62,14 +63,13 @@ public class CompilerMojoTestCase
         super.setUp();
         
         String javaSpec = System.getProperty( "java.specification.version" );
-        // It is needed to set target/source to JDK 6 for JDK9 and JDK10
-        // cause this is the lowest version which is supported by those JDK's.
-        // The default source/target "5" is not supported anymore.
-        // See https://issues.apache.org/jira/browse/MCOMPILER-338
-        if ( "9".equals( javaSpec ) || "10".equals ( javaSpec ) )
+        // It is needed to set target/source to JDK 7 for JDK12+
+        // because this is the lowest version which is supported by those JDK's.
+        // The default source/target "6" is not supported anymore.
+        if ( JavaVersion.parse( javaSpec ).isAtLeast( "12" ) )
         {
-            source = "6";
-            target = "6";
+            source = "7";
+            target = "7";
         }
     }
     
