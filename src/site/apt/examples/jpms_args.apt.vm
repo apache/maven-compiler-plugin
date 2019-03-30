@@ -51,7 +51,7 @@ JPMS.ARGS
   
   []
   
-  The <<<--patch-module>>> values are different compared to the original values passed to the compiler. Occording to
+  The <<<--patch-module>>> values are different compared to the original values passed to the compiler. According to
   the specification it looks like <<<--patch-module \<module\>=\<file\>(\<pathsep\>\<file\>)\*>>>
   However, files are system specific. For that reason the module names are used. If the jar itself contains the 
   patchcode, then an <<<_>>> (underscore) is used. As separators a <<<, >>> (comma + space) is used.

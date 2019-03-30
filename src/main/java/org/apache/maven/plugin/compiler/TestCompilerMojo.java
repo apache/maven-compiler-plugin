@@ -21,6 +21,8 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,9 +30,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -49,7 +53,6 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
  * Compiles application test sources.
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
- * @version $Id$
  * @since 2.0
  */
 @Mojo( name = "testCompile", defaultPhase = LifecyclePhase.TEST_COMPILE, threadSafe = true,
@@ -80,13 +83,13 @@ public class TestCompilerMojo
      * A list of inclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> testIncludes = new HashSet<String>();
+    private Set<String> testIncludes = new HashSet<>();
 
     /**
      * A list of exclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> testExcludes = new HashSet<String>();
+    private Set<String> testExcludes = new HashSet<>();
 
     /**
      * The -source argument for the test Java compiler.
@@ -157,7 +160,8 @@ public class TestCompilerMojo
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
 
-    private LocationManager locationManager = new LocationManager();
+    @Component
+    private LocationManager locationManager;
 
     private Map<String, JavaModuleDescriptor> pathElements;
     
@@ -207,22 +211,95 @@ public class TestCompilerMojo
     protected void preparePaths( Set<File> sourceFiles )
     {
         File mainOutputDirectory = new File( getProject().getBuild().getOutputDirectory() );
-        
-        File mainModuleDescriptor = new File( mainOutputDirectory, "module-info.class" );
 
-        boolean hasTestModuleDescriptor = false;
-        
-        // Go through the source files to respect includes/excludes 
+        File mainModuleDescriptorClassFile = new File( mainOutputDirectory, "module-info.class" );
+        JavaModuleDescriptor mainModuleDescriptor = null;
+
+        File testModuleDescriptorJavaFile = new File( "module-info.java" );
+        JavaModuleDescriptor testModuleDescriptor = null;
+
+        // Go through the source files to respect includes/excludes
         for ( File sourceFile : sourceFiles )
         {
             // @todo verify if it is the root of a sourcedirectory?
             if ( "module-info.java".equals( sourceFile.getName() ) ) 
             {
-                hasTestModuleDescriptor = true;
+                testModuleDescriptorJavaFile = sourceFile;
                 break;
             }
         }
-        
+
+        // Get additional information from the main module descriptor, if available
+        if ( mainModuleDescriptorClassFile.exists() )
+        {
+            ResolvePathsResult<String> result;
+
+            try
+            {
+                ResolvePathsRequest<String> request =
+                        ResolvePathsRequest.ofStrings( testPath )
+                                .setMainModuleDescriptor( mainModuleDescriptorClassFile.getAbsolutePath() );
+
+                Toolchain toolchain = getToolchain();
+                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                {
+                    request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
+                }
+
+                result = locationManager.resolvePaths( request );
+                
+                for ( Entry<String, Exception> pathException : result.getPathExceptions().entrySet() )
+                {
+                    Throwable cause = pathException.getValue().getCause();
+                    while ( cause.getCause() != null )
+                    {
+                        cause = cause.getCause();
+                    }
+                    String fileName = Paths.get( pathException.getKey() ).getFileName().toString();
+                    getLog().warn( "Can't extract module name from " + fileName + ": " + cause.getMessage() );
+                }
+            }
+            catch ( IOException e )
+            {
+                throw new RuntimeException( e );
+            }
+
+            mainModuleDescriptor = result.getMainModuleDescriptor();
+
+            pathElements = new LinkedHashMap<>( result.getPathElements().size() );
+            pathElements.putAll( result.getPathElements() );
+
+            modulepathElements = result.getModulepathElements().keySet();
+            classpathElements = result.getClasspathElements();
+        }
+
+        // Get additional information from the test module descriptor, if available
+        if ( testModuleDescriptorJavaFile.exists() )
+        {
+            ResolvePathsResult<String> result;
+
+            try
+            {
+                ResolvePathsRequest<String> request =
+                        ResolvePathsRequest.ofStrings( testPath )
+                                .setMainModuleDescriptor( testModuleDescriptorJavaFile.getAbsolutePath() );
+
+                Toolchain toolchain = getToolchain();
+                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                {
+                    request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
+                }
+
+                result = locationManager.resolvePaths( request );
+            }
+            catch ( IOException e )
+            {
+                throw new RuntimeException( e );
+            }
+
+            testModuleDescriptor = result.getMainModuleDescriptor();
+        }
+
         if ( release != null )
         {
             if ( Integer.valueOf( release ) < 9 )
@@ -241,17 +318,54 @@ public class TestCompilerMojo
             return;
         }
             
-        if ( hasTestModuleDescriptor )
+        if ( testModuleDescriptor != null )
         {
             modulepathElements = testPath;
             classpathElements = Collections.emptyList();
 
-            if ( mainModuleDescriptor.exists() )
+            if ( mainModuleDescriptor != null )
             {
-                // maybe some extra analysis required
+                if ( getLog().isDebugEnabled() )
+                {
+                    getLog().debug( "Main and test module descriptors exist:" );
+                    getLog().debug( "  main module = " + mainModuleDescriptor.name() );
+                    getLog().debug( "  test module = " + testModuleDescriptor.name() );
+                }
+
+                if ( testModuleDescriptor.name().equals( mainModuleDescriptor.name() ) )
+                {
+                    if ( compilerArgs == null )
+                    {
+                        compilerArgs = new ArrayList<String>();
+                    }
+                    compilerArgs.add( "--patch-module" );
+
+                    StringBuilder patchModuleValue = new StringBuilder();
+                    patchModuleValue.append( testModuleDescriptor.name() );
+                    patchModuleValue.append( '=' );
+
+                    for ( String root : getProject().getCompileSourceRoots() )
+                    {
+                        if ( Files.exists( Paths.get( root ) ) )
+                        {
+                            patchModuleValue.append( root ).append( PS );
+                        }
+                    }
+
+                    compilerArgs.add( patchModuleValue.toString() );
+                }
+                else
+                {
+                    getLog().debug( "Black-box testing - all is ready to compile" );
+                }
             }
             else
             {
+                // No main binaries available? Means we're a test-only project.
+                if ( !mainOutputDirectory.exists() )
+                {
+                    return;
+                }
                 // very odd
                 // Means that main sources must be compiled with -modulesource and -Xmodule:<moduleName>
                 // However, this has a huge impact since you can't simply use it as a classpathEntry 
@@ -262,44 +376,15 @@ public class TestCompilerMojo
         }
         else
         {
-            if ( mainModuleDescriptor.exists() )
+            if ( mainModuleDescriptor != null )
             {
-                ResolvePathsResult<String> result;
-                
-                try
-                {
-                    ResolvePathsRequest<String> request =
-                        ResolvePathsRequest.withStrings( testPath )
-                                           .setMainModuleDescriptor( mainModuleDescriptor.getAbsolutePath() );
-                    
-                    Toolchain toolchain = getToolchain();
-                    if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
-                    {
-                        request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
-                    }
-                    
-                    result = locationManager.resolvePaths( request );
-                }
-                catch ( IOException e )
-                {
-                    throw new RuntimeException( e );
-                }
-                
-                JavaModuleDescriptor moduleDescriptor = result.getMainModuleDescriptor();
-                
-                pathElements = new LinkedHashMap<String, JavaModuleDescriptor>( result.getPathElements().size() );
-                pathElements.putAll( result.getPathElements() );
-                                
-                modulepathElements = result.getModulepathElements().keySet();
-                classpathElements = result.getClasspathElements();
-                
                 if ( compilerArgs == null )
                 {
                     compilerArgs = new ArrayList<String>();
                 }
                 compilerArgs.add( "--patch-module" );
                 
-                StringBuilder patchModuleValue = new StringBuilder( moduleDescriptor.name() )
+                StringBuilder patchModuleValue = new StringBuilder( mainModuleDescriptor.name() )
                                 .append( '=' )
                                 .append( mainOutputDirectory )
                                 .append( PS );
@@ -311,7 +396,7 @@ public class TestCompilerMojo
                 compilerArgs.add( patchModuleValue.toString() );
                 
                 compilerArgs.add( "--add-reads" );
-                compilerArgs.add( moduleDescriptor.name() + "=ALL-UNNAMED" );
+                compilerArgs.add( mainModuleDescriptor.name() + "=ALL-UNNAMED" );
             }
             else
             {

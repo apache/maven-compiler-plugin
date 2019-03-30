@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one
+  ~ or more contributor license agreements.  See the NOTICE file
+  ~ distributed with this work for additional information
+  ~ regarding copyright ownership.  The ASF licenses this file
+  ~ to you under the Apache License, Version 2.0 (the
+  ~ "License"); you may not use this file except in compliance
+  ~ with the License.  You may obtain a copy of the License at
+  ~
+  ~   http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>multirelease</groupId>
+  <artifactId>multirelease</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+
+  <name>Single Project :: Toolchains</name>
+
+  <properties>
+    <!-- The oldest Java version supported by this tool. -->
+    <!-- Will control compilation of the main code and the unit tests. -->
+    <base.java.version>1.8</base.java.version>
+
+    <!-- set the property when running from the release plugin -->
+    <arguments>-Dmulti_release=true</arguments>
+  </properties>
+
+  <build>
+    <plugins>
+
+      <!-- Use toolchains to select the compilers -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-toolchains-plugin</artifactId>
+        <version>1.1</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>toolchain</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <toolchains>
+            <jdk>
+              <version>${base.java.version}</version>
+            </jdk>
+          </toolchains>
+        </configuration>
+      </plugin>
+
+      <!-- define the possible compilations -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>@project.version@</version>
+        <configuration>
+          <source>${base.java.version}</source>
+          <target>${base.java.version}</target>
+        </configuration>
+        <executions>
+          <!-- for Java 9 -->
+          <execution>
+            <id>java9</id>
+            <phase />
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>9</release>
+              <jdkToolchain>
+                <version>9</version>
+              </jdkToolchain>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+              </compileSourceRoots>
+              <multiReleaseOutput>true</multiReleaseOutput>
+            </configuration>
+          </execution>
+          <!-- for Java 10 -->
+          <execution>
+            <id>java10</id>
+            <phase />
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>10</release>
+              <jdkToolchain>
+                <version>10</version>
+              </jdkToolchain>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java10</compileSourceRoot>
+              </compileSourceRoots>
+              <multiReleaseOutput>true</multiReleaseOutput>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Rerun unittests with the multirelease jar, cannot be done with exploded directory of classes  -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>2.21.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <includes>
+              <include>**/*Test.java</include>
+          </includes>      
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  
+  <profiles>
+
+    <!-- enable java9 compilation -->
+    <profile>
+      <id>compile-java9</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>java9</id>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <!-- enable java10 compilation -->
+    <profile>
+      <id>compile-java10</id>
+      <activation>
+        <jdk>[10,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>java10</id>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>test-toolchains-bypass</id>
+      <activation>
+        <property>
+          <name>!multi_release</name>
+        </property>
+      </activation>
+
+      <build>
+        <plugins>
+          <!-- Run the unit tests with the JVM used to run maven -->
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.21.0</version>
+            <configuration>
+              <jvm>${env.JAVA_HOME}/bin/java</jvm>
+              <!-- this shows that the Java 9 code isn't tested -->
+              <testFailureIgnore>true</testFailureIgnore>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+
+    <profile>
+      <id>multi-jar</id>
+      <activation>
+        <property>
+          <name>multi_release</name>
+        </property>
+      </activation>
+
+      <build>
+        <plugins>
+          <!-- enable java9 - java11 compilations -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>java9</id>
+                <phase>compile</phase>
+              </execution>
+              <execution>
+                <id>java10</id>
+                <phase>compile</phase>
+              </execution>
+              <execution>
+                <id>java11</id>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+          </plugin>
+
+          <!-- add the multi-release:true manifest entry -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <version>2.4</version>
+            <configuration>
+              <archive>
+                <manifestEntries>
+                  <Multi-Release>true</Multi-Release>
+                </manifestEntries>
+              </archive>
+              <excludes>
+                <exclude>**/javac*</exclude>
+                <exclude>**/org.codehaus.plexus.compiler.javac.JavacCompiler*arguments</exclude>
+              </excludes>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

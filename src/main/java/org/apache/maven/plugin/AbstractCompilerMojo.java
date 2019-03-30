@@ -27,7 +27,6 @@ package org.apache.maven.plugin;
  *
  * @author others
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
- * @version $Id$
  * @since 2.0
  * @deprecated package change since 3.0
  */

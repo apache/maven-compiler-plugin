@@ -19,7 +19,10 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
+import static org.mockito.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -39,9 +42,11 @@ import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.compiler.stubs.DebugEnabledLog;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
+import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.languages.java.version.JavaVersion;
 
 public class CompilerMojoTestCase
     extends AbstractMojoTestCase
@@ -58,10 +63,13 @@ public class CompilerMojoTestCase
         super.setUp();
         
         String javaSpec = System.getProperty( "java.specification.version" );
-        if ( "9".equals( javaSpec ) )
+        // It is needed to set target/source to JDK 7 for JDK12+
+        // because this is the lowest version which is supported by those JDK's.
+        // The default source/target "6" is not supported anymore.
+        if ( JavaVersion.parse( javaSpec ).isAtLeast( "12" ) )
         {
-            source = "6";
-            target = "6";
+            source = "7";
+            target = "7";
         }
     }
     
@@ -74,6 +82,10 @@ public class CompilerMojoTestCase
         throws Exception
     {
         CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-basic-test/plugin-config.xml" );
+        
+        Log log = mock( Log.class );
+        
+        compileMojo.setLog( log );
         
         compileMojo.execute();
 
@@ -91,8 +103,24 @@ public class CompilerMojoTestCase
                        projectArtifact.getFile() );
 
         testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile0Test.class" );
+        
+        verify( log ).warn( startsWith( "No explicit value set for target or release!" ) );
 
         assertTrue( testClass.exists() );
+    }
+    
+    public void testCompilerBasicSourceTarget()
+                    throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-basic-sourcetarget/plugin-config.xml" );
+        
+        Log log = mock( Log.class );
+        
+        compileMojo.setLog( log );
+        
+        compileMojo.execute();
+        
+        verify( log, never() ).warn( startsWith( "No explicit value set for target or release!" ) );
     }
 
     /**
@@ -415,6 +443,8 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "compileSourceRoots", Collections.singletonList( testSourceRoot ) );
 
         MavenProject project = getMockMavenProject();
+        project.setFile( testPom );
+        project.addCompileSourceRoot("/src/main/java" );
         project.setArtifacts( Collections.singleton( junitArtifact )  );
         project.getBuild().setOutputDirectory( new File( buildDir, "classes" ).getAbsolutePath() );
         setVariableValueToObject( mojo, "project", project );

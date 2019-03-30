@@ -26,7 +26,6 @@ import java.util.List;
 /**
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @version $Id$
- * @since 2.0
  * @deprecated package change since 3.0
  */
 @SuppressWarnings ( "serial" )

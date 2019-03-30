@@ -32,9 +32,9 @@ ${project.name}
   default compiler is javax.tools.JavaCompiler (if you are using java 1.6) and is used to compile Java sources.
   If you want to force the plugin using  <<<javac>>>, you must configure the plugin option {{{./compile-mojo.html#forceJavacCompilerUse}<<<forceJavacCompilerUse>>>}}.
 
-  Also note that at present the default <<<source>>> setting is <<<1.5>>> and the default <<<target>>>
-  setting is <<<1.5>>>, independently of the JDK you run Maven with.
-  If you want to change these defaults, you should set <<<source>>> and <<<target>>>
+  Also note that at present the default <<<source>>> setting is <<<1.6>>> and the default <<<target>>>
+  setting is <<<1.6>>>, independently of the JDK you run Maven with.
+  You are highly encouraged to change these defaults by setting <<<source>>> and <<<target>>>
   as described in
   {{{./examples/set-compiler-source-and-target.html}Setting the -source and -target of the Java Compiler}}.
 

@@ -19,3 +19,7 @@
 def log = new File( basedir, 'build.log').text
 
 assert log.count( " --module-path" ) == 2
+
+def descriptor = java.lang.module.ModuleFinder.of(basedir.toPath().resolve("target/classes")).find( "M.N" ).get().descriptor()
+assert '1.0-SNAPSHOT' == descriptor.version().get() as String
+assert 'M.N@1.0-SNAPSHOT' == descriptor.toNameAndVersion()
