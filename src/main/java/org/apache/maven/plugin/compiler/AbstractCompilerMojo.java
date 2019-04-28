@@ -655,6 +655,11 @@ public abstract class AbstractCompilerMojo
 
         if ( generatedSourcesDirectory != null )
         {
+            if ( !generatedSourcesDirectory.exists() )
+            {
+                generatedSourcesDirectory.mkdirs();
+            }
+
             String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
 
             compileSourceRoots.add( generatedSourcesPath );
@@ -1605,7 +1610,7 @@ public abstract class AbstractCompilerMojo
         if ( classPathEntry.isFile() )
         {
             return classPathEntry.lastModified() >= buildStartTime.getTime()
-                && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) );
+                    && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) );
         }
 
         File[] children = classPathEntry.listFiles();
