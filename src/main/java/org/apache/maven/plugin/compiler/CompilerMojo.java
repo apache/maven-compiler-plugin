@@ -271,12 +271,7 @@ public class CompilerMojo
                         if ( getOutputDirectory().toPath().startsWith( file.getPath() ) )
                         {
                             compilerArgs.add( "--patch-module" );
-                            
-                            StringBuilder patchModuleValue = new StringBuilder( moduleDescriptor.name() )
-                                            .append( '=' )
-                                            .append( file.getPath() );
-                            
-                            compilerArgs.add( patchModuleValue.toString() );
+                            compilerArgs.add( String.format( "%s=%s", moduleDescriptor.name(), file.getPath() ) );
                         }
                     }
                 }
