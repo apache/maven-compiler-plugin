@@ -230,7 +230,7 @@ public class CompilerMojo
                                        .setMainModuleDescriptor( moduleDescriptorPath );
                 
                 Toolchain toolchain = getToolchain();
-                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                if ( toolchain instanceof DefaultJavaToolChain )
                 {
                     request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
                 }
