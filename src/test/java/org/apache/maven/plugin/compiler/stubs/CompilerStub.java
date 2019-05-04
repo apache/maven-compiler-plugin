@@ -55,25 +55,21 @@ public class CompilerStub
     }
 
     public String getInputFileEnding( CompilerConfiguration compilerConfiguration )
-        throws CompilerException
     {
         return "java";
     }
 
     public String getOutputFileEnding( CompilerConfiguration compilerConfiguration )
-        throws CompilerException
     {
         return "class";
     }
 
     public String getOutputFile( CompilerConfiguration compilerConfiguration )
-        throws CompilerException
     {
         return "output-file";
     }
 
     public boolean canUpdateTarget( CompilerConfiguration compilerConfiguration )
-        throws CompilerException
     {
         return false;
     }
@@ -126,7 +122,6 @@ public class CompilerStub
     }
 
     public String[] createCommandLine( CompilerConfiguration compilerConfiguration )
-        throws CompilerException
     {
         return new String[0];
     }
