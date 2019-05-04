@@ -336,7 +336,7 @@ public class TestCompilerMojo
                 {
                     if ( compilerArgs == null )
                     {
-                        compilerArgs = new ArrayList<String>();
+                        compilerArgs = new ArrayList<>();
                     }
                     compilerArgs.add( "--patch-module" );
 
@@ -380,7 +380,7 @@ public class TestCompilerMojo
             {
                 if ( compilerArgs == null )
                 {
-                    compilerArgs = new ArrayList<String>();
+                    compilerArgs = new ArrayList<>();
                 }
                 compilerArgs.add( "--patch-module" );
                 
