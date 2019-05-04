@@ -256,18 +256,18 @@ public class CompilerMojo
                 {
                     pathElements.put( entry.getKey().getPath(), entry.getValue() );
                 }
-                
+
+                if ( compilerArgs == null )
+                {
+                    compilerArgs = new ArrayList<>();
+                }
+
                 for ( File file : resolvePathsResult.getClasspathElements() )
                 {
                     classpathElements.add( file.getPath() );
                     
                     if ( multiReleaseOutput )
                     {
-                        if ( compilerArgs == null )
-                        {
-                            compilerArgs = new ArrayList<>();
-                        }
-                        
                         if ( getOutputDirectory().toPath().startsWith( file.getPath() ) )
                         {
                             compilerArgs.add( "--patch-module" );
@@ -286,10 +286,6 @@ public class CompilerMojo
                     modulepathElements.add( file.getPath() );
                 }
                 
-                if ( compilerArgs == null )
-                {
-                    compilerArgs = new ArrayList<>();
-                }
                 compilerArgs.add( "--module-version" );
                 compilerArgs.add( getProject().getVersion() );
                 
