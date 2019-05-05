@@ -37,7 +37,7 @@ public class CompilationFailureException
     /**
      * Wrap error messages from the compiler
      *
-     * @param messages the messages
+     * @param messages the messages, not null
      * @since 2.0
      */
     public CompilationFailureException( List<CompilerMessage> messages )
@@ -48,7 +48,7 @@ public class CompilationFailureException
     /**
      * Long message will have all messages, one per line
      *
-     * @param messages the messages
+     * @param messages the messages, not null
      * @return the long error message
      * @since 2.0
      */
@@ -56,20 +56,18 @@ public class CompilationFailureException
     {
         StringBuilder sb = new StringBuilder();
 
-        if ( messages != null )
+        for ( CompilerMessage compilerError : messages )
         {
-            for ( CompilerMessage compilerError : messages )
-            {
-                sb.append( compilerError ).append( LS );
-            }
+            sb.append( compilerError ).append( LS );
         }
+
         return sb.toString();
     }
 
     /**
      * Short message will have the error message if there's only one, useful for errors forking the compiler
      *
-     * @param messages the messages
+     * @param messages the messages, not null
      * @return the short error message
      * @since 2.0.2
      */
