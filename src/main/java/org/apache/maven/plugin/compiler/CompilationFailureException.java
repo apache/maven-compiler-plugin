@@ -73,17 +73,11 @@ public class CompilationFailureException
      */
     public static String shortMessage( List<CompilerMessage> messages )
     {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append( "Compilation failure" );
+        StringBuilder sb = new StringBuilder( "Compilation failure" );
 
         if ( messages.size() == 1 )
         {
-            sb.append( LS );
-
-            CompilerMessage compilerError = messages.get( 0 );
-
-            sb.append( compilerError ).append( LS );
+            sb.append( LS ).append( messages.get( 0 ) ).append( LS );
         }
 
         return sb.toString();
