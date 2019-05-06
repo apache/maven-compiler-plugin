@@ -472,7 +472,7 @@ public abstract class AbstractCompilerMojo
 
     /**
      * file extensions to check timestamp for incremental build
-     * <b>default contains only <code>.class</code></b>
+     * <b>default contains only <code>class</code></b>
      *
      * @since 3.1
      */
