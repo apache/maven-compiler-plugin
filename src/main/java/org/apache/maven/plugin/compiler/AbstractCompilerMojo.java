@@ -859,11 +859,14 @@ public abstract class AbstractCompilerMojo
             {
                 // MCOMPILER-366: if sources contain the module-descriptor it must be used to define the modulepath
                 sources = getCompileSources( compiler, compilerConfiguration );
-                
-                getLog().debug( "#sources: " + sources.size() );
-                for ( File file : sources )
+
+                if ( getLog().isDebugEnabled() )
                 {
-                    getLog().debug( file.getPath() );
+                    getLog().debug( "#sources: " + sources.size() );
+                    for ( File file : sources )
+                    {
+                        getLog().debug( file.getPath() );
+                    }
                 }
 
                 preparePaths( sources );
