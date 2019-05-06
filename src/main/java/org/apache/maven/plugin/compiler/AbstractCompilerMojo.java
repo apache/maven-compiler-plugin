@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1566,8 +1567,7 @@ public abstract class AbstractCompilerMojo
 
         if ( fileExtensions == null || fileExtensions.isEmpty() )
         {
-            fileExtensions = new ArrayList<>();
-            fileExtensions.add( "class" );
+            fileExtensions = Collections.singletonList( "class" );
         }
 
         Date buildStartTime = getBuildStartTime();
