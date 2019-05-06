@@ -963,7 +963,7 @@ public abstract class AbstractCompilerMojo
                 }
 
                 String[] cl = compiler.createCommandLine( compilerConfiguration );
-                if ( getLog().isDebugEnabled() && cl != null && cl.length > 0 )
+                if ( cl != null && cl.length > 0 )
                 {
                     StringBuilder sb = new StringBuilder();
                     sb.append( cl[0] );
