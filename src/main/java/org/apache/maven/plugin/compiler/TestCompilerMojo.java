@@ -241,7 +241,7 @@ public class TestCompilerMojo
                                 .setMainModuleDescriptor( mainModuleDescriptorClassFile.getAbsolutePath() );
 
                 Toolchain toolchain = getToolchain();
-                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                if ( toolchain instanceof DefaultJavaToolChain )
                 {
                     request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
                 }
@@ -285,7 +285,7 @@ public class TestCompilerMojo
                                 .setMainModuleDescriptor( testModuleDescriptorJavaFile.getAbsolutePath() );
 
                 Toolchain toolchain = getToolchain();
-                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                if ( toolchain instanceof DefaultJavaToolChain )
                 {
                     request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
                 }
@@ -336,7 +336,7 @@ public class TestCompilerMojo
                 {
                     if ( compilerArgs == null )
                     {
-                        compilerArgs = new ArrayList<String>();
+                        compilerArgs = new ArrayList<>();
                     }
                     compilerArgs.add( "--patch-module" );
 
@@ -380,7 +380,7 @@ public class TestCompilerMojo
             {
                 if ( compilerArgs == null )
                 {
-                    compilerArgs = new ArrayList<String>();
+                    compilerArgs = new ArrayList<>();
                 }
                 compilerArgs.add( "--patch-module" );
                 

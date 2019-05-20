@@ -1667,7 +1667,7 @@ public abstract class AbstractCompilerMojo
 
             resolutionErrorHandler.throwErrors( request, resolutionResult );
 
-            List<String> elements = new ArrayList<String>( resolutionResult.getArtifacts().size() );
+            List<String> elements = new ArrayList<>( resolutionResult.getArtifacts().size() );
 
             for ( Object resolved : resolutionResult.getArtifacts() )
             {

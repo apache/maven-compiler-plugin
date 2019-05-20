@@ -161,11 +161,11 @@ public class CompilerMojoTestCase
         CompilerMojo compileMojo =
             getCompilerMojo( "target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml" );
 
-        Set<String> includes = new HashSet<String>();
+        Set<String> includes = new HashSet<>();
         includes.add( "**/TestCompile4*.java" );
         setVariableValueToObject( compileMojo, "includes", includes );
 
-        Set<String> excludes = new HashSet<String>();
+        Set<String> excludes = new HashSet<>();
         excludes.add( "**/TestCompile2*.java" );
         excludes.add( "**/TestCompile3*.java" );
         setVariableValueToObject( compileMojo, "excludes", excludes );
@@ -275,11 +275,11 @@ public class CompilerMojoTestCase
 
         setVariableValueToObject( compileMojo, "compilerManager", new CompilerManagerStub() );
 
-        Set<String> includes = new HashSet<String>();
+        Set<String> includes = new HashSet<>();
         includes.add( "**/TestCompile4*.java" );
         setVariableValueToObject( compileMojo, "includes", includes );
 
-        Set<String> excludes = new HashSet<String>();
+        Set<String> excludes = new HashSet<>();
         excludes.add( "**/TestCompile2*.java" );
         excludes.add( "**/TestCompile3*.java" );
         setVariableValueToObject( compileMojo, "excludes", excludes );
@@ -414,7 +414,7 @@ public class CompilerMojoTestCase
         File testClassesDir = new File( buildDir, "test-classes" );
         setVariableValueToObject( mojo, "outputDirectory", testClassesDir );
 
-        List<String> testClasspathList = new ArrayList<String>();
+        List<String> testClasspathList = new ArrayList<>();
         
         Artifact junitArtifact = mock( Artifact.class );
         ArtifactHandler handler = mock( ArtifactHandler.class );

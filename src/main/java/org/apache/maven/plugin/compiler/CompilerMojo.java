@@ -230,7 +230,7 @@ public class CompilerMojo
                                        .setMainModuleDescriptor( moduleDescriptorPath );
                 
                 Toolchain toolchain = getToolchain();
-                if ( toolchain != null && toolchain instanceof DefaultJavaToolChain )
+                if ( toolchain instanceof DefaultJavaToolChain )
                 {
                     request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
                 }
@@ -256,27 +256,22 @@ public class CompilerMojo
                 {
                     pathElements.put( entry.getKey().getPath(), entry.getValue() );
                 }
-                
+
+                if ( compilerArgs == null )
+                {
+                    compilerArgs = new ArrayList<>();
+                }
+
                 for ( File file : resolvePathsResult.getClasspathElements() )
                 {
                     classpathElements.add( file.getPath() );
                     
                     if ( multiReleaseOutput )
                     {
-                        if ( compilerArgs == null )
-                        {
-                            compilerArgs = new ArrayList<>();
-                        }
-                        
                         if ( getOutputDirectory().toPath().startsWith( file.getPath() ) )
                         {
                             compilerArgs.add( "--patch-module" );
-                            
-                            StringBuilder patchModuleValue = new StringBuilder( moduleDescriptor.name() )
-                                            .append( '=' )
-                                            .append( file.getPath() );
-                            
-                            compilerArgs.add( patchModuleValue.toString() );
+                            compilerArgs.add( String.format( "%s=%s", moduleDescriptor.name(), file.getPath() ) );
                         }
                     }
                 }
@@ -286,10 +281,6 @@ public class CompilerMojo
                     modulepathElements.add( file.getPath() );
                 }
                 
-                if ( compilerArgs == null )
-                {
-                    compilerArgs = new ArrayList<>();
-                }
                 compilerArgs.add( "--module-version" );
                 compilerArgs.add( getProject().getVersion() );
                 

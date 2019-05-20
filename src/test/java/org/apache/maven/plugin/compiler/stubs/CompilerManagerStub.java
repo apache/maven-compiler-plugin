@@ -20,7 +20,6 @@ package org.apache.maven.plugin.compiler.stubs;
  */
 
 import org.codehaus.plexus.compiler.manager.CompilerManager;
-import org.codehaus.plexus.compiler.manager.NoSuchCompilerException;
 
 /**
  * @author Edwin Punzalan
@@ -41,7 +40,6 @@ public class CompilerManagerStub
     }
 
     public org.codehaus.plexus.compiler.Compiler getCompiler( String compilerId )
-        throws NoSuchCompilerException
     {
         return new CompilerStub( shouldFail );
     }
