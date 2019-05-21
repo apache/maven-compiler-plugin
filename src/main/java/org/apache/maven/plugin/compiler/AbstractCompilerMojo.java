@@ -1071,7 +1071,7 @@ public abstract class AbstractCompilerMojo
 
                 StringBuilder sb = new StringBuilder();
                 
-                if ( patchModules.size() > 0 )
+                if ( !patchModules.isEmpty() )
                 {
                     for ( String mod : patchModules )
                     {
@@ -1341,7 +1341,7 @@ public abstract class AbstractCompilerMojo
                 getLog().debug( "Stale source detected: " + f.getAbsolutePath() );
             }
         }
-        return staleSources != null && staleSources.size() > 0;
+        return staleSources != null && !staleSources.isEmpty();
     }
 
 
@@ -1428,7 +1428,7 @@ public abstract class AbstractCompilerMojo
                     (List<Toolchain>) getToolchainsMethod.invoke( toolchainManager, session, "jdk",
                                                                   jdkToolchain );
 
-                if ( tcs != null && tcs.size() > 0 )
+                if ( tcs != null && !tcs.isEmpty() )
                 {
                     tc = tcs.get( 0 );
                 }
