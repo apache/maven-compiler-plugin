@@ -34,11 +34,24 @@ public class CompilationFailureException
 {
     private static final String LS = System.getProperty( "line.separator" );
 
+    /**
+     * Wrap error messages from the compiler
+     *
+     * @param messages the messages
+     * @since 2.0
+     */
     public CompilationFailureException( List<CompilerMessage> messages )
     {
         super( null, shortMessage( messages ), longMessage( messages ) );
     }
 
+    /**
+     * Long message will have all messages, one per line
+     *
+     * @param messages the messages
+     * @return the long error message
+     * @since 2.0
+     */
     public static String longMessage( List<CompilerMessage> messages )
     {
         StringBuilder sb = new StringBuilder();
