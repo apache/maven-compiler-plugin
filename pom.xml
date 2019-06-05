@@ -83,16 +83,6 @@ under the License.
     </contributor>
   </contributors>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <!-- to remove when using plexus-java-1.0.0 -->
-        <groupId>com.thoughtworks.qdox</groupId>
-        <artifactId>qdox</artifactId>
-        <version>2.0-M9</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>org.apache.maven.plugin-tools</groupId>
@@ -129,7 +119,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-java</artifactId>
-      <version>0.9.10</version>
+      <version>1.0.3</version>
     </dependency>
 
     <dependency>
