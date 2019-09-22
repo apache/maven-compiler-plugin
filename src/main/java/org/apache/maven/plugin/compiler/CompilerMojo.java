@@ -377,26 +377,15 @@ public class CompilerMojo
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
     {
-        SourceInclusionScanner scanner;
-
         // it's not defined if we get the ending with or without the dot '.'
         String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
 
-        if ( includes.isEmpty() && excludes.isEmpty() )
+        if ( includes.isEmpty() )
         {
-            includes = Collections.singleton( defaultIncludePattern );
-            scanner = new SimpleSourceInclusionScanner( includes, Collections.<String>emptySet() );
-        }
-        else
-        {
-            if ( includes.isEmpty() )
-            {
-                includes.add( defaultIncludePattern );
-            }
-            scanner = new SimpleSourceInclusionScanner( includes, excludes );
+            includes.add( defaultIncludePattern );
         }
 
-        return scanner;
+        return new SimpleSourceInclusionScanner( includes, excludes );
     }
 
     protected String getSource()
