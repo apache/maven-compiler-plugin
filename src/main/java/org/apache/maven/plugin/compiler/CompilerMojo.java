@@ -357,22 +357,17 @@ public class CompilerMojo
     
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
     {
-        SourceInclusionScanner scanner;
-
         if ( includes.isEmpty() && excludes.isEmpty() )
         {
-            scanner = new StaleSourceScanner( staleMillis );
-        }
-        else
-        {
-            if ( includes.isEmpty() )
-            {
-                includes.add( "**/*.java" );
-            }
-            scanner = new StaleSourceScanner( staleMillis, includes, excludes );
+            return new StaleSourceScanner( staleMillis );
         }
 
-        return scanner;
+        if ( includes.isEmpty() )
+        {
+            includes.add( "**/*.java" );
+        }
+
+        return new StaleSourceScanner( staleMillis, includes, excludes );
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
