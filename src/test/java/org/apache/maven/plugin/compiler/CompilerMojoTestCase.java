@@ -19,7 +19,7 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
-import static org.mockito.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
