@@ -73,6 +73,7 @@ under the License.
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
     <openJpaVersion>2.4.2</openJpaVersion>
+    <plexus-java.version>0.9.10</plexus-java.version>
     <javaVersion>7</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
   </properties>
@@ -129,7 +130,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-java</artifactId>
-      <version>0.9.10</version>
+      <version>${plexus-java.version}</version>
     </dependency>
 
     <dependency>
