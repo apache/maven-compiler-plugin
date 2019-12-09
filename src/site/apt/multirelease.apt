@@ -157,7 +157,7 @@ Single project
 
 * {{{http://in.relation.to/2017/02/13/building-multi-release-jars-with-maven/}Single Project}}
 
-  In this case everything stays inside one Maven project. Every specific Java version get its own source folder and output folder, and just before packaging they are combined. What's not covered is how to test every class.
+  In this case everything stays inside one Maven project. Every specific Java version gets its own source folder and output folder, and just before packaging they are combined. What's not covered is how to test every class.
 
 * {{{http://www.russgold.net/sw/2018/04/easier-than-it-looks/}Multi-Release Parent}}
 
