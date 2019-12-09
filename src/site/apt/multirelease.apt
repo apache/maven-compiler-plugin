@@ -89,7 +89,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
 * Challenges
 
   The theory behind multi release jars is quite simple, but in practice it can become quite complex. You must ensure that all classes stay in sync; if you add a method to one class, don't forget to add it to the other classes as well.
-  There are some options which should reduces problems at this level: Let all multirelease classes implement an interface and in the basecode instantiate the class but only call the interface methods. The best is to test the *jar* with all targeted Java versions.
+  There are some options which should reduce problems at this level: Let all multirelease classes implement an interface and in the basecode instantiate the class but only call the interface methods. The best is to test the *jar* with all targeted Java versions.
   You should think twice before turning your jar into a multi release jar, because such jars can be hard to read, maintain and test. In general applications don't need this, unless it is a widely distributed application and you don't control the targeted Java runtime. Libraries should make a decision based on: do I need this new Java feature? Can I make this Java version the new requirement? Would it be acceptable to solve this with an else/if-statement as mentioned in the first paragraph? 
 
   There are a couple of important facts one should know when creating Multi Release jars.
