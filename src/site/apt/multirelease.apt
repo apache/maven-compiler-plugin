@@ -28,7 +28,9 @@
 
 Multi Release
  
-  With {{{http://openjdk.java.net/jeps/238}JEP-238}} the support of multirelease jars was introduced. This means that you can have Java version dependent classes inside one jar. Based on the runtime it will pick up the best matching version of a class.
+  With {{{http://openjdk.java.net/jeps/238}JEP-238}} the support of multirelease jars was introduced.
+  This means that you can have Java version dependent classes inside one jar.
+  Based on the runtime it will pick up the best matching version of a class.
 
 * The "forward compatibility" problem
 
