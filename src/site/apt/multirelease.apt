@@ -137,7 +137,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   
   []
 
-  The first requirements implies that the project now are separate Maven projects. One Maven project contains the base-code and in the end this will also be the multirelease jar. 
+  The first requirements implies that the projects now are separate Maven projects. One Maven project contains the base-code and in the end this will also be the multirelease jar.
   When building such project for the first time, you'll need to call Maven at least 3 times: first the base needs to be compiled, next all version specific projects must be built and finally the main project needs to be built again, now including the version specific classes extracted from their jars.
   This setup is compact, but has cyclic dependencies. This requires some tricks and makes releasing a bit more complicated.
   Another downside is that you must install SNAPSHOTs to your local repository and when doing a release it requires 2 releases of the base project, one to prepare for the multirelease-nine and one with the released multirelease-nine. 
