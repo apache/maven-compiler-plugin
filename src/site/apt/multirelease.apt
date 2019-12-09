@@ -173,7 +173,7 @@ Single project
 
 {{{https://github.com/metlos/multi-release-jar-maven-plugin}Maven extension + plugin}}
 
-  This approach introduces a new packaging type and an extra plugins takes care of the multiple executions of the maven-compiler-plugin, but these are now
+  This approach introduces a new packaging type and an extra plugin takes care of the multiple executions of the maven-compiler-plugin, but these are now
   handled by the <<<perReleaseConfiguration>>> of the <<<multi-release-jar-maven-plugin>>>. What's not covered is how to test every class.
   
 
