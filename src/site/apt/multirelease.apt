@@ -116,7 +116,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   
   []
   
-  The only solution to cover the first two bullets was by split the code into a Maven multimodule project. Now every Maven module is just a standard Maven project with close to no specific adjustments in the pom.
+  The only solution to cover the first two bullets was to split the code into a Maven multimodule project. Now every Maven module is just a standard Maven project with close to no specific adjustments in the pom.
   There are several ways you can run this project:
   
   * Use the highest required version of the JDK to build the project. You can use <<<release>>> to ensure the code only uses matching code and syntax. Since the version-code is isolated you can run surefire with a higher Java runtime.
