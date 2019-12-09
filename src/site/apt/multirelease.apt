@@ -177,7 +177,7 @@ Single project
   handled by the <<<perReleaseConfiguration>>> of the <<<multi-release-jar-maven-plugin>>>. What's not covered is how to test every class.
   
 
-  For every pattern are integration tests created, based on the same set of sourcefiles. See {{https://github.com/apache/maven-compiler-plugin/tree/master/src/it/multirelease-patterns}}
+  For every pattern there are integration tests created, based on the same set of sourcefiles. See {{https://github.com/apache/maven-compiler-plugin/tree/master/src/it/multirelease-patterns}}
 
 *-------------------------------*-----------------------*-------------------------*---------------------------*------------------------------*--------------------------------*
 ||                              || Maven Multimodule    || Multi Project          || Single project (runtime) || Single project (toolchains) || Maven extension+plugin        ||
