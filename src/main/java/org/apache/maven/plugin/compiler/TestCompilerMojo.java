@@ -380,28 +380,131 @@ public class TestCompilerMojo
                 {
                     compilerArgs = new ArrayList<>();
                 }
-                compilerArgs.add( "--patch-module" );
+
+                // Patch module to add 
+                LinkedHashMap<String, List<String>> patchModules = new LinkedHashMap<>();
+
+                List<String> mainModulePaths = new ArrayList<>();
+                // Add main output dir
+                mainModulePaths.add( mainOutputDirectory.getAbsolutePath() );
+                // Add source roots
+                mainModulePaths.addAll( compileSourceRoots );
+                patchModules.put( mainModuleDescriptor.name(), mainModulePaths );
                 
-                StringBuilder patchModuleValue = new StringBuilder( mainModuleDescriptor.name() )
-                                .append( '=' )
-                                .append( mainOutputDirectory )
-                                .append( PS );
-                for ( String root : compileSourceRoots )
+                // Main module detected, modularized test dependencies must augment patch modules
+                patchModulesForTestDependencies( 
+                    mainModuleDescriptor.name(), mainOutputDirectory.getAbsolutePath(),
+                    patchModules 
+                );
+
+                for ( Entry<String, List<String>> patchModuleEntry: patchModules.entrySet() ) 
                 {
-                    patchModuleValue.append( root ).append( PS );
+                    compilerArgs.add( "--patch-module" );
+                    StringBuilder patchModuleValue = new StringBuilder( patchModuleEntry.getKey() )
+                                    .append( '=' );
+                    
+                    for ( String path : patchModuleEntry.getValue() )
+                    {
+                        patchModuleValue.append( path ).append( PS );
+                    }
+                    
+                    compilerArgs.add( patchModuleValue.toString() );
                 }
-                
-                compilerArgs.add( patchModuleValue.toString() );
                 
                 compilerArgs.add( "--add-reads" );
                 compilerArgs.add( mainModuleDescriptor.name() + "=ALL-UNNAMED" );
+                
             }
             else
             {
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
             }
+
         }
+    }
+
+    /**
+     * Compiling with test classpath is not sufficient because some dependencies <br/>
+     * may be modularized and their test class path addition would be ignored.<p/>
+     * Example from MCOMPILER-372_modularized_test:<br/>
+     * prj2 test classes depend on prj1 classes and test classes<br/>
+     * As prj1.jar is added as a module, pjr1-tests.jar classes are ignored if we add jar class path<br/>
+     * We have to add pjr1-tests.jar as --patch-module<p/>
+     * @param mainModuleName
+     * param mainModuleTarget
+     * @param patchModules map of module names -&gt; list of paths to add to --patch-module option
+     * 
+     */
+    protected void patchModulesForTestDependencies( 
+        String mainModuleName, String mainModuleTarget,
+        LinkedHashMap<String, List<String>> patchModules 
+    )
+    {
+     
+        ResolvePathsResult<String> result;
+        
+        try
+        {
+            // Get compile path information to identify modularized compile path elements
+            ResolvePathsRequest<String> request =
+                ResolvePathsRequest.ofStrings( compilePath );
+
+            request.setIncludeAllProviders( true );
+            
+            Toolchain toolchain = getToolchain();
+            if ( toolchain instanceof DefaultJavaToolChain )
+            {
+                request.setJdkHome( ( (DefaultJavaToolChain) toolchain ).getJavaHome() );
+            }
+
+            result = locationManager.resolvePaths( request );
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+        
+        // Get modularized dependencies resolved before
+        for ( Entry<String, JavaModuleDescriptor> pathElt : result.getPathElements().entrySet() ) 
+        {
+            
+            String path = pathElt.getKey();
+            JavaModuleDescriptor javaModuleDescriptor = pathElt.getValue();
+            
+            if ( 
+                  // Is it a modularized compile elements?
+                  ( path != null ) && ( javaModuleDescriptor != null )
+                  &&
+                  // Is it different from main module name
+                  !mainModuleName.equals( javaModuleDescriptor.name() )
+            ) 
+            {
+            
+                // Add compile classpath
+                // Yes, add it as patch module
+                List<String> listPath = patchModules.get( javaModuleDescriptor.name() );
+                // Make sure it is initialized
+                if ( listPath == null ) 
+                {
+                    listPath = new ArrayList<>();
+                    patchModules.put( javaModuleDescriptor.name(), listPath );
+                }
+                
+                // Add test compile path but not main module target
+                listPath.addAll( testPath );
+                // Remove main target path
+                listPath.remove( mainModuleTarget );
+                
+            }
+        }
+        
+        if ( pathElements == null ) 
+        {
+            pathElements = new LinkedHashMap<>( result.getPathElements().size() );
+            pathElements.putAll( result.getPathElements() );
+        }
+        
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
