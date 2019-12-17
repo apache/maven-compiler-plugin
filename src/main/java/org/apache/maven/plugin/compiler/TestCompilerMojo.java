@@ -248,7 +248,7 @@ public class TestCompilerMojo
                 
                 for ( Entry<String, Exception> pathException : result.getPathExceptions().entrySet() )
                 {
-                    Throwable cause = pathException.getValue().getCause();
+                    Throwable cause = pathException.getValue();
                     while ( cause.getCause() != null )
                     {
                         cause = cause.getCause();
