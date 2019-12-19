@@ -34,6 +34,7 @@
   </properties>
 
   <modules>
+    <module>prj0</module>
     <module>prj1</module>
     <module>prj2</module>
   </modules>
