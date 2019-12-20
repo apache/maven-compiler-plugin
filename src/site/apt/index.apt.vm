@@ -83,6 +83,8 @@ ${project.name}
 
   * {{{./examples/set-compiler-source-and-target.html}Compile Using -source and -target javac Options}}
 
+  * {{{./examples/set-compiler-release.html}Compile Using the --release javac Option (supported since JDK 9)}}
+
   * {{{./examples/compile-with-memory-enhancements.html}Compile Using Memory Allocation Enhancement}}
 
   * {{{./examples/pass-compiler-arguments.html}Pass Compiler Arguments}}
