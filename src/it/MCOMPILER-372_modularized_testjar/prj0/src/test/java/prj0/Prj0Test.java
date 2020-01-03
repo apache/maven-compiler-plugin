@@ -19,10 +19,15 @@
 
 package prj0;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import junit.framework.TestCase;
 
 public class Prj0Test extends TestCase
 {
+    
+    public static final Logger LOGGER = LogManager.getLogger( Prj0Test.class );
+
     public void test() {
         
     }

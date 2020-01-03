@@ -19,10 +19,15 @@
 
 package prj2;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prj1.Prj1Test;
 
 public class Prj2Test extends Prj1Test
 {
+
+    public static final Logger LOGGER = LogManager.getLogger( Prj2Test.class );
 
     public Prj2Test() {
         super();

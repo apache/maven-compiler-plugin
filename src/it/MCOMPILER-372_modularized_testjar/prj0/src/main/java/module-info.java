@@ -21,6 +21,9 @@ module prj0_372 {
 
     exports prj0;
 
+    // For log4j
+    requires transitive org.apache.logging.log4j;
+
     // For JAXB compilation
     requires transitive java.xml;
     requires transitive java.xml.bind;
