@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -161,13 +162,6 @@ public class TestCompilerMojo
 
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
-
-    /**
-     * @see org.apache.maven.plugin.compiler.CompilerMojo.multiReleaseOutput
-     */
-    @Parameter
-    private boolean multiReleaseOutput;
-
 
     final LocationManager locationManager = new LocationManager();
 
@@ -478,6 +472,58 @@ public class TestCompilerMojo
             throw new RuntimeException( e );
         }
         
+        // Prepare a path list containing test paths for modularized paths
+        // This path list will augment modules to be able to compile
+        List<String> listModuleTestPaths = new ArrayList<>( testPath.size() );
+        
+        // Browse modules
+        for ( Entry<File, ModuleNameSource> pathElt : result.getModulepathElements().entrySet() )
+        {
+            
+            File modulePathElt = pathElt.getKey();
+
+            // Get module name
+            JavaModuleDescriptor moduleDesc = result.getPathElements().get( modulePathElt );
+            String moduleName = ( moduleDesc != null ) ? moduleDesc.name() : null;
+            
+            if ( 
+                  // Is it a modularized compile elements?
+                  ( modulePathElt != null ) && ( moduleName != null )
+                  &&
+                  // Is it different from main module name
+                  !mainModuleName.equals( moduleName )
+            ) 
+            {
+                
+                // Get test path element
+                File moduleTestPathElt = getModuleTestPathElt( modulePathElt );
+                
+                if ( moduleTestPathElt != null ) 
+                {
+                    listModuleTestPaths.add( moduleTestPathElt.getAbsolutePath() );
+                }
+                
+            }
+            
+        }
+        
+        // Remove main target path
+        listModuleTestPaths.remove( mainModuleTarget );
+        listModuleTestPaths.remove( outputDirectory.getAbsolutePath() );
+        
+        // Freeze list
+        listModuleTestPaths = Collections.unmodifiableList( listModuleTestPaths );
+        
+        if ( getLog().isDebugEnabled() ) 
+        {
+            getLog().debug( "patchModule test paths:" );
+            for ( String moduleTestPath : listModuleTestPaths ) 
+            {
+                getLog().debug( "  " + moduleTestPath );
+            }
+            
+        }
+        
         // Get modularized dependencies resolved before
         for ( Entry<File, ModuleNameSource> pathElt : result.getModulepathElements().entrySet() ) 
         {
@@ -485,23 +531,31 @@ public class TestCompilerMojo
             File path = pathElt.getKey();
             ModuleNameSource moduleNameSource = pathElt.getValue();
             
-            // Retain only modules with an explicit module-info descriptor
-            if ( ModuleNameSource.MODULEDESCRIPTOR.equals( moduleNameSource ) )
+            // Get module name
+            JavaModuleDescriptor moduleDesc = result.getPathElements().get( path );
+            String moduleName = ( moduleDesc != null ) ? moduleDesc.name() : null;
+            
+            if ( 
+                  // Is it a modularized compile elements?
+                  ( path != null ) && ( moduleName != null )
+                  &&
+                  // Not an auto-module
+                  !moduleDesc.isAutomatic()
+                  &&
+                  // Is it different from main module name
+                  !mainModuleName.equals( moduleName )
+            ) 
             {
-                // Get module name
-                JavaModuleDescriptor moduleDesc = result.getPathElements().get( path );
-                String moduleName = ( moduleDesc != null ) ? moduleDesc.name() : null;
+            
+                // Add --add-reads <moduleName>=ALL-UNNAMED
+                compilerArgs.add( "--add-reads" );
+                StringBuilder sbAddReads = new StringBuilder();
+                sbAddReads.append( moduleName ).append( "=ALL-UNNAMED" );
+                compilerArgs.add( sbAddReads.toString() );
                 
-                if ( 
-                      // Is it a modularized compile elements?
-                      ( path != null ) && ( moduleName != null )
-                      &&
-                      // Is it different from main module name
-                      !mainModuleName.equals( moduleName )
-                ) 
+                // Add compile classpath if needed
+                if ( !listModuleTestPaths.isEmpty() )
                 {
-                
-                    // Add compile classpath
                     // Yes, add it as patch module
                     List<String> listPath = patchModules.get( moduleName );
                     // Make sure it is initialized
@@ -509,25 +563,80 @@ public class TestCompilerMojo
                     {
                         listPath = new ArrayList<>();
                         patchModules.put( moduleName, listPath );
-                    }
+                    } 
                     
                     // Add test compile path but not main module target
-                    listPath.addAll( testPath );
-                    // Remove main target path
-                    listPath.remove( mainModuleTarget );
-                    
+                    listPath.addAll( listModuleTestPaths );
                 }
+                
             }
             
-            if ( pathElements == null ) 
+        }
+
+        if ( pathElements == null ) 
+        {
+            pathElements = new LinkedHashMap<>( result.getPathElements().size() );
+            for ( Entry<File, JavaModuleDescriptor> entry : result.getPathElements().entrySet() ) 
             {
-                pathElements = new LinkedHashMap<>( result.getPathElements().size() );
-                for ( Entry<File, JavaModuleDescriptor> entry : result.getPathElements().entrySet() ) 
-                {
-                    pathElements.put( entry.getKey().getAbsolutePath(), entry.getValue() );
-                }
+                pathElements.put( entry.getKey().getAbsolutePath(), entry.getValue() );
             }
         }
+    }
+
+    /**
+     * Get module test path element from module path element
+     * @param modulePathElt
+     * @return
+     */
+    private File getModuleTestPathElt( File modulePathElt )
+    {
+
+        File result = null;
+        
+        // Get parent, base name and extension
+        File parentFile = modulePathElt.getParentFile();
+        // Get base name
+        String baseName = FilenameUtils.getBaseName( modulePathElt.getName() );
+        
+        // For test directory
+        if ( modulePathElt.isDirectory() )
+        {    
+            
+            // Already a test path?
+            if ( baseName.startsWith( "test-" ) ) 
+            {
+                // Sorry, no test path for test path
+                return null;
+            }
+            
+            // Build new name
+            String testName = "test-" + modulePathElt.getName();
+            result = new File( parentFile, testName );
+            
+        }
+        else
+        {
+        
+            // Already a test path?
+            if ( modulePathElt.isFile() && ( baseName.endsWith( "-tests" ) ) ) 
+            {
+                // Sorry, no test path for test path
+                return null;
+            }
+            
+            // Build new name
+            String testName = baseName + "-tests." + FilenameUtils.getExtension( modulePathElt.getName() );
+            result = new File( parentFile, testName );
+
+        }
+        
+        // Last check : result (directory or file) exists?
+        if ( ( result != null ) && !result.exists() ) 
+        {
+            result = null;
+        }
+        
+        return result;
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
@@ -615,21 +724,6 @@ public class TestCompilerMojo
     {
         // 3 is outputFolder + 2 preserved for multirelease  
         List<File> list = new ArrayList<>( project.getArtifacts().size() + 3 );
-
-        if ( multiReleaseOutput )
-        {
-            File versionsFolder = new File( project.getBuild().getOutputDirectory(), "META-INF/versions" );
-            
-            // in reverse order
-            for ( int version = Integer.parseInt( getRelease() ) - 1; version >= 9 ; version-- )
-            {
-                File versionSubFolder = new File( versionsFolder, String.valueOf( version ) );
-                if ( versionSubFolder.exists() )
-                {
-                    list.add( versionSubFolder );
-                }
-            }
-        }
 
         list.add( new File( project.getBuild().getOutputDirectory() ) );
 
