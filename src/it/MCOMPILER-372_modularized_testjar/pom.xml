@@ -37,6 +37,7 @@
     <module>prj0</module>
     <module>prj1</module>
     <module>prj2</module>
+    <module>prj3</module>
   </modules>
 
   <build>
