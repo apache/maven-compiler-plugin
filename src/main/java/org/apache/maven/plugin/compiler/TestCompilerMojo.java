@@ -591,8 +591,16 @@ public class TestCompilerMojo
     private File getModuleTestPathElt( File modulePathElt )
     {
 
-        File result = null;
+        // Get test path from reactor projects
+        File result = getModuleTestPathEltFromReactorProjects( modulePathElt );
         
+        // Success?
+        if ( result != null ) 
+        {
+            return result;
+        }
+        
+        // Not found in reactor project, try to guess test path from module path
         // Get parent, base name and extension
         File parentFile = modulePathElt.getParentFile();
         // Get base name
@@ -628,6 +636,39 @@ public class TestCompilerMojo
             String testName = baseName + "-tests." + FilenameUtils.getExtension( modulePathElt.getName() );
             result = new File( parentFile, testName );
 
+        }
+        
+        // Last check : result (directory or file) exists?
+        if ( ( result != null ) && !result.exists() ) 
+        {
+            result = null;
+        }
+        
+        return result;
+
+    }
+
+    protected File getModuleTestPathEltFromReactorProjects( File modulePathElt )
+    {
+        File result = null;
+        
+        // Get reactor projects
+        List<MavenProject> reactorProjects = getReactorProjects();
+        
+        // Find project matching module path
+        for ( MavenProject reactorProject : reactorProjects )
+        {
+            // Get build folder
+            File reactorProjectBuildFolder = new File( reactorProject.getBuild().getOutputDirectory() );
+            
+            // Same as module path element?
+            if ( modulePathElt.equals( reactorProjectBuildFolder ) ) 
+            {
+                // Yes, get test build folder
+                result = new File( reactorProject.getBuild().getTestOutputDirectory() );
+                // Loop is finished
+                break;
+            }
         }
         
         // Last check : result (directory or file) exists?
