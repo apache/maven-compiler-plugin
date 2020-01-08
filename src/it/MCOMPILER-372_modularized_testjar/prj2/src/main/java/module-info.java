@@ -21,4 +21,6 @@ module prj2_372 {
 
     requires prj1_372;
     
+    exports prj2;
+    
 }
