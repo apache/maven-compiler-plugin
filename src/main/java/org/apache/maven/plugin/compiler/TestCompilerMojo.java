@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -529,7 +528,6 @@ public class TestCompilerMojo
         {
             
             File path = pathElt.getKey();
-            ModuleNameSource moduleNameSource = pathElt.getValue();
             
             // Get module name
             JavaModuleDescriptor moduleDesc = result.getPathElements().get( path );
@@ -588,64 +586,13 @@ public class TestCompilerMojo
      * @param modulePathElt
      * @return
      */
-    private File getModuleTestPathElt( File modulePathElt )
+    protected File getModuleTestPathElt( File modulePathElt )
     {
 
         // Get test path from reactor projects
         File result = getModuleTestPathEltFromReactorProjects( modulePathElt );
-        
-        // Success?
-        if ( result != null ) 
-        {
-            return result;
-        }
-        
-        // Not found in reactor project, try to guess test path from module path
-        // Get parent, base name and extension
-        File parentFile = modulePathElt.getParentFile();
-        // Get base name
-        String baseName = FilenameUtils.getBaseName( modulePathElt.getName() );
-        
-        // For test directory
-        if ( modulePathElt.isDirectory() )
-        {    
-            
-            // Already a test path?
-            if ( baseName.startsWith( "test-" ) ) 
-            {
-                // Sorry, no test path for test path
-                return null;
-            }
-            
-            // Build new name
-            String testName = "test-" + modulePathElt.getName();
-            result = new File( parentFile, testName );
-            
-        }
-        else
-        {
-        
-            // Already a test path?
-            if ( modulePathElt.isFile() && ( baseName.endsWith( "-tests" ) ) ) 
-            {
-                // Sorry, no test path for test path
-                return null;
-            }
-            
-            // Build new name
-            String testName = baseName + "-tests." + FilenameUtils.getExtension( modulePathElt.getName() );
-            result = new File( parentFile, testName );
-
-        }
-        
-        // Last check : result (directory or file) exists?
-        if ( ( result != null ) && !result.exists() ) 
-        {
-            result = null;
-        }
-        
         return result;
-
+        
     }
 
     protected File getModuleTestPathEltFromReactorProjects( File modulePathElt )
@@ -669,6 +616,7 @@ public class TestCompilerMojo
                 // Loop is finished
                 break;
             }
+            
         }
         
         // Last check : result (directory or file) exists?
