@@ -28,7 +28,9 @@
 
 Multi Release
  
-  With {{{http://openjdk.java.net/jeps/238}JEP-238}} the support of multirelease jars was introduced. This means that you can Java version dependent classes inside one jar. Based on the runtime it will pick up the best matching version of a class.
+  With {{{http://openjdk.java.net/jeps/238}JEP-238}} the support of multirelease jars was introduced.
+  This means that you can have Java version dependent classes inside one jar.
+  Based on the runtime it will pick up the best matching version of a class.
 
 * The "forward compatibility" problem
 
@@ -87,7 +89,9 @@ META-INF/MANIFEST.MF { Multi-Release: true }
 * Challenges
 
   The theory behind multi release jars is quite simple, but in practice it can become quite complex. You must ensure that all classes stay in sync; if you add a method to one class, don't forget to add it to the other classes as well.
-  There are some options which should reduces problems at this level: Let all multirelease classes implement an interface and in the basecode instantiate the class but only call the interface methods. The best is to test the *jar* with all targeted Java versions.
+  There are some options which should reduce problems at this level:
+  Let all multirelease classes implement an interface and in the basecode instantiate the class but only call the interface methods.
+  The best is to test the *jar* with all targeted Java versions.
   You should think twice before turning your jar into a multi release jar, because such jars can be hard to read, maintain and test. In general applications don't need this, unless it is a widely distributed application and you don't control the targeted Java runtime. Libraries should make a decision based on: do I need this new Java feature? Can I make this Java version the new requirement? Would it be acceptable to solve this with an else/if-statement as mentioned in the first paragraph? 
 
   There are a couple of important facts one should know when creating Multi Release jars.
@@ -112,7 +116,8 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   
   []
   
-  The only solution to cover the first two bullets was by split the code into a Maven multimodule project. Now every Maven module is just a standard Maven project with close to no specific adjustments in the pom.
+  The only solution to cover the first two bullets was to split the code into a Maven multimodule project.
+  Now every Maven module is just a standard Maven project with close to no specific adjustments in the pom.
   There are several ways you can run this project:
   
   * Use the highest required version of the JDK to build the project. You can use <<<release>>> to ensure the code only uses matching code and syntax. Since the version-code is isolated you can run surefire with a higher Java runtime.
@@ -132,7 +137,8 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   
   []
 
-  The first requirements implies that the project now are separate Maven projects. One Maven project contains the base-code and in the end this will also be the multirelease jar. 
+  The first requirements implies that the projects now are separate Maven projects.
+  One Maven project contains the base-code and in the end this will also be the multirelease jar.
   When building such project for the first time, you'll need to call Maven at least 3 times: first the base needs to be compiled, next all version specific projects must be built and finally the main project needs to be built again, now including the version specific classes extracted from their jars.
   This setup is compact, but has cyclic dependencies. This requires some tricks and makes releasing a bit more complicated.
   Another downside is that you must install SNAPSHOTs to your local repository and when doing a release it requires 2 releases of the base project, one to prepare for the multirelease-nine and one with the released multirelease-nine. 
@@ -151,7 +157,9 @@ Single project
 
 * {{{http://in.relation.to/2017/02/13/building-multi-release-jars-with-maven/}Single Project}}
 
-  In this case everything stays inside one Maven project. Every specific Java version get its own source folder and output folder, and just before packaging they are combined. What's not covered is how to test every class.
+  In this case everything stays inside one Maven project.
+  Every specific Java version gets its own source folder and output folder, and just before packaging they are combined.
+  What's not covered is how to test every class.
 
 * {{{http://www.russgold.net/sw/2018/04/easier-than-it-looks/}Multi-Release Parent}}
 
@@ -165,11 +173,11 @@ Single project
 
 {{{https://github.com/metlos/multi-release-jar-maven-plugin}Maven extension + plugin}}
 
-  This approach introduces a new packaging type and an extra plugins takes care of the multiple executions of the maven-compiler-plugin, but these are now
+  This approach introduces a new packaging type and an extra plugin takes care of the multiple executions of the maven-compiler-plugin, but these are now
   handled by the <<<perReleaseConfiguration>>> of the <<<multi-release-jar-maven-plugin>>>. What's not covered is how to test every class.
   
 
-  For every pattern are integration tests created, based on the same set of sourcefiles. See {{https://github.com/apache/maven-compiler-plugin/tree/master/src/it/multirelease-patterns}}
+  For every pattern there are integration tests created, based on the same set of sourcefiles. See {{https://github.com/apache/maven-compiler-plugin/tree/master/src/it/multirelease-patterns}}
 
 *-------------------------------*-----------------------*-------------------------*---------------------------*------------------------------*--------------------------------*
 ||                              || Maven Multimodule    || Multi Project          || Single project (runtime) || Single project (toolchains) || Maven extension+plugin        ||
