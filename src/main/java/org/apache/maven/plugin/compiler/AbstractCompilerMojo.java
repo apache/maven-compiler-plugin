@@ -98,9 +98,9 @@ public abstract class AbstractCompilerMojo
 {
     protected static final String PS = System.getProperty( "path.separator" );
 
-    static final String DEFAULT_SOURCE = "1.6";
+    static final String DEFAULT_SOURCE = "1.7";
     
-    static final String DEFAULT_TARGET = "1.6";
+    static final String DEFAULT_TARGET = "1.7";
     
     // Used to compare with older targets
     static final String MODULE_INFO_TARGET = "1.9";
@@ -167,7 +167,8 @@ public abstract class AbstractCompilerMojo
     /**
      * <p>The -source argument for the Java compiler.</p>
      * 
-     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6
+     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6.
+     * Since 3.9.0 the default value has changed from 1.6 to 1.7
      */
     @Parameter( property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE )
     protected String source;
@@ -175,7 +176,8 @@ public abstract class AbstractCompilerMojo
     /**
      * <p>The -target argument for the Java compiler.</p>
      * 
-     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6
+     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6.
+     * Since 3.9.0 the default value has changed from 1.6 to 1.7
      */
     @Parameter( property = "maven.compiler.target", defaultValue = DEFAULT_TARGET )
     protected String target;
@@ -1361,7 +1363,7 @@ public abstract class AbstractCompilerMojo
             Object mavenExecutionRequest = getRequestMethod.invoke( this.session );
             Method getThreadCountMethod = mavenExecutionRequest.getClass().getMethod( "getThreadCount" );
             String threadCount = (String) getThreadCountMethod.invoke( mavenExecutionRequest );
-            return Integer.valueOf( threadCount );
+            return Integer.parseInt( threadCount );
         }
         catch ( Exception e )
         {
