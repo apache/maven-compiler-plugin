@@ -1337,7 +1337,7 @@ public abstract class AbstractCompilerMojo
         Set<File> staleSources =
             computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
 
-        if ( getLog().isDebugEnabled() )
+        if ( ( staleSources != null ) && getLog().isDebugEnabled() )
         {
             for ( File f : staleSources )
             {
