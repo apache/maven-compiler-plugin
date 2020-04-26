@@ -124,6 +124,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   
   * Use toolchains if you really want to compile and test with the matching Java version. 
   
+  []
    
   The downside it that a hierarchical structure is required even though the result is just 1 artifact.
   
