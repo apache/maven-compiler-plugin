@@ -32,7 +32,9 @@ Multi Release
   This means that you can have Java version dependent classes inside one jar.
   Based on the runtime it will pick up the best matching version of a class.
 
-* The "forward compatibility" problem
+* JEP-238 Introduction
+
+** The "forward compatibility" problem
 
   The problem this JEP is trying to solve is to make it possible to use new JDK features even though the codebase must stay compatible with earlier versions.
 
@@ -40,7 +42,7 @@ Multi Release
     
   Up until Java 8 there were 2 solutions:
   
-  * Compile with the targeted JDK (i.e. Java 6) and use reflection. You can ensure that the code is Java 6 compatible, but the reflection-part is hard to verify.
+  [[1]] Compile with the targeted JDK (i.e. Java 6) and use reflection. You can ensure that the code is Java 6 compatible, but the reflection-part is hard to verify.
   
 ---
   if ( isAtLeastJava7() ) {
@@ -55,7 +57,7 @@ Multi Release
   }
 ---
   
-  * Compile with the required JDK (i.e. Java 7), but use source/target of the lowest version (i.e. 1.6). The danger here is that you cannot ensure that all code is Java 6 compatible. Depending on the code structure {{{https://www.mojohaus.org/animal-sniffer/}Animal Sniffer}} might help.
+  [[2]] Compile with the required JDK (i.e. Java 7), but use source/target of the lowest version (i.e. 1.6). The danger here is that you cannot ensure that all code is Java 6 compatible. Depending on the code structure {{{https://www.mojohaus.org/animal-sniffer/}Animal Sniffer}} might help.
   
 ---
   if ( isAtLeastJava7() ) {
@@ -69,7 +71,7 @@ Multi Release
  
   []
 
-* The "forward compatibility" solution
+** The "forward compatibility" solution
 
 ---
 A.class
@@ -104,7 +106,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   
   []       
 
-{{{https://github.com/hboutemy/maven-jep238}Maven Multimodule}}
+Pattern 1: {{{https://github.com/hboutemy/maven-jep238}Maven Multimodule}}
 
   This is the first pattern provided by the Maven team themselves. They had the following  requirements:
   
@@ -128,7 +130,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
    
   The downside it that a hierarchical structure is required even though the result is just 1 artifact.
   
-{{{http://word-bits.flurg.com/multrelease-jars/}Multi Project}} 
+Pattern 2: {{{http://word-bits.flurg.com/multrelease-jars/}Multi Project}} 
 
   This solution is a response to the previous Maven multimodule setup. The requirements are almost the same
 
@@ -144,7 +146,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
   This setup is compact, but has cyclic dependencies. This requires some tricks and makes releasing a bit more complicated.
   Another downside is that you must install SNAPSHOTs to your local repository and when doing a release it requires 2 releases of the base project, one to prepare for the multirelease-nine and one with the released multirelease-nine. 
    
-Single project
+Pattern 3: Single Project
 
   By now there are 3 solutions, each inspired by their previous version.
 
@@ -172,11 +174,12 @@ Single project
   This approach reduces the previous solution by only specifying execution blocks for sources for a specific Java version. It doesn't use toolchains, but the JDK used to run Maven. This means that only the sources up to the specific Java version are compiled and tested. 
   This solution relies heavily on a CI-server where every targeted Java version is available. If the CI-server succeeds, then all classes are tested with their matching Java version.
 
-{{{https://github.com/metlos/multi-release-jar-maven-plugin}Maven extension + plugin}}
+Pattern 4: {{{https://github.com/metlos/multi-release-jar-maven-plugin}Maven extension + plugin}}
 
   This approach introduces a new packaging type and an extra plugin takes care of the multiple executions of the maven-compiler-plugin, but these are now
   handled by the <<<perReleaseConfiguration>>> of the <<<multi-release-jar-maven-plugin>>>. What's not covered is how to test every class.
-  
+
+Patterns Summary
 
   For every pattern there are integration tests created, based on the same set of sourcefiles. See {{https://github.com/apache/maven-compiler-plugin/tree/master/src/it/multirelease-patterns}}
 
@@ -199,12 +202,19 @@ Single project
 *-------------------------------+-----------------------+-------------------------+---------------------------+------------------------------*--------------------------------+
 
   (a) Project can only be executed with highest required JDK, hence you can't test the code for all JDKs
+
   (b) Additional POM adjustments: # of executions added to the default lifecycle. This reflects the complexity of the POM.
+
   (c) Maven multimodule uses maven-assembly-plugin to assemble to multirelease jar
+
   (d) Multi project uses the maven-dependency-plugin to unpack java specific dependency to its matching outputDirectory
+
   (e) There's a profile for every Java version required which contains an extra execution-block for that Java version.
+
   (f) 
+
   (g) Maven extension+plugin hides the multiple executions in the <<<perReleaseConfiguration>>> configuration
+
   (h) Requires a --patch-module on a dependency 
+
   (i) IDE Support: All classes are recognized and can be tested within the IDE.
-  
