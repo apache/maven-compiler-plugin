@@ -1344,7 +1344,7 @@ public abstract class AbstractCompilerMojo
                 getLog().debug( "Stale source detected: " + f.getAbsolutePath() );
             }
         }
-        return staleSources != null && !staleSources.isEmpty();
+        return !staleSources.isEmpty();
     }
 
 
