@@ -28,12 +28,24 @@
 
 Older projects with module-info
 
-  For projects that want to be compatible with older versions of Java (i.e 1.8 or below), but also want to provide a
-  <<<module-info.java>>> for Java 9 projects must be aware that they need to call <<<javac>>> twice: the 
-  <<<module-info.java>>> must be compiled with <<<release=9>>>, while the rest of the sources must be compiled with a
-  lower version of <<<source>>>/<<<target>>>.
+  Projects that want to be compatible with older versions of Java (i.e 1.8 or below bytecode and API), but also want to provide a
+  <<<module-info.java>>> for use on Java 9+ runtime, must be aware that they need to call <<<javac>>> twice:
+  
+  [[1]] the <<<module-info.java>>> must be compiled with <<<release=9>>>,
 
-  The preferred way to do this is by having 2 execution blocks are described below. JDK 9 only supports compilations for 
+  [[2]] while the rest of the sources must be compiled with the lower expected compatibility version of <<<source>>>/<<<target>>>.
+
+  []
+
+  The preferred way to do this is by having 2 execution blocks, as described below:
+
+  [[1]] default <<<default-compile>>> execution with <<<release=9>>>,
+
+  [[2]] additional custom <<<base-compile>>> execution with expected target compatibility.
+
+  []
+
+  JDK 9 only supports compilations for 
   Java 6 and above, so projects wanting to be compatible with Java 5 or below need to use two different JDKs. With 
   {{{/guides/mini/guide-using-toolchains.html}toolchains}} it is quite easy to achieve this. Be aware that you will
   need at least Maven 3.3.1 to specify a custom jdkToolchain in your plugin configuration. You could add a jdkToolchain
@@ -53,12 +65,12 @@ Older projects with module-info
           <execution>
             <id>default-compile</id>
             <configuration>
-              <!-- compile everything to ensure module-info contains right entries -->
+              <release>9</release>
+              <!-- no excludes: compile everything to ensure module-info contains right entries -->
               <!-- required when JAVA_HOME is JDK 8 or below -->
               <jdkToolchain>
                 <version>9</version>
               </jdkToolchain>
-              <release>9</release>
             </configuration>
           </execution>
           <execution>
@@ -76,12 +88,12 @@ Older projects with module-info
         </executions>
         <!-- defaults for compile and testCompile -->
         <configuration>
+          <source>1.5</source>
+          <target>1.5</target>
           <!-- jdkToolchain required when JAVA_HOME is JDK 9 or above -->
           <jdkToolchain>
             <version>[1.5,9)</version>
           </jdkToolchain>
-          <source>1.5</source>
-          <target>1.5</target>
         </configuration>
       </plugin>
     </plugins>
@@ -110,8 +122,8 @@ Older projects with module-info
           <execution>
             <id>default-compile</id>
             <configuration>
-              <!-- compile everything to ensure module-info contains right entries -->
               <release>9</release>
+              <!-- no excludes: compile everything to ensure module-info contains right entries -->
             </configuration>
           </execution>
           <execution>
@@ -129,11 +141,11 @@ Older projects with module-info
         </executions>
         <!-- defaults for compile and testCompile -->
         <configuration>
+          <release>6</release><!-- or 7 or 8 depending on compatibility expectations -->
           <!-- Only required when JAVA_HOME isn't at least Java 9 and when haven't configured the maven-toolchains-plugin -->
           <jdkToolchain>
             <version>9</version>
           </jdkToolchain>
-          <release>6</release>
         </configuration>
       </plugin>
     </plugins>
