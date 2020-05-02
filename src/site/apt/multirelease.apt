@@ -98,7 +98,7 @@ META-INF/MANIFEST.MF { Multi-Release: true }
 
   There are a couple of important facts one should know when creating Multi Release jars.
   
-  * The Java compiler must be called for every different version. The solutions solve this either by having multiple Maven Projects/Modules or by adding extra execution-blocks to the pom. 
+  * The Java compiler must be called for every different version. The solutions solve this either by having multiple Maven Projects/Modules or by adding extra compiler execution-blocks to the POM (like {{{./examples/module-info.html}older projects with module-info}}). 
   
   * The <<<Multi-Release: true>>> attribute is only recognized when the classes are in a jar. In other words, you cannot test the classes put in <<<target/classes/META-INF/versions/$\{release}/>>>.
   
