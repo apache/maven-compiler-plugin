@@ -487,6 +487,15 @@ public abstract class AbstractCompilerMojo
     private boolean useIncrementalCompilation = true;
 
     /**
+     * user property key for check if "Nothing to compile".
+     * when "Nothing to compile" the value is "true".
+     * then the follow-up plugin may skip by this.
+     * @since 3.8.2
+     */
+    @Parameter
+    private String skippedKey = null;
+    
+    /**
      * Resolves the artifacts needed.
      */
     @Component
@@ -806,6 +815,10 @@ public abstract class AbstractCompilerMojo
                 }
                 else
                 {
+                    if ( skippedKey != null )
+                    {
+                        session.getUserProperties().put( skippedKey, "true" );
+                    }
                     getLog().info( "Nothing to compile - all classes are up to date" );
 
                     return;
@@ -849,6 +862,10 @@ public abstract class AbstractCompilerMojo
             {
                 getLog().info( "Nothing to compile - all classes are up to date" );
 
+                if ( skippedKey != null )
+                {
+                    session.getUserProperties().put( skippedKey, "true" );
+                }
                 return;
             }
 
