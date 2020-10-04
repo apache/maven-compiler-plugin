@@ -54,7 +54,7 @@
             <!-- compile everything to ensure module-info contains right entries -->
             <configuration>
               <jdkToolchain>
-                <version>9</version>
+                <version>1.9</version>
               </jdkToolchain>
               <release>9</release>
             </configuration>

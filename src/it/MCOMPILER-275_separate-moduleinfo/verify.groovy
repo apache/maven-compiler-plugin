@@ -18,10 +18,11 @@
  */
 def log = new File( basedir, 'build.log').text
 
-//requires adding custom toolchains...
-//assert log.count( "[INFO] Toolchain in maven-compiler-plugin: JDK" ) == 1
+assert log.count( "[INFO] Toolchain in maven-compiler-plugin: JDK" ) == 1
 
 assert log.count( "[INFO] Changes detected - recompiling the module!" ) == 3
 
-assert new File( basedir, 'target/classes/com/foo/MyClass.class' ).bytes[7] == 50
+// major_version: 52 = java8 -> execution id "base-compile"
+assert new File( basedir, 'target/classes/com/foo/MyClass.class' ).bytes[7] == 52
+// major_version: 53 = java9 -> execution id "default-compile"
 assert new File( basedir, 'target/classes/module-info.class' ).bytes[7] == 53
