@@ -332,28 +332,5 @@ under the License.
         </dependency>
       </dependencies>
     </profile>
-    <profile>
-      <id>Jenkins</id>
-      <activation>
-        <property>
-          <name>env.JENKINS_URL</name>
-        </property>
-      </activation>
-      <build>
-        <pluginManagement>
-          <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-invoker-plugin</artifactId>
-              <configuration>
-                <pomExcludes>
-                  <pomExclude>multirelease-patterns/singleproject-toolchains/pom.xml</pomExclude>
-                </pomExcludes>
-              </configuration>
-            </plugin>
-          </plugins>
-        </pluginManagement>
-      </build>
-    </profile>
   </profiles>
 </project>
