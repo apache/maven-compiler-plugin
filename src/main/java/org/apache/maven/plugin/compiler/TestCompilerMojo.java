@@ -27,11 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.jar.JarFile;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -227,6 +229,37 @@ public class TestCompilerMojo
             }
         }
 
+        // It is possible that we are building a multi-version jar file in which the main classes are not module based.
+        if ( ! mainModuleDescriptorClassFile.exists() && release != null )
+        {
+            int version = Integer.valueOf( release );
+            while ( version >= 9 )
+            {
+                String releaseOutputDirectory = String.format( "%s%sMETA-INF%sversions%s%d",
+                        getProject().getBuild().getOutputDirectory(), File.separator, File.separator,
+                        File.separator, version );
+
+                File file = new File ( releaseOutputDirectory, "module-info.class" );
+
+                if ( file.exists() )
+                {
+                    // @todo how to add the releaseOutputDirectory automatically?
+                    // add releaseOutputDirectory to the beginning of the test classpath.
+                    testPath.add( 0, releaseOutputDirectory );
+                    mainModuleDescriptorClassFile = file;
+                    if ( getLog().isDebugEnabled() )
+                    {
+                        getLog().debug( "Updated main module " + mainModuleDescriptorClassFile );
+                    }
+                    // break out of the while loop since we are done...
+                    break;
+                }
+
+                // decrement the version and keep checking....
+                version--;
+            }
+        }
+
         // Get additional information from the main module descriptor, if available
         if ( mainModuleDescriptorClassFile.exists() )
         {
@@ -319,7 +352,42 @@ public class TestCompilerMojo
         if ( testModuleDescriptor != null )
         {
             modulepathElements = testPath;
-            classpathElements = Collections.emptyList();
+            classpathElements = null;
+            for ( String path : modulepathElements )
+            {
+                File file = new File( path );
+                if ( file.exists() && ! file.isDirectory() && file.getName().endsWith( ".jar" ) )
+                {
+                    // check if the jar file contains the module-info.class
+                    try
+                    {
+                        JarFile jarFile = new JarFile( file );
+                        if ( jarFile.getJarEntry( "module-info.class" ) == null )
+                        {
+                            if ( getLog().isDebugEnabled() )
+                            {
+                                getLog().debug( "Add non-module jar dependency " + path
+                                        + " to class path." );
+                            }
+                            if ( classpathElements ==  null )
+                            {
+                                classpathElements = new ArrayList<String>();
+                            }
+                            // add the path to the classpathElements list.
+                            classpathElements.add( path );
+                        }
+                    }
+                    catch ( IOException e )
+                    {
+                        // do nothing
+                    }
+                }
+            }
+
+            if ( classpathElements == null )
+            {
+                classpathElements = Collections.emptyList();
+            }
 
             if ( mainModuleDescriptor != null )
             {
