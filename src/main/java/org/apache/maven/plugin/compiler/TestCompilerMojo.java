@@ -351,35 +351,9 @@ public class TestCompilerMojo
         {
             modulepathElements = testPath;
             classpathElements = null;
-            for ( String path : modulepathElements )
-            {
-                File file = new File( path );
-                if ( file.exists() && ! file.isDirectory() && file.getName().endsWith( ".jar" ) )
-                {
-                    // check if the jar file contains the module-info.class
-                    try
-                    {
-                        JarFile jarFile = new JarFile( file );
-                        if ( jarFile.getJarEntry( "module-info.class" ) == null )
-                        {
-                            if ( getLog().isDebugEnabled() )
-                            {
-                                getLog().debug( "Add non-module jar dependency " + path + " to class path." );
-                            }
-                            if ( classpathElements ==  null )
-                            {
-                                classpathElements = new ArrayList<>();
-                            }
-                            // add the path to the classpathElements list.
-                            classpathElements.add( path );
-                        }
-                    }
-                    catch ( IOException e )
-                    {
-                        // do nothing
-                    }
-                }
-            }
+
+            // add non-modularized jar files from the module path to the class path
+            checkAndAddJarToClassPath();
 
             if ( classpathElements == null )
             {
@@ -465,6 +439,43 @@ public class TestCompilerMojo
             {
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
+            }
+        }
+    }
+
+    private void checkAndAddJarToClassPath()
+    {
+        /*
+            This method is used to update the classpath for a modularized build with non-modularized jar files.
+            This resolves issues found in MCOMPILER-447.
+         */
+        for ( String path : modulepathElements )
+        {
+            File file = new File( path );
+            if ( file.exists() && ! file.isDirectory() && file.getName().endsWith( ".jar" ) )
+            {
+                // check if the jar file contains the module-info.class
+                try
+                {
+                    JarFile jarFile = new JarFile( file );
+                    if ( jarFile.getJarEntry( "module-info.class" ) == null )
+                    {
+                        if ( getLog().isDebugEnabled() )
+                        {
+                            getLog().debug( "Add non-module jar dependency " + path + " to class path." );
+                        }
+                        if ( classpathElements ==  null )
+                        {
+                            classpathElements = new ArrayList<>();
+                        }
+                        // add the path to the classpathElements list.
+                        classpathElements.add( path );
+                    }
+                }
+                catch ( IOException e )
+                {
+                    // do nothing
+                }
             }
         }
     }
