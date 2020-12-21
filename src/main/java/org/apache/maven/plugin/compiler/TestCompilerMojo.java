@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,17 +234,16 @@ public class TestCompilerMojo
             int version = Integer.valueOf( release );
             while ( version >= 9 )
             {
-                String releaseOutputDirectory = String.format( "%s%sMETA-INF%sversions%s%d",
-                        getProject().getBuild().getOutputDirectory(), File.separator, File.separator,
-                        File.separator, version );
+                File metaInfoDir = new File( getProject().getBuild().getOutputDirectory(), "META-INF/versions/"
+                        + version );
 
-                File file = new File ( releaseOutputDirectory, "module-info.class" );
+                File file = new File ( metaInfoDir, "module-info.class" );
 
                 if ( file.exists() )
                 {
                     // @todo how to add the releaseOutputDirectory automatically?
                     // add releaseOutputDirectory to the beginning of the test classpath.
-                    testPath.add( 0, releaseOutputDirectory );
+                    testPath.add( 0, metaInfoDir.getAbsolutePath() );
                     mainModuleDescriptorClassFile = file;
                     if ( getLog().isDebugEnabled() )
                     {
@@ -366,12 +364,11 @@ public class TestCompilerMojo
                         {
                             if ( getLog().isDebugEnabled() )
                             {
-                                getLog().debug( "Add non-module jar dependency " + path
-                                        + " to class path." );
+                                getLog().debug( "Add non-module jar dependency " + path + " to class path." );
                             }
                             if ( classpathElements ==  null )
                             {
-                                classpathElements = new ArrayList<String>();
+                                classpathElements = new ArrayList<>();
                             }
                             // add the path to the classpathElements list.
                             classpathElements.add( path );
