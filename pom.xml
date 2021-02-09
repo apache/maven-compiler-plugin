@@ -26,6 +26,7 @@ under the License.
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
     <version>34</version>
+    <relativePath/>
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
