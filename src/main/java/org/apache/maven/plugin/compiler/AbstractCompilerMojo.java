@@ -483,7 +483,19 @@ public abstract class AbstractCompilerMojo
     private List<String> fileExtensions;
 
     /**
-     * to enable/disable incrementation compilation feature
+     * <p>to enable/disable incremental compilation feature.</p>
+     * <p>This leads to two different modes depending on the underlying compiler. The default javac compiler does the
+     * following:</p>
+     * <ul>
+     * <li>true <strong>(default)</strong> in this mode the compiler plugin determines whether any JAR files the
+     * current module depends on have changed in the current build run; or any source file was added, removed or
+     * changed since the last compilation. If this is the case, the compiler plugin recompiles all sources.</li>
+     * <li>false <strong>(not recommended)</strong> this only compiles source files which are newer than their
+     * corresponding class files, namely which have changed since the last compilation. This does not
+     * recompile other classes which use the changed class, potentially leaving them with references to methods that no
+     * longer exist, leading to errors at runtime.</li>
+     * </ul>
+     *
      * @since 3.1
      */
     @Parameter( defaultValue = "true", property = "maven.compiler.useIncrementalCompilation" )
