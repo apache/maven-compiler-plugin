@@ -33,8 +33,8 @@ Compiling Sources Using A Different JDK
   The preferable way to use a different JDK is to use the toolchains mechanism. During the build of a project, Maven, 
   without toolchains, will use the JDK to perform various steps, like compiling the Java sources, generate the Javadoc,
   run unit tests or sign JARs. Each of those plugins need a tool of the JDK to operate: <<<javac>>>, <<<javadoc>>>,
-  <<<jarsigner>>>, etc. A toolchains is a way to specify the path to the JDK to use for all of those plugins in a
-  centralized manner, independant from the one running Maven itself.
+  <<<jarsigner>>>, etc. A toolchain is a way to specify the path to the JDK to use for all of those plugins in a
+  centralized manner, independent from the one running Maven itself.
   
   To set this up, refer to the {{{/guides/mini/guide-using-toolchains.html}Guide to Using Toolchains}}, which makes use
   of the {{{/plugins/maven-toolchains-plugin/}Maven Toolchains Plugin}}.
@@ -46,7 +46,7 @@ Compiling Sources Using A Different JDK
 
 * Configuring the Compiler Plugin
 
-  Outside of a toolchains, it is still possible to tell the Compiler Plugin the specific JDK to use during compilation.
+  Outside of a toolchain, it is still possible to tell the Compiler Plugin the specific JDK to use during compilation.
   Note that such configuration will be specific to this plugin, and will not affect others.
   
   The <<<compilerVersion>>> parameter can be used to specify the version of the
