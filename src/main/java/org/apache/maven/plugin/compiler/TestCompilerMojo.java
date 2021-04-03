@@ -69,7 +69,7 @@ public class TestCompilerMojo
     /**
      * The source directories containing the test-source to be compiled.
      */
-    @Parameter ( defaultValue = "${project.testCompileSourceRoots}", readonly = true, required = true )
+    @Parameter ( defaultValue = "${project.testCompileSourceRoots}", required = true )
     private List<String> compileSourceRoots;
 
     /**
