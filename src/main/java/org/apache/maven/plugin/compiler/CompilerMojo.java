@@ -290,7 +290,11 @@ public class CompilerMojo
         }
         else
         {
-            classpathElements = compilePath;
+            classpathElements = new ArrayList<>();
+            for ( File element : getCompileClasspathElements( getProject() ) )
+            {
+                classpathElements.add( element.getPath() );
+            }
             modulepathElements = Collections.emptyList();
         }
     }
