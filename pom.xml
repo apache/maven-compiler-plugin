@@ -71,7 +71,7 @@ under the License.
     <plexusCompilerVersion>2.8.8</plexusCompilerVersion>
     <groovyVersion>1.8.0</groovyVersion>
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
-    <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
+    <groovy-eclipse-batch>3.0.8-01</groovy-eclipse-batch>
     <openJpaVersion>2.4.2</openJpaVersion>
     <plexus-java.version>1.0.4</plexus-java.version>
     <javaVersion>7</javaVersion>
