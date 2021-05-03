@@ -72,7 +72,6 @@ under the License.
     <groovyVersion>1.8.0</groovyVersion>
     <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
-    <openJpaVersion>2.4.2</openJpaVersion>
     <plexus-java.version>1.0.7</plexus-java.version>
     <javaVersion>7</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
@@ -204,20 +203,19 @@ under the License.
           <configuration>
             <excludes combine.children="append">
               <exclude>.java-version</exclude>
-              <exclude>.github/dependabot.yml</exclude>
             </excludes>
           </configuration>
         </plugin>
         <plugin>
           <artifactId>maven-enforcer-plugin</artifactId>
-          <version>1.4.1</version>
+          <version>3.0.0-M3</version>
           <executions>
             <execution>
               <id>enforce-bytecode-version</id>
               <configuration>
                 <rules>
                   <enforceBytecodeVersion>
-                    <maxJdkVersion>1.6</maxJdkVersion>
+                    <maxJdkVersion>${javaVersion}</maxJdkVersion>
                     <excludes>
                       <exclude>org.ow2.asm:asm</exclude>
                     </excludes>
@@ -304,36 +302,6 @@ under the License.
           </plugins>
         </pluginManagement>
       </build>
-      <!--
-      add those dependency just to have faster it test (for folks who doesn't have those locally
-      they will be downloaded from local repo rather than central
-      -->
-      <dependencies>
-        <dependency>
-          <groupId>org.codehaus.groovy</groupId>
-          <artifactId>groovy-eclipse-compiler</artifactId>
-          <version>${groovyEclipseCompilerVersion}</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.codehaus.groovy</groupId>
-          <artifactId>groovy-eclipse-batch</artifactId>
-          <version>${groovy-eclipse-batch}</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.codehaus.groovy</groupId>
-          <artifactId>groovy-all</artifactId>
-          <version>${groovyVersion}</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.apache.openjpa</groupId>
-          <artifactId>openjpa</artifactId>
-          <version>${openJpaVersion}</version>
-          <!-- TODO: scope test? -->
-        </dependency>
-      </dependencies>
     </profile>
   </profiles>
 </project>
