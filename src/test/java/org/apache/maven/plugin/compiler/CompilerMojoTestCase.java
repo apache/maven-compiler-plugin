@@ -448,7 +448,6 @@ public class CompilerMojoTestCase
         project.setArtifacts( Collections.singleton( junitArtifact )  );
         project.getBuild().setOutputDirectory( new File( buildDir, "classes" ).getAbsolutePath() );
         setVariableValueToObject( mojo, "project", project );
-        setVariableValueToObject( mojo, "compilePath", Collections.EMPTY_LIST );
         setVariableValueToObject( mojo, "testPath", testClasspathList );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
         setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );

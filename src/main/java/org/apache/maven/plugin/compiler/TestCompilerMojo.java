@@ -153,9 +153,6 @@ public class TestCompilerMojo
     @Parameter ( defaultValue = "${project.build.directory}/generated-test-sources/test-annotations" )
     private File generatedTestSourcesDirectory;
 
-    @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true )
-    private List<String> compilePath;
-
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
 
