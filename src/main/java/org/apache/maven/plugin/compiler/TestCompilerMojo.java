@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.jar.JarFile;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -224,6 +225,36 @@ public class TestCompilerMojo
             }
         }
 
+        // It is possible that we are building a multi-version jar file in which the main classes are not module based.
+        if ( ! mainModuleDescriptorClassFile.exists() && release != null )
+        {
+            int version = Integer.valueOf( release );
+            while ( version >= 9 )
+            {
+                File metaInfoDir = new File( getProject().getBuild().getOutputDirectory(), "META-INF/versions/"
+                        + version );
+
+                File file = new File ( metaInfoDir, "module-info.class" );
+
+                if ( file.exists() )
+                {
+                    // @todo how to add the releaseOutputDirectory automatically?
+                    // add releaseOutputDirectory to the beginning of the test classpath.
+                    testPath.add( 0, metaInfoDir.getAbsolutePath() );
+                    mainModuleDescriptorClassFile = file;
+                    if ( getLog().isDebugEnabled() )
+                    {
+                        getLog().debug( "Updated main module " + mainModuleDescriptorClassFile );
+                    }
+                    // break out of the while loop since we are done...
+                    break;
+                }
+
+                // decrement the version and keep checking....
+                version--;
+            }
+        }
+
         // Get additional information from the main module descriptor, if available
         if ( mainModuleDescriptorClassFile.exists() )
         {
@@ -316,7 +347,15 @@ public class TestCompilerMojo
         if ( testModuleDescriptor != null )
         {
             modulepathElements = testPath;
-            classpathElements = Collections.emptyList();
+            classpathElements = null;
+
+            // add non-modularized jar files from the module path to the class path
+            checkAndAddJarToClassPath();
+
+            if ( classpathElements == null )
+            {
+                classpathElements = Collections.emptyList();
+            }
 
             if ( mainModuleDescriptor != null )
             {
@@ -397,6 +436,43 @@ public class TestCompilerMojo
             {
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
+            }
+        }
+    }
+
+    private void checkAndAddJarToClassPath()
+    {
+        /*
+            This method is used to update the classpath for a modularized build with non-modularized jar files.
+            This resolves issues found in MCOMPILER-447.
+         */
+        for ( String path : modulepathElements )
+        {
+            File file = new File( path );
+            if ( file.exists() && ! file.isDirectory() && file.getName().endsWith( ".jar" ) )
+            {
+                // check if the jar file contains the module-info.class
+                try
+                {
+                    JarFile jarFile = new JarFile( file );
+                    if ( jarFile.getJarEntry( "module-info.class" ) == null )
+                    {
+                        if ( getLog().isDebugEnabled() )
+                        {
+                            getLog().debug( "Add non-module jar dependency " + path + " to class path." );
+                        }
+                        if ( classpathElements ==  null )
+                        {
+                            classpathElements = new ArrayList<>();
+                        }
+                        // add the path to the classpathElements list.
+                        classpathElements.add( path );
+                    }
+                }
+                catch ( IOException e )
+                {
+                    // do nothing
+                }
             }
         }
     }
