@@ -361,46 +361,30 @@ public class CompilerMojo
     
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
     {
-        SourceInclusionScanner scanner;
-
         if ( includes.isEmpty() && excludes.isEmpty() )
         {
-            scanner = new StaleSourceScanner( staleMillis );
-        }
-        else
-        {
-            if ( includes.isEmpty() )
-            {
-                includes.add( "**/*.java" );
-            }
-            scanner = new StaleSourceScanner( staleMillis, includes, excludes );
+            return new StaleSourceScanner( staleMillis );
         }
 
-        return scanner;
+        if ( includes.isEmpty() )
+        {
+            includes.add( "**/*.java" );
+        }
+
+        return new StaleSourceScanner( staleMillis, includes, excludes );
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
     {
-        SourceInclusionScanner scanner;
-
         // it's not defined if we get the ending with or without the dot '.'
         String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
 
-        if ( includes.isEmpty() && excludes.isEmpty() )
+        if ( includes.isEmpty() )
         {
-            includes = Collections.singleton( defaultIncludePattern );
-            scanner = new SimpleSourceInclusionScanner( includes, Collections.<String>emptySet() );
-        }
-        else
-        {
-            if ( includes.isEmpty() )
-            {
-                includes.add( defaultIncludePattern );
-            }
-            scanner = new SimpleSourceInclusionScanner( includes, excludes );
+            includes.add( defaultIncludePattern );
         }
 
-        return scanner;
+        return new SimpleSourceInclusionScanner( includes, excludes );
     }
 
     protected String getSource()
