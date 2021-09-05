@@ -1653,8 +1653,7 @@ public abstract class AbstractCompilerMojo
 
         try
         {
-            Set<Artifact> requiredArtifacts = new LinkedHashSet<>();
-
+            Set<String> elements = new LinkedHashSet<>();
             for ( DependencyCoordinate coord : annotationProcessorPaths )
             {
                 ArtifactHandler handler = artifactHandlerManager.getArtifactHandler( coord.getType() );
@@ -1669,29 +1668,23 @@ public abstract class AbstractCompilerMojo
                      handler,
                      false );
 
-                requiredArtifacts.add( artifact );
+                ArtifactResolutionRequest request = new ArtifactResolutionRequest()
+                                .setArtifact( artifact )
+                                .setResolveRoot( true )
+                                .setResolveTransitively( true )
+                                .setLocalRepository( session.getLocalRepository() )
+                                .setRemoteRepositories( project.getRemoteArtifactRepositories() );
+
+                ArtifactResolutionResult resolutionResult = repositorySystem.resolve( request );
+
+                resolutionErrorHandler.throwErrors( request, resolutionResult );
+
+                for ( Artifact resolved : resolutionResult.getArtifacts() )
+                {
+                    elements.add( resolved.getFile().getAbsolutePath() );
+                }
             }
-
-            ArtifactResolutionRequest request = new ArtifactResolutionRequest()
-                            .setArtifact( requiredArtifacts.iterator().next() )
-                            .setResolveRoot( true )
-                            .setResolveTransitively( true )
-                            .setArtifactDependencies( requiredArtifacts )
-                            .setLocalRepository( session.getLocalRepository() )
-                            .setRemoteRepositories( project.getRemoteArtifactRepositories() );
-
-            ArtifactResolutionResult resolutionResult = repositorySystem.resolve( request );
-
-            resolutionErrorHandler.throwErrors( request, resolutionResult );
-
-            List<String> elements = new ArrayList<>( resolutionResult.getArtifacts().size() );
-
-            for ( Object resolved : resolutionResult.getArtifacts() )
-            {
-                elements.add( ( (Artifact) resolved ).getFile().getAbsolutePath() );
-            }
-
-            return elements;
+            return new ArrayList<>( elements );
         }
         catch ( Exception e )
         {
