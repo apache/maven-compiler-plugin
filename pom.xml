@@ -70,10 +70,10 @@ under the License.
     <mavenPluginPluginVersion>3.5</mavenPluginPluginVersion>
     <plexusCompilerVersion>2.8.8</plexusCompilerVersion>
     <groovyVersion>2.4.21</groovyVersion>
-    <groovyEclipseCompilerVersion>2.7.0-01</groovyEclipseCompilerVersion>
-    <groovy-eclipse-batch>2.0.4-04</groovy-eclipse-batch>
+    <groovyEclipseCompilerVersion>3.7.0</groovyEclipseCompilerVersion>
+    <groovy-eclipse-batch>2.5.14-02</groovy-eclipse-batch>
     <plexus-java.version>1.0.7</plexus-java.version>
-    <javaVersion>7</javaVersion>
+    <javaVersion>8</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
     <project.build.outputTimestamp>2020-04-07T21:04:00Z</project.build.outputTimestamp>
   </properties>
