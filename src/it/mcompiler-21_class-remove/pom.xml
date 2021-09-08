@@ -28,9 +28,9 @@ under the License.
   <version>1.0-SNAPSHOT</version>
 
   <description>
-    This IT tests what happens if the method name in a single class BeanA gets changed.
-    In this case 'mvn compile' (without a clean) should fail as  BeanA2
-    still uses the old method of BeanA.
+    This IT tests what happens if a single class BeanA is removed.
+    In this case 'mvn compile' (without a clean) should fail as BeanA2
+    still uses the removed class BeanA.
   </description>
 
   <build>
