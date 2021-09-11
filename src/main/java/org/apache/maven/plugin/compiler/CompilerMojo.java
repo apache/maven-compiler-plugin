@@ -115,8 +115,14 @@ public class CompilerMojo
     private List<String> compilePath;
 
     /**
-     * When set to {@code true}, the classes will be placed in <code>META-INF/versions/${release}</code>
-     * The release value must be set, otherwise the plugin will fail. 
+     * <p>
+     * When set to {@code true}, the classes will be placed in <code>META-INF/versions/${release}</code> The release
+     * value must be set, otherwise the plugin will fail.
+     * </p>
+     * <strong>Note: </strong> A jar is only a multirelease jar if <code>META-INF/MANIFEST.MF</code> contains
+     * <code>Multi-Release: true</code>. You need to set this by configuring the <a href=
+     * "https://maven.apache.org/plugins/maven-jar-plugin/examples/manifest-customization.html">maven-jar-plugin</a>.
+     * This implies that you cannot test a multirelease jar using the outputDirectory.
      * 
      * @since 3.7.1
      */
