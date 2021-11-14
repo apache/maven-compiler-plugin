@@ -63,7 +63,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>3.0</mavenVersion>
+    <mavenVersion>3.2.5</mavenVersion>
     <!--
       ! The following property is used in the integration tests MCOMPILER-157
     -->
@@ -125,6 +125,20 @@ under the License.
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-shared-incremental</artifactId>
       <version>1.1</version>
+      <exclusions>
+        <exclusion>
+          <artifactId>maven-core</artifactId>
+          <groupId>org.apache.maven</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>maven-plugin-api</artifactId>
+          <groupId>org.apache.maven</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>maven-shared-utils</artifactId>
+          <groupId>org.apache.maven.shared</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -171,7 +185,7 @@ under the License.
     <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>2.1</version>
+      <version>3.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
