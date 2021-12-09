@@ -75,6 +75,8 @@ under the License.
     <plexus-java.version>1.1.0</plexus-java.version>
     <javaVersion>8</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
+    <surefire.version>2.22.2</surefire.version>
+    <mavenPluginToolsVersion>3.6.2</mavenPluginToolsVersion>
     <project.build.outputTimestamp>2020-04-07T21:04:00Z</project.build.outputTimestamp>
   </properties>
 
@@ -105,16 +107,19 @@ under the License.
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-plugin-api</artifactId>
       <version>${mavenVersion}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-artifact</artifactId>
       <version>${mavenVersion}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-core</artifactId>
       <version>${mavenVersion}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.shared</groupId>
