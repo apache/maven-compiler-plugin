@@ -19,13 +19,11 @@ name: Verify
 
 on:
   push:
-    branches-ignore:
-      - dependabot/**
   pull_request:
 
 jobs:
   build:
     name: Verify
-    uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v1
+    uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v2
     with:
       jdk-distribution-matrix: '[ "temurin", "zulu" ]'
