@@ -30,7 +30,7 @@ under the License.
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>3.9.0</version>
+  <version>3.9.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
@@ -45,7 +45,7 @@ under the License.
     <connection>scm:git:https://gitbox.apache.org/repos/asf/maven-compiler-plugin.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/maven-compiler-plugin.git</developerConnection>
     <url>https://github.com/apache/maven-compiler-plugin/tree/${project.scm.tag}</url>
-    <tag>maven-compiler-plugin-3.9.0</tag>
+    <tag>HEAD</tag>
   </scm>
   <issueManagement>
     <system>JIRA</system>
@@ -77,7 +77,7 @@ under the License.
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
     <surefire.version>2.22.2</surefire.version>
     <mavenPluginToolsVersion>3.6.2</mavenPluginToolsVersion>
-    <project.build.outputTimestamp>2022-01-09T12:18:42Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2022-01-09T12:19:13Z</project.build.outputTimestamp>
   </properties>
 
   <contributors>
