@@ -231,6 +231,7 @@ public class CompilerMojo
                 
                 ResolvePathsRequest<File> request =
                     ResolvePathsRequest.ofFiles( dependencyArtifacts )
+                                       .setIncludeStatic( true )
                                        .setMainModuleDescriptor( moduleDescriptorPath );
                 
                 Toolchain toolchain = getToolchain();

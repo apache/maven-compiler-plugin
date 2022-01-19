@@ -233,6 +233,7 @@ public class TestCompilerMojo
             {
                 ResolvePathsRequest<String> request =
                         ResolvePathsRequest.ofStrings( testPath )
+                                .setIncludeStatic( true )
                                 .setMainModuleDescriptor( mainModuleDescriptorClassFile.getAbsolutePath() );
 
                 Toolchain toolchain = getToolchain();
