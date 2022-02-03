@@ -493,8 +493,8 @@ public abstract class AbstractCompilerMojo
     private MojoExecution mojoExecution;
 
     /**
-     * file extensions to check timestamp for incremental build
-     * <b>default contains only <code>class</code></b>
+     * File extensions to check timestamp for incremental build.
+     * Default contains only <code>class</code> and <code>jar</code>.
      *
      * @since 3.1
      */
@@ -1603,7 +1603,7 @@ public abstract class AbstractCompilerMojo
 
         if ( fileExtensions == null || fileExtensions.isEmpty() )
         {
-            fileExtensions = Collections.singletonList( "class" );
+            fileExtensions = Collections.unmodifiableList( Arrays.asList( "class", "jar" ) );
         }
 
         Date buildStartTime = getBuildStartTime();
@@ -1614,10 +1614,8 @@ public abstract class AbstractCompilerMojo
         
         for ( String pathElement : pathElements )
         {
-            // ProjectArtifacts are artifacts which are available in the local project
-            // that's the only ones we are interested in now.
             File artifactPath = new File( pathElement );
-            if ( artifactPath.isDirectory() )
+            if ( artifactPath.isDirectory() || artifactPath.isFile() )
             {
                 if ( hasNewFile( artifactPath, buildStartTime ) )
                 {
