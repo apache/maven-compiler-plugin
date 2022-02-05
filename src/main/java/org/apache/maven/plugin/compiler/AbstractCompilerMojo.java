@@ -307,10 +307,13 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Sets the arguments to be passed to the compiler (prepending a dash) if {@link #fork} is set to <code>true</code>.
+     * Sets the arguments to be passed to the compiler (prepending a dash).
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
+     * </p>
+     * <p>
+     * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
      * </p>
      * <p>
      * To pass <code>-Xmaxerrs 1000 -Xlint -Xlint:-path -Averbose=true</code> you should include the following:
@@ -334,7 +337,11 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Sets the arguments to be passed to the compiler if {@link #fork} is set to <code>true</code>.
+     * Sets the arguments to be passed to the compiler.
+     * </p>
+     * <p>
+     * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
+     * </p>
      * Example:
      * <pre>
      * &lt;compilerArgs&gt;
@@ -352,12 +359,14 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Sets the unformatted single argument string to be passed to the compiler if {@link #fork} is set to
-     * <code>true</code>. To pass multiple arguments such as <code>-Xmaxerrs 1000</code> (which are actually two
-     * arguments) you have to use {@link #compilerArguments}.
+     * Sets the unformatted single argument string to be passed to the compiler. To pass multiple arguments such as
+     * <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArguments}.
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
+     * </p>
+     * <p>
+     * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
      * </p>
      */
     @Parameter
