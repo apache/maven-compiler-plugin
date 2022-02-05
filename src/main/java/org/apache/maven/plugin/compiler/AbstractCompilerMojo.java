@@ -391,27 +391,28 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>
-     * Specify the requirements for this jdk toolchain for using a different {@code javac} then the one of the JRE used
+     * Specify the requirements for this jdk toolchain for using a different {@code javac} than the one of the JRE used
      * by Maven. This overrules the toolchain selected by the
      * <a href="https://maven.apache.org/plugins/maven-toolchains-plugin/">maven-toolchain-plugin</a>.
      * </p>
      * (see <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html"> Guide to Toolchains</a> for more
      * info)
      * 
-     * <pre>   {@code <configuration>
-     *        <jdkToolchain>
-     *            <version>11</version>
-     *        </jdkToolchain>
-     *        ...
-     *    </configuration>
+     * <pre>
+     * &lt;configuration&gt;
+     *   &lt;jdkToolchain&gt;
+     *     &lt;version&gt;11&lt;/version&gt;
+     *   &lt;/jdkToolchain&gt;
+     *   ...
+     * &lt;/configuration&gt;
      *
-     *    <configuration>
-     *        <jdkToolchain>
-     *            <version>1.8</version>
-     *            <vendor>zulu</vendor>
-     *        </jdkToolchain>
-     *        ...
-     *    </configuration>}
+     * &lt;configuration&gt;
+     *   &lt;jdkToolchain&gt;
+     *     &lt;version&gt;1.8&lt;/version&gt;
+     *     &lt;vendor&gt;zulu&lt;/vendor&gt;
+     *   &lt;/jdkToolchain&gt;
+     *   ...
+     * &lt;/configuration&gt;
      * </pre>
      * <strong>note:</strong> requires at least Maven 3.3.1
      * 
