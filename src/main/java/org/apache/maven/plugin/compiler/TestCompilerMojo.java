@@ -156,6 +156,14 @@ public class TestCompilerMojo
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
 
+
+    /**
+     * when forking and debug activated the commandline used will be dumped in this file
+     * @since 3.10.0
+     */
+    @Parameter( defaultValue = "javac-test" )
+    private String debugFileName;
+
     final LocationManager locationManager = new LocationManager();
 
     private Map<String, JavaModuleDescriptor> pathElements;
@@ -475,6 +483,12 @@ public class TestCompilerMojo
     protected File getGeneratedSourcesDirectory()
     {
         return generatedTestSourcesDirectory;
+    }
+
+    @Override
+    protected String getDebugFileName()
+    {
+        return debugFileName;
     }
 
     @Override
