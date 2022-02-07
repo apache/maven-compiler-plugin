@@ -590,6 +590,8 @@ public abstract class AbstractCompilerMojo
 
     protected abstract File getGeneratedSourcesDirectory();
 
+    protected abstract String getDebugFileName();
+
     protected final MavenProject getProject()
     {
         return project;
@@ -673,6 +675,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setOptimize( optimize );
 
         compilerConfiguration.setDebug( debug );
+
+        compilerConfiguration.setDebugFileName( getDebugFileName() );
 
         if ( debug && StringUtils.isNotEmpty( debuglevel ) )
         {

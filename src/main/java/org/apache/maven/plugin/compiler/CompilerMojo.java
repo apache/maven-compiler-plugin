@@ -129,6 +129,13 @@ public class CompilerMojo
     @Parameter
     private boolean multiReleaseOutput;
 
+    /**
+     * when forking and debug activated the commandline used will be dumped in this file
+     * @since 3.10.0
+     */
+    @Parameter( defaultValue = "javac" )
+    private String debugFileName;
+
     final LocationManager locationManager = new LocationManager();
 
     private List<String> classpathElements;
@@ -425,6 +432,12 @@ public class CompilerMojo
         return generatedSourcesDirectory;
     }
 
+    @Override
+    protected String getDebugFileName()
+    {
+        return debugFileName;
+    }
+
     private void writeBoxedWarning( String message )
     {
         String line = StringUtils.repeat( "*", message.length() + 4 );
@@ -432,4 +445,7 @@ public class CompilerMojo
         getLog().warn( "* " + MessageUtils.buffer().strong( message )  + " *" );
         getLog().warn( line );
     }
+
+
+
 }
