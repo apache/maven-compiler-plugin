@@ -1,2 +1,2 @@
-_extends: olamy/maven-gh-actions-shared
+_extends: maven-gh-actions-shared
 tag-template: maven-compiler-plugin-$NEXT_MINOR_VERSION
