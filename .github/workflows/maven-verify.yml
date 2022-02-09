@@ -26,4 +26,5 @@ jobs:
     name: Verify
     uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v2
     with:
-      jdk-distribution-matrix: '[ "temurin", "zulu", "adopt", "liberica", "adopt-openj9" ]'
+      jdk-distribution-matrix: '[ "temurin", "zulu", "microsoft", "liberica", "adopt-openj9" ]'
+      matrix-exclude: '[{ "jdk": "8", "distribution": "microsoft"}]'
