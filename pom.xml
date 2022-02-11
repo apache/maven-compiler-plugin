@@ -30,7 +30,7 @@ under the License.
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>3.10.0</version>
+  <version>3.10.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
@@ -78,7 +78,7 @@ under the License.
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
     <surefire.version>2.22.2</surefire.version>
     <mavenPluginToolsVersion>3.6.2</mavenPluginToolsVersion>
-    <project.build.outputTimestamp>2022-02-11T08:10:57Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2022-02-11T08:11:16Z</project.build.outputTimestamp>
   </properties>
 
   <contributors>
