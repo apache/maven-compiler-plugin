@@ -42,8 +42,8 @@ under the License.
   </prerequisites>
 
   <scm>
-    <connection>scm:git:https://gitbox.apache.org/repos/asf/maven-compiler-plugin.git</connection>
-    <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/maven-compiler-plugin.git</developerConnection>
+    <connection>scm:git:https://github.com/apache/maven-compiler-plugin.git</connection>
+    <developerConnection>scm:git:https://github.com/apache/maven-compiler-plugin.git</developerConnection>
     <url>https://github.com/apache/maven-compiler-plugin/tree/${project.scm.tag}</url>
     <tag>maven-compiler-plugin-3.10.0</tag>
   </scm>
