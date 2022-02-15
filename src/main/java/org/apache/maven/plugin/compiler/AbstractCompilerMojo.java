@@ -1369,10 +1369,10 @@ public abstract class AbstractCompilerMojo
             internalPackageName = internalPackageName.replace( File.separatorChar, '/' );
         }
         ClassWriter cw = new ClassWriter( 0 );
-        cw.visitSource( "package-info.java", null );
         cw.visit( version,
                 Opcodes.ACC_SYNTHETIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
                 internalPackageName, null, "java/lang/Object", null );
+        cw.visitSource( "package-info.java", null );
         return cw.toByteArray();
     }
 
