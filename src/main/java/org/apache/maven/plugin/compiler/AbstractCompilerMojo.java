@@ -1363,12 +1363,16 @@ public abstract class AbstractCompilerMojo
     private byte[] generatePackage( CompilerConfiguration compilerConfiguration, String javaFile )
     {
         int version = getOpcode( compilerConfiguration );
+        String internalPackageName = javaFile.substring( 0, javaFile.length() - ".java".length() );
+        if ( File.separatorChar != '/' )
+        {
+            internalPackageName = internalPackageName.replace( File.separatorChar, '/' );
+        }
         ClassWriter cw = new ClassWriter( 0 );
-        cw.visitSource( "package-info.java", null );
         cw.visit( version,
                 Opcodes.ACC_SYNTHETIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
-                javaFile.substring( 0, javaFile.length() - ".java".length() ),
-                null, "java/lang/Object", null );
+                internalPackageName, null, "java/lang/Object", null );
+        cw.visitSource( "package-info.java", null );
         return cw.toByteArray();
     }
 
