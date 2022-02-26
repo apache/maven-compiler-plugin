@@ -416,6 +416,11 @@ under the License.
               <artifactId>maven-pmd-plugin</artifactId>
               <version>3.16.0</version>
             </plugin>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>taglist-maven-plugin</artifactId>
+              <version>3.0.0</version>
+            </plugin>
           </plugins>
         </pluginManagement>
         <plugins>
@@ -482,6 +487,58 @@ under the License.
                 <configuration>
                   <!-- we are only interested to get report file -->
                   <failOnViolation>false</failOnViolation>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>taglist-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>taglist</goal>
+                </goals>
+                <configuration>
+                  <tagListOptions>
+                    <tagClasses>
+                      <tagClass>
+                        <displayName>FIXME Work</displayName>
+                        <tags>
+                          <tag>
+                            <matchString>fixme</matchString>
+                            <matchType>ignoreCase</matchType>
+                          </tag>
+                          <tag>
+                            <matchString>@fixme</matchString>
+                            <matchType>ignoreCase</matchType>
+                          </tag>
+                        </tags>
+                      </tagClass>
+                      <tagClass>
+                        <displayName>Todo Work</displayName>
+                        <tags>
+                          <tag>
+                            <matchString>todo</matchString>
+                            <matchType>ignoreCase</matchType>
+                          </tag>
+                          <tag>
+                            <matchString>@todo</matchString>
+                            <matchType>ignoreCase</matchType>
+                          </tag>
+                        </tags>
+                      </tagClass>
+                      <tagClass>
+                        <displayName>Deprecated Work</displayName>
+                        <tags>
+                          <tag>
+                            <matchString>@deprecated</matchString>
+                            <matchType>ignoreCase</matchType>
+                          </tag>
+                        </tags>
+                      </tagClass>
+                    </tagClasses>
+                  </tagListOptions>
                 </configuration>
               </execution>
             </executions>
