@@ -79,6 +79,7 @@ under the License.
     <surefire.version>2.22.2</surefire.version>
     <mavenPluginToolsVersion>3.6.2</mavenPluginToolsVersion>
     <project.build.outputTimestamp>2022-02-11T08:11:16Z</project.build.outputTimestamp>
+    <jacoco.version>0.8.7</jacoco.version>
   </properties>
 
   <contributors>
@@ -397,6 +398,9 @@ under the License.
         <spotbugs.onlyAnalyze>org.eclipse.jetty.*</spotbugs.onlyAnalyze>
         <invoker.writeJunitReport>true</invoker.writeJunitReport>
         <invoker.junitPackageName>org.apache.maven.plugins.its.compiler</invoker.junitPackageName>
+        <!-- Enable recording of coverage during execution of maven-invoker-plugin -->
+        <jacoco.propertyName>invoker.mavenOpts</jacoco.propertyName>
+        <jacoco.includes>org.apache.maven.plugin.compiler</jacoco.includes>
       </properties>
       <build>
         <pluginManagement>
@@ -404,7 +408,7 @@ under the License.
             <plugin>
               <groupId>org.jacoco</groupId>
               <artifactId>jacoco-maven-plugin</artifactId>
-              <version>0.8.7</version>
+              <version>${jacoco.version}</version>
             </plugin>
             <plugin>
               <groupId>com.github.spotbugs</groupId>
@@ -425,6 +429,15 @@ under the License.
         </pluginManagement>
         <plugins>
           <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-invoker-plugin</artifactId>
+            <configuration>
+              <extraArtifacts>
+                <extraArtifact>org.jacoco:org.jacoco.agent:${jacoco.version}:jar:runtime</extraArtifact>
+              </extraArtifacts>
+            </configuration>
+          </plugin>
+          <plugin>
             <groupId>org.jacoco</groupId>
             <artifactId>jacoco-maven-plugin</artifactId>
             <executions>
@@ -434,23 +447,6 @@ under the License.
                 <goals>
                   <goal>prepare-agent</goal>
                 </goals>
-              </execution>
-              <execution>
-                <id>jacoco-report</id>
-                <phase>package</phase>
-                <goals>
-                  <goal>report</goal>
-                </goals>
-                <configuration>
-                  <!-- list of classes that you want to see in the report.
-                       Specify a narrow list of multi-module project
-                       classes you want to see here.
-                       This is useful to remove 3rd party library classes
-                       from the report. -->
-                  <includes>
-                    <include>**/org/apache/maven/**</include>
-                  </includes>
-                </configuration>
               </execution>
             </executions>
           </plugin>
