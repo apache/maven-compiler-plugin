@@ -496,6 +496,7 @@ under the License.
             <artifactId>taglist-maven-plugin</artifactId>
             <executions>
               <execution>
+                <phase>test-compile</phase>
                 <goals>
                   <goal>taglist</goal>
                 </goals>
