@@ -17,4 +17,4 @@
  * under the License.
  */
 
-asfMavenTlpPlgnBuild()
+asfMavenTlpPlgnBuild(forceCiReporting: true)
