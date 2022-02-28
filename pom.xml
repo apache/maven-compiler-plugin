@@ -79,7 +79,6 @@ under the License.
     <surefire.version>2.22.2</surefire.version>
     <mavenPluginToolsVersion>3.6.2</mavenPluginToolsVersion>
     <project.build.outputTimestamp>2022-02-11T08:11:16Z</project.build.outputTimestamp>
-    <jacoco.version>0.8.7</jacoco.version>
   </properties>
 
   <contributors>
