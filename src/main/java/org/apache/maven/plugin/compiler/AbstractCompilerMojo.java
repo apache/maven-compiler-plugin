@@ -140,6 +140,14 @@ public abstract class AbstractCompilerMojo
     @Parameter( property = "maven.compiler.parameters", defaultValue = "false" )
     private boolean parameters;
 
+
+    /**
+     * Set to <code>true</code> to Enable preview language features of the java compiler
+     * @since 3.10.1
+     */
+    @Parameter( property = "maven.compiler.enablePreview", defaultValue = "false" )
+    private boolean enablePreview;
+
     /**
      * Set to <code>true</code> to show messages about what the compiler is doing.
      */
@@ -694,6 +702,8 @@ public abstract class AbstractCompilerMojo
         }
 
         compilerConfiguration.setParameters( parameters );
+
+        compilerConfiguration.setEnablePreview( enablePreview );
 
         compilerConfiguration.setVerbose( verbose );
 
