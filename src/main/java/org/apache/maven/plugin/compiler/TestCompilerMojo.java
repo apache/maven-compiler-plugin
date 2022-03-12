@@ -497,4 +497,16 @@ public class TestCompilerMojo
         return true;
     }
 
+    @Override
+    protected Set<String> getIncludes()
+    {
+        return testIncludes;
+    }
+
+    @Override
+    protected Set<String> getExcludes()
+    {
+        return testExcludes;
+    }
+
 }
