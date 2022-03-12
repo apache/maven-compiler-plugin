@@ -204,6 +204,18 @@ public class CompilerMojo
     }
 
     @Override
+    protected Set<String> getIncludes()
+    {
+        return includes;
+    }
+
+    @Override
+    protected Set<String> getExcludes()
+    {
+        return excludes;
+    }
+
+    @Override
     protected void preparePaths( Set<File> sourceFiles )
     {
         //assert compilePath != null;

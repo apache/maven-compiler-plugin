@@ -953,6 +953,10 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setModulepathEntries( getModulepathElements() );
         
+        compilerConfiguration.setIncludes( getIncludes() );
+
+        compilerConfiguration.setExcludes( getExcludes() );
+
         Map<String, String> effectiveCompilerArguments = getCompilerArguments();
 
         String effectiveCompilerArgument = getCompilerArgument();
@@ -1481,6 +1485,10 @@ public abstract class AbstractCompilerMojo
 
         return compileSources;
     }
+
+    protected abstract Set<String> getIncludes();
+
+    protected abstract Set<String> getExcludes();
 
     /**
      * @param compilerConfiguration
