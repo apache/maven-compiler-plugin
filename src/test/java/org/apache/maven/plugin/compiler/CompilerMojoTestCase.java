@@ -267,6 +267,22 @@ public class CompilerMojoTestCase
         assertEquals( Arrays.asList( "key1=value1","-Xlint","-my&special:param-with+chars/not>allowed_in_XML_element_names" ), compileMojo.compilerArgs );
     }
 
+    public void testImplicitFlagNone()
+        throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-implicit-test/plugin-config-none.xml" );
+
+        assertEquals( "none", compileMojo.getImplicit() );
+    }
+
+    public void testImplicitFlagNotSet()
+        throws Exception
+    {
+        CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-implicit-test/plugin-config-not-set.xml" );
+
+        assertNull( compileMojo.getImplicit() );
+    }
+
     public void testOneOutputFileForAllInput2()
         throws Exception
     {

@@ -403,6 +403,14 @@ public abstract class AbstractCompilerMojo
     private String debuglevel;
 
     /**
+     * Keyword to be appended to the <code>-implicit:</code> command-line switch.
+     *
+     * @since 3.10.2
+     */
+    @Parameter( property = "maven.compiler.implicit" )
+    private String implicit;
+
+    /**
      *
      */
     @Component
@@ -685,6 +693,8 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setDebug( debug );
 
         compilerConfiguration.setDebugFileName( getDebugFileName() );
+
+        compilerConfiguration.setImplicitOption( implicit );
 
         if ( debug && StringUtils.isNotEmpty( debuglevel ) )
         {
@@ -1909,5 +1919,10 @@ public abstract class AbstractCompilerMojo
     {
         this.release = release;
         targetOrReleaseSet = true;
+    }
+
+    final String getImplicit()
+    {
+        return implicit;
     }
 }
