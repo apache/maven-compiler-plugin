@@ -63,7 +63,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>3.2.5</mavenVersion>
+    <mavenVersion>3.8.5</mavenVersion>
     <!--
       ! The following property is used in the integration tests MCOMPILER-157
     -->
