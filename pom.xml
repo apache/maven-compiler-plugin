@@ -330,9 +330,10 @@ under the License.
                       ! https://issues.apache.org/jira/browse/MINVOKER-174
                       -->
                     <setupIncludes>
-                      <setupInclude>setup_jar_module/pom.xml</setupInclude>
+                      <!--setupInclude>setup_jar_module/pom.xml</setupInclude>
                       <setupInclude>setup_jar_automodule/pom.xml</setupInclude>
-                      <setupInclude>setup_x/pom.xml</setupInclude>
+                      <setupInclude>setup_x/pom.xml</setupInclude-->
+                      <setupInclude>XXX</setupInclude>
                     </setupIncludes>
                     <setupExcludes>
                       <setupExclude>setup_x/**</setupExclude>
