@@ -321,18 +321,13 @@ under the License.
                     <projectsDirectory>src/it</projectsDirectory>
                     <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
                     <pomIncludes>
-                      <pomInclude>*/pom.xml</pomInclude>
-                      <pomInclude>extras/*/pom.xml</pomInclude>
-                      <pomInclude>multirelease-patterns/*/pom.xml</pomInclude>
+                      <pomInclude>MCOMPILER-488/pom.xml</pomInclude>
                     </pomIncludes>
                     <!--
                       ! Unfortunately we can't define an execution order.
                       ! https://issues.apache.org/jira/browse/MINVOKER-174
                       -->
                     <setupIncludes>
-                      <!--setupInclude>setup_jar_module/pom.xml</setupInclude>
-                      <setupInclude>setup_jar_automodule/pom.xml</setupInclude>
-                      <setupInclude>setup_x/pom.xml</setupInclude-->
                       <setupInclude>XXX</setupInclude>
                     </setupIncludes>
                     <setupExcludes>
