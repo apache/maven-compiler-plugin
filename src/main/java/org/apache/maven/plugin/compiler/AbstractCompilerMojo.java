@@ -732,6 +732,12 @@ public abstract class AbstractCompilerMojo
 
         compilerConfiguration.setFailOnWarning( failOnWarning );
 
+        if ( failOnWarning && !showWarnings )
+        {
+            getLog().warn( "The property failOnWarning is set to true, but showWarnings is set to false." );
+            getLog().warn( "With compiler's warnings silenced the failOnWarning has no effect." );
+        }
+
         compilerConfiguration.setShowDeprecation( showDeprecation );
 
         compilerConfiguration.setSourceVersion( getSource() );
