@@ -126,7 +126,7 @@ public class CompilerMojo
      * 
      * @since 3.7.1
      */
-    @Parameter
+    @Parameter( property = "maven.compiler.multiReleaseOutput" )
     private boolean multiReleaseOutput;
 
     /**
