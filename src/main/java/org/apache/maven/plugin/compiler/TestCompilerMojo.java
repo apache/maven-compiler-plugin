@@ -153,6 +153,18 @@ public class TestCompilerMojo
     @Parameter ( defaultValue = "${project.build.directory}/generated-test-sources/test-annotations" )
     private File generatedTestSourcesDirectory;
 
+    /**
+     * <p>
+     * When {@code true}, uses the module path when compiling with a release or target of 9+ and
+     * <em>module-info.java</em> or <em>module-info.class</em> is present.
+     * When {@code false}, always uses the class path.
+     * </p>
+     *
+     * @since 3.11
+     */
+    @Parameter( defaultValue = "true" )
+    private boolean useModulePath;
+
     @Parameter( defaultValue = "${project.testClasspathElements}", readonly = true )
     private List<String> testPath;
 
@@ -304,6 +316,13 @@ public class TestCompilerMojo
             testModuleDescriptor = result.getMainModuleDescriptor();
         }
 
+        if ( ! useModulePath )
+        {
+            pathElements = Collections.emptyMap();
+            modulepathElements = Collections.emptyList();
+            classpathElements = testPath;
+            return;
+        }
         if ( release != null )
         {
             if ( Integer.valueOf( release ) < 9 )
