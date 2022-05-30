@@ -61,6 +61,8 @@ import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
 import org.apache.maven.shared.utils.ReaderFactory;
 import org.apache.maven.shared.utils.StringUtils;
+import org.apache.maven.shared.utils.io.DirectoryScanResult;
+import org.apache.maven.shared.utils.io.DirectoryScanner;
 import org.apache.maven.shared.utils.io.FileUtils;
 import org.apache.maven.shared.utils.logging.MessageBuilder;
 import org.apache.maven.shared.utils.logging.MessageUtils;
@@ -100,6 +102,8 @@ public abstract class AbstractCompilerMojo
     extends AbstractMojo
 {
     protected static final String PS = System.getProperty( "path.separator" );
+
+    private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
     static final String DEFAULT_SOURCE = "1.7";
     
@@ -561,6 +565,8 @@ public abstract class AbstractCompilerMojo
     @Parameter( defaultValue = "true", property = "maven.compiler.createMissingPackageInfoClass" )
     private boolean createMissingPackageInfoClass = true;
 
+    @Parameter( defaultValue = "false", property = "maven.compiler.showCompilationChanges" )
+    private boolean showCompilationChanges = false;
     /**
      * Resolves the artifacts needed.
      */
@@ -876,14 +882,34 @@ public abstract class AbstractCompilerMojo
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
 
+                DirectoryScanResult dsr = computeInputFileTreeChanges( incrementalBuildHelper, sources );
+
+                boolean idk = compiler.getCompilerOutputStyle()
+                        .equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget;
+                boolean dependencyChanged = isDependencyChanged();
+                boolean sourceChanged = isSourceChanged( compilerConfiguration, compiler );
+                boolean inputFileTreeChanged = hasInputFileTreeChanged( dsr );
                 // CHECKSTYLE_OFF: LineLength
-                if ( ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget )
-                    || isDependencyChanged()
-                    || isSourceChanged( compilerConfiguration, compiler )
-                    || incrementalBuildHelper.inputFileTreeChanged( incrementalBuildHelperRequest ) )
+                if ( idk
+                    || dependencyChanged
+                    || sourceChanged
+                    || inputFileTreeChanged )
                     // CHECKSTYLE_ON: LineLength
                 {
-                    getLog().info( "Changes detected - recompiling the module!" );
+                    String cause = idk ? "idk" : ( dependencyChanged ? "dependency"
+                            : ( sourceChanged ? "source" : "input tree" ) );
+                    getLog().info( "Changes detected - recompiling the module! :" + cause );
+                    if ( showCompilationChanges )
+                    {
+                        for ( String fileAdded : dsr.getFilesAdded() )
+                        {
+                            getLog().info( "\t+ " + fileAdded );
+                        }
+                        for ( String fileRemoved : dsr.getFilesRemoved() )
+                        {
+                            getLog().info( "\t- " + fileRemoved );
+                        }
+                    }
 
                     compilerConfiguration.setSourceFiles( sources );
                 }
@@ -1523,7 +1549,14 @@ public abstract class AbstractCompilerMojo
         {
             for ( File f : staleSources )
             {
-                getLog().debug( "Stale source detected: " + f.getAbsolutePath() );
+                if ( showCompilationChanges )
+                {
+                    getLog().info( "Stale source detected: " + f.getAbsolutePath() );
+                }
+                else
+                {
+                    getLog().debug( "Stale source detected: " + f.getAbsolutePath() );
+                }
             }
         }
         return !staleSources.isEmpty();
@@ -1740,7 +1773,14 @@ public abstract class AbstractCompilerMojo
             {
                 if ( hasNewFile( artifactPath, buildStartTime ) )
                 {
-                    getLog().debug( "New dependency detected: " + artifactPath.getAbsolutePath() );
+                    if ( showCompilationChanges )
+                    {
+                        getLog().info( "New dependency detected: " + artifactPath.getAbsolutePath() );
+                    }
+                    else
+                    {
+                        getLog().debug( "New dependency detected: " + artifactPath.getAbsolutePath() );
+                    }
                     return true;
                 }
             }
@@ -1887,6 +1927,52 @@ public abstract class AbstractCompilerMojo
         }
 
         return pomProperties.getProperty( "version" );
+    }
+
+    private DirectoryScanResult computeInputFileTreeChanges( IncrementalBuildHelper ibh, Set<File> inputFiles )
+            throws MojoExecutionException
+    {
+        File mojoConfigBase = ibh.getMojoStatusDirectory();
+        File mojoConfigFile = new File( mojoConfigBase, INPUT_FILES_LST_FILENAME );
+
+        String[] oldInputFiles = new String[0];
+
+        if ( mojoConfigFile.exists() )
+        {
+            try
+            {
+                oldInputFiles = FileUtils.fileReadArray( mojoConfigFile );
+            }
+            catch ( IOException e )
+            {
+                throw new MojoExecutionException( "Error reading old mojo status " + mojoConfigFile, e );
+            }
+        }
+
+        String[] inputFileNames = new String[ inputFiles.size() ];
+        int i = 0;
+        for ( File inputFile : inputFiles )
+        {
+            inputFileNames[ i++ ] = inputFile.getAbsolutePath();
+        }
+
+        DirectoryScanResult dsr = DirectoryScanner.diffFiles( oldInputFiles, inputFileNames );
+
+        try
+        {
+            FileUtils.fileWriteArray( mojoConfigFile, inputFileNames );
+        }
+        catch ( IOException e )
+        {
+            throw new MojoExecutionException( "Error while storing the mojo status", e );
+        }
+
+        return dsr;
+    }
+
+    private boolean hasInputFileTreeChanged( DirectoryScanResult dsr )
+    {
+        return ( dsr.getFilesAdded().length > 0 || dsr.getFilesRemoved().length > 0 );
     }
 
     public void setTarget( String target )
