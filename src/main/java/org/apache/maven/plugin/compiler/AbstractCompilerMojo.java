@@ -1374,6 +1374,13 @@ public abstract class AbstractCompilerMojo
                         {
                             if ( !file.exists() )
                             {
+                                File parentFile = file.getParentFile();
+                                
+                                if ( !parentFile.exists() )
+                                {
+                                    Files.createDirectories( parentFile.toPath() );
+                                }
+                                
                                 byte[] bytes = generatePackage( compilerConfiguration, rel );
                                 Files.write( file.toPath(), bytes );
                             }
