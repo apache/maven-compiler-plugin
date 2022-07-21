@@ -24,8 +24,9 @@ on:
 jobs:
   build:
     name: Verify
-    uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v2
+    uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v3
     with:
       jdk-distribution-matrix: '[ "temurin", "zulu", "microsoft", "liberica", "adopt-openj9" ]'
       jdk-matrix: '[ "8", "11", "17", "18", "19-ea" ]'
       matrix-exclude: '[{ "jdk": "8", "distribution": "microsoft"}]'
+      maven-matrix: '[ "3.2.5", "3.6.3", "3.8.6" ]'  # Maven versions matrix for verify builds
