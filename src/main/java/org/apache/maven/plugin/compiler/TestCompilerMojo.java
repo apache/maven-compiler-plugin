@@ -306,7 +306,7 @@ public class TestCompilerMojo
 
         if ( release != null )
         {
-            if ( Integer.valueOf( release ) < 9 )
+            if ( Integer.parseInt( release ) < 9 )
             {
                 pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
@@ -314,7 +314,7 @@ public class TestCompilerMojo
                 return;
             }
         }
-        else if ( Double.valueOf( getTarget() ) < Double.valueOf( MODULE_INFO_TARGET ) )
+        else if ( Double.parseDouble( getTarget() ) < Double.parseDouble( MODULE_INFO_TARGET ) )
         {
             pathElements = Collections.emptyMap();
             modulepathElements = Collections.emptyList();
@@ -440,7 +440,7 @@ public class TestCompilerMojo
         if ( testIncludes.isEmpty() && testExcludes.isEmpty() )
         {
             testIncludes = Collections.singleton( defaultIncludePattern );
-            scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.<String>emptySet() );
+            scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.emptySet() );
         }
         else
         {
