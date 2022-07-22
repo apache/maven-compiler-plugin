@@ -48,6 +48,7 @@ import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
 import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
 import org.apache.maven.artifact.resolver.ResolutionErrorHandler;
 import org.apache.maven.artifact.versioning.VersionRange;
+import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -1541,7 +1542,8 @@ public abstract class AbstractCompilerMojo
 
     protected Date getBuildStartTime()
     {
-        Date buildStartTime = session.getRequest().getStartTime();
+        MavenExecutionRequest request = session.getRequest();
+        Date buildStartTime = request == null ? new Date() : request.getStartTime();
         return buildStartTime == null ? new Date() : buildStartTime;
     }
 
