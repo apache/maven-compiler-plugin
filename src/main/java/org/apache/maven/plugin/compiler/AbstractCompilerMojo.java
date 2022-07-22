@@ -48,6 +48,7 @@ import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
 import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
 import org.apache.maven.artifact.resolver.ResolutionErrorHandler;
 import org.apache.maven.artifact.versioning.VersionRange;
+import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
@@ -1496,7 +1497,7 @@ public abstract class AbstractCompilerMojo
             catch ( InclusionScanException e )
             {
                 throw new MojoExecutionException(
-                    "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e );
+                    "Error scanning source root: '" + sourceRoot + "' for stale files to recompile.", e );
             }
         }
 
@@ -1536,42 +1537,14 @@ public abstract class AbstractCompilerMojo
      */
     protected int getRequestThreadCount()
     {
-        try
-        {
-            Method getRequestMethod = session.getClass().getMethod( "getRequest" );
-            Object mavenExecutionRequest = getRequestMethod.invoke( this.session );
-            Method getThreadCountMethod = mavenExecutionRequest.getClass().getMethod( "getThreadCount" );
-            String threadCount = (String) getThreadCountMethod.invoke( mavenExecutionRequest );
-            return Integer.parseInt( threadCount );
-        }
-        catch ( Exception e )
-        {
-            getLog().debug( "unable to get threadCount for the current build: " + e.getMessage() );
-        }
-        return 1;
+        return session.getRequest().getDegreeOfConcurrency();
     }
 
     protected Date getBuildStartTime()
     {
-        Date buildStartTime = null;
-        try
-        {
-            Method getRequestMethod = session.getClass().getMethod( "getRequest" );
-            Object mavenExecutionRequest = getRequestMethod.invoke( session );
-            Method getStartTimeMethod = mavenExecutionRequest.getClass().getMethod( "getStartTime" );
-            buildStartTime = (Date) getStartTimeMethod.invoke( mavenExecutionRequest );
-        }
-        catch ( Exception e )
-        {
-            getLog().debug( "unable to get start time for the current build: " + e.getMessage() );
-        }
-
-        if ( buildStartTime == null )
-        {
-            return new Date();
-        }
-
-        return buildStartTime;
+        MavenExecutionRequest request = session.getRequest();
+        Date buildStartTime = request == null ? new Date() : request.getStartTime();
+        return buildStartTime == null ? new Date() : buildStartTime;
     }
 
 
