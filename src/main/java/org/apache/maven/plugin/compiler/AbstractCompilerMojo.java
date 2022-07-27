@@ -1545,7 +1545,7 @@ public abstract class AbstractCompilerMojo
         Set<File> staleSources =
             computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
 
-        if ( getLog().isDebugEnabled() )
+        if ( getLog().isDebugEnabled() || showCompilationChanges )
         {
             for ( File f : staleSources )
             {
@@ -1949,12 +1949,7 @@ public abstract class AbstractCompilerMojo
             }
         }
 
-        String[] inputFileNames = new String[ inputFiles.size() ];
-        int i = 0;
-        for ( File inputFile : inputFiles )
-        {
-            inputFileNames[ i++ ] = inputFile.getAbsolutePath();
-        }
+        String[] inputFileNames = inputFiles.stream().map( File::getAbsolutePath ).toArray( String[]::new );
 
         DirectoryScanResult dsr = DirectoryScanner.diffFiles( oldInputFiles, inputFileNames );
 
