@@ -79,6 +79,7 @@ under the License.
     <surefire.version>2.22.2</surefire.version>
     <mavenPluginToolsVersion>3.6.2</mavenPluginToolsVersion>
     <project.build.outputTimestamp>2022-03-08T01:04:02Z</project.build.outputTimestamp>
+    <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
   </properties>
 
   <contributors>
