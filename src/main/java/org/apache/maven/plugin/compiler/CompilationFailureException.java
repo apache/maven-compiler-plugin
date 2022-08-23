@@ -19,7 +19,7 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
-import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.api.plugin.MojoException;
 import org.codehaus.plexus.compiler.CompilerMessage;
 
 import java.util.List;
@@ -30,7 +30,7 @@ import java.util.List;
  */
 @SuppressWarnings( "serial" )
 public class CompilationFailureException
-    extends MojoFailureException
+        extends MojoException
 {
     private static final String LS = System.getProperty( "line.separator" );
 

@@ -43,8 +43,9 @@
              This value would have been better, but ${env.JAVA_HOME} can't be resolved.
              So it is adjusted in org.apache.maven.plugin.compiler.CompilerMojoTestCase.testCompilerFork()   
            -->
-          <outputDirectory>${basedir}/target/test/unit/compiler-fork-test/target/classes</outputDirectory>
           <buildDirectory>${basedir}/target/test/unit/compiler-fork-test/target</buildDirectory>
+          <outputDirectory>${basedir}/target/test/unit/compiler-fork-test/target/classes</outputDirectory>
+          <testOutputDirectory>${basedir}/target/test/unit/compiler-fork-test/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>
