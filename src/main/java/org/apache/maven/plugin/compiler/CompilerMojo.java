@@ -21,6 +21,8 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,20 +30,24 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.utils.StringUtils;
-import org.apache.maven.shared.utils.logging.MessageUtils;
-import org.apache.maven.toolchain.Toolchain;
-import org.apache.maven.toolchain.java.DefaultJavaToolChain;
+import org.apache.maven.api.Artifact;
+import org.apache.maven.api.JavaToolchain;
+import org.apache.maven.api.Project;
+import org.apache.maven.api.Toolchain;
+import org.apache.maven.api.plugin.MojoException;
+import org.apache.maven.api.plugin.annotations.LifecyclePhase;
+import org.apache.maven.api.plugin.annotations.Mojo;
+import org.apache.maven.api.plugin.annotations.Parameter;
+import org.apache.maven.api.plugin.annotations.ResolutionScope;
+import org.apache.maven.api.services.ArtifactManager;
+import org.apache.maven.api.services.MessageBuilderFactory;
+import org.apache.maven.api.services.ProjectManager;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -50,6 +56,7 @@ import org.codehaus.plexus.languages.java.jpms.LocationManager;
 import org.codehaus.plexus.languages.java.jpms.ModuleNameSource;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
+import org.codehaus.plexus.util.StringUtils;
 
 /**
  * Compiles application sources
@@ -57,7 +64,7 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
  * @author <a href="mailto:jason@maven.org">Jason van Zyl </a>
  * @since 2.0
  */
-@Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE, threadSafe = true, 
+@Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE,
     requiresDependencyResolution = ResolutionScope.COMPILE )
 public class CompilerMojo
     extends AbstractCompilerMojo
@@ -65,14 +72,14 @@ public class CompilerMojo
     /**
      * The source directories containing the sources to be compiled.
      */
-    @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = true, required = true )
+    @Parameter
     private List<String> compileSourceRoots;
 
     /**
      * The directory for compiled classes.
      */
     @Parameter( defaultValue = "${project.build.outputDirectory}", required = true, readonly = true )
-    private File outputDirectory;
+    private Path outputDirectory;
 
     /**
      * Projects main artifact.
@@ -109,7 +116,7 @@ public class CompilerMojo
      * @since 2.2
      */
     @Parameter( defaultValue = "${project.build.directory}/generated-sources/annotations" )
-    private File generatedSourcesDirectory;
+    private Path generatedSourcesDirectory;
 
     /**
      * Set this to 'true' to bypass compilation of main sources. Its use is NOT RECOMMENDED, but quite convenient on
@@ -118,7 +125,7 @@ public class CompilerMojo
     @Parameter( property = "maven.main.skip" )
     private boolean skipMain;
 
-    @Parameter( defaultValue = "${project.compileClasspathElements}", readonly = true, required = true )
+    @Parameter
     private List<String> compilePath;
 
     /**
@@ -153,7 +160,15 @@ public class CompilerMojo
 
     protected List<String> getCompileSourceRoots()
     {
-        return compileSourceRoots;
+        if ( compileSourceRoots == null || compileSourceRoots.isEmpty() )
+        {
+            return session.getService( ProjectManager.class )
+                    .getCompileSourceRoots( getProject() );
+        }
+        else
+        {
+            return compileSourceRoots;
+        }
     }
 
     @Override
@@ -174,22 +189,22 @@ public class CompilerMojo
         return pathElements;
     }
     
-    protected File getOutputDirectory()
+    protected Path getOutputDirectory()
     {
-        File dir;
+        Path dir;
         if ( !multiReleaseOutput )
         {
             dir = outputDirectory;
         }
         else
         {
-            dir = new File( outputDirectory, "META-INF/versions/" + release );
+            dir = outputDirectory.resolve( "META-INF/versions/" + release );
         }
         return dir;
     }
 
     public void execute()
-        throws MojoExecutionException, CompilationFailureException
+        throws MojoException
     {
         if ( skipMain )
         {
@@ -199,14 +214,14 @@ public class CompilerMojo
         
         if ( multiReleaseOutput && release == null )
         {
-            throw new MojoExecutionException( "When using 'multiReleaseOutput' the release must be set" );
+            throw new MojoException( "When using 'multiReleaseOutput' the release must be set" );
         }
 
         super.execute();
 
-        if ( outputDirectory.isDirectory() )
+        if ( Files.isDirectory( outputDirectory ) )
         {
-            projectArtifact.setFile( outputDirectory );
+            session.getService( ArtifactManager.class ).setPath( projectArtifact, outputDirectory );
         }
     }
 
@@ -223,16 +238,30 @@ public class CompilerMojo
     }
 
     @Override
-    protected void preparePaths( Set<File> sourceFiles )
+    protected void preparePaths( Set<Path> sourceFiles )
     {
         //assert compilePath != null;
+        List<String> compilePath = this.compilePath;
+        if ( compilePath == null )
+        {
+            ProjectManager projectManager = session.getService( ProjectManager.class );
+            ArtifactManager artifactManager = session.getService( ArtifactManager.class );
+            Stream<String> s1 = Stream.of( getOutputDirectory().toString() );
+            Stream<String> s2 = projectManager.getResolvedDependencies( getProject(),
+                            org.apache.maven.api.services.ResolutionScope.Compile ).stream()
+                    .map( artifactManager::getPath )
+                    .filter( Optional::isPresent )
+                    .map( Optional::get )
+                    .map( Path::toString );
+            compilePath = Stream.concat( s1, s2 ).collect( Collectors.toList() );
+        }
 
-        File moduleDescriptorPath = null;
+        Path moduleDescriptorPath = null;
 
         boolean hasModuleDescriptor = false;
-        for ( File sourceFile : sourceFiles )
+        for ( Path sourceFile : sourceFiles )
         {
-            if ( "module-info.java".equals( sourceFile.getName() ) )
+            if ( "module-info.java".equals( sourceFile.getFileName().toString() ) )
             {
                 moduleDescriptorPath = sourceFile;
                 hasModuleDescriptor = true;
@@ -253,17 +282,18 @@ public class CompilerMojo
             ResolvePathsResult<File> resolvePathsResult;
             try
             {
-                Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() );
+                Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() )
+                        .stream().map( Path::toFile ).collect( Collectors.toList() );
                 
                 ResolvePathsRequest<File> request =
                     ResolvePathsRequest.ofFiles( dependencyArtifacts )
                                        .setIncludeStatic( true )
-                                       .setMainModuleDescriptor( moduleDescriptorPath );
+                                       .setMainModuleDescriptor( moduleDescriptorPath.toFile() );
                 
-                Toolchain toolchain = getToolchain();
-                if ( toolchain instanceof DefaultJavaToolChain )
+                Optional<Toolchain> toolchain = getToolchain();
+                if ( toolchain.isPresent() && toolchain.get() instanceof JavaToolchain )
                 {
-                    request.setJdkHome( new File( ( (DefaultJavaToolChain) toolchain ).getJavaHome() ) );
+                    request.setJdkHome( new File( ( (JavaToolchain) toolchain.get() ).getJavaHome() ) );
                 }
 
                 resolvePathsResult = locationManager.resolvePaths( request );
@@ -299,7 +329,7 @@ public class CompilerMojo
                     
                     if ( multiReleaseOutput )
                     {
-                        if ( getOutputDirectory().toPath().startsWith( file.getPath() ) )
+                        if ( getOutputDirectory().startsWith( file.getPath() ) )
                         {
                             compilerArgs.add( "--patch-module" );
                             compilerArgs.add( String.format( "%s=%s", moduleDescriptor.name(), file.getPath() ) );
@@ -324,9 +354,9 @@ public class CompilerMojo
         else
         {
             classpathElements = new ArrayList<>();
-            for ( File element : getCompileClasspathElements( getProject() ) )
+            for ( Path element : getCompileClasspathElements( getProject() ) )
             {
-                classpathElements.add( element.getPath() );
+                classpathElements.add( element.toString() );
             }
             modulepathElements = Collections.emptyList();
         }
@@ -363,31 +393,35 @@ public class CompilerMojo
         }
     }
     
-    private List<File> getCompileClasspathElements( MavenProject project )
+    private List<Path> getCompileClasspathElements( Project project )
     {
+        ProjectManager projectManager = session.getService( ProjectManager.class );
+        org.apache.maven.api.services.ResolutionScope scope = org.apache.maven.api.services.ResolutionScope.Compile;
+        List<Artifact> artifacts = projectManager.getResolvedDependencies( project, scope );
         // 3 is outputFolder + 2 preserved for multirelease  
-        List<File> list = new ArrayList<>( project.getArtifacts().size() + 3 );
+        List<Path> list = new ArrayList<>( artifacts.size() + 3 );
 
         if ( multiReleaseOutput )
         {
-            File versionsFolder = new File( project.getBuild().getOutputDirectory(), "META-INF/versions" );
+            Path versionsFolder = outputDirectory.resolve( "META-INF/versions" );
             
             // in reverse order
             for ( int version = Integer.parseInt( getRelease() ) - 1; version >= 9 ; version-- )
             {
-                File versionSubFolder = new File( versionsFolder, String.valueOf( version ) );
-                if ( versionSubFolder.exists() )
+                Path versionSubFolder = versionsFolder.resolve( String.valueOf( version ) );
+                if ( Files.exists( versionSubFolder ) )
                 {
                     list.add( versionSubFolder );
                 }
             }
         }
 
-        list.add( new File( project.getBuild().getOutputDirectory() ) );
+        list.add( outputDirectory );
 
-        for ( Artifact a : project.getArtifacts() )
+        ArtifactManager artifactManager = session.getService( ArtifactManager.class );
+        for ( Artifact a : artifacts )
         {
-            list.add( a.getFile() );
+            list.add( artifactManager.getPath( a ).get() );
         }
         return list;
     }
@@ -444,12 +478,7 @@ public class CompilerMojo
         return compilerArgument;
     }
 
-    protected Map<String, String> getCompilerArguments()
-    {
-        return compilerArguments;
-    }
-
-    protected File getGeneratedSourcesDirectory()
+    protected Path getGeneratedSourcesDirectory()
     {
         return generatedSourcesDirectory;
     }
@@ -464,10 +493,14 @@ public class CompilerMojo
     {
         String line = StringUtils.repeat( "*", message.length() + 4 );
         getLog().warn( line );
-        getLog().warn( "* " + MessageUtils.buffer().strong( message )  + " *" );
+        getLog().warn( "* " + strong( message )  + " *" );
         getLog().warn( line );
     }
 
+    private String strong( String message )
+    {
+        return session.getService( MessageBuilderFactory.class ).builder().strong( message ).build();
+    }
 
 
 }
