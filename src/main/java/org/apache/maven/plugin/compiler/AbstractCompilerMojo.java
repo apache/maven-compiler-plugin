@@ -181,20 +181,22 @@ public abstract class AbstractCompilerMojo
 
     /**
      * <p>The -source argument for the Java compiler.</p>
-     * 
-     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6.
-     * Since 3.9.0 the default value has changed from 1.6 to 1.7
-     * Since 3.11.0 the default value has changed from 1.7 to 1.8
+     *
+     * <p><b>NOTE: </b></p>
+     * <p>Since 3.8.0 the default value has changed from 1.5 to 1.6</p>
+     * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
+     * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
      */
     @Parameter( property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE )
     protected String source;
 
     /**
      * <p>The -target argument for the Java compiler.</p>
-     * 
-     * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6.
-     * Since 3.9.0 the default value has changed from 1.6 to 1.7
-     * Since 3.11.0 the default value has changed from 1.7 to 1.8
+     *
+     * <p><b>NOTE: </b></p>
+     * <p>Since 3.8.0 the default value has changed from 1.5 to 1.6</p>
+     * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
+     * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
      */
     @Parameter( property = "maven.compiler.target", defaultValue = DEFAULT_TARGET )
     protected String target;

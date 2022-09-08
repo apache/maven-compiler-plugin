@@ -46,33 +46,11 @@ import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.languages.java.version.JavaVersion;
 
 public class CompilerMojoTestCase
     extends AbstractMojoTestCase
 {
-    
-    private String source = AbstractCompilerMojo.DEFAULT_SOURCE;
 
-    private String target = AbstractCompilerMojo.DEFAULT_TARGET;
-    
-    @Override
-    protected void setUp()
-        throws Exception
-    {
-        super.setUp();
-        
-        String javaSpec = System.getProperty( "java.specification.version" );
-        // It is needed to set target/source to JDK 7 for JDK12+
-        // because this is the lowest version which is supported by those JDK's.
-        // The default source/target "6" is not supported anymore.
-        if ( JavaVersion.parse( javaSpec ).isAtLeast( "12" ) )
-        {
-            source = "7";
-            target = "7";
-        }
-    }
-    
     /**
      * tests the ability of the plugin to compile a basic file
      *
@@ -411,8 +389,8 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
         setVariableValueToObject( mojo, "project", getMockMavenProject() );
         setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
-        setVariableValueToObject( mojo, "source", source );
-        setVariableValueToObject( mojo, "target", target );
+        setVariableValueToObject( mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE );
+        setVariableValueToObject( mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET );
 
         return mojo;
     }
@@ -467,8 +445,8 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "testPath", testClasspathList );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
         setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
-        setVariableValueToObject( mojo, "source", source );
-        setVariableValueToObject( mojo, "target", target );
+        setVariableValueToObject( mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE );
+        setVariableValueToObject( mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET );
 
         return mojo;
     }
