@@ -105,10 +105,10 @@ public abstract class AbstractCompilerMojo
 
     private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
-    static final String DEFAULT_SOURCE = "1.7";
-    
-    static final String DEFAULT_TARGET = "1.7";
-    
+    static final String DEFAULT_SOURCE = "1.8";
+
+    static final String DEFAULT_TARGET = "1.8";
+
     // Used to compare with older targets
     static final String MODULE_INFO_TARGET = "1.9";
     
@@ -184,6 +184,7 @@ public abstract class AbstractCompilerMojo
      * 
      * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6.
      * Since 3.9.0 the default value has changed from 1.6 to 1.7
+     * Since 3.11.0 the default value has changed from 1.7 to 1.8
      */
     @Parameter( property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE )
     protected String source;
@@ -193,6 +194,7 @@ public abstract class AbstractCompilerMojo
      * 
      * <b>NOTE: </b>Since 3.8.0 the default value has changed from 1.5 to 1.6.
      * Since 3.9.0 the default value has changed from 1.6 to 1.7
+     * Since 3.11.0 the default value has changed from 1.7 to 1.8
      */
     @Parameter( property = "maven.compiler.target", defaultValue = DEFAULT_TARGET )
     protected String target;
