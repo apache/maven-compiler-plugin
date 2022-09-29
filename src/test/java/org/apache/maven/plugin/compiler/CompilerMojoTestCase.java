@@ -39,6 +39,7 @@ import com.google.inject.Provides;
 import org.apache.maven.api.Artifact;
 import org.apache.maven.api.MojoExecution;
 import org.apache.maven.api.Project;
+import org.apache.maven.api.ResolutionScope;
 import org.apache.maven.api.Session;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
@@ -52,7 +53,6 @@ import org.apache.maven.api.plugin.testing.stubs.SessionStub;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
-import org.apache.maven.api.services.ResolutionScope;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.internal.impl.DefaultMessageBuilderFactory;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
@@ -141,6 +141,7 @@ public class CompilerMojoTestCase
     @Test
     public void testCompilerBasicSourceTarget(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-basic-sourcetarget/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo
     )
         throws Exception
@@ -184,6 +185,7 @@ public class CompilerMojoTestCase
     @Test
     public void testCompilerIncludesExcludes(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-includes-excludes-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo,
             @InjectMojo( goal = "testCompile", pom = "classpath:/unit/compiler-includes-excludes-test/plugin-config.xml" )
             @MojoParameter( name = "compileSourceRoots", value = "target/test-classes/unit/compiler-includes-excludes-test/src/test/java" )
@@ -233,6 +235,7 @@ public class CompilerMojoTestCase
     @Test
     public void testCompilerFork(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-fork-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo,
             @InjectMojo( goal = "testCompile", pom = "classpath:/unit/compiler-fork-test/plugin-config.xml" )
             @MojoParameter( name = "compileSourceRoots", value = "target/test-classes/unit/compiler-fork-test/src/test/java" )
@@ -261,8 +264,10 @@ public class CompilerMojoTestCase
     @Test
     public void testOneOutputFileForAllInput(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-one-output-file-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo,
             @InjectMojo( goal = "testCompile", pom = "classpath:/unit/compiler-one-output-file-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${test.mojoExecution}" )
             TestCompilerMojo testCompileMojo
     )
         throws Exception
@@ -287,6 +292,7 @@ public class CompilerMojoTestCase
     @Test
     public void testCompilerArgs(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-args-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo
     )
         throws Exception
@@ -303,6 +309,7 @@ public class CompilerMojoTestCase
     @Test
     public void testImplicitFlagNone(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-implicit-test/plugin-config-none.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo
     )
         throws Exception
@@ -313,6 +320,7 @@ public class CompilerMojoTestCase
     @Test
     public void testImplicitFlagNotSet(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-implicit-test/plugin-config-not-set.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo
 
     )
@@ -324,8 +332,10 @@ public class CompilerMojoTestCase
     @Test
     public void testOneOutputFileForAllInput2(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-one-output-file-test2/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo,
             @InjectMojo( goal = "testCompile", pom = "classpath:/unit/compiler-one-output-file-test2/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${test.mojoExecution}" )
             TestCompilerMojo testCompileMojo
     )
         throws Exception
@@ -361,6 +371,7 @@ public class CompilerMojoTestCase
     @Test
     public void testCompileFailure(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-fail-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo
     )
         throws Exception
@@ -373,6 +384,7 @@ public class CompilerMojoTestCase
     @Test
     public void testCompileFailOnError(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-failonerror-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo
     )
         throws Exception
@@ -397,8 +409,10 @@ public class CompilerMojoTestCase
     @Test
     public void testCompileSkipMain(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-skip-main/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo,
             @InjectMojo( goal = "testCompile", pom = "classpath:/unit/compiler-skip-main/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${test.mojoExecution}" )
             TestCompilerMojo testCompileMojo
     )
         throws Exception
@@ -422,8 +436,10 @@ public class CompilerMojoTestCase
     @Test
     public void testCompileSkipTest(
             @InjectMojo( goal = "compile", pom = "classpath:/unit/compiler-skip-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${main.mojoExecution}" )
             CompilerMojo compileMojo,
             @InjectMojo( goal = "testCompile", pom = "classpath:/unit/compiler-skip-test/plugin-config.xml" )
+            @MojoParameter( name = "mojoExecution", value = "${test.mojoExecution}" )
             TestCompilerMojo testCompileMojo
     )
         throws Exception
@@ -456,9 +472,9 @@ public class CompilerMojoTestCase
 
         ProjectManager projectManager = session.getService( ProjectManager.class );
         doAnswer( iom -> Collections.emptyList() ).when( projectManager )
-                .getResolvedDependencies( project, ResolutionScope.Compile );
+                .getResolvedDependencies( project, ResolutionScope.COMPILE );
         doAnswer( iom -> Collections.singletonList( junit ) ).when( projectManager )
-                .getResolvedDependencies( project, ResolutionScope.Test );
+                .getResolvedDependencies( project, ResolutionScope.TEST );
 
         MessageBuilderFactory messageBuilderFactory = new DefaultMessageBuilderFactory();
         doReturn( messageBuilderFactory ).when( session ).getService( MessageBuilderFactory.class );
@@ -498,7 +514,7 @@ public class CompilerMojoTestCase
         stub.setModel( Model.newBuilder()
                 .groupId( artifact.getGroupId() )
                 .artifactId( artifact.getArtifactId() )
-                .version( artifact.getVersion() )
+                .version( artifact.getVersion().asString() )
                 .build( Build.newBuilder()
                         .directory( "target" )
                         .outputDirectory( "target/classes" )

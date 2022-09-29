@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.maven.api.Artifact;
+import org.apache.maven.api.Coordinate;
 import org.apache.maven.api.Dependency;
 import org.apache.maven.api.MojoExecution;
 import org.apache.maven.api.Project;
@@ -1740,10 +1741,10 @@ public abstract class AbstractCompilerMojo
             Set<String> elements = new LinkedHashSet<>();
             for ( DependencyCoordinate coord : annotationProcessorPaths )
             {
-                Artifact artifact = session.createArtifact(
+                Coordinate coordinate = session.createCoordinate(
                         coord.getGroupId(), coord.getArtifactId(), coord.getVersion(),
                         coord.getClassifier(), null, coord.getType() );
-                Dependency dependency = session.createDependency( artifact );
+                Dependency dependency = session.createDependency( coordinate );
                 DependencyResolverResult result = session.getService( DependencyResolver.class )
                         .resolve( DependencyResolverRequest.build( session, dependency ) );
                 for ( ArtifactResolverResult r : result.getArtifactResults() )

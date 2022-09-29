@@ -39,12 +39,12 @@ import java.util.stream.Stream;
 import org.apache.maven.api.Artifact;
 import org.apache.maven.api.JavaToolchain;
 import org.apache.maven.api.Project;
+import org.apache.maven.api.ResolutionScope;
 import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.LifecyclePhase;
 import org.apache.maven.api.plugin.annotations.Mojo;
 import org.apache.maven.api.plugin.annotations.Parameter;
-import org.apache.maven.api.plugin.annotations.ResolutionScope;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
@@ -248,7 +248,7 @@ public class CompilerMojo
             ArtifactManager artifactManager = session.getService( ArtifactManager.class );
             Stream<String> s1 = Stream.of( getOutputDirectory().toString() );
             Stream<String> s2 = projectManager.getResolvedDependencies( getProject(),
-                            org.apache.maven.api.services.ResolutionScope.Compile ).stream()
+                            ResolutionScope.COMPILE ).stream()
                     .map( artifactManager::getPath )
                     .filter( Optional::isPresent )
                     .map( Optional::get )
@@ -396,7 +396,7 @@ public class CompilerMojo
     private List<Path> getCompileClasspathElements( Project project )
     {
         ProjectManager projectManager = session.getService( ProjectManager.class );
-        org.apache.maven.api.services.ResolutionScope scope = org.apache.maven.api.services.ResolutionScope.Compile;
+        ResolutionScope scope = ResolutionScope.COMPILE;
         List<Artifact> artifacts = projectManager.getResolvedDependencies( project, scope );
         // 3 is outputFolder + 2 preserved for multirelease  
         List<Path> list = new ArrayList<>( artifacts.size() + 3 );

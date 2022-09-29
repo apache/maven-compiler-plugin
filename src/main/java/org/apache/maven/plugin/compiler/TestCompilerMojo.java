@@ -37,12 +37,12 @@ import java.util.stream.Stream;
 
 import org.apache.maven.api.Artifact;
 import org.apache.maven.api.JavaToolchain;
+import org.apache.maven.api.ResolutionScope;
 import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.LifecyclePhase;
 import org.apache.maven.api.plugin.annotations.Mojo;
 import org.apache.maven.api.plugin.annotations.Parameter;
-import org.apache.maven.api.plugin.annotations.ResolutionScope;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.ProjectManager;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
@@ -244,8 +244,7 @@ public class TestCompilerMojo
         {
             ProjectManager projectManager = session.getService( ProjectManager.class );
             ArtifactManager artifactManager = session.getService( ArtifactManager.class );
-            List<Artifact> dependencies = projectManager.getResolvedDependencies( getProject(),
-                    org.apache.maven.api.services.ResolutionScope.Test );
+            List<Artifact> dependencies = projectManager.getResolvedDependencies( getProject(), ResolutionScope.TEST );
             Stream<String> s1 = Stream.of(
                     testOutputDirectory.toString(),
                     outputDirectory.toString() );
