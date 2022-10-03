@@ -39,20 +39,17 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.maven.api.Artifact;
-import org.apache.maven.api.Coordinate;
-import org.apache.maven.api.Dependency;
 import org.apache.maven.api.MojoExecution;
+import org.apache.maven.api.Node;
 import org.apache.maven.api.Project;
 import org.apache.maven.api.Session;
 import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.plugin.Mojo;
 import org.apache.maven.api.plugin.MojoException;
-import org.apache.maven.api.services.ArtifactResolverResult;
-import org.apache.maven.api.services.DependencyResolver;
-import org.apache.maven.api.services.DependencyResolverRequest;
-import org.apache.maven.api.services.DependencyResolverResult;
+import org.apache.maven.api.services.DependencyCoordinateFactory;
+import org.apache.maven.api.services.DependencyCoordinateFactoryRequest;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
@@ -1738,27 +1735,35 @@ public abstract class AbstractCompilerMojo
 
         try
         {
-            Set<String> elements = new LinkedHashSet<>();
-            for ( DependencyCoordinate coord : annotationProcessorPaths )
-            {
-                Coordinate coordinate = session.createCoordinate(
-                        coord.getGroupId(), coord.getArtifactId(), coord.getVersion(),
-                        coord.getClassifier(), null, coord.getType() );
-                Dependency dependency = session.createDependency( coordinate );
-                DependencyResolverResult result = session.getService( DependencyResolver.class )
-                        .resolve( DependencyResolverRequest.build( session, dependency ) );
-                for ( ArtifactResolverResult r : result.getArtifactResults() )
-                {
-                    elements.add( session.getArtifactPath( r.getArtifact() ).get().toString() );
-                }
-            }
-            return new ArrayList<>( elements );
+            return annotationProcessorPaths.stream()
+                    .map( this::toCoordinate )
+                    .map( session::collectDependencies )
+                    .flatMap( Node::stream )
+                    .map( Node::getDependency )
+                    .map( session::resolveArtifact )
+                    .map( session::getArtifactPath )
+                    .flatMap( o -> o.map( Stream::of ).orElseGet( Stream::empty ) )
+                    .map( Path::toString )
+                    .collect( Collectors.toList() );
         }
         catch ( Exception e )
         {
             throw new MojoException( "Resolution of annotationProcessorPath dependencies failed: "
                 + e.getLocalizedMessage(), e );
         }
+    }
+
+    private org.apache.maven.api.DependencyCoordinate toCoordinate( DependencyCoordinate coord )
+    {
+        return session.getService( DependencyCoordinateFactory.class ).create(
+                DependencyCoordinateFactoryRequest.builder()
+                                .session( session )
+                                .groupId( coord.getGroupId() )
+                                .artifactId( coord.getArtifactId() )
+                                .classifier( coord.getClassifier() )
+                                .type( coord.getType() )
+                                .version( coord.getVersion() )
+                                .build() );
     }
 
     private void writePlugin( MessageBuilder mb )
