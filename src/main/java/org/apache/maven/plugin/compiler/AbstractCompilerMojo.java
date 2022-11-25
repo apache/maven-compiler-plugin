@@ -174,9 +174,9 @@ public abstract class AbstractCompilerMojo
     private boolean optimize;
 
     /**
-     * Set to <code>true</code> to show compilation warnings.
+     * Set to <code>false</code> to disable warnings during compilation.
      */
-    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "false" )
+    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "true" )
     private boolean showWarnings;
 
     /**
