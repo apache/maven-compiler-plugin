@@ -38,6 +38,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.java.DefaultJavaToolChain;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
@@ -311,9 +312,9 @@ public class TestCompilerMojo
             testModuleDescriptor = result.getMainModuleDescriptor();
         }
 
-        if ( release != null )
+        if ( !StringUtils.isEmpty( getRelease() ) )
         {
-            if ( Integer.parseInt( release ) < 9 )
+            if ( Integer.parseInt( getRelease() ) < 9 )
             {
                 pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
