@@ -312,7 +312,7 @@ public class TestCompilerMojo
             testModuleDescriptor = result.getMainModuleDescriptor();
         }
 
-        if ( !StringUtils.isEmpty( getRelease() ) )
+        if ( StringUtils.isNotEmpty( getRelease() ) )
         {
             if ( Integer.parseInt( getRelease() ) < 9 )
             {
