@@ -65,7 +65,7 @@ public class CompilerMojo
     /**
      * The source directories containing the sources to be compiled.
      */
-    @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = true, required = true )
+    @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = false, required = true )
     private List<String> compileSourceRoots;
 
     /**

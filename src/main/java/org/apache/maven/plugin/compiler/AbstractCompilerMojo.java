@@ -177,9 +177,9 @@ public abstract class AbstractCompilerMojo
     private boolean optimize;
 
     /**
-     * Set to <code>true</code> to show compilation warnings.
+     * Set to <code>false</code> to disable warnings during compilation.
      */
-    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "false" )
+    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "true" )
     private boolean showWarnings;
 
     /**
@@ -728,6 +728,12 @@ public abstract class AbstractCompilerMojo
         compilerConfiguration.setShowWarnings( showWarnings );
 
         compilerConfiguration.setFailOnWarning( failOnWarning );
+
+        if ( failOnWarning && !showWarnings )
+        {
+            getLog().warn( "The property failOnWarning is set to true, but showWarnings is set to false." );
+            getLog().warn( "With compiler's warnings silenced the failOnWarning has no effect." );
+        }
 
         compilerConfiguration.setShowDeprecation( showDeprecation );
 
