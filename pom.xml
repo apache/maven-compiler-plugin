@@ -105,7 +105,12 @@ under the License.
         <!-- to remove with plexus-java upgrade -->
         <groupId>com.thoughtworks.qdox</groupId>
         <artifactId>qdox</artifactId>
-        <version>2.0.2</version>
+        <version>2.0.3</version>
+      </dependency>
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-utils</artifactId>
+        <version>3.5.0</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -135,28 +140,21 @@ under the License.
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-model</artifactId>
+      <version>${mavenVersion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-shared-utils</artifactId>
       <version>3.3.4</version>
     </dependency>
+
     <dependency>
-      <groupId>org.apache.maven.shared</groupId>
-      <artifactId>maven-shared-incremental</artifactId>
-      <version>1.1</version>
-      <exclusions>
-        <exclusion>
-          <artifactId>maven-core</artifactId>
-          <groupId>org.apache.maven</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>maven-plugin-api</artifactId>
-          <groupId>org.apache.maven</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>maven-shared-utils</artifactId>
-          <groupId>org.apache.maven.shared</groupId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>9.4</version>
     </dependency>
 
     <dependency>
@@ -197,7 +195,7 @@ under the License.
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.8.0</version>
+      <version>4.8.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>

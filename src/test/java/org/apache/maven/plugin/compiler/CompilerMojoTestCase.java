@@ -388,7 +388,6 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "compilePath", Collections.EMPTY_LIST );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
         setVariableValueToObject( mojo, "project", getMockMavenProject() );
-        setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
         setVariableValueToObject( mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE );
         setVariableValueToObject( mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET );
 
@@ -444,7 +443,6 @@ public class CompilerMojoTestCase
         setVariableValueToObject( mojo, "project", project );
         setVariableValueToObject( mojo, "testPath", testClasspathList );
         setVariableValueToObject( mojo, "session", getMockMavenSession() );
-        setVariableValueToObject( mojo, "mojoExecution", getMockMojoExecution() );
         setVariableValueToObject( mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE );
         setVariableValueToObject( mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET );
 
@@ -468,19 +466,5 @@ public class CompilerMojoTestCase
         // Collections.emptyMap() );
         when( session.getCurrentProject() ).thenReturn( getMockMavenProject() );
         return session;
-    }
-
-    private MojoExecution getMockMojoExecution()
-    {
-        MojoDescriptor md = new MojoDescriptor();
-        md.setGoal( "compile" );
-
-        MojoExecution me = new MojoExecution( md );
-
-        PluginDescriptor pd = new PluginDescriptor();
-        pd.setArtifactId( "maven-compiler-plugin" );
-        md.setPluginDescriptor( pd );
-
-        return me;
     }
 }
