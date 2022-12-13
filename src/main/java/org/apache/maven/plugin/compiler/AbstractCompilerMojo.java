@@ -30,6 +30,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -37,6 +38,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -567,6 +569,10 @@ public abstract class AbstractCompilerMojo
     @Parameter( defaultValue = "true", property = "maven.compiler.createMissingPackageInfoClass" )
     private boolean createMissingPackageInfoClass = true;
 
+    /**
+     * if <code>true</code> the reasons of the re compilation will be displayed
+     * @since 3.11.0
+     */
     @Parameter( defaultValue = "false", property = "maven.compiler.showCompilationChanges" )
     private boolean showCompilationChanges = false;
     /**
@@ -616,6 +622,8 @@ public abstract class AbstractCompilerMojo
     protected abstract File getGeneratedSourcesDirectory();
 
     protected abstract String getDebugFileName();
+
+    protected abstract boolean isTest();
 
     protected final MavenProject getProject()
     {
@@ -888,7 +896,8 @@ public abstract class AbstractCompilerMojo
                 
                 preparePaths( sources );
 
-                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
+                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources )
+                        .test( isTest( ) );
 
                 DirectoryScanResult dsr = computeInputFileTreeChanges( incrementalBuildHelper, sources );
 
@@ -928,6 +937,10 @@ public abstract class AbstractCompilerMojo
                     return;
                 }
             }
+            catch ( IOException e )
+            {
+                throw new MojoExecutionException( "Error while analyzing sources and depedencies.", e );
+            }
             catch ( CompilerException e )
             {
                 throw new MojoExecutionException( "Error while computing stale sources.", e );
@@ -941,21 +954,21 @@ public abstract class AbstractCompilerMojo
             try
             {
                 staleSources =
-                    computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
+                        computeStaleSources( compilerConfiguration, compiler,
+                                getSourceInclusionScanner( staleMillis ) );
 
                 canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
 
                 if ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-                    && !canUpdateTarget )
+                        && !canUpdateTarget )
                 {
                     getLog().info( "RESCANNING!" );
                     // TODO: This second scan for source files is sub-optimal
                     String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
 
                     staleSources = computeStaleSources( compilerConfiguration, compiler,
-                                                             getSourceInclusionScanner( inputFileEnding ) );
+                            getSourceInclusionScanner( inputFileEnding ) );
                 }
-                
             }
             catch ( CompilerException e )
             {
@@ -1378,6 +1391,22 @@ public abstract class AbstractCompilerMojo
                 }
             }
         }
+
+        if ( useIncrementalCompilation )
+        {
+            if ( incrementalBuildHelperRequest.getOutputDirectory().exists() )
+            {
+                getLog().debug( "incrementalBuildHelper#afterBuildSuccess" );
+                // now scan the same directory again and create a diff
+                incrementalBuildHelper.afterCompilationSuccess( incrementalBuildHelperRequest );
+            }
+            else
+            {
+                getLog().debug(
+                        "skip incrementalBuildHelper#afterBuildSuccess as the output directory doesn't exist" );
+            }
+        }
+
     }
 
     private void createMissingPackageInfoClasses( CompilerConfiguration compilerConfiguration,
@@ -1724,6 +1753,7 @@ public abstract class AbstractCompilerMojo
      * @return <code>true</code> if at least one single dependency has changed.
      */
     protected boolean isDependencyChanged()
+            throws MojoExecutionException, IOException
     {
         if ( session == null )
         {
@@ -1737,6 +1767,8 @@ public abstract class AbstractCompilerMojo
             fileExtensions = Collections.unmodifiableList( Arrays.asList( "class", "jar" ) );
         }
 
+        Set<MavenProject> dependenciesInReactor = findDependenciesInReactor( project, new HashSet<>( ) );
+
         Date buildStartTime = getBuildStartTime();
 
         List<String> pathElements = new ArrayList<>();
@@ -1748,7 +1780,7 @@ public abstract class AbstractCompilerMojo
             File artifactPath = new File( pathElement );
             if ( artifactPath.isDirectory() || artifactPath.isFile() )
             {
-                if ( hasNewFile( artifactPath, buildStartTime ) )
+                if ( hasNewFile( artifactPath, buildStartTime, dependenciesInReactor ) )
                 {
                     if ( showCompilationChanges )
                     {
@@ -1767,29 +1799,67 @@ public abstract class AbstractCompilerMojo
         return false;
     }
 
+    private static Set<MavenProject> findDependenciesInReactor( MavenProject project,
+                                                                Set<MavenProject> visitedProjects )
+    {
+        if ( visitedProjects.contains( project ) )
+        {
+            return Collections.emptySet();
+        }
+        visitedProjects.add( project );
+        Collection<MavenProject> refs = project.getProjectReferences().values();
+        Set<MavenProject> availableProjects = new HashSet<>( refs );
+        for ( MavenProject ref : refs )
+        {
+            availableProjects.addAll( findDependenciesInReactor( ref, visitedProjects ) );
+        }
+        return availableProjects;
+    }
+
     /**
      * @param classPathEntry entry to check
      * @param buildStartTime time build start
      * @return if any changes occurred
      */
-    private boolean hasNewFile( File classPathEntry, Date buildStartTime )
+    private boolean hasNewFile( File classPathEntry, Date buildStartTime, Set<MavenProject> dependenciesInReactor )
+            throws MojoExecutionException, IOException
     {
         if ( !classPathEntry.exists() )
         {
             return false;
         }
 
-        if ( classPathEntry.isFile() )
+        if ( classPathEntry.isFile() && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) ) )
         {
-            return classPathEntry.lastModified() >= buildStartTime.getTime()
-                    && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) );
+            //but can be part of reactor and nothing modified in case of repeating mvn install
+            Optional<MavenProject> dependencyProjectReactor = dependenciesInReactor.stream()
+                    .filter( mavenProject ->
+                                    mavenProject.getArtifact().getFile() != null
+                                    && mavenProject.getArtifact().getFile().getAbsolutePath()
+                                            .equals( classPathEntry.getAbsolutePath() ) )
+                    .findFirst();
+            if ( dependencyProjectReactor.isPresent( ) )
+            {
+                IncrementalBuildHelper incrementalBuildHelper =
+                        new IncrementalBuildHelper( mojoExecution, dependencyProjectReactor.get() );
+                 long lastCompilation =
+                         incrementalBuildHelper.getLastCompilationSuccess( new IncrementalBuildHelperRequest()
+                                 .test( isTest( ) ) );
+                return lastCompilation > buildStartTime.getTime();
+            }
+            return classPathEntry.lastModified() >= buildStartTime.getTime();
         }
 
         File[] children = classPathEntry.listFiles();
 
+        if ( children == null )
+        {
+            return false;
+        }
+
         for ( File child : children )
         {
-            if ( hasNewFile( child, buildStartTime ) )
+            if ( hasNewFile( child, buildStartTime, dependenciesInReactor ) )
             {
                 return true;
             }

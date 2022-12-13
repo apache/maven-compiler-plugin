@@ -521,4 +521,9 @@ public class TestCompilerMojo
         return testExcludes;
     }
 
+    protected boolean isTest()
+    {
+        return true;
+    }
+
 }
