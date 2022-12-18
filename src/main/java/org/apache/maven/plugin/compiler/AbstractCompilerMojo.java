@@ -70,10 +70,8 @@ import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.ToolchainManager;
 import org.codehaus.plexus.compiler.Compiler;
 import org.codehaus.plexus.compiler.CompilerConfiguration;
-import org.codehaus.plexus.compiler.CompilerError;
 import org.codehaus.plexus.compiler.CompilerException;
 import org.codehaus.plexus.compiler.CompilerMessage;
-import org.codehaus.plexus.compiler.CompilerNotImplementedException;
 import org.codehaus.plexus.compiler.CompilerOutputStyle;
 import org.codehaus.plexus.compiler.CompilerResult;
 import org.codehaus.plexus.compiler.manager.CompilerManager;
@@ -1255,15 +1253,7 @@ public abstract class AbstractCompilerMojo
 
         try
         {
-            try
-            {
-                compilerResult = compiler.performCompile( compilerConfiguration );
-            }
-            catch ( CompilerNotImplementedException cnie )
-            {
-                List<CompilerError> messages = compiler.compile( compilerConfiguration );
-                compilerResult = convertToCompilerResult( messages );
-            }
+            compilerResult = compiler.performCompile( compilerConfiguration );
         }
         catch ( Exception e )
         {
@@ -1470,29 +1460,6 @@ public abstract class AbstractCompilerMojo
     protected boolean isTestCompile()
     {
         return false;
-    }
-
-    protected CompilerResult convertToCompilerResult( List<CompilerError> compilerErrors )
-    {
-        if ( compilerErrors == null )
-        {
-            return new CompilerResult();
-        }
-        List<CompilerMessage> messages = new ArrayList<>( compilerErrors.size() );
-        boolean success = true;
-        for ( CompilerError compilerError : compilerErrors )
-        {
-            messages.add(
-                new CompilerMessage( compilerError.getFile(), compilerError.getKind(), compilerError.getStartLine(),
-                                     compilerError.getStartColumn(), compilerError.getEndLine(),
-                                     compilerError.getEndColumn(), compilerError.getMessage() ) );
-            if ( compilerError.isError() )
-            {
-                success = false;
-            }
-        }
-
-        return new CompilerResult( success, messages );
     }
 
     /**
