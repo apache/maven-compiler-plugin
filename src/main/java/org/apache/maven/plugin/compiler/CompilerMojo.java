@@ -467,10 +467,4 @@ public class CompilerMojo
         getLog().warn( "* " + MessageUtils.buffer().strong( message )  + " *" );
         getLog().warn( line );
     }
-
-    @Override
-    protected boolean isTest()
-    {
-        return false;
-    }
 }

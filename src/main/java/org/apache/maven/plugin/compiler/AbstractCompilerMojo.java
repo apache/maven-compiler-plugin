@@ -623,8 +623,6 @@ public abstract class AbstractCompilerMojo
 
     protected abstract String getDebugFileName();
 
-    protected abstract boolean isTest();
-
     protected final MavenProject getProject()
     {
         return project;
@@ -2032,5 +2030,10 @@ public abstract class AbstractCompilerMojo
     final String getImplicit()
     {
         return implicit;
+    }
+
+    protected boolean isTest()
+    {
+        return "testCompile".equals( mojoExecution.getGoal( ) );
     }
 }
