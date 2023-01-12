@@ -19,11 +19,8 @@
 
 import junit.framework.TestCase;
 
-public class TestSkipTestCompile0Test
-    extends TestCase
-{
-    public void testSkipTestCompile0Test()
-    {
+public class TestSkipTestCompile0Test extends TestCase {
+    public void testSkipTestCompile0Test() {
         TestSkipTestCompile0 test = new TestSkipTestCompile0();
     }
 }

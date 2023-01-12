@@ -17,13 +17,10 @@
  * under the License.
  */
 
-public class TestCompile3
-{
+public class TestCompile3 {
 
-    public TestCompile3()
-    {
+    public TestCompile3() {
 
-        System.out.println( "Woo Hoo!" );
+        System.out.println("Woo Hoo!");
     }
-
 }

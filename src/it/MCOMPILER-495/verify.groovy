@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def packageInfoClassFile = new File( basedir, 'target/classes/dummy/package-info.class' )
+def packageInfoClassFile = new File(basedir, 'target/classes/dummy/package-info.class')
 def packageInfoBytes = packageInfoClassFile.bytes
 def packageInfoHex = packageInfoBytes.encodeHex().toString()
 // "dummy/package-info" hex encoded
-assert packageInfoHex.contains( '64756d6d792f7061636b6167652d696e666f' )
+assert packageInfoHex.contains('64756d6d792f7061636b6167652d696e666f')

@@ -17,15 +17,15 @@
  * under the License.
  */
 
-def jpmsArgs = new File( basedir, 'target/test-classes/META-INF/jpms.args' )
+def jpmsArgs = new File(basedir, 'target/test-classes/META-INF/jpms.args')
 def lines = jpmsArgs.readLines()
 assert lines[0] == "--patch-module"
-assert lines[1].startsWith( "foo=" )
-assert lines[1].contains( java.nio.file.Paths.get ("src", "main", "java").toString() )
+assert lines[1].startsWith("foo=")
+assert lines[1].contains(java.nio.file.Paths.get("src", "main", "java").toString())
 
-assert new File( basedir, "target/classes/module-info.class" ).exists()
-assert new File( basedir, "target/classes/foo/Foo.class" ).exists()
+assert new File(basedir, "target/classes/module-info.class").exists()
+assert new File(basedir, "target/classes/foo/Foo.class").exists()
 
-assert new File( basedir, "target/test-classes/module-info.class" ).exists()
-assert new File( basedir, "target/test-classes/foo/Foo.class" ).exists()
-assert new File( basedir, "target/test-classes/foo/FooTests.class" ).exists()
+assert new File(basedir, "target/test-classes/module-info.class").exists()
+assert new File(basedir, "target/test-classes/foo/Foo.class").exists()
+assert new File(basedir, "target/test-classes/foo/FooTests.class").exists()

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-def jpmsArgs = new File( basedir, 'target/classes/META-INF/jpms.args' );
+def jpmsArgs = new File(basedir, 'target/classes/META-INF/jpms.args');
 def lines = jpmsArgs.readLines();
 assert lines[0] == "--add-exports"
 assert lines[1] == "app/org.maven.test=ALL_UNNAMED"

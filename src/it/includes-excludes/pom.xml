@@ -21,7 +21,7 @@ under the License.
 
 <project>
   <modelVersion>4.0.0</modelVersion>
-  
+
   <groupId>org.apache.maven.plugins.compiler.it</groupId>
   <artifactId>includes-excludes</artifactId>
   <version>1.0-SNAPSHOT</version>

@@ -17,11 +17,11 @@
  * under the License.
  */
 
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 content = logFile.text
 
 // messages differ per vendor 
-assert content.contains( '[WARNING] COMPILATION WARNING :' )
+assert content.contains('[WARNING] COMPILATION WARNING :')
 assert content =~ /\d+ warnings?/
-assert content.contains( '1 error' )
+assert content.contains('1 error')

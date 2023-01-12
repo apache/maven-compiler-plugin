@@ -1,5 +1,3 @@
-package org.apache.maven.plugins.compiler.it;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -8,9 +6,9 @@ package org.apache.maven.plugins.compiler.it;
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,36 +16,30 @@ package org.apache.maven.plugins.compiler.it;
  * specific language governing permissions and limitations
  * under the License.
  */
-
+package org.apache.maven.plugins.compiler.it;
 
 /**
  * Hello world!
  *
  */
-public class App6
-{
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
+public class App6 {
+    public static void main(String[] args) {
+        System.out.println("Hello World!");
     }
 
-    public static void mainFoo( String[] args )
-    {
-        System.out.println( "Hello World!" );
+    public static void mainFoo(String[] args) {
+        System.out.println("Hello World!");
     }
 
-    public void bar( String[] args )
-    {
-        System.out.println( "Hello World!" );
+    public void bar(String[] args) {
+        System.out.println("Hello World!");
     }
 
-    public void foo( String[] args )
-    {
-        System.out.println( "Hello World!" );
+    public void foo(String[] args) {
+        System.out.println("Hello World!");
     }
 
-    public void barfoo( String[] args )
-    {
-        System.out.println( "Hello World!" );
+    public void barfoo(String[] args) {
+        System.out.println("Hello World!");
     }
 }

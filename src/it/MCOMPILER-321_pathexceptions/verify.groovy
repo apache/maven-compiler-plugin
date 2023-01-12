@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def log = new File( basedir, 'build.log').text
+def log = new File(basedir, 'build.log').text
 
-assert 2 == log.count( "[WARNING] Can't extract module name from geronimo-servlet_2.4_spec-1.1.1.jar: "  
-					    /* Invalid module name: '2' is not a Java identifier */ )
-assert 2 == log.count( "[WARNING] Can't extract module name from jdom-1.0.jar: " 
-                        /* JDOMAbout$Author.class found in top-level directory (unnamed package not allowed in module) */ )
+assert 2 == log.count("[WARNING] Can't extract module name from geronimo-servlet_2.4_spec-1.1.1.jar: "
+        /* Invalid module name: '2' is not a Java identifier */)
+assert 2 == log.count("[WARNING] Can't extract module name from jdom-1.0.jar: "
+        /* JDOMAbout$Author.class found in top-level directory (unnamed package not allowed in module) */)

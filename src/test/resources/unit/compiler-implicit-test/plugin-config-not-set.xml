@@ -24,7 +24,8 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-implicit-test/src/main/java</compileSourceRoot>
+            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-implicit-test/src/main/java
+            </compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>

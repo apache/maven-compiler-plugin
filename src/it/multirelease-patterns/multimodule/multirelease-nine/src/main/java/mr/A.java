@@ -1,5 +1,3 @@
-package mr;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,17 +16,17 @@ package mr;
  * specific language governing permissions and limitations
  * under the License.
  */
+package mr;
 
 import base.Base;
 
 import java.util.Optional;
 
-public class A implements I
-{
+public class A implements I {
     public static String getString() {
-        return Base.get() + " -> " + Optional.of( "9" ).get();
+        return Base.get() + " -> " + Optional.of("9").get();
     }
-    
+
     @Override
     public Class<?> introducedClass() {
         return Module.class;

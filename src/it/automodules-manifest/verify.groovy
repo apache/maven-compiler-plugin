@@ -17,6 +17,6 @@
  * under the License.
  */
 
-buildLog = new File( basedir, 'build.log' ).text;
+buildLog = new File(basedir, 'build.log').text;
 
 assert !buildLog.contains("] Required automodules detected. Please don't publish this project to a public artifact repository!");

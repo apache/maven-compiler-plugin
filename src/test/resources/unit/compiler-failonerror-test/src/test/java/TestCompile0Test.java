@@ -19,11 +19,8 @@
 
 import junit.framework.TestCase;
 
-public class TestCompile0Test
-    extends TestCase
-{
-    public void testCompile0Test()
-    {
+public class TestCompile0Test extends TestCase {
+    public void testCompile0Test() {
         TestCompile0 test = new TestCompile0();
     }
 }

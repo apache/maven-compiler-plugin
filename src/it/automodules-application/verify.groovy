@@ -17,6 +17,6 @@
  * under the License.
  */
 
-buildLog = new File( basedir, 'build.log' ).text;
+buildLog = new File(basedir, 'build.log').text;
 
 assert buildLog.contains("[INFO] Required filename-based automodules detected: [plexus-utils-2.0.4.jar]. Please don't publish this project to a public artifact repository!");

@@ -41,10 +41,10 @@
         <version>@project.version@</version>
         <configuration>
           <compilerArgs>
-              <arg>-Xmaxwarns</arg>
-              <arg>7</arg>
-              <arg>-Xmaxerrs</arg>
-              <arg>7</arg>
+            <arg>-Xmaxwarns</arg>
+            <arg>7</arg>
+            <arg>-Xmaxerrs</arg>
+            <arg>7</arg>
           </compilerArgs>
         </configuration>
       </plugin>

@@ -17,11 +17,7 @@
  * under the License.
  */
 
-public class TestService
-{
+public class TestService {
 
-    public void run()
-    {
-
-    }
+    public void run() {}
 }

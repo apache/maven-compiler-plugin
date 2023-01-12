@@ -17,13 +17,10 @@
  * under the License.
  */
 
-public class TestSkipTestCompile0
-{
+public class TestSkipTestCompile0 {
 
-    public TestSkipTestCompile0()
-    {
+    public TestSkipTestCompile0() {
 
-        System.out.println( "Woo Hoo!" );
+        System.out.println("Woo Hoo!");
     }
-
 }

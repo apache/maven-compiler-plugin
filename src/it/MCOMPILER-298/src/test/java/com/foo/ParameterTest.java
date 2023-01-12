@@ -1,5 +1,3 @@
-package com.foo;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,19 +16,21 @@ package com.foo;
  * specific language governing permissions and limitations
  * under the License.
  */
+package com.foo;
 
 import static org.junit.Assert.*;
 
 import org.junit.Test;
 
-
-
-public class ParameterTest
-{
+public class ParameterTest {
 
     @Test
-    public void testParameter() throws Exception
-    {
-        assertEquals( "parameterName", ParameterClass.class.getMethod( "method", String.class ).getParameters()[0].getName() );
+    public void testParameter() throws Exception {
+        assertEquals(
+                "parameterName",
+                ParameterClass.class
+                        .getMethod("method", String.class)
+                        .getParameters()[0]
+                        .getName());
     }
 }

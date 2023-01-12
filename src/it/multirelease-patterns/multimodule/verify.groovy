@@ -19,7 +19,7 @@
 
 import java.util.jar.JarFile
 
-def mrjar = new JarFile(new File(basedir,'multirelease/target/multirelease-1.0.0-SNAPSHOT.jar'))
+def mrjar = new JarFile(new File(basedir, 'multirelease/target/multirelease-1.0.0-SNAPSHOT.jar'))
 
 assert mrjar.manifest.mainAttributes.getValue('Multi-Release') == 'true'
 
@@ -53,18 +53,16 @@ assert 53 == getMajor(mrjar.getInputStream(je))
 */
 assert mrjar.entries().size() == 16
 
-int getMajor(InputStream is)
-{
-  def dis = new DataInputStream(is)
-  final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
-  if (!firstFourBytes.equalsIgnoreCase("cafebabe"))
-  {
-    throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
-  }
-  final int minorVersion = dis.readUnsignedShort()
-  final int majorVersion = dis.readUnsignedShort()
+int getMajor(InputStream is) {
+    def dis = new DataInputStream(is)
+    final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
+    if (!firstFourBytes.equalsIgnoreCase("cafebabe")) {
+        throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
+    }
+    final int minorVersion = dis.readUnsignedShort()
+    final int majorVersion = dis.readUnsignedShort()
 
-  is.close();
-  return majorVersion;
+    is.close();
+    return majorVersion;
 }
 

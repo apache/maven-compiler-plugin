@@ -17,5 +17,5 @@
  * under the License.
  */
 
-assert new File( basedir, "target/test-classes/module-info.class" ).exists()
-assert new File( basedir, "target/test-classes/bar/BarTests.class" ).exists()
+assert new File(basedir, "target/test-classes/module-info.class").exists()
+assert new File(basedir, "target/test-classes/bar/BarTests.class").exists()

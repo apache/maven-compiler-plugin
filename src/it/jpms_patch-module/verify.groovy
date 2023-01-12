@@ -17,7 +17,7 @@
  * under the License.
  */
 
-def jpmsArgs = new File( basedir, 'target/test-classes/META-INF/jpms.args' );
+def jpmsArgs = new File(basedir, 'target/test-classes/META-INF/jpms.args');
 def lines = jpmsArgs.readLines();
 assert lines[0] == "--patch-module"
 assert lines[1] == "app=_"

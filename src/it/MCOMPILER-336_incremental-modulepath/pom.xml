@@ -37,7 +37,8 @@
         <version>@project.version@</version>
         <configuration>
           <release>9</release>
-          <useIncrementalCompilation>false</useIncrementalCompilation>  <!-- https://issues.apache.org/jira/browse/MCOMPILER-209 -->
+          <useIncrementalCompilation>false
+          </useIncrementalCompilation>  <!-- https://issues.apache.org/jira/browse/MCOMPILER-209 -->
         </configuration>
       </plugin>
     </plugins>

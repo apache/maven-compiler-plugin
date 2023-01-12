@@ -101,23 +101,23 @@ under the License.
 
   <build>
     <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-plugin-plugin</artifactId>
-          <version>@mavenPluginPluginVersion@</version>
-          <configuration>
-            <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
-          </configuration>
-          <executions>
-            <execution>
-              <id>mojo-descriptor</id>
-              <phase>process-classes</phase>
-              <goals>
-                <goal>descriptor</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-plugin-plugin</artifactId>
+        <version>@mavenPluginPluginVersion@</version>
+        <configuration>
+          <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
+        </configuration>
+        <executions>
+          <execution>
+            <id>mojo-descriptor</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>descriptor</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 </project>

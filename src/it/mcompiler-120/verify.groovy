@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( 'Compilation failure' )
-assert !content.contains( 'invalid flag' )
-assert content.contains( 'unchecked call to add(E) as a member of the raw type ' ) // List or java.util.List
+assert content.contains('Compilation failure')
+assert !content.contains('invalid flag')
+assert content.contains('unchecked call to add(E) as a member of the raw type ') // List or java.util.List
 

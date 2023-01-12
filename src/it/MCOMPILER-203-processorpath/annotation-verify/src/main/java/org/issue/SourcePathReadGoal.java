@@ -1,5 +1,3 @@
-package org.issue;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,7 @@ package org.issue;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.issue;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,10 +32,8 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.shared.utils.io.FileUtils;
 
-@Mojo( name = "read-source", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES )
-public class SourcePathReadGoal
-    extends AbstractMojo
-{
+@Mojo(name = "read-source", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES)
+public class SourcePathReadGoal extends AbstractMojo {
 
     @Parameter
     protected String sourceClass;
@@ -44,64 +41,50 @@ public class SourcePathReadGoal
     @Parameter
     protected String testSourceClass;
 
-    @Parameter( defaultValue = "${project}" )
+    @Parameter(defaultValue = "${project}")
     protected MavenProject project;
 
-    @SuppressWarnings( "unchecked" )
-    public void execute()
-        throws MojoExecutionException, MojoFailureException
-    {
-        if ( sourceClass != null )
-        {
-            getLog().info( "Checking compile source roots for: '" + sourceClass + "'" );
-            assertGeneratedSourceFileFor( sourceClass, project.getCompileSourceRoots() );
+    @SuppressWarnings("unchecked")
+    public void execute() throws MojoExecutionException, MojoFailureException {
+        if (sourceClass != null) {
+            getLog().info("Checking compile source roots for: '" + sourceClass + "'");
+            assertGeneratedSourceFileFor(sourceClass, project.getCompileSourceRoots());
         }
 
-        if ( testSourceClass != null )
-        {
-            getLog().info( "Checking test-compile source roots for: '" + testSourceClass + "'" );
-            assertGeneratedSourceFileFor( testSourceClass, project.getTestCompileSourceRoots() );
+        if (testSourceClass != null) {
+            getLog().info("Checking test-compile source roots for: '" + testSourceClass + "'");
+            assertGeneratedSourceFileFor(testSourceClass, project.getTestCompileSourceRoots());
         }
     }
 
-    private void assertGeneratedSourceFileFor( String sourceClass, List<String> sourceRoots )
-        throws MojoFailureException, MojoExecutionException
-    {
-        String sourceFile = sourceClass.replace( '.', '/' )
-                                       .concat( ".txt" );
+    private void assertGeneratedSourceFileFor(String sourceClass, List<String> sourceRoots)
+            throws MojoFailureException, MojoExecutionException {
+        String sourceFile = sourceClass.replace('.', '/').concat(".txt");
 
         boolean found = false;
-        for ( String root : sourceRoots )
-        {
-            File f = new File( root, sourceFile );
-            getLog().info( "Looking for: " + f );
-            if ( f.exists() )
-            {
-                try
-                {
-                    String[] nameParts = sourceClass.split( "\\." );
-                    String content = FileUtils.fileRead( f );
-                    if ( !nameParts[nameParts.length-1].equals( content ) )
-                    {
-                        throw new MojoFailureException( "Non-matching content in: " + f + "\n  expected: '"
-                            + sourceClass + "'\n  found: '" + content + "'" );
+        for (String root : sourceRoots) {
+            File f = new File(root, sourceFile);
+            getLog().info("Looking for: " + f);
+            if (f.exists()) {
+                try {
+                    String[] nameParts = sourceClass.split("\\.");
+                    String content = FileUtils.fileRead(f);
+                    if (!nameParts[nameParts.length - 1].equals(content)) {
+                        throw new MojoFailureException("Non-matching content in: " + f + "\n  expected: '" + sourceClass
+                                + "'\n  found: '" + content + "'");
                     }
-                    
+
                     found = true;
                     break;
-                }
-                catch ( IOException e )
-                {
-                    throw new MojoExecutionException( "Cannot read contents of: " + f, e );
+                } catch (IOException e) {
+                    throw new MojoExecutionException("Cannot read contents of: " + f, e);
                 }
             }
         }
 
-        if ( !found )
-        {
-            throw new MojoFailureException( "Cannot find generated source file: " + sourceFile + " in:\n  "
-                + StringUtils.join( sourceRoots.iterator(), "\n  " ) );
+        if (!found) {
+            throw new MojoFailureException("Cannot find generated source file: " + sourceFile + " in:\n  "
+                    + StringUtils.join(sourceRoots.iterator(), "\n  "));
         }
     }
-
 }

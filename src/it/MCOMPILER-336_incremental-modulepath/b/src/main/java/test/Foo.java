@@ -1,5 +1,3 @@
-package org.opengis.annotation;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,6 @@ package org.opengis.annotation;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.opengis.annotation;
 
-public class Foo {
-}
+public class Foo {}

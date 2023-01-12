@@ -48,7 +48,7 @@
   </build>
 
   <modules>
-   <module>foo</module>
-   <module>bar</module>
+    <module>foo</module>
+    <module>bar</module>
   </modules>
 </project>

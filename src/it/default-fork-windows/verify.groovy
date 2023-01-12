@@ -17,16 +17,16 @@
  * under the License.
  */
 
-assert new File( basedir, 'target/classes/MyClass.class').exists()
+assert new File(basedir, 'target/classes/MyClass.class').exists()
 
-assert new File( basedir, 'target/test-classes/MyTest.class').exists()
+assert new File(basedir, 'target/test-classes/MyTest.class').exists()
 
-assert !new File( basedir, 'target/classes/javac.sh').exists()
-assert !new File( basedir, 'target/classes/javac.bat').exists()
+assert !new File(basedir, 'target/classes/javac.sh').exists()
+assert !new File(basedir, 'target/classes/javac.bat').exists()
 
-assert !new File( basedir, 'target/javac.sh').exists()
-assert !new File( basedir, 'target/javac-test.sh').exists()
-assert new File( basedir, 'target/javac.bat').exists()
-assert new File( basedir, 'target/javac-test.bat').exists()
+assert !new File(basedir, 'target/javac.sh').exists()
+assert !new File(basedir, 'target/javac-test.sh').exists()
+assert new File(basedir, 'target/javac.bat').exists()
+assert new File(basedir, 'target/javac-test.bat').exists()
 
 

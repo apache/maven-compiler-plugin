@@ -18,5 +18,5 @@
  */
 
 module bar {
-  requires foo;
+    requires foo;
 }

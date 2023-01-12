@@ -1,5 +1,3 @@
-package org.test.service;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,7 +16,6 @@ package org.test.service;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.test.service;
 
-public abstract class Service
-{
-}
+public abstract class Service {}

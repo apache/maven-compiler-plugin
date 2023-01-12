@@ -17,9 +17,9 @@
  * under the License.
  */
 
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( 'package org.jenkinsci.test.acceptance.controller does not exist' )
-assert content.contains( 'package org.jenkinsci.test.acceptance.log does not exist' )
+assert content.contains('package org.jenkinsci.test.acceptance.controller does not exist')
+assert content.contains('package org.jenkinsci.test.acceptance.log does not exist')

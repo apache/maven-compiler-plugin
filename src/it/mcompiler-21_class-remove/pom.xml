@@ -20,7 +20,7 @@ under the License.
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.maven.plugins.compiler.it</groupId>
@@ -40,9 +40,9 @@ under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
-        </plugin>      
+        </plugin>
       </plugins>
-    </pluginManagement> 
+    </pluginManagement>
     <plugins>
       <plugin>
         <!-- Called as second invoker goal to simulate file adjustment -->
@@ -51,8 +51,8 @@ under the License.
         <version>2.1.1</version>
         <configuration>
           <source>
-            def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
-            
+            def beanAFile = new File(project.basedir, 'src/main/java/BeanA.java')
+
             beanAFile.delete()
           </source>
         </configuration>

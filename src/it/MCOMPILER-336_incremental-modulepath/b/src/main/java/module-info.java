@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module test.b 
-{
+module test.b {
     requires transitive test.a;
 }

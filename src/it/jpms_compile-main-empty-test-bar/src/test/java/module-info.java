@@ -17,8 +17,7 @@
  * under the License.
  */
 
-open module bar
-{
+open module bar {
     requires java.scripting;
     requires org.junit.jupiter.api;
 }

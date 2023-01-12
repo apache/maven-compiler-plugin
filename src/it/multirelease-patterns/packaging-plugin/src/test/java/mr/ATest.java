@@ -1,5 +1,3 @@
-package mr;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,7 @@ package mr;
  * specific language governing permissions and limitations
  * under the License.
  */
+package mr;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
@@ -26,27 +25,24 @@ import static org.hamcrest.CoreMatchers.is;
 import org.junit.Test;
 
 public class ATest {
-    
-    private static final String javaVersion = System.getProperty( "java.version" );
-    
+
+    private static final String javaVersion = System.getProperty("java.version");
+
     @Test
-    public void testGet8() throws Exception
-    {
-        assumeThat( javaVersion, is( "8" ) );
-        
-        assertThat( A.getString(),  is( "BASE -> 8" ) );
+    public void testGet8() throws Exception {
+        assumeThat(javaVersion, is("8"));
 
-        assertThat( new A().introducedClass().getName(),  is( "java.time.LocalDateTime" ) );
-    }
-    
-    @Test
-    public void testGet9() throws Exception
-    {
-        assumeThat( javaVersion, is( "9" ) );
+        assertThat(A.getString(), is("BASE -> 8"));
 
-        assertThat( A.getString(),  is( "BASE -> 9" ) );
-
-        assertThat( new A().introducedClass().getName(),  is( "java.lang.Module" ) );
+        assertThat(new A().introducedClass().getName(), is("java.time.LocalDateTime"));
     }
 
-} 
+    @Test
+    public void testGet9() throws Exception {
+        assumeThat(javaVersion, is("9"));
+
+        assertThat(A.getString(), is("BASE -> 9"));
+
+        assertThat(new A().introducedClass().getName(), is("java.lang.Module"));
+    }
+}
