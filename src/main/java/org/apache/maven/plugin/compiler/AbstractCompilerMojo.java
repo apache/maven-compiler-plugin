@@ -40,14 +40,8 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.maven.artifact.Artifact;
-import org.apache.maven.artifact.DefaultArtifact;
 import org.apache.maven.artifact.handler.ArtifactHandler;
 import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
-import org.apache.maven.artifact.resolver.ArtifactResolutionRequest;
-import org.apache.maven.artifact.resolver.ArtifactResolutionResult;
-import org.apache.maven.artifact.resolver.ResolutionErrorHandler;
-import org.apache.maven.artifact.versioning.VersionRange;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
@@ -56,7 +50,6 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
 import org.apache.maven.shared.utils.ReaderFactory;
@@ -83,6 +76,15 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.resolution.ArtifactResult;
+import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.util.artifact.JavaScopes;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 
@@ -580,12 +582,6 @@ public abstract class AbstractCompilerMojo
      */
     @Component
     private ArtifactHandlerManager artifactHandlerManager;
-
-    /**
-     * Throws an exception on artifact resolution errors.
-     */
-    @Component
-    private ResolutionErrorHandler resolutionErrorHandler;
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
 
@@ -1814,29 +1810,23 @@ public abstract class AbstractCompilerMojo
                 ArtifactHandler handler = artifactHandlerManager.getArtifactHandler( coord.getType() );
 
                 Artifact artifact = new DefaultArtifact(
-                     coord.getGroupId(),
-                     coord.getArtifactId(),
-                     VersionRange.createFromVersionSpec( coord.getVersion() ),
-                     Artifact.SCOPE_RUNTIME,
-                     coord.getType(),
-                     coord.getClassifier(),
-                     handler,
-                     false );
+                        coord.getGroupId(),
+                        coord.getArtifactId(),
+                        coord.getClassifier(),
+                        handler.getExtension(),
+                        coord.getVersion()
+                );
 
-                ArtifactResolutionRequest request = new ArtifactResolutionRequest()
-                                .setArtifact( artifact )
-                                .setResolveRoot( true )
-                                .setResolveTransitively( true )
-                                .setLocalRepository( session.getLocalRepository() )
-                                .setRemoteRepositories( project.getRemoteArtifactRepositories() );
+                CollectRequest collectRequest = new CollectRequest( new Dependency( artifact, JavaScopes.RUNTIME ),
+                        project.getRemoteProjectRepositories() );
+                DependencyRequest dependencyRequest = new DependencyRequest();
+                dependencyRequest.setCollectRequest( collectRequest );
+                DependencyResult dependencyResult = repositorySystem.resolveDependencies(
+                        session.getRepositorySession(), dependencyRequest );
 
-                ArtifactResolutionResult resolutionResult = repositorySystem.resolve( request );
-
-                resolutionErrorHandler.throwErrors( request, resolutionResult );
-
-                for ( Artifact resolved : resolutionResult.getArtifacts() )
+                for ( ArtifactResult resolved : dependencyResult.getArtifactResults() )
                 {
-                    elements.add( resolved.getFile().getAbsolutePath() );
+                    elements.add( resolved.getArtifact().getFile().getAbsolutePath() );
                 }
             }
             return new ArrayList<>( elements );
