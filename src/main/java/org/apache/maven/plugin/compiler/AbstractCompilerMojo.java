@@ -1802,32 +1802,20 @@ public abstract class AbstractCompilerMojo
             return null;
         }
 
+        Set<String> elements = new LinkedHashSet<>();
         try
         {
-            Set<String> elements = new LinkedHashSet<>();
-            for ( DependencyCoordinate coord : annotationProcessorPaths )
+            List<Dependency> dependencies = convertToDependencies( annotationProcessorPaths );
+            CollectRequest collectRequest = new CollectRequest( dependencies, Collections.emptyList(),
+                    project.getRemoteProjectRepositories() );
+            DependencyRequest dependencyRequest = new DependencyRequest();
+            dependencyRequest.setCollectRequest( collectRequest );
+            DependencyResult dependencyResult = repositorySystem.resolveDependencies(
+                    session.getRepositorySession(), dependencyRequest );
+
+            for ( ArtifactResult resolved : dependencyResult.getArtifactResults() )
             {
-                ArtifactHandler handler = artifactHandlerManager.getArtifactHandler( coord.getType() );
-
-                Artifact artifact = new DefaultArtifact(
-                        coord.getGroupId(),
-                        coord.getArtifactId(),
-                        coord.getClassifier(),
-                        handler.getExtension(),
-                        coord.getVersion()
-                );
-
-                CollectRequest collectRequest = new CollectRequest( new Dependency( artifact, JavaScopes.RUNTIME ),
-                        project.getRemoteProjectRepositories() );
-                DependencyRequest dependencyRequest = new DependencyRequest();
-                dependencyRequest.setCollectRequest( collectRequest );
-                DependencyResult dependencyResult = repositorySystem.resolveDependencies(
-                        session.getRepositorySession(), dependencyRequest );
-
-                for ( ArtifactResult resolved : dependencyResult.getArtifactResults() )
-                {
-                    elements.add( resolved.getArtifact().getFile().getAbsolutePath() );
-                }
+                elements.add( resolved.getArtifact().getFile().getAbsolutePath() );
             }
             return new ArrayList<>( elements );
         }
@@ -1836,6 +1824,23 @@ public abstract class AbstractCompilerMojo
             throw new MojoExecutionException( "Resolution of annotationProcessorPath dependencies failed: "
                 + e.getLocalizedMessage(), e );
         }
+    }
+
+    private List<Dependency> convertToDependencies( List<DependencyCoordinate> annotationProcessorPaths )
+    {
+        List<Dependency> dependencies = new ArrayList<>();
+        for ( DependencyCoordinate annotationProcessorPath : annotationProcessorPaths )
+        {
+            ArtifactHandler handler = artifactHandlerManager.getArtifactHandler( annotationProcessorPath.getType() );
+            Artifact artifact = new DefaultArtifact(
+                    annotationProcessorPath.getGroupId(),
+                    annotationProcessorPath.getArtifactId(),
+                    annotationProcessorPath.getClassifier(),
+                    handler.getExtension(),
+                    annotationProcessorPath.getVersion() );
+            dependencies.add( new Dependency( artifact,  JavaScopes.RUNTIME ) );
+        }
+        return dependencies;
     }
 
     private void writePlugin( MessageBuilder mb )
