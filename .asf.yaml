@@ -23,3 +23,5 @@ github:
     - build-management
     - maven-plugins
     - maven
+  autolink_jira:
+    - MCOMPILER
