@@ -1,5 +1,4 @@
-package org.issue;
-
+package org.apache.maven.plugins.compiler.it;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,7 +20,9 @@ package org.issue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.StringJoiner;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoFailureException;
@@ -30,8 +31,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.utils.StringUtils;
-import org.apache.maven.shared.utils.io.FileUtils;
 
 @Mojo( name = "read-source", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES )
 public class SourcePathReadGoal
@@ -80,13 +79,12 @@ public class SourcePathReadGoal
                 try
                 {
                     String[] nameParts = sourceClass.split( "\\." );
-                    String content = FileUtils.fileRead( f );
+                    String content = new String( Files.readAllBytes( f.toPath() ) );
                     if ( !nameParts[nameParts.length-1].equals( content ) )
                     {
                         throw new MojoFailureException( "Non-matching content in: " + f + "\n  expected: '"
                             + sourceClass + "'\n  found: '" + content + "'" );
                     }
-                    
                     found = true;
                     break;
                 }
@@ -100,8 +98,7 @@ public class SourcePathReadGoal
         if ( !found )
         {
             throw new MojoFailureException( "Cannot find generated source file: " + sourceFile + " in:\n  "
-                + StringUtils.join( sourceRoots.iterator(), "\n  " ) );
+                + String.join( "\n  ", sourceRoots ) );
         }
     }
-
 }

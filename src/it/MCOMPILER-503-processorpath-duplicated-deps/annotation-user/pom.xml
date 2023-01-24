@@ -57,7 +57,7 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins.compiler.it</groupId>
-        <artifactId>mcompiler503-annotation-verify</artifactId>
+        <artifactId>annotation-verify-plugin</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <executions>
           <execution>

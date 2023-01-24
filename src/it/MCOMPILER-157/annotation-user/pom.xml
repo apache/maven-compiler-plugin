@@ -58,9 +58,9 @@ under the License.
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.issue</groupId>
-        <artifactId>annotation-verify</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <groupId>org.apache.maven.plugins.compiler.it</groupId>
+        <artifactId>annotation-verify-plugin</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
         <executions>
           <execution>
             <id>verify-annotations</id>

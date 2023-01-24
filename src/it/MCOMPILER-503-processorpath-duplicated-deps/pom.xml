@@ -32,7 +32,6 @@
     <module>annotation-processor-dep-v1</module>
     <module>annotation-processor-dep-v2</module>
     <module>annotation-processor</module>
-    <module>annotation-verify</module>
     <module>annotation-user</module>
   </modules>
 
