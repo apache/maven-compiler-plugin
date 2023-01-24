@@ -81,6 +81,7 @@ import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.collection.CollectRequest;
 import org.eclipse.aether.graph.Dependency;
+import org.eclipse.aether.graph.Exclusion;
 import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResult;
@@ -303,7 +304,7 @@ public abstract class AbstractCompilerMojo
      * </p>
      * <p>
      * Each classpath element is specified using their Maven coordinates (groupId, artifactId, version, classifier,
-     * type). Transitive dependencies are added automatically. Example:
+     * type). Transitive dependencies are added automatically. Exclusions are supported as well. Example:
      * </p>
      *
      * <pre>
@@ -313,11 +314,20 @@ public abstract class AbstractCompilerMojo
      *       &lt;groupId&gt;org.sample&lt;/groupId&gt;
      *       &lt;artifactId&gt;sample-annotation-processor&lt;/artifactId&gt;
      *       &lt;version&gt;1.2.3&lt;/version&gt;
+     *       &lt;!-- Optionally exclude transitive dependencies --&gt;
+     *       &lt;exclusions&gt;
+     *         &lt;exclusion&gt;
+     *           &lt;groupId&gt;org.sample&lt;/groupId&gt;
+     *           &lt;artifactId&gt;sample-dependency&lt;/artifactId&gt;
+     *         &lt;/exclusion&gt;
+     *       &lt;/exclusions&gt;
      *     &lt;/path&gt;
      *     &lt;!-- ... more ... --&gt;
      *   &lt;/annotationProcessorPaths&gt;
      * &lt;/configuration&gt;
      * </pre>
+     *
+     * <b>Note:</b> Exclusions are supported from version 3.11.0.
      *
      * @since 3.5
      */
@@ -1838,9 +1848,26 @@ public abstract class AbstractCompilerMojo
                     annotationProcessorPath.getClassifier(),
                     handler.getExtension(),
                     annotationProcessorPath.getVersion() );
-            dependencies.add( new Dependency( artifact,  JavaScopes.RUNTIME ) );
+            Set<Exclusion> exclusions = convertToAetherExclusions( annotationProcessorPath.getExclusions() );
+            dependencies.add( new Dependency( artifact,  JavaScopes.RUNTIME, false, exclusions ) );
         }
         return dependencies;
+    }
+
+    private Set<Exclusion> convertToAetherExclusions( Set<DependencyExclusion> exclusions )
+    {
+        if ( exclusions == null || exclusions.isEmpty() )
+        {
+            return Collections.emptySet();
+        }
+        Set<Exclusion> aetherExclusions = new HashSet<>();
+        for ( DependencyExclusion exclusion : exclusions )
+        {
+            Exclusion aetherExclusion = new Exclusion( exclusion.getGroupId(), exclusion.getArtifactId(),
+                    exclusion.getClassifier(), exclusion.getExtension() );
+            aetherExclusions.add( aetherExclusion );
+        }
+        return aetherExclusions;
     }
 
     private void writePlugin( MessageBuilder mb )

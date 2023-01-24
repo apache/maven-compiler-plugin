@@ -19,6 +19,9 @@ package org.apache.maven.plugin.compiler;
  * under the License.
  */
 
+import java.util.Objects;
+import java.util.Set;
+
 /**
  * Simple representation of Maven-coordinates of a dependency.
  *
@@ -36,6 +39,8 @@ public class DependencyCoordinate
     private String classifier;
 
     private String type = "jar";
+
+    private Set<DependencyExclusion> exclusions;
 
     public String getGroupId()
     {
@@ -87,17 +92,14 @@ public class DependencyCoordinate
         this.type = type;
     }
 
-    @Override
-    public int hashCode()
+    public Set<DependencyExclusion> getExclusions()
     {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ( ( artifactId == null ) ? 0 : artifactId.hashCode() );
-        result = prime * result + ( ( classifier == null ) ? 0 : classifier.hashCode() );
-        result = prime * result + ( ( groupId == null ) ? 0 : groupId.hashCode() );
-        result = prime * result + ( ( type == null ) ? 0 : type.hashCode() );
-        result = prime * result + ( ( version == null ) ? 0 : version.hashCode() );
-        return result;
+        return exclusions;
+    }
+
+    public void setExclusions( Set<DependencyExclusion> exclusions )
+    {
+        this.exclusions = exclusions;
     }
 
     @Override
@@ -107,71 +109,23 @@ public class DependencyCoordinate
         {
             return true;
         }
-        if ( obj == null )
-        {
-            return false;
-        }
-        if ( getClass() != obj.getClass() )
+        if ( obj == null || getClass() != obj.getClass() )
         {
             return false;
         }
         DependencyCoordinate other = (DependencyCoordinate) obj;
-        if ( artifactId == null )
-        {
-            if ( other.artifactId != null )
-            {
-                return false;
-            }
-        }
-        else if ( !artifactId.equals( other.artifactId ) )
-        {
-            return false;
-        }
-        if ( classifier == null )
-        {
-            if ( other.classifier != null )
-            {
-                return false;
-            }
-        }
-        else if ( !classifier.equals( other.classifier ) )
-        {
-            return false;
-        }
-        if ( groupId == null )
-        {
-            if ( other.groupId != null )
-            {
-                return false;
-            }
-        }
-        else if ( !groupId.equals( other.groupId ) )
-        {
-            return false;
-        }
-        if ( type == null )
-        {
-            if ( other.type != null )
-            {
-                return false;
-            }
-        }
-        else if ( !type.equals( other.type ) )
-        {
-            return false;
-        }
-        if ( version == null )
-        {
-            if ( other.version != null )
-            {
-                return false;
-            }
-        }
-        else if ( !version.equals( other.version ) )
-        {
-            return false;
-        }
-        return true;
+        return Objects.equals( groupId, other.groupId )
+                && Objects.equals( artifactId, other.artifactId )
+                && Objects.equals( version, other.version )
+                && Objects.equals( classifier, other.classifier )
+                && Objects.equals( type, other.type )
+                && Objects.equals( exclusions, other.exclusions );
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash( groupId, artifactId, version, classifier, type, exclusions );
     }
 
     @Override
