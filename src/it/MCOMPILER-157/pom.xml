@@ -31,7 +31,6 @@ under the License.
 
   <modules>
     <module>annotation-processor</module>
-    <module>annotation-verify</module>
     <module>annotation-user</module>
   </modules>
 
