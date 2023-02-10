@@ -67,7 +67,7 @@ public class CompilerMojoTestCase
         
         compileMojo.execute();
 
-        File testClass = new File( compileMojo.getOutputDirectory(), "TestCompile0.class" );
+        File testClass = new File( compileMojo.getOutputDirectory(), "foo/TestCompile0.class" );
 
         assertTrue( testClass.exists() );
 
@@ -80,7 +80,7 @@ public class CompilerMojoTestCase
         assertNotNull( "MCOMPILER-94: artifact file should only be null if there is nothing to compile",
                        projectArtifact.getFile() );
 
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile0Test.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestCompile0Test.class" );
         
         verify( log ).warn( startsWith( "No explicit value set for target or release!" ) );
 
@@ -150,13 +150,13 @@ public class CompilerMojoTestCase
 
         compileMojo.execute();
 
-        File testClass = new File( compileMojo.getOutputDirectory(), "TestCompile2.class" );
+        File testClass = new File( compileMojo.getOutputDirectory(), "foo/TestCompile2.class" );
         assertFalse( testClass.exists() );
 
-        testClass = new File( compileMojo.getOutputDirectory(), "TestCompile3.class" );
+        testClass = new File( compileMojo.getOutputDirectory(), "foo/TestCompile3.class" );
         assertFalse( testClass.exists() );
 
-        testClass = new File( compileMojo.getOutputDirectory(), "TestCompile4.class" );
+        testClass = new File( compileMojo.getOutputDirectory(), "foo/TestCompile4.class" );
         assertTrue( testClass.exists() );
 
         TestCompilerMojo testCompileMojo = getTestCompilerMojo( compileMojo,
@@ -167,13 +167,13 @@ public class CompilerMojoTestCase
 
         testCompileMojo.execute();
 
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile2TestCase.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestCompile2TestCase.class" );
         assertFalse( testClass.exists() );
 
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile3TestCase.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestCompile3TestCase.class" );
         assertFalse( testClass.exists() );
 
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile4TestCase.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestCompile4TestCase.class" );
         assertTrue( testClass.exists() );
     }
 
@@ -192,7 +192,7 @@ public class CompilerMojoTestCase
 
         compileMojo.execute();
 
-        File testClass = new File( compileMojo.getOutputDirectory(), "TestCompile1.class" );
+        File testClass = new File( compileMojo.getOutputDirectory(), "foo/TestCompile1.class" );
         assertTrue( testClass.exists() );
 
         TestCompilerMojo testCompileMojo =
@@ -203,7 +203,7 @@ public class CompilerMojoTestCase
 
         testCompileMojo.execute();
 
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestCompile1TestCase.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestCompile1TestCase.class" );
         assertTrue( testClass.exists() );
     }
 
@@ -345,13 +345,13 @@ public class CompilerMojoTestCase
         CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-skip-main/plugin-config.xml" );
         setVariableValueToObject( compileMojo, "skipMain", true );
         compileMojo.execute();
-        File testClass = new File( compileMojo.getOutputDirectory(), "TestSkipMainCompile0.class" );
+        File testClass = new File( compileMojo.getOutputDirectory(), "foo/TestSkipMainCompile0.class" );
         assertFalse( testClass.exists() );
 
         TestCompilerMojo testCompileMojo =
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-skip-main/plugin-config.xml" );
         testCompileMojo.execute();
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestSkipMainCompile0Test.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestSkipMainCompile0Test.class" );
         assertTrue( testClass.exists() );
     }
     
@@ -365,14 +365,14 @@ public class CompilerMojoTestCase
     {
         CompilerMojo compileMojo = getCompilerMojo( "target/test-classes/unit/compiler-skip-test/plugin-config.xml" );
         compileMojo.execute();
-        File testClass = new File( compileMojo.getOutputDirectory(), "TestSkipTestCompile0.class" );
+        File testClass = new File( compileMojo.getOutputDirectory(), "foo/TestSkipTestCompile0.class" );
         assertTrue( testClass.exists() );
 
         TestCompilerMojo testCompileMojo =
             getTestCompilerMojo( compileMojo, "target/test-classes/unit/compiler-skip-test/plugin-config.xml" );
         setVariableValueToObject( testCompileMojo, "skip", true );
         testCompileMojo.execute();
-        testClass = new File( testCompileMojo.getOutputDirectory(), "TestSkipTestCompile0Test.class" );
+        testClass = new File( testCompileMojo.getOutputDirectory(), "foo/TestSkipTestCompile0Test.class" );
         assertFalse( testClass.exists() );
     }
 
