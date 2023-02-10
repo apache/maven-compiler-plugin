@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,7 @@ package org.apache.maven.plugin.compiler;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
@@ -98,10 +97,8 @@ import org.objectweb.asm.Opcodes;
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
  * @since 2.0
  */
-public abstract class AbstractCompilerMojo
-    extends AbstractMojo
-{
-    protected static final String PS = System.getProperty( "path.separator" );
+public abstract class AbstractCompilerMojo extends AbstractMojo {
+    protected static final String PS = System.getProperty("path.separator");
 
     private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
@@ -111,7 +108,7 @@ public abstract class AbstractCompilerMojo
 
     // Used to compare with older targets
     static final String MODULE_INFO_TARGET = "1.9";
-    
+
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
@@ -121,48 +118,47 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.0.2
      */
-    @Parameter( property = "maven.compiler.failOnError", defaultValue = "true" )
+    @Parameter(property = "maven.compiler.failOnError", defaultValue = "true")
     private boolean failOnError = true;
-    
+
     /**
      * Indicates whether the build will continue even if there are compilation warnings.
      *
      * @since 3.6
      */
-    @Parameter( property = "maven.compiler.failOnWarning", defaultValue = "false" )
-    private boolean failOnWarning;  
+    @Parameter(property = "maven.compiler.failOnWarning", defaultValue = "false")
+    private boolean failOnWarning;
 
     /**
      * Set to <code>true</code> to include debugging information in the compiled class files.
      */
-    @Parameter( property = "maven.compiler.debug", defaultValue = "true" )
+    @Parameter(property = "maven.compiler.debug", defaultValue = "true")
     private boolean debug = true;
 
     /**
      * Set to <code>true</code> to generate metadata for reflection on method parameters.
      * @since 3.6.2
      */
-    @Parameter( property = "maven.compiler.parameters", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.parameters", defaultValue = "false")
     private boolean parameters;
-
 
     /**
      * Set to <code>true</code> to Enable preview language features of the java compiler
      * @since 3.10.1
      */
-    @Parameter( property = "maven.compiler.enablePreview", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.enablePreview", defaultValue = "false")
     private boolean enablePreview;
 
     /**
      * Set to <code>true</code> to show messages about what the compiler is doing.
      */
-    @Parameter( property = "maven.compiler.verbose", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.verbose", defaultValue = "false")
     private boolean verbose;
 
     /**
      * Sets whether to show source locations where deprecated APIs are used.
      */
-    @Parameter( property = "maven.compiler.showDeprecation", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.showDeprecation", defaultValue = "false")
     private boolean showDeprecation;
 
     /**
@@ -170,13 +166,13 @@ public abstract class AbstractCompilerMojo
      * @deprecated This property is a no-op in {@code javac}.
      */
     @Deprecated
-    @Parameter( property = "maven.compiler.optimize", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.optimize", defaultValue = "false")
     private boolean optimize;
 
     /**
      * Set to <code>false</code> to disable warnings during compilation.
      */
-    @Parameter( property = "maven.compiler.showWarnings", defaultValue = "true" )
+    @Parameter(property = "maven.compiler.showWarnings", defaultValue = "true")
     private boolean showWarnings;
 
     /**
@@ -187,7 +183,7 @@ public abstract class AbstractCompilerMojo
      * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
      * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
      */
-    @Parameter( property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE )
+    @Parameter(property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE)
     protected String source;
 
     /**
@@ -198,50 +194,50 @@ public abstract class AbstractCompilerMojo
      * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
      * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
      */
-    @Parameter( property = "maven.compiler.target", defaultValue = DEFAULT_TARGET )
+    @Parameter(property = "maven.compiler.target", defaultValue = DEFAULT_TARGET)
     protected String target;
 
     /**
      * The -release argument for the Java compiler, supported since Java9
-     * 
+     *
      * @since 3.6
      */
-    @Parameter( property = "maven.compiler.release" )
+    @Parameter(property = "maven.compiler.release")
     protected String release;
-    
+
     /**
      * The -encoding argument for the Java compiler.
      *
      * @since 2.1
      */
-    @Parameter( property = "encoding", defaultValue = "${project.build.sourceEncoding}" )
+    @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
     private String encoding;
 
     /**
      * Sets the granularity in milliseconds of the last modification
      * date for testing whether a source needs recompilation.
      */
-    @Parameter( property = "lastModGranularityMs", defaultValue = "0" )
+    @Parameter(property = "lastModGranularityMs", defaultValue = "0")
     private int staleMillis;
 
     /**
      * The compiler id of the compiler to use. See this
      * <a href="non-javac-compilers.html">guide</a> for more information.
      */
-    @Parameter( property = "maven.compiler.compilerId", defaultValue = "javac" )
+    @Parameter(property = "maven.compiler.compilerId", defaultValue = "javac")
     private String compilerId;
 
     /**
      * Version of the compiler to use, ex. "1.3", "1.5", if {@link #fork} is set to <code>true</code>.
      */
-    @Parameter( property = "maven.compiler.compilerVersion" )
+    @Parameter(property = "maven.compiler.compilerVersion")
     private String compilerVersion;
 
     /**
      * Allows running the compiler in a separate process.
      * If <code>false</code> it uses the built in compiler, while if <code>true</code> it will use an executable.
      */
-    @Parameter( property = "maven.compiler.fork", defaultValue = "false" )
+    @Parameter(property = "maven.compiler.fork", defaultValue = "false")
     private boolean fork;
 
     /**
@@ -250,7 +246,7 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.0.1
      */
-    @Parameter( property = "maven.compiler.meminitial" )
+    @Parameter(property = "maven.compiler.meminitial")
     private String meminitial;
 
     /**
@@ -259,13 +255,13 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.0.1
      */
-    @Parameter( property = "maven.compiler.maxmem" )
+    @Parameter(property = "maven.compiler.maxmem")
     private String maxmem;
 
     /**
      * Sets the executable of the compiler to use when {@link #fork} is <code>true</code>.
      */
-    @Parameter( property = "maven.compiler.executable" )
+    @Parameter(property = "maven.compiler.executable")
     private String executable;
 
     /**
@@ -408,7 +404,7 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.1
      */
-    @Parameter( property = "maven.compiler.debuglevel" )
+    @Parameter(property = "maven.compiler.debuglevel")
     private String debuglevel;
 
     /**
@@ -416,7 +412,7 @@ public abstract class AbstractCompilerMojo
      *
      * @since 3.10.2
      */
-    @Parameter( property = "maven.compiler.implicit" )
+    @Parameter(property = "maven.compiler.implicit")
     private String implicit;
 
     /**
@@ -433,7 +429,7 @@ public abstract class AbstractCompilerMojo
      * </p>
      * (see <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html"> Guide to Toolchains</a> for more
      * info)
-     * 
+     *
      * <pre>
      * &lt;configuration&gt;
      *   &lt;jdkToolchain&gt;
@@ -451,7 +447,7 @@ public abstract class AbstractCompilerMojo
      * &lt;/configuration&gt;
      * </pre>
      * <strong>note:</strong> requires at least Maven 3.3.1
-     * 
+     *
      * @since 3.6
      */
     @Parameter
@@ -464,13 +460,13 @@ public abstract class AbstractCompilerMojo
     /**
      * The directory to run the compiler from if fork is true.
      */
-    @Parameter( defaultValue = "${basedir}", required = true, readonly = true )
+    @Parameter(defaultValue = "${basedir}", required = true, readonly = true)
     private File basedir;
 
     /**
      * The target directory of the compiler if fork is true.
      */
-    @Parameter( defaultValue = "${project.build.directory}", required = true, readonly = true )
+    @Parameter(defaultValue = "${project.build.directory}", required = true, readonly = true)
     private File buildDirectory;
 
     /**
@@ -482,14 +478,14 @@ public abstract class AbstractCompilerMojo
     /**
      * The current build session instance. This is used for toolchain manager API calls.
      */
-    @Parameter( defaultValue = "${session}", readonly = true, required = true )
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
     private MavenSession session;
 
     /**
      * The current project instance. This is used for propagating generated-sources paths as compile/testCompile source
      * roots.
      */
-    @Parameter( defaultValue = "${project}", readonly = true, required = true )
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
     private MavenProject project;
 
     /**
@@ -505,13 +501,13 @@ public abstract class AbstractCompilerMojo
      *
      * @since 2.5
      */
-    @Parameter( defaultValue = "${reuseCreated}", property = "maven.compiler.compilerReuseStrategy" )
+    @Parameter(defaultValue = "${reuseCreated}", property = "maven.compiler.compilerReuseStrategy")
     private String compilerReuseStrategy = "reuseCreated";
 
     /**
      * @since 2.5
      */
-    @Parameter( defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning" )
+    @Parameter(defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning")
     private boolean skipMultiThreadWarning;
 
     /**
@@ -520,13 +516,13 @@ public abstract class AbstractCompilerMojo
      *
      * @since 3.0
      */
-    @Parameter( defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse" )
+    @Parameter(defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse")
     private boolean forceJavacCompilerUse;
 
     /**
      * @since 3.0 needed for storing the status for the incremental build support.
      */
-    @Parameter( defaultValue = "${mojoExecution}", readonly = true, required = true )
+    @Parameter(defaultValue = "${mojoExecution}", readonly = true, required = true)
     private MojoExecution mojoExecution;
 
     /**
@@ -554,7 +550,7 @@ public abstract class AbstractCompilerMojo
      *
      * @since 3.1
      */
-    @Parameter( defaultValue = "true", property = "maven.compiler.useIncrementalCompilation" )
+    @Parameter(defaultValue = "true", property = "maven.compiler.useIncrementalCompilation")
     private boolean useIncrementalCompilation = true;
 
     /**
@@ -566,10 +562,10 @@ public abstract class AbstractCompilerMojo
      *
      * @since 3.10
      */
-    @Parameter( defaultValue = "true", property = "maven.compiler.createMissingPackageInfoClass" )
+    @Parameter(defaultValue = "true", property = "maven.compiler.createMissingPackageInfoClass")
     private boolean createMissingPackageInfoClass = true;
 
-    @Parameter( defaultValue = "false", property = "maven.compiler.showCompilationChanges" )
+    @Parameter(defaultValue = "false", property = "maven.compiler.showCompilationChanges")
     private boolean showCompilationChanges = false;
     /**
      * Resolves the artifacts needed.
@@ -583,9 +579,9 @@ public abstract class AbstractCompilerMojo
     @Component
     private ArtifactHandlerManager artifactHandlerManager;
 
-    protected abstract SourceInclusionScanner getSourceInclusionScanner( int staleMillis );
+    protected abstract SourceInclusionScanner getSourceInclusionScanner(int staleMillis);
 
-    protected abstract SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding );
+    protected abstract SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding);
 
     protected abstract List<String> getClasspathElements();
 
@@ -594,8 +590,8 @@ public abstract class AbstractCompilerMojo
     protected abstract Map<String, JavaModuleDescriptor> getPathElements();
 
     protected abstract List<String> getCompileSourceRoots();
-    
-    protected abstract void preparePaths( Set<File> sourceFiles );
+
+    protected abstract void preparePaths(Set<File> sourceFiles);
 
     protected abstract File getOutputDirectory();
 
@@ -613,17 +609,14 @@ public abstract class AbstractCompilerMojo
 
     protected abstract String getDebugFileName();
 
-    protected final MavenProject getProject()
-    {
+    protected final MavenProject getProject() {
         return project;
     }
 
     private boolean targetOrReleaseSet;
 
     @Override
-    public void execute()
-        throws MojoExecutionException, CompilationFailureException
-    {
+    public void execute() throws MojoExecutionException, CompilationFailureException {
         // ----------------------------------------------------------------------
         // Look up the compiler. This is done before other code than can
         // cause the mojo to return before the lookup is done possibly resulting
@@ -632,57 +625,50 @@ public abstract class AbstractCompilerMojo
 
         Compiler compiler;
 
-        getLog().debug( "Using compiler '" + compilerId + "'." );
+        getLog().debug("Using compiler '" + compilerId + "'.");
 
-        try
-        {
-            compiler = compilerManager.getCompiler( compilerId );
-        }
-        catch ( NoSuchCompilerException e )
-        {
-            throw new MojoExecutionException( "No such compiler '" + e.getCompilerId() + "'." );
+        try {
+            compiler = compilerManager.getCompiler(compilerId);
+        } catch (NoSuchCompilerException e) {
+            throw new MojoExecutionException("No such compiler '" + e.getCompilerId() + "'.");
         }
 
-        //-----------toolchains start here ----------------------------------
-        //use the compilerId as identifier for toolchains as well.
+        // -----------toolchains start here ----------------------------------
+        // use the compilerId as identifier for toolchains as well.
         Toolchain tc = getToolchain();
-        if ( tc != null )
-        {
-            getLog().info( "Toolchain in maven-compiler-plugin: " + tc );
-            if ( executable != null )
-            {
-                getLog().warn( "Toolchains are ignored, 'executable' parameter is set to " + executable );
-            }
-            else
-            {
+        if (tc != null) {
+            getLog().info("Toolchain in maven-compiler-plugin: " + tc);
+            if (executable != null) {
+                getLog().warn("Toolchains are ignored, 'executable' parameter is set to " + executable);
+            } else {
                 fork = true;
-                //TODO somehow shaky dependency between compilerId and tool executable.
-                executable = tc.findTool( compilerId );
+                // TODO somehow shaky dependency between compilerId and tool executable.
+                executable = tc.findTool(compilerId);
             }
         }
         // ----------------------------------------------------------------------
         //
         // ----------------------------------------------------------------------
 
-        List<String> compileSourceRoots = removeEmptyCompileSourceRoots( getCompileSourceRoots() );
+        List<String> compileSourceRoots = removeEmptyCompileSourceRoots(getCompileSourceRoots());
 
-        if ( compileSourceRoots.isEmpty() )
-        {
-            getLog().info( "No sources to compile" );
+        if (compileSourceRoots.isEmpty()) {
+            getLog().info("No sources to compile");
 
             return;
         }
 
         // Verify that target or release is set
-        if ( !targetOrReleaseSet )
-        {
-            MessageBuilder mb = MessageUtils.buffer().a( "No explicit value set for target or release! " )
-                            .a( "To ensure the same result even after upgrading this plugin, please add " ).newline()
-                            .newline();
+        if (!targetOrReleaseSet) {
+            MessageBuilder mb = MessageUtils.buffer()
+                    .a("No explicit value set for target or release! ")
+                    .a("To ensure the same result even after upgrading this plugin, please add ")
+                    .newline()
+                    .newline();
 
-            writePlugin( mb );
+            writePlugin(mb);
 
-            getLog().warn( mb.toString() );
+            getLog().warn(mb.toString());
         }
 
         // ----------------------------------------------------------------------
@@ -691,721 +677,575 @@ public abstract class AbstractCompilerMojo
 
         CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
 
-        compilerConfiguration.setOutputLocation( getOutputDirectory().getAbsolutePath() );
+        compilerConfiguration.setOutputLocation(getOutputDirectory().getAbsolutePath());
 
-        compilerConfiguration.setOptimize( optimize );
+        compilerConfiguration.setOptimize(optimize);
 
-        compilerConfiguration.setDebug( debug );
+        compilerConfiguration.setDebug(debug);
 
-        compilerConfiguration.setDebugFileName( getDebugFileName() );
+        compilerConfiguration.setDebugFileName(getDebugFileName());
 
-        compilerConfiguration.setImplicitOption( implicit );
+        compilerConfiguration.setImplicitOption(implicit);
 
-        if ( debug && StringUtils.isNotEmpty( debuglevel ) )
-        {
-            String[] split = StringUtils.split( debuglevel, "," );
-            for ( String aSplit : split )
-            {
-                if ( !( aSplit.equalsIgnoreCase( "none" ) || aSplit.equalsIgnoreCase( "lines" )
-                    || aSplit.equalsIgnoreCase( "vars" ) || aSplit.equalsIgnoreCase( "source" ) ) )
-                {
-                    throw new IllegalArgumentException( "The specified debug level: '" + aSplit + "' is unsupported. "
-                        + "Legal values are 'none', 'lines', 'vars', and 'source'." );
+        if (debug && StringUtils.isNotEmpty(debuglevel)) {
+            String[] split = StringUtils.split(debuglevel, ",");
+            for (String aSplit : split) {
+                if (!(aSplit.equalsIgnoreCase("none")
+                        || aSplit.equalsIgnoreCase("lines")
+                        || aSplit.equalsIgnoreCase("vars")
+                        || aSplit.equalsIgnoreCase("source"))) {
+                    throw new IllegalArgumentException("The specified debug level: '" + aSplit + "' is unsupported. "
+                            + "Legal values are 'none', 'lines', 'vars', and 'source'.");
                 }
             }
-            compilerConfiguration.setDebugLevel( debuglevel );
+            compilerConfiguration.setDebugLevel(debuglevel);
         }
 
-        compilerConfiguration.setParameters( parameters );
+        compilerConfiguration.setParameters(parameters);
 
-        compilerConfiguration.setEnablePreview( enablePreview );
+        compilerConfiguration.setEnablePreview(enablePreview);
 
-        compilerConfiguration.setVerbose( verbose );
+        compilerConfiguration.setVerbose(verbose);
 
-        compilerConfiguration.setShowWarnings( showWarnings );
+        compilerConfiguration.setShowWarnings(showWarnings);
 
-        compilerConfiguration.setFailOnWarning( failOnWarning );
+        compilerConfiguration.setFailOnWarning(failOnWarning);
 
-        if ( failOnWarning && !showWarnings )
-        {
-            getLog().warn( "The property failOnWarning is set to true, but showWarnings is set to false." );
-            getLog().warn( "With compiler's warnings silenced the failOnWarning has no effect." );
+        if (failOnWarning && !showWarnings) {
+            getLog().warn("The property failOnWarning is set to true, but showWarnings is set to false.");
+            getLog().warn("With compiler's warnings silenced the failOnWarning has no effect.");
         }
 
-        compilerConfiguration.setShowDeprecation( showDeprecation );
+        compilerConfiguration.setShowDeprecation(showDeprecation);
 
-        compilerConfiguration.setSourceVersion( getSource() );
+        compilerConfiguration.setSourceVersion(getSource());
 
-        compilerConfiguration.setTargetVersion( getTarget() );
-        
-        compilerConfiguration.setReleaseVersion( getRelease() );
+        compilerConfiguration.setTargetVersion(getTarget());
 
-        compilerConfiguration.setProc( proc );
+        compilerConfiguration.setReleaseVersion(getRelease());
+
+        compilerConfiguration.setProc(proc);
 
         File generatedSourcesDirectory = getGeneratedSourcesDirectory();
-        compilerConfiguration.setGeneratedSourcesDirectory( generatedSourcesDirectory != null
-                        ? generatedSourcesDirectory.getAbsoluteFile() : null );
+        compilerConfiguration.setGeneratedSourcesDirectory(
+                generatedSourcesDirectory != null ? generatedSourcesDirectory.getAbsoluteFile() : null);
 
-        if ( generatedSourcesDirectory != null )
-        {
-            if ( !generatedSourcesDirectory.exists() )
-            {
+        if (generatedSourcesDirectory != null) {
+            if (!generatedSourcesDirectory.exists()) {
                 generatedSourcesDirectory.mkdirs();
             }
 
             String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
 
-            compileSourceRoots.add( generatedSourcesPath );
+            compileSourceRoots.add(generatedSourcesPath);
 
-            if ( isTestCompile() )
-            {
-                getLog().debug( "Adding " + generatedSourcesPath + " to test-compile source roots:\n  "
-                                    + StringUtils.join( project.getTestCompileSourceRoots()
-                                                               .iterator(), "\n  " ) );
+            if (isTestCompile()) {
+                getLog().debug("Adding " + generatedSourcesPath + " to test-compile source roots:\n  "
+                        + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
 
-                project.addTestCompileSourceRoot( generatedSourcesPath );
+                project.addTestCompileSourceRoot(generatedSourcesPath);
 
-                getLog().debug( "New test-compile source roots:\n  "
-                                    + StringUtils.join( project.getTestCompileSourceRoots()
-                                                               .iterator(), "\n  " ) );
-            }
-            else
-            {
-                getLog().debug( "Adding " + generatedSourcesPath + " to compile source roots:\n  "
-                                    + StringUtils.join( project.getCompileSourceRoots()
-                                                               .iterator(), "\n  " ) );
+                getLog().debug("New test-compile source roots:\n  "
+                        + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
+            } else {
+                getLog().debug("Adding " + generatedSourcesPath + " to compile source roots:\n  "
+                        + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
 
-                project.addCompileSourceRoot( generatedSourcesPath );
+                project.addCompileSourceRoot(generatedSourcesPath);
 
-                getLog().debug( "New compile source roots:\n  " + StringUtils.join( project.getCompileSourceRoots()
-                                                                                           .iterator(), "\n  " ) );
+                getLog().debug("New compile source roots:\n  "
+                        + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
             }
         }
 
-        compilerConfiguration.setSourceLocations( compileSourceRoots );
+        compilerConfiguration.setSourceLocations(compileSourceRoots);
 
-        compilerConfiguration.setAnnotationProcessors( annotationProcessors );
+        compilerConfiguration.setAnnotationProcessors(annotationProcessors);
 
-        compilerConfiguration.setProcessorPathEntries( resolveProcessorPathEntries() );
+        compilerConfiguration.setProcessorPathEntries(resolveProcessorPathEntries());
 
-        compilerConfiguration.setSourceEncoding( encoding );
+        compilerConfiguration.setSourceEncoding(encoding);
 
-        compilerConfiguration.setFork( fork );
+        compilerConfiguration.setFork(fork);
 
-        if ( fork )
-        {
-            if ( !StringUtils.isEmpty( meminitial ) )
-            {
-                String value = getMemoryValue( meminitial );
+        if (fork) {
+            if (!StringUtils.isEmpty(meminitial)) {
+                String value = getMemoryValue(meminitial);
 
-                if ( value != null )
-                {
-                    compilerConfiguration.setMeminitial( value );
-                }
-                else
-                {
-                    getLog().info( "Invalid value for meminitial '" + meminitial + "'. Ignoring this option." );
+                if (value != null) {
+                    compilerConfiguration.setMeminitial(value);
+                } else {
+                    getLog().info("Invalid value for meminitial '" + meminitial + "'. Ignoring this option.");
                 }
             }
 
-            if ( !StringUtils.isEmpty( maxmem ) )
-            {
-                String value = getMemoryValue( maxmem );
+            if (!StringUtils.isEmpty(maxmem)) {
+                String value = getMemoryValue(maxmem);
 
-                if ( value != null )
-                {
-                    compilerConfiguration.setMaxmem( value );
-                }
-                else
-                {
-                    getLog().info( "Invalid value for maxmem '" + maxmem + "'. Ignoring this option." );
+                if (value != null) {
+                    compilerConfiguration.setMaxmem(value);
+                } else {
+                    getLog().info("Invalid value for maxmem '" + maxmem + "'. Ignoring this option.");
                 }
             }
         }
 
-        compilerConfiguration.setExecutable( executable );
+        compilerConfiguration.setExecutable(executable);
 
-        compilerConfiguration.setWorkingDirectory( basedir );
+        compilerConfiguration.setWorkingDirectory(basedir);
 
-        compilerConfiguration.setCompilerVersion( compilerVersion );
+        compilerConfiguration.setCompilerVersion(compilerVersion);
 
-        compilerConfiguration.setBuildDirectory( buildDirectory );
+        compilerConfiguration.setBuildDirectory(buildDirectory);
 
-        compilerConfiguration.setOutputFileName( outputFileName );
+        compilerConfiguration.setOutputFileName(outputFileName);
 
-        if ( CompilerConfiguration.CompilerReuseStrategy.AlwaysNew.getStrategy().equals( this.compilerReuseStrategy ) )
-        {
-            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.AlwaysNew );
-        }
-        else if ( CompilerConfiguration.CompilerReuseStrategy.ReuseSame.getStrategy().equals(
-            this.compilerReuseStrategy ) )
-        {
-            if ( getRequestThreadCount() > 1 )
-            {
-                if ( !skipMultiThreadWarning )
-                {
-                    getLog().warn( "You are in a multi-thread build and compilerReuseStrategy is set to reuseSame."
-                                       + " This can cause issues in some environments (os/jdk)!"
-                                       + " Consider using reuseCreated strategy."
-                                       + System.getProperty( "line.separator" )
-                                       + "If your env is fine with reuseSame, you can skip this warning with the "
-                                       + "configuration field skipMultiThreadWarning "
-                                       + "or -Dmaven.compiler.skipMultiThreadWarning=true" );
+        if (CompilerConfiguration.CompilerReuseStrategy.AlwaysNew.getStrategy().equals(this.compilerReuseStrategy)) {
+            compilerConfiguration.setCompilerReuseStrategy(CompilerConfiguration.CompilerReuseStrategy.AlwaysNew);
+        } else if (CompilerConfiguration.CompilerReuseStrategy.ReuseSame.getStrategy()
+                .equals(this.compilerReuseStrategy)) {
+            if (getRequestThreadCount() > 1) {
+                if (!skipMultiThreadWarning) {
+                    getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame."
+                            + " This can cause issues in some environments (os/jdk)!"
+                            + " Consider using reuseCreated strategy."
+                            + System.getProperty("line.separator")
+                            + "If your env is fine with reuseSame, you can skip this warning with the "
+                            + "configuration field skipMultiThreadWarning "
+                            + "or -Dmaven.compiler.skipMultiThreadWarning=true");
                 }
             }
-            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseSame );
-        }
-        else
-        {
+            compilerConfiguration.setCompilerReuseStrategy(CompilerConfiguration.CompilerReuseStrategy.ReuseSame);
+        } else {
 
-            compilerConfiguration.setCompilerReuseStrategy( CompilerConfiguration.CompilerReuseStrategy.ReuseCreated );
+            compilerConfiguration.setCompilerReuseStrategy(CompilerConfiguration.CompilerReuseStrategy.ReuseCreated);
         }
 
-        getLog().debug( "CompilerReuseStrategy: " + compilerConfiguration.getCompilerReuseStrategy().getStrategy() );
+        getLog().debug("CompilerReuseStrategy: "
+                + compilerConfiguration.getCompilerReuseStrategy().getStrategy());
 
-        compilerConfiguration.setForceJavacCompilerUse( forceJavacCompilerUse );
+        compilerConfiguration.setForceJavacCompilerUse(forceJavacCompilerUse);
 
         boolean canUpdateTarget;
 
-        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper( mojoExecution, session );
+        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
 
         final Set<File> sources;
 
         IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
 
-        if ( useIncrementalCompilation )
-        {
-            getLog().debug( "useIncrementalCompilation enabled" );
-            try
-            {
-                canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
+        if (useIncrementalCompilation) {
+            getLog().debug("useIncrementalCompilation enabled");
+            try {
+                canUpdateTarget = compiler.canUpdateTarget(compilerConfiguration);
 
-                sources = getCompileSources( compiler, compilerConfiguration );
-                
-                preparePaths( sources );
+                sources = getCompileSources(compiler, compilerConfiguration);
 
-                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles( sources );
+                preparePaths(sources);
 
-                DirectoryScanResult dsr = computeInputFileTreeChanges( incrementalBuildHelper, sources );
+                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
+
+                DirectoryScanResult dsr = computeInputFileTreeChanges(incrementalBuildHelper, sources);
 
                 boolean idk = compiler.getCompilerOutputStyle()
-                        .equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES ) && !canUpdateTarget;
+                                .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                        && !canUpdateTarget;
                 boolean dependencyChanged = isDependencyChanged();
-                boolean sourceChanged = isSourceChanged( compilerConfiguration, compiler );
-                boolean inputFileTreeChanged = hasInputFileTreeChanged( dsr );
+                boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
+                boolean inputFileTreeChanged = hasInputFileTreeChanged(dsr);
                 // CHECKSTYLE_OFF: LineLength
-                if ( idk
-                    || dependencyChanged
-                    || sourceChanged
-                    || inputFileTreeChanged )
-                    // CHECKSTYLE_ON: LineLength
+                if (idk || dependencyChanged || sourceChanged || inputFileTreeChanged)
+                // CHECKSTYLE_ON: LineLength
                 {
-                    String cause = idk ? "idk" : ( dependencyChanged ? "dependency"
-                            : ( sourceChanged ? "source" : "input tree" ) );
-                    getLog().info( "Changes detected - recompiling the module! :" + cause );
-                    if ( showCompilationChanges )
-                    {
-                        for ( String fileAdded : dsr.getFilesAdded() )
-                        {
-                            getLog().info( "\t+ " + fileAdded );
+                    String cause = idk
+                            ? "idk"
+                            : (dependencyChanged ? "dependency" : (sourceChanged ? "source" : "input tree"));
+                    getLog().info("Changes detected - recompiling the module! :" + cause);
+                    if (showCompilationChanges) {
+                        for (String fileAdded : dsr.getFilesAdded()) {
+                            getLog().info("\t+ " + fileAdded);
                         }
-                        for ( String fileRemoved : dsr.getFilesRemoved() )
-                        {
-                            getLog().info( "\t- " + fileRemoved );
+                        for (String fileRemoved : dsr.getFilesRemoved()) {
+                            getLog().info("\t- " + fileRemoved);
                         }
                     }
 
-                    compilerConfiguration.setSourceFiles( sources );
-                }
-                else
-                {
-                    getLog().info( "Nothing to compile - all classes are up to date" );
+                    compilerConfiguration.setSourceFiles(sources);
+                } else {
+                    getLog().info("Nothing to compile - all classes are up to date");
 
                     return;
                 }
+            } catch (CompilerException e) {
+                throw new MojoExecutionException("Error while computing stale sources.", e);
             }
-            catch ( CompilerException e )
-            {
-                throw new MojoExecutionException( "Error while computing stale sources.", e );
-            }
-        }
-        else
-        {
-            getLog().debug( "useIncrementalCompilation disabled" );
-            
+        } else {
+            getLog().debug("useIncrementalCompilation disabled");
+
             Set<File> staleSources;
-            try
-            {
+            try {
                 staleSources =
-                    computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
+                        computeStaleSources(compilerConfiguration, compiler, getSourceInclusionScanner(staleMillis));
 
-                canUpdateTarget = compiler.canUpdateTarget( compilerConfiguration );
+                canUpdateTarget = compiler.canUpdateTarget(compilerConfiguration);
 
-                if ( compiler.getCompilerOutputStyle().equals( CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-                    && !canUpdateTarget )
-                {
-                    getLog().info( "RESCANNING!" );
+                if (compiler.getCompilerOutputStyle().equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                        && !canUpdateTarget) {
+                    getLog().info("RESCANNING!");
                     // TODO: This second scan for source files is sub-optimal
-                    String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
+                    String inputFileEnding = compiler.getInputFileEnding(compilerConfiguration);
 
-                    staleSources = computeStaleSources( compilerConfiguration, compiler,
-                                                             getSourceInclusionScanner( inputFileEnding ) );
+                    staleSources = computeStaleSources(
+                            compilerConfiguration, compiler, getSourceInclusionScanner(inputFileEnding));
                 }
-                
-            }
-            catch ( CompilerException e )
-            {
-                throw new MojoExecutionException( "Error while computing stale sources.", e );
+
+            } catch (CompilerException e) {
+                throw new MojoExecutionException("Error while computing stale sources.", e);
             }
 
-            if ( staleSources.isEmpty() )
-            {
-                getLog().info( "Nothing to compile - all classes are up to date" );
+            if (staleSources.isEmpty()) {
+                getLog().info("Nothing to compile - all classes are up to date");
 
                 return;
             }
 
-            compilerConfiguration.setSourceFiles( staleSources );
-            
-            try
-            {
-                // MCOMPILER-366: if sources contain the module-descriptor it must be used to define the modulepath
-                sources = getCompileSources( compiler, compilerConfiguration );
+            compilerConfiguration.setSourceFiles(staleSources);
 
-                if ( getLog().isDebugEnabled() )
-                {
-                    getLog().debug( "#sources: " + sources.size() );
-                    for ( File file : sources )
-                    {
-                        getLog().debug( file.getPath() );
+            try {
+                // MCOMPILER-366: if sources contain the module-descriptor it must be used to define the modulepath
+                sources = getCompileSources(compiler, compilerConfiguration);
+
+                if (getLog().isDebugEnabled()) {
+                    getLog().debug("#sources: " + sources.size());
+                    for (File file : sources) {
+                        getLog().debug(file.getPath());
                     }
                 }
 
-                preparePaths( sources );
-            }
-            catch ( CompilerException e )
-            {
-                throw new MojoExecutionException( "Error while computing stale sources.", e );
+                preparePaths(sources);
+            } catch (CompilerException e) {
+                throw new MojoExecutionException("Error while computing stale sources.", e);
             }
         }
-       
+
         // Dividing pathElements of classPath and modulePath is based on sourceFiles
-        compilerConfiguration.setClasspathEntries( getClasspathElements() );
+        compilerConfiguration.setClasspathEntries(getClasspathElements());
 
-        compilerConfiguration.setModulepathEntries( getModulepathElements() );
-        
-        compilerConfiguration.setIncludes( getIncludes() );
+        compilerConfiguration.setModulepathEntries(getModulepathElements());
 
-        compilerConfiguration.setExcludes( getExcludes() );
+        compilerConfiguration.setIncludes(getIncludes());
+
+        compilerConfiguration.setExcludes(getExcludes());
 
         Map<String, String> effectiveCompilerArguments = getCompilerArguments();
 
         String effectiveCompilerArgument = getCompilerArgument();
 
-        if ( ( effectiveCompilerArguments != null ) || ( effectiveCompilerArgument != null )
-                        || ( compilerArgs != null ) )
-        {
-            if ( effectiveCompilerArguments != null )
-            {
-                for ( Map.Entry<String, String> me : effectiveCompilerArguments.entrySet() )
-                {
+        if ((effectiveCompilerArguments != null) || (effectiveCompilerArgument != null) || (compilerArgs != null)) {
+            if (effectiveCompilerArguments != null) {
+                for (Map.Entry<String, String> me : effectiveCompilerArguments.entrySet()) {
                     String key = me.getKey();
                     String value = me.getValue();
-                    if ( !key.startsWith( "-" ) )
-                    {
+                    if (!key.startsWith("-")) {
                         key = "-" + key;
                     }
 
-                    if ( key.startsWith( "-A" ) && StringUtils.isNotEmpty( value ) )
-                    {
-                        compilerConfiguration.addCompilerCustomArgument( key + "=" + value, null );
-                    }
-                    else
-                    {
-                        compilerConfiguration.addCompilerCustomArgument( key, value );
+                    if (key.startsWith("-A") && StringUtils.isNotEmpty(value)) {
+                        compilerConfiguration.addCompilerCustomArgument(key + "=" + value, null);
+                    } else {
+                        compilerConfiguration.addCompilerCustomArgument(key, value);
                     }
                 }
             }
-            if ( !StringUtils.isEmpty( effectiveCompilerArgument ) )
-            {
-                compilerConfiguration.addCompilerCustomArgument( effectiveCompilerArgument, null );
+            if (!StringUtils.isEmpty(effectiveCompilerArgument)) {
+                compilerConfiguration.addCompilerCustomArgument(effectiveCompilerArgument, null);
             }
-            if ( compilerArgs != null )
-            {
-                for ( String arg : compilerArgs )
-                {
-                    compilerConfiguration.addCompilerCustomArgument( arg, null );
+            if (compilerArgs != null) {
+                for (String arg : compilerArgs) {
+                    compilerConfiguration.addCompilerCustomArgument(arg, null);
                 }
             }
         }
-        
+
         // ----------------------------------------------------------------------
         // Dump configuration
         // ----------------------------------------------------------------------
-        if ( getLog().isDebugEnabled() )
-        {
-            getLog().debug( "Classpath:" );
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Classpath:");
 
-            for ( String s : getClasspathElements() )
-            {
-                getLog().debug( " " + s );
+            for (String s : getClasspathElements()) {
+                getLog().debug(" " + s);
             }
 
-            if ( !getModulepathElements().isEmpty() )
-            {
-                getLog().debug( "Modulepath:" );
-                for ( String s : getModulepathElements() )
-                {
-                    getLog().debug( " " + s );
+            if (!getModulepathElements().isEmpty()) {
+                getLog().debug("Modulepath:");
+                for (String s : getModulepathElements()) {
+                    getLog().debug(" " + s);
                 }
             }
 
-            getLog().debug( "Source roots:" );
+            getLog().debug("Source roots:");
 
-            for ( String root : getCompileSourceRoots() )
-            {
-                getLog().debug( " " + root );
+            for (String root : getCompileSourceRoots()) {
+                getLog().debug(" " + root);
             }
 
-            try
-            {
-                if ( fork )
-                {
-                    if ( compilerConfiguration.getExecutable() != null )
-                    {
-                        getLog().debug( "Excutable: " );
-                        getLog().debug( " " + compilerConfiguration.getExecutable() );
+            try {
+                if (fork) {
+                    if (compilerConfiguration.getExecutable() != null) {
+                        getLog().debug("Excutable: ");
+                        getLog().debug(" " + compilerConfiguration.getExecutable());
                     }
                 }
 
-                String[] cl = compiler.createCommandLine( compilerConfiguration );
-                if ( cl != null && cl.length > 0 )
-                {
+                String[] cl = compiler.createCommandLine(compilerConfiguration);
+                if (cl != null && cl.length > 0) {
                     StringBuilder sb = new StringBuilder();
-                    sb.append( cl[0] );
-                    for ( int i = 1; i < cl.length; i++ )
-                    {
-                        sb.append( " " );
-                        sb.append( cl[i] );
+                    sb.append(cl[0]);
+                    for (int i = 1; i < cl.length; i++) {
+                        sb.append(" ");
+                        sb.append(cl[i]);
                     }
-                    getLog().debug( "Command line options:" );
-                    getLog().debug( sb );
+                    getLog().debug("Command line options:");
+                    getLog().debug(sb);
                 }
-            }
-            catch ( CompilerException ce )
-            {
-                getLog().debug( ce );
+            } catch (CompilerException ce) {
+                getLog().debug(ce);
             }
         }
-        
 
         List<String> jpmsLines = new ArrayList<>();
-        
+
         // See http://openjdk.java.net/jeps/261
-        final List<String> runtimeArgs = Arrays.asList( "--upgrade-module-path", 
-                                                  "--add-exports",
-                                                  "--add-reads", 
-                                                  "--add-modules", 
-                                                  "--limit-modules" );
-        
+        final List<String> runtimeArgs = Arrays.asList(
+                "--upgrade-module-path", "--add-exports", "--add-reads", "--add-modules", "--limit-modules");
+
         // Custom arguments are all added as keys to an ordered Map
         Iterator<Map.Entry<String, String>> entryIter =
-            compilerConfiguration.getCustomCompilerArgumentsEntries().iterator();
-        while ( entryIter.hasNext() )
-        {
+                compilerConfiguration.getCustomCompilerArgumentsEntries().iterator();
+        while (entryIter.hasNext()) {
             Map.Entry<String, String> entry = entryIter.next();
-            
-            if ( runtimeArgs.contains( entry.getKey() ) )
-            {
-                jpmsLines.add( entry.getKey() );
-                
-                String value = entry.getValue();
-                if ( value == null )
-                {
-                    entry = entryIter.next();
-                    value = entry.getKey();
-                }
-                jpmsLines.add( value );
-            }
-            else if ( "--patch-module".equals( entry.getKey() ) )
-            {
-                String value = entry.getValue();
-                if ( value == null )
-                {
-                    entry = entryIter.next();
-                    value = entry.getKey();
-                }
-                
-                String[] values = value.split( "=" );
 
-                StringBuilder patchModule = new StringBuilder( values[0] );
-                patchModule.append( '=' );
+            if (runtimeArgs.contains(entry.getKey())) {
+                jpmsLines.add(entry.getKey());
+
+                String value = entry.getValue();
+                if (value == null) {
+                    entry = entryIter.next();
+                    value = entry.getKey();
+                }
+                jpmsLines.add(value);
+            } else if ("--patch-module".equals(entry.getKey())) {
+                String value = entry.getValue();
+                if (value == null) {
+                    entry = entryIter.next();
+                    value = entry.getKey();
+                }
+
+                String[] values = value.split("=");
+
+                StringBuilder patchModule = new StringBuilder(values[0]);
+                patchModule.append('=');
 
                 Set<String> patchModules = new LinkedHashSet<>();
-                Set<Path> sourceRoots = new HashSet<>( getCompileSourceRoots().size() );
-                for ( String sourceRoot : getCompileSourceRoots() )
-                {
-                    sourceRoots.add( Paths.get( sourceRoot ) );
+                Set<Path> sourceRoots = new HashSet<>(getCompileSourceRoots().size());
+                for (String sourceRoot : getCompileSourceRoots()) {
+                    sourceRoots.add(Paths.get(sourceRoot));
                 }
 
-                String[] files = values[1].split( PS );
+                String[] files = values[1].split(PS);
 
-                for ( String file : files )
-                {
-                    Path filePath = Paths.get( file );
-                    if ( getOutputDirectory().toPath().equals( filePath ) )
-                    {
-                        patchModules.add( "_" ); // this jar
-                    }
-                    else if ( getOutputDirectory().toPath().startsWith( filePath ) )
-                    {
+                for (String file : files) {
+                    Path filePath = Paths.get(file);
+                    if (getOutputDirectory().toPath().equals(filePath)) {
+                        patchModules.add("_"); // this jar
+                    } else if (getOutputDirectory().toPath().startsWith(filePath)) {
                         // multirelease, can be ignored
                         continue;
-                    }
-                    else if ( sourceRoots.contains( filePath ) )
-                    {
-                        patchModules.add( "_" ); // this jar
-                    }
-                    else
-                    {
-                        JavaModuleDescriptor descriptor = getPathElements().get( file );
-                        
-                        if ( descriptor == null )
-                        {
-                            if ( Files.isDirectory( filePath ) )
-                            {
-                                patchModules.add( file );
+                    } else if (sourceRoots.contains(filePath)) {
+                        patchModules.add("_"); // this jar
+                    } else {
+                        JavaModuleDescriptor descriptor = getPathElements().get(file);
+
+                        if (descriptor == null) {
+                            if (Files.isDirectory(filePath)) {
+                                patchModules.add(file);
+                            } else {
+                                getLog().warn("Can't locate " + file);
                             }
-                            else
-                            {
-                                getLog().warn( "Can't locate " + file );
-                            }
-                        }
-                        else if ( !values[0].equals( descriptor.name() ) )
-                        {
-                            patchModules.add( descriptor.name() );
+                        } else if (!values[0].equals(descriptor.name())) {
+                            patchModules.add(descriptor.name());
                         }
                     }
                 }
 
                 StringBuilder sb = new StringBuilder();
-                
-                if ( !patchModules.isEmpty() )
-                {
-                    for ( String mod : patchModules )
-                    {
-                        if ( sb.length() > 0 )
-                        {
-                            sb.append( ", " );
+
+                if (!patchModules.isEmpty()) {
+                    for (String mod : patchModules) {
+                        if (sb.length() > 0) {
+                            sb.append(", ");
                         }
                         // use 'invalid' separator to ensure values are transformed
-                        sb.append( mod );
+                        sb.append(mod);
                     }
 
-                    jpmsLines.add( "--patch-module" );
-                    jpmsLines.add( patchModule + sb.toString() );
+                    jpmsLines.add("--patch-module");
+                    jpmsLines.add(patchModule + sb.toString());
                 }
-
-            }
-        }
-        
-        if ( !jpmsLines.isEmpty() ) 
-        {
-            Path jpmsArgs = Paths.get( getOutputDirectory().getAbsolutePath(), "META-INF/jpms.args" );
-            try
-            {
-                Files.createDirectories( jpmsArgs.getParent() );
-                
-                Files.write( jpmsArgs, jpmsLines, Charset.defaultCharset() );
-            }
-            catch ( IOException e )
-            {
-                getLog().warn( e.getMessage() );
             }
         }
 
+        if (!jpmsLines.isEmpty()) {
+            Path jpmsArgs = Paths.get(getOutputDirectory().getAbsolutePath(), "META-INF/jpms.args");
+            try {
+                Files.createDirectories(jpmsArgs.getParent());
+
+                Files.write(jpmsArgs, jpmsLines, Charset.defaultCharset());
+            } catch (IOException e) {
+                getLog().warn(e.getMessage());
+            }
+        }
 
         // ----------------------------------------------------------------------
         // Compile!
         // ----------------------------------------------------------------------
 
-        if ( StringUtils.isEmpty( compilerConfiguration.getSourceEncoding() ) )
-        {
-            getLog().warn( "File encoding has not been set, using platform encoding " + ReaderFactory.FILE_ENCODING
-                               + ", i.e. build is platform dependent!" );
+        if (StringUtils.isEmpty(compilerConfiguration.getSourceEncoding())) {
+            getLog().warn("File encoding has not been set, using platform encoding " + ReaderFactory.FILE_ENCODING
+                    + ", i.e. build is platform dependent!");
         }
 
         CompilerResult compilerResult;
 
+        if (useIncrementalCompilation) {
+            incrementalBuildHelperRequest.outputDirectory(getOutputDirectory());
 
-        if ( useIncrementalCompilation )
-        {
-            incrementalBuildHelperRequest.outputDirectory( getOutputDirectory() );
+            incrementalBuildHelper.beforeRebuildExecution(incrementalBuildHelperRequest);
 
-            incrementalBuildHelper.beforeRebuildExecution( incrementalBuildHelperRequest );
-
-            getLog().debug( "incrementalBuildHelper#beforeRebuildExecution" );
+            getLog().debug("incrementalBuildHelper#beforeRebuildExecution");
         }
 
-        try
-        {
-            compilerResult = compiler.performCompile( compilerConfiguration );
-        }
-        catch ( Exception e )
-        {
+        try {
+            compilerResult = compiler.performCompile(compilerConfiguration);
+        } catch (Exception e) {
             // TODO: don't catch Exception
-            throw new MojoExecutionException( "Fatal error compiling", e );
+            throw new MojoExecutionException("Fatal error compiling", e);
         }
 
-        if ( createMissingPackageInfoClass && compilerResult.isSuccess()
-                && compiler.getCompilerOutputStyle() == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE )
-        {
-            try
-            {
-                SourceMapping sourceMapping = getSourceMapping( compilerConfiguration, compiler );
-                createMissingPackageInfoClasses( compilerConfiguration, sourceMapping, sources );
-            }
-            catch ( Exception e )
-            {
-                getLog().warn( "Error creating missing package info classes", e );
-
+        if (createMissingPackageInfoClass
+                && compilerResult.isSuccess()
+                && compiler.getCompilerOutputStyle() == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE) {
+            try {
+                SourceMapping sourceMapping = getSourceMapping(compilerConfiguration, compiler);
+                createMissingPackageInfoClasses(compilerConfiguration, sourceMapping, sources);
+            } catch (Exception e) {
+                getLog().warn("Error creating missing package info classes", e);
             }
         }
 
-        if ( useIncrementalCompilation )
-        {
-            if ( incrementalBuildHelperRequest.getOutputDirectory().exists() )
-            {
-                getLog().debug( "incrementalBuildHelper#afterRebuildExecution" );
+        if (useIncrementalCompilation) {
+            if (incrementalBuildHelperRequest.getOutputDirectory().exists()) {
+                getLog().debug("incrementalBuildHelper#afterRebuildExecution");
                 // now scan the same directory again and create a diff
-                incrementalBuildHelper.afterRebuildExecution( incrementalBuildHelperRequest );
-            }
-            else
-            {
+                incrementalBuildHelper.afterRebuildExecution(incrementalBuildHelperRequest);
+            } else {
                 getLog().debug(
-                    "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist" );
+                                "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist");
             }
         }
 
         List<CompilerMessage> warnings = new ArrayList<>();
         List<CompilerMessage> errors = new ArrayList<>();
         List<CompilerMessage> others = new ArrayList<>();
-        for ( CompilerMessage message : compilerResult.getCompilerMessages() )
-        {
-            if ( message.getKind() == CompilerMessage.Kind.ERROR )
-            {
-                errors.add( message );
-            }
-            else if ( message.getKind() == CompilerMessage.Kind.WARNING
-                || message.getKind() == CompilerMessage.Kind.MANDATORY_WARNING )
-            {
-                warnings.add( message );
-            }
-            else
-            {
-                others.add( message );
+        for (CompilerMessage message : compilerResult.getCompilerMessages()) {
+            if (message.getKind() == CompilerMessage.Kind.ERROR) {
+                errors.add(message);
+            } else if (message.getKind() == CompilerMessage.Kind.WARNING
+                    || message.getKind() == CompilerMessage.Kind.MANDATORY_WARNING) {
+                warnings.add(message);
+            } else {
+                others.add(message);
             }
         }
 
-        if ( failOnError && !compilerResult.isSuccess() )
-        {
-            for ( CompilerMessage message : others )
-            {
+        if (failOnError && !compilerResult.isSuccess()) {
+            for (CompilerMessage message : others) {
                 assert message.getKind() != CompilerMessage.Kind.ERROR
-                    && message.getKind() != CompilerMessage.Kind.WARNING
-                    && message.getKind() != CompilerMessage.Kind.MANDATORY_WARNING;
-                getLog().info( message.toString() );
+                        && message.getKind() != CompilerMessage.Kind.WARNING
+                        && message.getKind() != CompilerMessage.Kind.MANDATORY_WARNING;
+                getLog().info(message.toString());
             }
-            if ( !warnings.isEmpty() )
-            {
-                getLog().info( "-------------------------------------------------------------" );
-                getLog().warn( "COMPILATION WARNING : " );
-                getLog().info( "-------------------------------------------------------------" );
-                for ( CompilerMessage warning : warnings )
-                {
-                    getLog().warn( warning.toString() );
+            if (!warnings.isEmpty()) {
+                getLog().info("-------------------------------------------------------------");
+                getLog().warn("COMPILATION WARNING : ");
+                getLog().info("-------------------------------------------------------------");
+                for (CompilerMessage warning : warnings) {
+                    getLog().warn(warning.toString());
                 }
-                getLog().info( warnings.size() + ( ( warnings.size() > 1 ) ? " warnings " : " warning" ) );
-                getLog().info( "-------------------------------------------------------------" );
+                getLog().info(warnings.size() + ((warnings.size() > 1) ? " warnings " : " warning"));
+                getLog().info("-------------------------------------------------------------");
             }
 
-            if ( !errors.isEmpty() )
-            {
-                getLog().info( "-------------------------------------------------------------" );
-                getLog().error( "COMPILATION ERROR : " );
-                getLog().info( "-------------------------------------------------------------" );
-                for ( CompilerMessage error : errors )
-                {
-                    getLog().error( error.toString() );
+            if (!errors.isEmpty()) {
+                getLog().info("-------------------------------------------------------------");
+                getLog().error("COMPILATION ERROR : ");
+                getLog().info("-------------------------------------------------------------");
+                for (CompilerMessage error : errors) {
+                    getLog().error(error.toString());
                 }
-                getLog().info( errors.size() + ( ( errors.size() > 1 ) ? " errors " : " error" ) );
-                getLog().info( "-------------------------------------------------------------" );
+                getLog().info(errors.size() + ((errors.size() > 1) ? " errors " : " error"));
+                getLog().info("-------------------------------------------------------------");
             }
 
-            if ( !errors.isEmpty() )
-            {
-                throw new CompilationFailureException( errors );
+            if (!errors.isEmpty()) {
+                throw new CompilationFailureException(errors);
+            } else {
+                throw new CompilationFailureException(warnings);
             }
-            else
-            {
-                throw new CompilationFailureException( warnings );
-            }
-        }
-        else
-        {
-            for ( CompilerMessage message : compilerResult.getCompilerMessages() )
-            {
-                switch ( message.getKind() )
-                {
+        } else {
+            for (CompilerMessage message : compilerResult.getCompilerMessages()) {
+                switch (message.getKind()) {
                     case NOTE:
                     case OTHER:
-                        getLog().info( message.toString() );
+                        getLog().info(message.toString());
                         break;
 
                     case ERROR:
-                        getLog().error( message.toString() );
+                        getLog().error(message.toString());
                         break;
 
                     case MANDATORY_WARNING:
                     case WARNING:
                     default:
-                        getLog().warn( message.toString() );
+                        getLog().warn(message.toString());
                         break;
                 }
             }
         }
     }
 
-    private void createMissingPackageInfoClasses( CompilerConfiguration compilerConfiguration,
-                                                  SourceMapping sourceMapping,
-                                                  Set<File> sources )
-            throws InclusionScanException, IOException
-    {
-        for ( File source : sources )
-        {
+    private void createMissingPackageInfoClasses(
+            CompilerConfiguration compilerConfiguration, SourceMapping sourceMapping, Set<File> sources)
+            throws InclusionScanException, IOException {
+        for (File source : sources) {
             String path = source.toString();
-            if ( path.endsWith( File.separator + "package-info.java" ) )
-            {
-                for ( String root : getCompileSourceRoots() )
-                {
+            if (path.endsWith(File.separator + "package-info.java")) {
+                for (String root : getCompileSourceRoots()) {
                     root = root + File.separator;
-                    if ( path.startsWith( root ) )
-                    {
-                        String rel = path.substring( root.length() );
-                        Set<File> files = sourceMapping.getTargetFiles( getOutputDirectory(), rel );
-                        for ( File file : files )
-                        {
-                            if ( !file.exists() )
-                            {
+                    if (path.startsWith(root)) {
+                        String rel = path.substring(root.length());
+                        Set<File> files = sourceMapping.getTargetFiles(getOutputDirectory(), rel);
+                        for (File file : files) {
+                            if (!file.exists()) {
                                 File parentFile = file.getParentFile();
-                                
-                                if ( !parentFile.exists() )
-                                {
-                                    Files.createDirectories( parentFile.toPath() );
+
+                                if (!parentFile.exists()) {
+                                    Files.createDirectories(parentFile.toPath());
                                 }
-                                
-                                byte[] bytes = generatePackage( compilerConfiguration, rel );
-                                Files.write( file.toPath(), bytes );
+
+                                byte[] bytes = generatePackage(compilerConfiguration, rel);
+                                Files.write(file.toPath(), bytes);
                             }
                         }
                     }
@@ -1414,89 +1254,78 @@ public abstract class AbstractCompilerMojo
         }
     }
 
-    private byte[] generatePackage( CompilerConfiguration compilerConfiguration, String javaFile )
-    {
-        int version = getOpcode( compilerConfiguration );
-        String internalPackageName = javaFile.substring( 0, javaFile.length() - ".java".length() );
-        if ( File.separatorChar != '/' )
-        {
-            internalPackageName = internalPackageName.replace( File.separatorChar, '/' );
+    private byte[] generatePackage(CompilerConfiguration compilerConfiguration, String javaFile) {
+        int version = getOpcode(compilerConfiguration);
+        String internalPackageName = javaFile.substring(0, javaFile.length() - ".java".length());
+        if (File.separatorChar != '/') {
+            internalPackageName = internalPackageName.replace(File.separatorChar, '/');
         }
-        ClassWriter cw = new ClassWriter( 0 );
-        cw.visit( version,
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(
+                version,
                 Opcodes.ACC_SYNTHETIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
-                internalPackageName, null, "java/lang/Object", null );
-        cw.visitSource( "package-info.java", null );
+                internalPackageName,
+                null,
+                "java/lang/Object",
+                null);
+        cw.visitSource("package-info.java", null);
         return cw.toByteArray();
     }
 
-    private int getOpcode( CompilerConfiguration compilerConfiguration )
-    {
+    private int getOpcode(CompilerConfiguration compilerConfiguration) {
         String version = compilerConfiguration.getReleaseVersion();
-        if ( version == null )
-        {
+        if (version == null) {
             version = compilerConfiguration.getTargetVersion();
-            if ( version == null )
-            {
+            if (version == null) {
                 version = "1.5";
             }
         }
-        if ( version.startsWith( "1." ) )
-        {
-            version = version.substring( 2 );
+        if (version.startsWith("1.")) {
+            version = version.substring(2);
         }
-        int iVersion = Integer.parseInt( version );
-        if ( iVersion < 2 )
-        {
-            throw new IllegalArgumentException( "Unsupported java version '" + version + "'" );
+        int iVersion = Integer.parseInt(version);
+        if (iVersion < 2) {
+            throw new IllegalArgumentException("Unsupported java version '" + version + "'");
         }
         return iVersion - 2 + Opcodes.V1_2;
     }
 
-    protected boolean isTestCompile()
-    {
+    protected boolean isTestCompile() {
         return false;
     }
 
     /**
      * @return all source files for the compiler
      */
-    private Set<File> getCompileSources( Compiler compiler, CompilerConfiguration compilerConfiguration )
-        throws MojoExecutionException, CompilerException
-    {
-        String inputFileEnding = compiler.getInputFileEnding( compilerConfiguration );
-        if ( StringUtils.isEmpty( inputFileEnding ) )
-        {
+    private Set<File> getCompileSources(Compiler compiler, CompilerConfiguration compilerConfiguration)
+            throws MojoExecutionException, CompilerException {
+        String inputFileEnding = compiler.getInputFileEnding(compilerConfiguration);
+        if (StringUtils.isEmpty(inputFileEnding)) {
             // see MCOMPILER-199 GroovyEclipseCompiler doesn't set inputFileEnding
             // so we can presume it's all files from the source directory
             inputFileEnding = ".*";
         }
-        SourceInclusionScanner scanner = getSourceInclusionScanner( inputFileEnding );
+        SourceInclusionScanner scanner = getSourceInclusionScanner(inputFileEnding);
 
-        SourceMapping mapping = getSourceMapping( compilerConfiguration, compiler );
+        SourceMapping mapping = getSourceMapping(compilerConfiguration, compiler);
 
-        scanner.addSourceMapping( mapping );
+        scanner.addSourceMapping(mapping);
 
         Set<File> compileSources = new HashSet<>();
 
-        for ( String sourceRoot : getCompileSourceRoots() )
-        {
-            File rootFile = new File( sourceRoot );
+        for (String sourceRoot : getCompileSourceRoots()) {
+            File rootFile = new File(sourceRoot);
 
-            if ( !rootFile.isDirectory()
-                || rootFile.getAbsoluteFile().equals( compilerConfiguration.getGeneratedSourcesDirectory() ) )
-            {
+            if (!rootFile.isDirectory()
+                    || rootFile.getAbsoluteFile().equals(compilerConfiguration.getGeneratedSourcesDirectory())) {
                 continue;
             }
 
-            try
-            {
-                compileSources.addAll( scanner.getIncludedSources( rootFile, null ) );
-            }
-            catch ( InclusionScanException e )
-            {
+            try {
+                compileSources.addAll(scanner.getIncludedSources(rootFile, null));
+            } catch (InclusionScanException e) {
                 throw new MojoExecutionException(
-                    "Error scanning source root: '" + sourceRoot + "' for stale files to recompile.", e );
+                        "Error scanning source root: '" + sourceRoot + "' for stale files to recompile.", e);
             }
         }
 
@@ -1512,181 +1341,145 @@ public abstract class AbstractCompilerMojo
      * @param compiler
      * @return <code>true</code> if at least a single source file is newer than it's class file
      */
-    private boolean isSourceChanged( CompilerConfiguration compilerConfiguration, Compiler compiler )
-        throws CompilerException, MojoExecutionException
-    {
+    private boolean isSourceChanged(CompilerConfiguration compilerConfiguration, Compiler compiler)
+            throws CompilerException, MojoExecutionException {
         Set<File> staleSources =
-            computeStaleSources( compilerConfiguration, compiler, getSourceInclusionScanner( staleMillis ) );
+                computeStaleSources(compilerConfiguration, compiler, getSourceInclusionScanner(staleMillis));
 
-        if ( getLog().isDebugEnabled() || showCompilationChanges )
-        {
-            for ( File f : staleSources )
-            {
-                if ( showCompilationChanges )
-                {
-                    getLog().info( "Stale source detected: " + f.getAbsolutePath() );
-                }
-                else
-                {
-                    getLog().debug( "Stale source detected: " + f.getAbsolutePath() );
+        if (getLog().isDebugEnabled() || showCompilationChanges) {
+            for (File f : staleSources) {
+                if (showCompilationChanges) {
+                    getLog().info("Stale source detected: " + f.getAbsolutePath());
+                } else {
+                    getLog().debug("Stale source detected: " + f.getAbsolutePath());
                 }
             }
         }
         return !staleSources.isEmpty();
     }
 
-
     /**
      * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependent
      *
      * @return number of thread for this build or 1 if not multi-thread build
      */
-    protected int getRequestThreadCount()
-    {
+    protected int getRequestThreadCount() {
         return session.getRequest().getDegreeOfConcurrency();
     }
 
-    protected Date getBuildStartTime()
-    {
+    protected Date getBuildStartTime() {
         MavenExecutionRequest request = session.getRequest();
         Date buildStartTime = request == null ? new Date() : request.getStartTime();
         return buildStartTime == null ? new Date() : buildStartTime;
     }
 
-
-    private String getMemoryValue( String setting )
-    {
+    private String getMemoryValue(String setting) {
         String value = null;
 
         // Allow '128' or '128m'
-        if ( isDigits( setting ) )
-        {
+        if (isDigits(setting)) {
             value = setting + "m";
-        }
-        else if ( ( isDigits( setting.substring( 0, setting.length() - 1 ) ) )
-            && ( setting.toLowerCase().endsWith( "m" ) ) )
-        {
+        } else if ((isDigits(setting.substring(0, setting.length() - 1)))
+                && (setting.toLowerCase().endsWith("m"))) {
             value = setting;
         }
         return value;
     }
 
-    //TODO remove the part with ToolchainManager lookup once we depend on
-    //3.0.9 (have it as prerequisite). Define as regular component field then.
-    protected final Toolchain getToolchain()
-    {
+    // TODO remove the part with ToolchainManager lookup once we depend on
+    // 3.0.9 (have it as prerequisite). Define as regular component field then.
+    protected final Toolchain getToolchain() {
         Toolchain tc = null;
-        
-        if ( jdkToolchain != null )
-        {
+
+        if (jdkToolchain != null) {
             // Maven 3.3.1 has plugin execution scoped Toolchain Support
-            try
-            {
-                Method getToolchainsMethod =
-                    toolchainManager.getClass().getMethod( "getToolchains", MavenSession.class, String.class,
-                                                           Map.class );
+            try {
+                Method getToolchainsMethod = toolchainManager
+                        .getClass()
+                        .getMethod("getToolchains", MavenSession.class, String.class, Map.class);
 
-                @SuppressWarnings( "unchecked" )
+                @SuppressWarnings("unchecked")
                 List<Toolchain> tcs =
-                    (List<Toolchain>) getToolchainsMethod.invoke( toolchainManager, session, "jdk",
-                                                                  jdkToolchain );
+                        (List<Toolchain>) getToolchainsMethod.invoke(toolchainManager, session, "jdk", jdkToolchain);
 
-                if ( tcs != null && !tcs.isEmpty() )
-                {
-                    tc = tcs.get( 0 );
+                if (tcs != null && !tcs.isEmpty()) {
+                    tc = tcs.get(0);
                 }
-            }
-            catch ( NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
-                | InvocationTargetException e )
-            {
+            } catch (NoSuchMethodException
+                    | SecurityException
+                    | IllegalAccessException
+                    | IllegalArgumentException
+                    | InvocationTargetException e) {
                 // ignore
             }
         }
-        
-        if ( tc == null )
-        {
-            tc = toolchainManager.getToolchainFromBuildContext( "jdk", session );
+
+        if (tc == null) {
+            tc = toolchainManager.getToolchainFromBuildContext("jdk", session);
         }
-        
+
         return tc;
     }
 
-    private boolean isDigits( String string )
-    {
-        for ( int i = 0; i < string.length(); i++ )
-        {
-            if ( !Character.isDigit( string.charAt( i ) ) )
-            {
+    private boolean isDigits(String string) {
+        for (int i = 0; i < string.length(); i++) {
+            if (!Character.isDigit(string.charAt(i))) {
                 return false;
             }
         }
         return true;
     }
 
-    private Set<File> computeStaleSources( CompilerConfiguration compilerConfiguration, Compiler compiler,
-                                           SourceInclusionScanner scanner )
-        throws MojoExecutionException, CompilerException
-    {
-        SourceMapping mapping = getSourceMapping( compilerConfiguration, compiler );
+    private Set<File> computeStaleSources(
+            CompilerConfiguration compilerConfiguration, Compiler compiler, SourceInclusionScanner scanner)
+            throws MojoExecutionException, CompilerException {
+        SourceMapping mapping = getSourceMapping(compilerConfiguration, compiler);
 
         File outputDirectory;
         CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
-        if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-        {
+        if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES) {
             outputDirectory = buildDirectory;
-        }
-        else
-        {
+        } else {
             outputDirectory = getOutputDirectory();
         }
 
-        scanner.addSourceMapping( mapping );
+        scanner.addSourceMapping(mapping);
 
         Set<File> staleSources = new HashSet<>();
 
-        for ( String sourceRoot : getCompileSourceRoots() )
-        {
-            File rootFile = new File( sourceRoot );
+        for (String sourceRoot : getCompileSourceRoots()) {
+            File rootFile = new File(sourceRoot);
 
-            if ( !rootFile.isDirectory() )
-            {
+            if (!rootFile.isDirectory()) {
                 continue;
             }
 
-            try
-            {
-                staleSources.addAll( scanner.getIncludedSources( rootFile, outputDirectory ) );
-            }
-            catch ( InclusionScanException e )
-            {
+            try {
+                staleSources.addAll(scanner.getIncludedSources(rootFile, outputDirectory));
+            } catch (InclusionScanException e) {
                 throw new MojoExecutionException(
-                    "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e );
+                        "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e);
             }
         }
 
         return staleSources;
     }
 
-    private SourceMapping getSourceMapping( CompilerConfiguration compilerConfiguration, Compiler compiler )
-        throws CompilerException, MojoExecutionException
-    {
+    private SourceMapping getSourceMapping(CompilerConfiguration compilerConfiguration, Compiler compiler)
+            throws CompilerException, MojoExecutionException {
         CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
 
         SourceMapping mapping;
-        if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE )
-        {
-            mapping = new SuffixMapping( compiler.getInputFileEnding( compilerConfiguration ),
-                                         compiler.getOutputFileEnding( compilerConfiguration ) );
-        }
-        else if ( outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES )
-        {
-            mapping = new SingleTargetSourceMapping( compiler.getInputFileEnding( compilerConfiguration ),
-                                                     compiler.getOutputFile( compilerConfiguration ) );
+        if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE) {
+            mapping = new SuffixMapping(
+                    compiler.getInputFileEnding(compilerConfiguration),
+                    compiler.getOutputFileEnding(compilerConfiguration));
+        } else if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES) {
+            mapping = new SingleTargetSourceMapping(
+                    compiler.getInputFileEnding(compilerConfiguration), compiler.getOutputFile(compilerConfiguration));
 
-        }
-        else
-        {
-            throw new MojoExecutionException( "Unknown compiler output style: '" + outputStyle + "'." );
+        } else {
+            throw new MojoExecutionException("Unknown compiler output style: '" + outputStyle + "'.");
         }
         return mapping;
     }
@@ -1695,17 +1488,13 @@ public abstract class AbstractCompilerMojo
      * @todo also in ant plugin. This should be resolved at some point so that it does not need to
      * be calculated continuously - or should the plugins accept empty source roots as is?
      */
-    private static List<String> removeEmptyCompileSourceRoots( List<String> compileSourceRootsList )
-    {
+    private static List<String> removeEmptyCompileSourceRoots(List<String> compileSourceRootsList) {
         List<String> newCompileSourceRootsList = new ArrayList<>();
-        if ( compileSourceRootsList != null )
-        {
+        if (compileSourceRootsList != null) {
             // copy as I may be modifying it
-            for ( String srcDir : compileSourceRootsList )
-            {
-                if ( !newCompileSourceRootsList.contains( srcDir ) && new File( srcDir ).exists() )
-                {
-                    newCompileSourceRootsList.add( srcDir );
+            for (String srcDir : compileSourceRootsList) {
+                if (!newCompileSourceRootsList.contains(srcDir) && new File(srcDir).exists()) {
+                    newCompileSourceRootsList.add(srcDir);
                 }
             }
         }
@@ -1719,40 +1508,31 @@ public abstract class AbstractCompilerMojo
      *
      * @return <code>true</code> if at least one single dependency has changed.
      */
-    protected boolean isDependencyChanged()
-    {
-        if ( session == null )
-        {
+    protected boolean isDependencyChanged() {
+        if (session == null) {
             // we just cannot determine it, so don't do anything beside logging
-            getLog().info( "Cannot determine build start date, skipping incremental build detection." );
+            getLog().info("Cannot determine build start date, skipping incremental build detection.");
             return false;
         }
 
-        if ( fileExtensions == null || fileExtensions.isEmpty() )
-        {
-            fileExtensions = Collections.unmodifiableList( Arrays.asList( "class", "jar" ) );
+        if (fileExtensions == null || fileExtensions.isEmpty()) {
+            fileExtensions = Collections.unmodifiableList(Arrays.asList("class", "jar"));
         }
 
         Date buildStartTime = getBuildStartTime();
 
         List<String> pathElements = new ArrayList<>();
-        pathElements.addAll( getClasspathElements() );
-        pathElements.addAll( getModulepathElements() );
-        
-        for ( String pathElement : pathElements )
-        {
-            File artifactPath = new File( pathElement );
-            if ( artifactPath.isDirectory() || artifactPath.isFile() )
-            {
-                if ( hasNewFile( artifactPath, buildStartTime ) )
-                {
-                    if ( showCompilationChanges )
-                    {
-                        getLog().info( "New dependency detected: " + artifactPath.getAbsolutePath() );
-                    }
-                    else
-                    {
-                        getLog().debug( "New dependency detected: " + artifactPath.getAbsolutePath() );
+        pathElements.addAll(getClasspathElements());
+        pathElements.addAll(getModulepathElements());
+
+        for (String pathElement : pathElements) {
+            File artifactPath = new File(pathElement);
+            if (artifactPath.isDirectory() || artifactPath.isFile()) {
+                if (hasNewFile(artifactPath, buildStartTime)) {
+                    if (showCompilationChanges) {
+                        getLog().info("New dependency detected: " + artifactPath.getAbsolutePath());
+                    } else {
+                        getLog().debug("New dependency detected: " + artifactPath.getAbsolutePath());
                     }
                     return true;
                 }
@@ -1768,25 +1548,20 @@ public abstract class AbstractCompilerMojo
      * @param buildStartTime time build start
      * @return if any changes occurred
      */
-    private boolean hasNewFile( File classPathEntry, Date buildStartTime )
-    {
-        if ( !classPathEntry.exists() )
-        {
+    private boolean hasNewFile(File classPathEntry, Date buildStartTime) {
+        if (!classPathEntry.exists()) {
             return false;
         }
 
-        if ( classPathEntry.isFile() )
-        {
+        if (classPathEntry.isFile()) {
             return classPathEntry.lastModified() >= buildStartTime.getTime()
-                    && fileExtensions.contains( FileUtils.getExtension( classPathEntry.getName() ) );
+                    && fileExtensions.contains(FileUtils.getExtension(classPathEntry.getName()));
         }
 
         File[] children = classPathEntry.listFiles();
 
-        for ( File child : children )
-        {
-            if ( hasNewFile( child, buildStartTime ) )
-            {
+        for (File child : children) {
+            if (hasNewFile(child, buildStartTime)) {
                 return true;
             }
         }
@@ -1794,168 +1569,134 @@ public abstract class AbstractCompilerMojo
         return false;
     }
 
-    private List<String> resolveProcessorPathEntries()
-        throws MojoExecutionException
-    {
-        if ( annotationProcessorPaths == null || annotationProcessorPaths.isEmpty() )
-        {
+    private List<String> resolveProcessorPathEntries() throws MojoExecutionException {
+        if (annotationProcessorPaths == null || annotationProcessorPaths.isEmpty()) {
             return null;
         }
 
         Set<String> elements = new LinkedHashSet<>();
-        try
-        {
-            List<Dependency> dependencies = convertToDependencies( annotationProcessorPaths );
-            CollectRequest collectRequest = new CollectRequest( dependencies, Collections.emptyList(),
-                    project.getRemoteProjectRepositories() );
+        try {
+            List<Dependency> dependencies = convertToDependencies(annotationProcessorPaths);
+            CollectRequest collectRequest =
+                    new CollectRequest(dependencies, Collections.emptyList(), project.getRemoteProjectRepositories());
             DependencyRequest dependencyRequest = new DependencyRequest();
-            dependencyRequest.setCollectRequest( collectRequest );
-            DependencyResult dependencyResult = repositorySystem.resolveDependencies(
-                    session.getRepositorySession(), dependencyRequest );
+            dependencyRequest.setCollectRequest(collectRequest);
+            DependencyResult dependencyResult =
+                    repositorySystem.resolveDependencies(session.getRepositorySession(), dependencyRequest);
 
-            for ( ArtifactResult resolved : dependencyResult.getArtifactResults() )
-            {
-                elements.add( resolved.getArtifact().getFile().getAbsolutePath() );
+            for (ArtifactResult resolved : dependencyResult.getArtifactResults()) {
+                elements.add(resolved.getArtifact().getFile().getAbsolutePath());
             }
-            return new ArrayList<>( elements );
-        }
-        catch ( Exception e )
-        {
-            throw new MojoExecutionException( "Resolution of annotationProcessorPath dependencies failed: "
-                + e.getLocalizedMessage(), e );
+            return new ArrayList<>(elements);
+        } catch (Exception e) {
+            throw new MojoExecutionException(
+                    "Resolution of annotationProcessorPath dependencies failed: " + e.getLocalizedMessage(), e);
         }
     }
 
-    private List<Dependency> convertToDependencies( List<DependencyCoordinate> annotationProcessorPaths )
-    {
+    private List<Dependency> convertToDependencies(List<DependencyCoordinate> annotationProcessorPaths) {
         List<Dependency> dependencies = new ArrayList<>();
-        for ( DependencyCoordinate annotationProcessorPath : annotationProcessorPaths )
-        {
-            ArtifactHandler handler = artifactHandlerManager.getArtifactHandler( annotationProcessorPath.getType() );
+        for (DependencyCoordinate annotationProcessorPath : annotationProcessorPaths) {
+            ArtifactHandler handler = artifactHandlerManager.getArtifactHandler(annotationProcessorPath.getType());
             Artifact artifact = new DefaultArtifact(
                     annotationProcessorPath.getGroupId(),
                     annotationProcessorPath.getArtifactId(),
                     annotationProcessorPath.getClassifier(),
                     handler.getExtension(),
-                    annotationProcessorPath.getVersion() );
-            dependencies.add( new Dependency( artifact,  JavaScopes.RUNTIME ) );
+                    annotationProcessorPath.getVersion());
+            dependencies.add(new Dependency(artifact, JavaScopes.RUNTIME));
         }
         return dependencies;
     }
 
-    private void writePlugin( MessageBuilder mb )
-    {
-        mb.a( "    <plugin>" ).newline();
-        mb.a( "      <groupId>org.apache.maven.plugins</groupId>" ).newline();
-        mb.a( "      <artifactId>maven-compiler-plugin</artifactId>" ).newline();
-        
+    private void writePlugin(MessageBuilder mb) {
+        mb.a("    <plugin>").newline();
+        mb.a("      <groupId>org.apache.maven.plugins</groupId>").newline();
+        mb.a("      <artifactId>maven-compiler-plugin</artifactId>").newline();
+
         String version = getMavenCompilerPluginVersion();
-        if ( version != null )
-        {
-            mb.a( "      <version>" ).a( version ).a( "</version>" ).newline();
+        if (version != null) {
+            mb.a("      <version>").a(version).a("</version>").newline();
         }
-        writeConfig( mb );
-        
-        mb.a( "    </plugin>" ).newline();
+        writeConfig(mb);
+
+        mb.a("    </plugin>").newline();
     }
 
-    private void writeConfig( MessageBuilder mb )
-    {
-        mb.a( "      <configuration>" ).newline();
+    private void writeConfig(MessageBuilder mb) {
+        mb.a("      <configuration>").newline();
 
-        if ( release != null )
-        {
-            mb.a( "        <release>" ).a( release ).a( "</release>" ).newline();
-        }
-        else if ( JavaVersion.JAVA_VERSION.isAtLeast( "9" ) )
-        {
-            String rls = target.replaceAll( ".\\.", "" );
+        if (release != null) {
+            mb.a("        <release>").a(release).a("</release>").newline();
+        } else if (JavaVersion.JAVA_VERSION.isAtLeast("9")) {
+            String rls = target.replaceAll(".\\.", "");
             // when using Java9+, motivate to use release instead of source/target
-            mb.a( "        <release>" ).a( rls ).a( "</release>" ).newline();
+            mb.a("        <release>").a(rls).a("</release>").newline();
+        } else {
+            mb.a("        <source>").a(source).a("</source>").newline();
+            mb.a("        <target>").a(target).a("</target>").newline();
         }
-        else
-        {
-            mb.a( "        <source>" ).a( source ).a( "</source>" ).newline();
-            mb.a( "        <target>" ).a( target ).a( "</target>" ).newline();
-        }
-        mb.a( "      </configuration>" ).newline();
+        mb.a("      </configuration>").newline();
     }
 
-    private String getMavenCompilerPluginVersion()
-    {
+    private String getMavenCompilerPluginVersion() {
         Properties pomProperties = new Properties();
 
-        try ( InputStream is = AbstractCompilerMojo.class
-            .getResourceAsStream( "/META-INF/maven/org.apache.maven.plugins/maven-compiler-plugin/pom.properties" ) )
-        {
-            if ( is != null )
-            {
-                pomProperties.load( is );
+        try (InputStream is = AbstractCompilerMojo.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.maven.plugins/maven-compiler-plugin/pom.properties")) {
+            if (is != null) {
+                pomProperties.load(is);
             }
-        }
-        catch ( IOException e )
-        {
+        } catch (IOException e) {
             // noop
         }
 
-        return pomProperties.getProperty( "version" );
+        return pomProperties.getProperty("version");
     }
 
-    private DirectoryScanResult computeInputFileTreeChanges( IncrementalBuildHelper ibh, Set<File> inputFiles )
-            throws MojoExecutionException
-    {
+    private DirectoryScanResult computeInputFileTreeChanges(IncrementalBuildHelper ibh, Set<File> inputFiles)
+            throws MojoExecutionException {
         File mojoConfigBase = ibh.getMojoStatusDirectory();
-        File mojoConfigFile = new File( mojoConfigBase, INPUT_FILES_LST_FILENAME );
+        File mojoConfigFile = new File(mojoConfigBase, INPUT_FILES_LST_FILENAME);
 
         String[] oldInputFiles = new String[0];
 
-        if ( mojoConfigFile.exists() )
-        {
-            try
-            {
-                oldInputFiles = FileUtils.fileReadArray( mojoConfigFile );
-            }
-            catch ( IOException e )
-            {
-                throw new MojoExecutionException( "Error reading old mojo status " + mojoConfigFile, e );
+        if (mojoConfigFile.exists()) {
+            try {
+                oldInputFiles = FileUtils.fileReadArray(mojoConfigFile);
+            } catch (IOException e) {
+                throw new MojoExecutionException("Error reading old mojo status " + mojoConfigFile, e);
             }
         }
 
-        String[] inputFileNames = inputFiles.stream().map( File::getAbsolutePath ).toArray( String[]::new );
+        String[] inputFileNames = inputFiles.stream().map(File::getAbsolutePath).toArray(String[]::new);
 
-        DirectoryScanResult dsr = DirectoryScanner.diffFiles( oldInputFiles, inputFileNames );
+        DirectoryScanResult dsr = DirectoryScanner.diffFiles(oldInputFiles, inputFileNames);
 
-        try
-        {
-            FileUtils.fileWriteArray( mojoConfigFile, inputFileNames );
-        }
-        catch ( IOException e )
-        {
-            throw new MojoExecutionException( "Error while storing the mojo status", e );
+        try {
+            FileUtils.fileWriteArray(mojoConfigFile, inputFileNames);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Error while storing the mojo status", e);
         }
 
         return dsr;
     }
 
-    private boolean hasInputFileTreeChanged( DirectoryScanResult dsr )
-    {
-        return ( dsr.getFilesAdded().length > 0 || dsr.getFilesRemoved().length > 0 );
+    private boolean hasInputFileTreeChanged(DirectoryScanResult dsr) {
+        return (dsr.getFilesAdded().length > 0 || dsr.getFilesRemoved().length > 0);
     }
 
-    public void setTarget( String target )
-    {
+    public void setTarget(String target) {
         this.target = target;
         targetOrReleaseSet = true;
     }
 
-    public void setRelease( String release )
-    {
+    public void setRelease(String release) {
         this.release = release;
         targetOrReleaseSet = true;
     }
 
-    final String getImplicit()
-    {
+    final String getImplicit() {
         return implicit;
     }
 }

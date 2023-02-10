@@ -1,5 +1,3 @@
-package dummy;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,15 +16,13 @@ package dummy;
  * specific language governing permissions and limitations
  * under the License.
  */
+package dummy;
 
 import javax.smartcardio.TerminalFactory;
 
-public class Main
-{
+public class Main {
 
-    public static void main(String[] args)
-    {
-        TerminalFactory tf =  TerminalFactory.getDefault();
+    public static void main(String[] args) {
+        TerminalFactory tf = TerminalFactory.getDefault();
     }
-
 }

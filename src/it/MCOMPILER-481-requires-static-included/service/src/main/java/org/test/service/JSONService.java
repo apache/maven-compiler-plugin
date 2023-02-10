@@ -1,5 +1,3 @@
-package org.test.service;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,10 +16,10 @@ package org.test.service;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.test.service;
 
 import org.eclipse.jetty.util.ajax.JSON;
 
-public class JSONService extends Service
-{
+public class JSONService extends Service {
     public final JSON json = new JSON();
 }

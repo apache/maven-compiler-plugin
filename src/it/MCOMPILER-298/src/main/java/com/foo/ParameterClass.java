@@ -1,5 +1,3 @@
-package com.foo;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,12 +16,10 @@ package com.foo;
  * specific language governing permissions and limitations
  * under the License.
  */
+package com.foo;
 
-
-public class ParameterClass
-{
-    public void method( String parameterName )
-    {
+public class ParameterClass {
+    public void method(String parameterName) {
         // nothing
     }
 }
