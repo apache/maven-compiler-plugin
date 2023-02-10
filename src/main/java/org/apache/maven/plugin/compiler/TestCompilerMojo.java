@@ -38,6 +38,7 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.java.DefaultJavaToolChain;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
@@ -89,6 +90,13 @@ public class TestCompilerMojo
      */
     @Parameter
     private Set<String> testExcludes = new HashSet<>();
+
+    /**
+     * A list of exclusion filters for the incremental calculation.
+     * @since 3.11
+     */
+    @Parameter
+    private Set<String> testIncrementalExcludes = new HashSet<>();
 
     /**
      * The -source argument for the test Java compiler.
@@ -323,9 +331,9 @@ public class TestCompilerMojo
             classpathElements = testPath;
             return;
         }
-        if ( release != null )
+        if ( StringUtils.isNotEmpty( getRelease() ) )
         {
-            if ( Integer.valueOf( release ) < 9 )
+            if ( Integer.parseInt( getRelease() ) < 9 )
             {
                 pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
@@ -333,7 +341,7 @@ public class TestCompilerMojo
                 return;
             }
         }
-        else if ( Double.valueOf( getTarget() ) < Double.valueOf( MODULE_INFO_TARGET ) )
+        else if ( Double.parseDouble( getTarget() ) < Double.parseDouble( MODULE_INFO_TARGET ) )
         {
             pathElements = Collections.emptyMap();
             modulepathElements = Collections.emptyList();
@@ -433,7 +441,7 @@ public class TestCompilerMojo
     {
         SourceInclusionScanner scanner;
 
-        if ( testIncludes.isEmpty() && testExcludes.isEmpty() )
+        if ( testIncludes.isEmpty() && testExcludes.isEmpty() && testIncrementalExcludes.isEmpty() )
         {
             scanner = new StaleSourceScanner( staleMillis );
         }
@@ -443,7 +451,9 @@ public class TestCompilerMojo
             {
                 testIncludes.add( "**/*.java" );
             }
-            scanner = new StaleSourceScanner( staleMillis, testIncludes, testExcludes );
+            Set<String> excludesIncr = new HashSet<>( testExcludes );
+            excludesIncr.addAll( this.testIncrementalExcludes );
+            scanner = new StaleSourceScanner( staleMillis, testIncludes, excludesIncr );
         }
 
         return scanner;
@@ -456,10 +466,10 @@ public class TestCompilerMojo
         // it's not defined if we get the ending with or without the dot '.'
         String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
 
-        if ( testIncludes.isEmpty() && testExcludes.isEmpty() )
+        if ( testIncludes.isEmpty() && testExcludes.isEmpty() && testIncrementalExcludes.isEmpty() )
         {
             testIncludes = Collections.singleton( defaultIncludePattern );
-            scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.<String>emptySet() );
+            scanner = new SimpleSourceInclusionScanner( testIncludes, Collections.emptySet() );
         }
         else
         {
@@ -467,7 +477,9 @@ public class TestCompilerMojo
             {
                 testIncludes.add( defaultIncludePattern );
             }
-            scanner = new SimpleSourceInclusionScanner( testIncludes, testExcludes );
+            Set<String> excludesIncr = new HashSet<>( testExcludes );
+            excludesIncr.addAll( this.testIncrementalExcludes );
+            scanner = new SimpleSourceInclusionScanner( testIncludes, excludesIncr );
         }
 
         return scanner;

@@ -65,7 +65,7 @@ public class CompilerMojo
     /**
      * The source directories containing the sources to be compiled.
      */
-    @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = true, required = true )
+    @Parameter( defaultValue = "${project.compileSourceRoots}", readonly = false, required = true )
     private List<String> compileSourceRoots;
 
     /**
@@ -93,6 +93,13 @@ public class CompilerMojo
      */
     @Parameter
     private Set<String> excludes = new HashSet<>();
+
+    /**
+     * A list of exclusion filters for the incremental calculation.
+     * @since 3.11
+     */
+    @Parameter
+    private Set<String> incrementalExcludes = new HashSet<>();
 
     /**
      * <p>
@@ -387,7 +394,7 @@ public class CompilerMojo
     
     protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
     {
-        if ( includes.isEmpty() && excludes.isEmpty() )
+        if ( includes.isEmpty() && excludes.isEmpty() && incrementalExcludes.isEmpty() )
         {
             return new StaleSourceScanner( staleMillis );
         }
@@ -397,7 +404,9 @@ public class CompilerMojo
             includes.add( "**/*.java" );
         }
 
-        return new StaleSourceScanner( staleMillis, includes, excludes );
+        Set<String> excludesIncr = new HashSet<>( excludes );
+        excludesIncr.addAll( this.incrementalExcludes );
+        return new StaleSourceScanner( staleMillis, includes, excludesIncr );
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
@@ -409,8 +418,9 @@ public class CompilerMojo
         {
             includes.add( defaultIncludePattern );
         }
-
-        return new SimpleSourceInclusionScanner( includes, excludes );
+        Set<String> excludesIncr = new HashSet<>( excludes );
+        excludesIncr.addAll( excludesIncr );
+        return new SimpleSourceInclusionScanner( includes, excludesIncr );
     }
 
     protected String getSource()
