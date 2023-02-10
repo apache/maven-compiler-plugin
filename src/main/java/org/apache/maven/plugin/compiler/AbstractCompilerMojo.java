@@ -1744,7 +1744,8 @@ public abstract class AbstractCompilerMojo
             File artifactPath = new File( pathElement );
             if ( artifactPath.isDirectory() || artifactPath.isFile() )
             {
-                if ( hasNewFile( artifactPath, buildStartTime ) )
+                if ( !artifactPath.equals( getOutputDirectory() )
+                    && hasNewFile( artifactPath, buildStartTime ) )
                 {
                     if ( showCompilationChanges )
                     {
