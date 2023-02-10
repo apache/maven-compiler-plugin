@@ -23,4 +23,4 @@ content = logFile.text
 
 assert content.contains( 'COMPILATION ERROR :' )
 
-assert !new File( basedir, 'target/classes/BeanA.class' ).exists();
+assert !new File( basedir, 'target/classes/foo/BeanA.class' ).exists();
