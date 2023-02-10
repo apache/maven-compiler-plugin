@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler.stubs;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,29 +16,25 @@ package org.apache.maven.plugin.compiler.stubs;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler.stubs;
 
 import org.codehaus.plexus.compiler.manager.CompilerManager;
 
 /**
  * @author Edwin Punzalan
  */
-public class CompilerManagerStub
-    implements CompilerManager
-{
+public class CompilerManagerStub implements CompilerManager {
     private boolean shouldFail;
 
-    public CompilerManagerStub()
-    {
-        this( false );
+    public CompilerManagerStub() {
+        this(false);
     }
 
-    public CompilerManagerStub( boolean shouldFail )
-    {
+    public CompilerManagerStub(boolean shouldFail) {
         this.shouldFail = shouldFail;
     }
 
-    public org.codehaus.plexus.compiler.Compiler getCompiler( String compilerId )
-    {
-        return new CompilerStub( shouldFail );
+    public org.codehaus.plexus.compiler.Compiler getCompiler(String compilerId) {
+        return new CompilerStub(shouldFail);
     }
 }

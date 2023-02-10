@@ -1,4 +1,3 @@
-package mcompiler503;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,7 +16,6 @@ package mcompiler503;
  * specific language governing permissions and limitations
  * under the License.
  */
+package mcompiler503;
 
-public class AnnotationProcessorDependencyV2
-{
-}
+public class AnnotationProcessorDependencyV2 {}

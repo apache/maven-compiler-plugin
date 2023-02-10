@@ -17,8 +17,7 @@
  * under the License.
  */
 
-open module foo
-{
+open module foo {
     // main
     requires org.apache.commons.lang3;
 

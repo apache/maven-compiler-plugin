@@ -18,13 +18,10 @@
  */
 package foo;
 
-public class TestCompile1
-{
+public class TestCompile1 {
 
-    public TestCompile1()
-    {
+    public TestCompile1() {
 
-        System.out.println( "Woo Hoo!" );
+        System.out.println("Woo Hoo!");
     }
-
 }

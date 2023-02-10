@@ -18,11 +18,7 @@
  */
 package foo;
 
-public class TestService
-{
+public class TestService {
 
-    public void run()
-    {
-
-    }
+    public void run() {}
 }

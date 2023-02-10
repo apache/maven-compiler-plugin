@@ -1,4 +1,3 @@
-package mcompiler503;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,10 +16,7 @@ package mcompiler503;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Set;
+package mcompiler503;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -37,43 +33,37 @@ import javax.tools.FileObject;
 import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 
-@SupportedSourceVersion( SourceVersion.RELEASE_6 )
-@SupportedAnnotationTypes( "mcompiler503.SimpleAnnotation" )
-public class SimpleAnnotationProcessor
-    extends AbstractProcessor
-{
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Set;
+
+@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedAnnotationTypes("mcompiler503.SimpleAnnotation")
+public class SimpleAnnotationProcessor extends AbstractProcessor {
 
     @Override
-    public boolean process( Set<? extends TypeElement> annotations, RoundEnvironment roundEnv )
-    {
-        if ( annotations.isEmpty() )
-        {
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        if (annotations.isEmpty()) {
             return true;
         }
 
         // assert that mcompiler503-annotation-processor-dep:2.0.0-SNAPSHOT is on the classpath
-        try
-        {
-            getClass().getClassLoader().loadClass( "mcompiler503.AnnotationProcessorDependencyV2" );
-        }
-        catch ( ClassNotFoundException expected )
-        {
-            throw new RuntimeException( "Expected mcompiler503.AnnotationProcessorDependencyV2 to be on the"
+        try {
+            getClass().getClassLoader().loadClass("mcompiler503.AnnotationProcessorDependencyV2");
+        } catch (ClassNotFoundException expected) {
+            throw new RuntimeException("Expected mcompiler503.AnnotationProcessorDependencyV2 to be on the"
                     + "processorpath, because mcompiler503-annotation-processor-dep:2.0.0-SNAPSHOT is specifically"
-                    + "configured as one the elements of the processorpath." );
+                    + "configured as one the elements of the processorpath.");
         }
 
         // assert that mcompiler503-annotation-processor-dep:1.0.0-SNAPSHOT is NOT on the classpath,
         // since it should be replaced by mcompiler503-annotation-processor-dep:2.0.0-SNAPSHOT
         // when resolving annotation processors and their dependencies
-        try
-        {
-            getClass().getClassLoader().loadClass( "mcompiler503.AnnotationProcessorDependencyV1" );
-            throw new RuntimeException( "Expected a ClassNotFoundException, because "
-                    + "mcompiler503.AnnotationProcessorDependencyV1 is not supposed to be on the processorpath." );
-        }
-        catch ( ClassNotFoundException expected )
-        {
+        try {
+            getClass().getClassLoader().loadClass("mcompiler503.AnnotationProcessorDependencyV1");
+            throw new RuntimeException("Expected a ClassNotFoundException, because "
+                    + "mcompiler503.AnnotationProcessorDependencyV1 is not supposed to be on the processorpath.");
+        } catch (ClassNotFoundException expected) {
             // expected.
         }
 
@@ -81,38 +71,35 @@ public class SimpleAnnotationProcessor
 
         Elements elementUtils = processingEnv.getElementUtils();
 
-        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith( annotations.iterator().next() );
+        Set<? extends Element> elements =
+                roundEnv.getElementsAnnotatedWith(annotations.iterator().next());
 
-        for ( Element element : elements )
-        {
+        for (Element element : elements) {
             Name name = element.getSimpleName();
 
-            PackageElement packageElement = elementUtils.getPackageOf( element );
+            PackageElement packageElement = elementUtils.getPackageOf(element);
 
-            try
-            {
+            try {
                 Name packageName = packageElement.getQualifiedName();
                 FileObject resource =
-                        filer.createResource( StandardLocation.SOURCE_OUTPUT, packageName, name + ".txt", element );
+                        filer.createResource(StandardLocation.SOURCE_OUTPUT, packageName, name + ".txt", element);
 
                 Writer writer = resource.openWriter();
-                writer.write( name.toString() );
+                writer.write(name.toString());
                 writer.close();
 
                 String className = name + "Companion";
-                JavaFileObject javaFile = filer.createSourceFile( packageName + "." + className, element );
+                JavaFileObject javaFile = filer.createSourceFile(packageName + "." + className, element);
 
                 Writer javaWriter = javaFile.openWriter();
-                javaWriter.append( "package " ).append( packageName ).append( ";\n\n" );
-                javaWriter.append( "public class " ).append( className ).append( " {\n" );
-                javaWriter.append( "    public " ).append( className ).append( "() {\n" );
-                javaWriter.append( "        System.out.println(\"Hey there!\");\n" );
-                javaWriter.append( "    }\n}\n" );
+                javaWriter.append("package ").append(packageName).append(";\n\n");
+                javaWriter.append("public class ").append(className).append(" {\n");
+                javaWriter.append("    public ").append(className).append("() {\n");
+                javaWriter.append("        System.out.println(\"Hey there!\");\n");
+                javaWriter.append("    }\n}\n");
                 javaWriter.close();
-            }
-            catch ( IOException e )
-            {
-                throw new RuntimeException( e );
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
 

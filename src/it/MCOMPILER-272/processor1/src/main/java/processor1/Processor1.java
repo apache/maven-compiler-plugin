@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,21 +18,18 @@
  */
 package processor1;
 
-import java.util.Set;
-
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.element.TypeElement;
 
+import java.util.Set;
+
 @SupportedAnnotationTypes({"java.lang.SuppressWarnings"})
-public class Processor1
-    extends AbstractProcessor
-{
+public class Processor1 extends AbstractProcessor {
     @Override
-    public boolean process ( Set<? extends TypeElement> annotations, RoundEnvironment roundEnv )
-    {
-        System.out.println( "Run processor1" );
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        System.out.println("Run processor1");
         return false;
     }
 }
