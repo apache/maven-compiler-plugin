@@ -16,15 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package foo;
 
 import org.apache.commons.lang3.*;
 
-class Foo
-{
-    Foo()
-    {
-        System.out.println( StringUtils.swapCase( "fOO" ) + " created!" );
+class Foo {
+    Foo() {
+        System.out.println(StringUtils.swapCase("fOO") + " created!");
     }
 }

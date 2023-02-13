@@ -17,8 +17,8 @@
  * under the License.
  */
 
-assert new File( basedir, "target/classes/MyClass.class" ).exists();
-assert new File( basedir, "target/test-classes/MyTest.class" ).exists();
+assert new File( basedir, "target/classes/foo/MyClass.class" ).exists();
+assert new File( basedir, "target/test-classes/foo/MyTest.class" ).exists();
 
 content = new File( basedir, 'build.log' ).text;
 

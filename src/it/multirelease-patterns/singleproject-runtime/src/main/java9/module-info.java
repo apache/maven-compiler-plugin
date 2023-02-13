@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module example.mrjar
-{
-  exports base;
-  exports mr;
+module example.mrjar {
+    exports base;
+    exports mr;
 }
