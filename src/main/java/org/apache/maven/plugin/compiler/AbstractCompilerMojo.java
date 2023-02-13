@@ -1538,7 +1538,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         for (String pathElement : pathElements) {
             File artifactPath = new File(pathElement);
             if (artifactPath.isDirectory() || artifactPath.isFile()) {
-                if (hasNewFile(artifactPath, buildStartTime)) {
+                if (!artifactPath.equals(getOutputDirectory()) && hasNewFile(artifactPath, buildStartTime)) {
                     if (showCompilationChanges) {
                         getLog().info("New dependency detected: " + artifactPath.getAbsolutePath());
                     } else {
