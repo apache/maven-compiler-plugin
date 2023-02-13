@@ -19,26 +19,18 @@
 package org.apache.maven.plugin.compiler;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
- * Simple representation of Maven-coordinates of a dependency.
- *
- * @author Andreas Gudian
- * @since 3.4
+ * Simple representation of a Maven dependency exclusion.
  */
-public class DependencyCoordinate {
+public class DependencyExclusion {
     private String groupId;
 
     private String artifactId;
 
-    private String version;
-
     private String classifier;
 
-    private String type = "jar";
-
-    private Set<DependencyExclusion> exclusions;
+    private String extension = "jar";
 
     public String getGroupId() {
         return groupId;
@@ -56,14 +48,6 @@ public class DependencyCoordinate {
         this.artifactId = artifactId;
     }
 
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
     public String getClassifier() {
         return classifier;
     }
@@ -72,25 +56,12 @@ public class DependencyCoordinate {
         this.classifier = classifier;
     }
 
-    public String getType() {
-        return type;
+    public String getExtension() {
+        return extension;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Set<DependencyExclusion> getExclusions() {
-        return exclusions;
-    }
-
-    public void setExclusions(Set<DependencyExclusion> exclusions) {
-        this.exclusions = exclusions;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(groupId, artifactId, version, classifier, type, exclusions);
+    public void setExtension(String extension) {
+        this.extension = extension;
     }
 
     @Override
@@ -98,24 +69,24 @@ public class DependencyCoordinate {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
+        if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        DependencyCoordinate other = (DependencyCoordinate) obj;
+        DependencyExclusion other = (DependencyExclusion) obj;
         return Objects.equals(groupId, other.groupId)
                 && Objects.equals(artifactId, other.artifactId)
-                && Objects.equals(version, other.version)
                 && Objects.equals(classifier, other.classifier)
-                && Objects.equals(type, other.type)
-                && Objects.equals(exclusions, other.exclusions);
+                && Objects.equals(extension, other.extension);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(groupId, artifactId, classifier, extension);
     }
 
     @Override
     public String toString() {
-        return groupId + ":" + artifactId + (version != null ? ":" + version : "")
-                + (classifier != null ? ":" + classifier : "") + (type != null ? "." + type : "");
+        return groupId + ":" + artifactId + (classifier != null ? ":" + classifier : "")
+                + (extension != null ? "." + extension : "");
     }
 }
