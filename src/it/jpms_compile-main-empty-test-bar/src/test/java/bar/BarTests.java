@@ -19,15 +19,14 @@
 package bar;
 
 import javax.script.*;
+
 import org.junit.jupiter.api.*;
 
-class BarTests
-{
+class BarTests {
     @Test
-    void scripting() throws ScriptException
-    {
+    void scripting() throws ScriptException {
         ScriptEngineManager factory = new ScriptEngineManager();
-        ScriptEngine engine = factory.getEngineByName( "JavaScript" );
-        Assertions.assertDoesNotThrow​( () -> engine.eval( "print('Hello, World')" ), "Script evaluation failed!" );
+        ScriptEngine engine = factory.getEngineByName("JavaScript");
+        Assertions.assertDoesNotThrow(() -> engine.eval("print('Hello, World')"), "Script evaluation failed!");
     }
 }

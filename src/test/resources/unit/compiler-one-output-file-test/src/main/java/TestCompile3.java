@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package foo;
 
-public class TestCompile3
-{
+public class TestCompile3 {
 
-    public TestCompile3()
-    {
+    public TestCompile3() {
 
-        System.out.println( "Woo Hoo!" );
+        System.out.println("Woo Hoo!");
     }
-
 }

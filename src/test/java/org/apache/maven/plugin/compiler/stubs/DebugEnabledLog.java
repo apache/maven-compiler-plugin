@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler.stubs;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,22 +16,19 @@ package org.apache.maven.plugin.compiler.stubs;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler.stubs;
 
 import org.apache.maven.plugin.logging.SystemStreamLog;
 
 /**
  * @author Edwin Punzalan
  */
-public class DebugEnabledLog
-    extends SystemStreamLog
-{
-    public DebugEnabledLog()
-    {
+public class DebugEnabledLog extends SystemStreamLog {
+    public DebugEnabledLog() {
         super();
     }
 
-    public boolean isDebugEnabled()
-    {
+    public boolean isDebugEnabled() {
         return true;
     }
 }

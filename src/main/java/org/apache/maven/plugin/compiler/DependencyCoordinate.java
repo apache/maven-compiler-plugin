@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,7 @@ package org.apache.maven.plugin.compiler;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler;
 
 import java.util.Objects;
 import java.util.Set;
@@ -28,8 +27,7 @@ import java.util.Set;
  * @author Andreas Gudian
  * @since 3.4
  */
-public class DependencyCoordinate
-{
+public class DependencyCoordinate {
     private String groupId;
 
     private String artifactId;
@@ -42,96 +40,82 @@ public class DependencyCoordinate
 
     private Set<DependencyExclusion> exclusions;
 
-    public String getGroupId()
-    {
+    public String getGroupId() {
         return groupId;
     }
 
-    public void setGroupId( String groupId )
-    {
+    public void setGroupId(String groupId) {
         this.groupId = groupId;
     }
 
-    public String getArtifactId()
-    {
+    public String getArtifactId() {
         return artifactId;
     }
 
-    public void setArtifactId( String artifactId )
-    {
+    public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
     }
 
-    public String getVersion()
-    {
+    public String getVersion() {
         return version;
     }
 
-    public void setVersion( String version )
-    {
+    public void setVersion(String version) {
         this.version = version;
     }
 
-    public String getClassifier()
-    {
+    public String getClassifier() {
         return classifier;
     }
 
-    public void setClassifier( String classifier )
-    {
+    public void setClassifier(String classifier) {
         this.classifier = classifier;
     }
 
-    public String getType()
-    {
+    public String getType() {
         return type;
     }
 
-    public void setType( String type )
-    {
+    public void setType(String type) {
         this.type = type;
     }
 
-    public Set<DependencyExclusion> getExclusions()
-    {
+    public Set<DependencyExclusion> getExclusions() {
         return exclusions;
     }
 
-    public void setExclusions( Set<DependencyExclusion> exclusions )
-    {
+    public void setExclusions(Set<DependencyExclusion> exclusions) {
         this.exclusions = exclusions;
     }
 
     @Override
-    public boolean equals( Object obj )
-    {
-        if ( this == obj )
-        {
+    public int hashCode() {
+        return Objects.hash(groupId, artifactId, version, classifier, type, exclusions);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
             return true;
         }
-        if ( obj == null || getClass() != obj.getClass() )
-        {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
             return false;
         }
         DependencyCoordinate other = (DependencyCoordinate) obj;
-        return Objects.equals( groupId, other.groupId )
-                && Objects.equals( artifactId, other.artifactId )
-                && Objects.equals( version, other.version )
-                && Objects.equals( classifier, other.classifier )
-                && Objects.equals( type, other.type )
-                && Objects.equals( exclusions, other.exclusions );
+        return Objects.equals(groupId, other.groupId)
+                && Objects.equals(artifactId, other.artifactId)
+                && Objects.equals(version, other.version)
+                && Objects.equals(classifier, other.classifier)
+                && Objects.equals(type, other.type)
+                && Objects.equals(exclusions, other.exclusions);
     }
 
     @Override
-    public int hashCode()
-    {
-        return Objects.hash( groupId, artifactId, version, classifier, type, exclusions );
-    }
-
-    @Override
-    public String toString()
-    {
-        return groupId + ":" + artifactId + ( version != null ? ":" + version : "" )
-            + ( classifier != null ? ":" + classifier : "" ) + ( type != null ? "." + type : "" );
+    public String toString() {
+        return groupId + ":" + artifactId + (version != null ? ":" + version : "")
+                + (classifier != null ? ":" + classifier : "") + (type != null ? "." + type : "");
     }
 }

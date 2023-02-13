@@ -1,5 +1,3 @@
-package org.test.app;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,16 +16,15 @@ package org.test.app;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.test.app;
 
 import org.eclipse.jetty.util.ajax.JSON;
 import org.junit.jupiter.api.Test;
 import org.test.service.JSONService;
 
-public class MainTest
-{
+public class MainTest {
     @Test
-    public void test()
-    {
+    public void test() {
         JSON json = new JSONService().json;
         System.err.println("json = " + json);
     }

@@ -1,4 +1,3 @@
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,4 +22,4 @@ content = logFile.text
 
 assert content.contains( 'COMPILATION ERROR :' )
 
-assert !new File( basedir, 'target/classes/BeanA.class' ).exists();
+assert !new File( basedir, 'target/classes/foo/BeanA.class' ).exists();

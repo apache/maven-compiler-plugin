@@ -23,14 +23,14 @@ import java.util.regex.*;
 
 try
 {
-    File mainClass = new File( basedir, "target/classes/MyClass.class" );
+    File mainClass = new File( basedir, "target/classes/foo/MyClass.class" );
     if ( !mainClass.isFile() )
     {
         System.out.println( "Main class not existent: " + mainClass );
         return false;
     }
 
-    File testClass = new File( basedir, "target/test-classes/MyTest.class" );
+    File testClass = new File( basedir, "target/test-classes/foo/MyTest.class" );
     if ( !testClass.isFile() )
     {
         System.out.println( "Test class not existent: " + testClass );

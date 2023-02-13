@@ -18,5 +18,6 @@
  */
 
 module foo {
-  exports foo to bar;
+    exports foo to
+            bar;
 }
