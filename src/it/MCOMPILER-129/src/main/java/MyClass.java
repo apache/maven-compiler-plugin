@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package foo;
 
-public class MyClass
-{
-
-}
+public class MyClass {}

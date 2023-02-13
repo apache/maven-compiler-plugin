@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package foo;
 
 import junit.framework.TestCase;
 
-public class TestCompile4TestCase
-    extends TestCase
-{
-    public void testCompile4()
-    {
+public class TestCompile4TestCase extends TestCase {
+    public void testCompile4() {
         TestCompile4 test = new TestCompile4();
     }
 }

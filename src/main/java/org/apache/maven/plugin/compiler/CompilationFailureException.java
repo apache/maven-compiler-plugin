@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,21 +16,20 @@ package org.apache.maven.plugin.compiler;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler;
+
+import java.util.List;
 
 import org.apache.maven.plugin.MojoFailureException;
 import org.codehaus.plexus.compiler.CompilerMessage;
-
-import java.util.List;
 
 /**
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @since 2.0
  */
-@SuppressWarnings( "serial" )
-public class CompilationFailureException
-    extends MojoFailureException
-{
-    private static final String LS = System.getProperty( "line.separator" );
+@SuppressWarnings("serial")
+public class CompilationFailureException extends MojoFailureException {
+    private static final String LS = System.getProperty("line.separator");
 
     /**
      * Wrap error messages from the compiler
@@ -40,9 +37,8 @@ public class CompilationFailureException
      * @param messages the messages, not null
      * @since 2.0
      */
-    public CompilationFailureException( List<CompilerMessage> messages )
-    {
-        super( null, shortMessage( messages ), longMessage( messages ) );
+    public CompilationFailureException(List<CompilerMessage> messages) {
+        super(null, shortMessage(messages), longMessage(messages));
     }
 
     /**
@@ -52,13 +48,11 @@ public class CompilationFailureException
      * @return the long error message
      * @since 2.0
      */
-    public static String longMessage( List<CompilerMessage> messages )
-    {
+    public static String longMessage(List<CompilerMessage> messages) {
         StringBuilder sb = new StringBuilder();
 
-        for ( CompilerMessage compilerError : messages )
-        {
-            sb.append( compilerError ).append( LS );
+        for (CompilerMessage compilerError : messages) {
+            sb.append(compilerError).append(LS);
         }
 
         return sb.toString();
@@ -71,13 +65,11 @@ public class CompilationFailureException
      * @return the short error message
      * @since 2.0.2
      */
-    public static String shortMessage( List<CompilerMessage> messages )
-    {
-        StringBuilder sb = new StringBuilder( "Compilation failure" );
+    public static String shortMessage(List<CompilerMessage> messages) {
+        StringBuilder sb = new StringBuilder("Compilation failure");
 
-        if ( messages.size() == 1 )
-        {
-            sb.append( LS ).append( messages.get( 0 ) ).append( LS );
+        if (messages.size() == 1) {
+            sb.append(LS).append(messages.get(0)).append(LS);
         }
 
         return sb.toString();

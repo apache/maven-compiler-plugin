@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package foo;
 
-public class TestService
-{
+public class TestService {
 
-    public void run()
-    {
-
-    }
+    public void run() {}
 }

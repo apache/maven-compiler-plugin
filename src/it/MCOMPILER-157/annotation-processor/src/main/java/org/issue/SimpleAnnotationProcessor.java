@@ -1,5 +1,3 @@
-package org.issue;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,10 +16,7 @@ package org.issue;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.io.IOException;
-import java.io.Writer;
-import java.util.Set;
+package org.issue;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.Filer;
@@ -37,44 +32,39 @@ import javax.lang.model.util.Elements;
 import javax.tools.FileObject;
 import javax.tools.StandardLocation;
 
-@SupportedSourceVersion( SourceVersion.RELEASE_6 )
-@SupportedAnnotationTypes( "org.issue.SimpleAnnotation" )
-public class SimpleAnnotationProcessor
-    extends AbstractProcessor
-{
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Set;
+
+@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedAnnotationTypes("org.issue.SimpleAnnotation")
+public class SimpleAnnotationProcessor extends AbstractProcessor {
 
     @Override
-    public boolean process( Set<? extends TypeElement> annotations, RoundEnvironment roundEnv )
-    {
+    public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         Filer filer = processingEnv.getFiler();
 
         Elements elementUtils = processingEnv.getElementUtils();
 
-        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith( SimpleAnnotation.class );
+        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(SimpleAnnotation.class);
 
-        for ( Element element : elements )
-        {
+        for (Element element : elements) {
             Name name = element.getSimpleName();
 
-            PackageElement packageElement = elementUtils.getPackageOf( element );
+            PackageElement packageElement = elementUtils.getPackageOf(element);
 
-            try
-            {
-                FileObject resource =
-                    filer.createResource( StandardLocation.SOURCE_OUTPUT, packageElement.getQualifiedName(), name
-                        + ".txt", element );
+            try {
+                FileObject resource = filer.createResource(
+                        StandardLocation.SOURCE_OUTPUT, packageElement.getQualifiedName(), name + ".txt", element);
 
                 Writer writer = resource.openWriter();
-                writer.write( name.toString() );
+                writer.write(name.toString());
                 writer.close();
-            }
-            catch ( IOException e )
-            {
-                throw new RuntimeException( e );
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
 
         return !elements.isEmpty();
     }
-
 }
