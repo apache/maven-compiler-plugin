@@ -1,4 +1,3 @@
-package mcompiler395;
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,8 +16,7 @@ package mcompiler395;
  * specific language governing permissions and limitations
  * under the License.
  */
+package mcompiler395;
 
 @SimpleAnnotation
-public class SimpleObject
-{
-}
+public class SimpleObject {}

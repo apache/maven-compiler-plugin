@@ -1615,7 +1615,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     handler.getExtension(),
                     annotationProcessorPath.getVersion());
             Set<Exclusion> exclusions = convertToAetherExclusions(annotationProcessorPath.getExclusions());
-            dependencies.add(new Dependency(artifact,  JavaScopes.RUNTIME, false, exclusions));
+            dependencies.add(new Dependency(artifact, JavaScopes.RUNTIME, false, exclusions));
         }
         return dependencies;
     }
@@ -1626,8 +1626,11 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
         Set<Exclusion> aetherExclusions = new HashSet<>();
         for (DependencyExclusion exclusion : exclusions) {
-            Exclusion aetherExclusion = new Exclusion(exclusion.getGroupId(), exclusion.getArtifactId(),
-                    exclusion.getClassifier(), exclusion.getExtension());
+            Exclusion aetherExclusion = new Exclusion(
+                    exclusion.getGroupId(),
+                    exclusion.getArtifactId(),
+                    exclusion.getClassifier(),
+                    exclusion.getExtension());
             aetherExclusions.add(aetherExclusion);
         }
         return aetherExclusions;
