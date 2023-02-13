@@ -32,8 +32,8 @@ ${project.name}
   default compiler is javax.tools.JavaCompiler (if you are using java 1.6) and is used to compile Java sources.
   If you want to force the plugin using  <<<javac>>>, you must configure the plugin option {{{./compile-mojo.html#forceJavacCompilerUse}<<<forceJavacCompilerUse>>>}}.
 
-  Also note that at present the default <<<source>>> setting is <<<1.6>>> and the default <<<target>>>
-  setting is <<<1.6>>>, independently of the JDK you run Maven with.
+  Also note that at present the default <<<source>>> setting is <<<1.8>>> and the default <<<target>>>
+  setting is <<<1.8>>>, independently of the JDK you run Maven with.
   You are highly encouraged to change these defaults by setting <<<source>>> and <<<target>>>
   as described in
   {{{./examples/set-compiler-source-and-target.html}Setting the -source and -target of the Java Compiler}}.
@@ -42,7 +42,7 @@ ${project.name}
   on AspectJ, .NET, and C#.
 
   <<NOTE:>> <To know more about the JDK javac, please see:
-  {{http://download.oracle.com/javase/6/docs/technotes/tools/windows/javac.html}}.>
+  {{https://docs.oracle.com/javase/8/docs/technotes/tools/windows/javac.html}}.>
 
 * Goals Overview
 
@@ -82,6 +82,8 @@ ${project.name}
   * {{{./examples/compile-using-different-jdk.html}Compile Using A Different JDK}}
 
   * {{{./examples/set-compiler-source-and-target.html}Compile Using -source and -target javac Options}}
+
+  * {{{./examples/set-compiler-release.html}Compile Using the --release javac Option (supported since JDK 9)}}
 
   * {{{./examples/compile-with-memory-enhancements.html}Compile Using Memory Allocation Enhancement}}
 

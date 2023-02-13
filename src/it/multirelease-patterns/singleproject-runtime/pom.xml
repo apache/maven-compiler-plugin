@@ -76,7 +76,7 @@
    <dependency>
      <groupId>junit</groupId>
      <artifactId>junit</artifactId>
-     <version>4.12</version>
+     <version>4.13.1</version>
      <scope>test</scope>
    </dependency>
   </dependencies>
@@ -104,10 +104,7 @@
                     <compileSourceRoots>
                       <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
                     </compileSourceRoots>
-                    <outputDirectory>${project.build.outputDirectory}/META-INF/versions/9</outputDirectory>
-                    <compilerArgs>
-                      <arg>--patch-module</arg><arg>example.mrjar=${project.build.outputDirectory}</arg>
-                    </compilerArgs>
+                    <multiReleaseOutput>true</multiReleaseOutput>
                   </configuration>
                 </execution>
               </executions>

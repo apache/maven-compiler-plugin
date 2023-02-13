@@ -30,11 +30,11 @@ under the License.
         <p>Modello generate the sources in the generate-sources phase and automatically adds the
           source directory for compilation in Maven. So you don't have to copy the generated sources.
         </p>
-        <p>You have to declare the <a href="http://modello.codehaus.org/modello-maven-plugin/">Modello Maven Plugin</a>
+        <p>You have to declare the <a href="https://codehaus-plexus.github.io/modello/modello-maven-plugin/">Modello Maven Plugin</a>
           in the build of your project for source generation (in that way the sources are generated each time).
         </p>
         <p>For more information about Modello, please visit the
-          <a href="http://modello.codehaus.org/">Modello website</a>
+          <a href="https://codehaus-plexus.github.io/modello/">Modello website</a>
           .
         </p>
       </answer>

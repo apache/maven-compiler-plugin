@@ -54,7 +54,7 @@ assert 53 == getMajor(mrjar.getInputStream(je))
   META-INF/maven/multirelease/multirelease/pom.xml
   META-INF/maven/multirelease/multirelease/pom.properties
 */
-assert mrjar.entries().size() == 17
+assert mrjar.size() == 17
 
 int getMajor(InputStream is)
 {
@@ -70,4 +70,3 @@ int getMajor(InputStream is)
   is.close();
   return majorVersion;
 }
-

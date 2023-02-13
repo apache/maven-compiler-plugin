@@ -1,5 +1,3 @@
-package org.maven.test;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -8,9 +6,9 @@ package org.maven.test;
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -18,9 +16,10 @@ package org.maven.test;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.maven.test;
 
-import org.codehaus.plexus.util.StringUtils;
 import org.codehaus.plexus.resource.ResourceManager;
+import org.codehaus.plexus.util.StringUtils;
 
 public class Main {
 
@@ -28,7 +27,7 @@ public class Main {
      * @param args
      */
     public static void main(String[] args) {
-        System.out.println( StringUtils.concatenate( args ) );
+        System.out.println(StringUtils.concatenate(args));
         ResourceManager manager = null;
     }
 }

@@ -28,16 +28,34 @@
 
 Older projects with module-info
 
-  For projects that want to be compatible with older versions of Java (i.e 1.8 or below), but also want to provide a
-  <<<module-info.java>>> for Java 9 projects must be aware that they need to call <<<javac>>> twice: the 
-  <<<module-info.java>>> must be compiled with <<<release=9>>>, while the rest of the sources must be compiled with a
-  lower version of <<<source>>>/<<<target>>>.
+  Projects that want to be compatible with older versions of Java (i.e 1.8 or below bytecode and API), but also want to provide a
+  <<<module-info.java>>> for use on Java 9+ runtime, must be aware that they need to call <<<javac>>> twice:
+  
+  [[1]] the <<<module-info.java>>> must be compiled with <<<release=9>>>,
 
-  The preferred way to do this is by having 2 execution blocks are described below. JDK 9 only supports compilations for 
-  Java 6 and above, so projects wanting to be compatible with Java 5 or below need to use two different JDKs. With 
-  {{{/guides/mini/guide-using-toolchains.html}toolchains}} it is quite easy to achieve this. Be aware that you will
-  need at least Maven 3.3.1 to specify a custom jdkToolchain in your plugin configuration. You could add a jdkToolchain
-  to do base-compile execution-block as well referring to JDK 5. 
+  [[2]] while the rest of the sources must be compiled with the lower expected compatibility version of <<<source>>>/<<<target>>>.
+
+  []
+
+  The preferred way to do this is by having 2 execution blocks, as described below:
+
+  [[1]] default <<<default-compile>>> execution with <<<release=9>>>,
+
+  [[2]] additional custom <<<base-compile>>> execution with expected target compatibility.
+
+  []
+
+  Notice that, in addition, JDK 9 only supports compilations for Java 6 and above, so projects wanting to be compatible with Java 5 or below need
+  to use two different JDKs for the 2 executions. With {{{/guides/mini/guide-using-toolchains.html}toolchains}} configuration, it is
+  quite easy to achieve this, even if a little bit more complex.
+
+* Java 6 to 8 Compatibility
+
+  In case you want the project to be Java 6, 7 or 8 compatible, you can simply use JDK 9 for both execution blocks.
+
+  The easiest way is to use Java 9 as the runtime for Maven, by setting <<<JAVA_HOME=/path/to/jdk-9>>> before running <<<mvn>>>.
+  But if you want to use an older Java runtime for Maven, you can use the maven-toolchain-plugin to specify the shared JDK (supported since Maven 2.0.9)
+  or a custom jdkToolchain (supported since Maven 3.3.1) and refer to the JDK 9 installation on your system.  
 
 +-------
 <project>
@@ -53,12 +71,8 @@ Older projects with module-info
           <execution>
             <id>default-compile</id>
             <configuration>
-              <!-- compile everything to ensure module-info contains right entries -->
-              <!-- required when JAVA_HOME is JDK 8 or below -->
-              <jdkToolchain>
-                <version>9</version>
-              </jdkToolchain>
               <release>9</release>
+              <!-- no excludes: compile everything to ensure module-info contains right entries -->
             </configuration>
           </execution>
           <execution>
@@ -66,8 +80,8 @@ Older projects with module-info
             <goals>
               <goal>compile</goal>
             </goals>
-            <!-- recompile everything for target VM except the module-info.java -->
             <configuration>
+              <!-- recompile everything for target VM except the module-info.java -->
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
@@ -76,12 +90,11 @@ Older projects with module-info
         </executions>
         <!-- defaults for compile and testCompile -->
         <configuration>
-          <!-- jdkToolchain required when JAVA_HOME is JDK 9 or above -->
+          <release>6</release><!-- or 7 or 8 depending on compatibility expectations -->
+          <!-- Only required when Maven runtime JAVA_HOME isn't at least Java 9 and when haven't configured the maven-toolchains-plugin -->
           <jdkToolchain>
-            <version>[1.5,9)</version>
+            <version>9</version>
           </jdkToolchain>
-          <source>1.5</source>
-          <target>1.5</target>
         </configuration>
       </plugin>
     </plugins>
@@ -91,10 +104,13 @@ Older projects with module-info
 </project>
 +-------
 
-  In case you want the project to be Java 6 compatible, the easiest to do this is to use Java 9 for both execution
-  blocks. You can use the maven-toolchain-plugin to specify the shared JDK (supported since Maven 2.0.9) or a custom 
-  jdkToolchain (supported since Maven 3.3.1) and refer to the JDK 9 installation on your system. Or simply use Java 9
-  as the runtime for Maven by setting <<<JAVA_HOME=/path/to/jdk-9>>>. 
+* Java 5 or below Compatibility
+
+  Given Maven 3 requires newer Java release at runtime, you'll absolutely need to use Toolchains to use a JDK different from
+  Maven runtime.
+
+  Be aware that you will need at least Maven 3.3.1 to specify a custom jdkToolchain in your plugin configuration.
+  You could add a jdkToolchain to do base-compile execution-block as well referring to JDK 5. 
 
 +-------
 <project>
@@ -110,8 +126,12 @@ Older projects with module-info
           <execution>
             <id>default-compile</id>
             <configuration>
-              <!-- compile everything to ensure module-info contains right entries -->
               <release>9</release>
+              <!-- no excludes: compile everything to ensure module-info contains right entries -->
+              <!-- toolchain required when JAVA_HOME is JDK 8 or below -->
+              <jdkToolchain>
+                <version>9</version>
+              </jdkToolchain>
             </configuration>
           </execution>
           <execution>
@@ -119,8 +139,8 @@ Older projects with module-info
             <goals>
               <goal>compile</goal>
             </goals>
-            <!-- recompile everything for target VM except the module-info.java -->
             <configuration>
+              <!-- recompile everything for target VM except the module-info.java -->
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
@@ -129,11 +149,12 @@ Older projects with module-info
         </executions>
         <!-- defaults for compile and testCompile -->
         <configuration>
-          <!-- Only required when JAVA_HOME isn't at least Java 9 and when haven't configured the maven-toolchains-plugin -->
+          <source>1.5</source>
+          <target>1.5</target>
+          <!-- jdkToolchain required when JAVA_HOME is JDK 9 or above -->
           <jdkToolchain>
-            <version>9</version>
+            <version>[1.5,9)</version>
           </jdkToolchain>
-          <release>6</release>
         </configuration>
       </plugin>
     </plugins>

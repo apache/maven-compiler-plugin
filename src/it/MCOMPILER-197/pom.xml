@@ -78,7 +78,7 @@ under the License.
           <dependency>
             <groupId>org.apache.openjpa</groupId>
             <artifactId>openjpa</artifactId>
-            <version>@openJpaVersion@</version>
+            <version>2.4.2</version>
           </dependency>
         </dependencies>
       </plugin>

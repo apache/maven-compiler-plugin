@@ -20,18 +20,15 @@ package foo;
 
 import org.junit.jupiter.api.*;
 
-class FooTests
-{
+class FooTests {
     @Test
-    void constructor()
-    {
-        Assertions.assertNotNull( new Foo() );
+    void constructor() {
+        Assertions.assertNotNull(new Foo());
     }
 
     @Test
-    void moduleNameIsFoo()
-    {
-        Assertions.assertTrue( Foo.class.getModule().isNamed(), "Foo resides in a named module" );
-        Assertions.assertEquals( "foo", Foo.class.getModule().getName() );
+    void moduleNameIsFoo() {
+        Assertions.assertTrue(Foo.class.getModule().isNamed(), "Foo resides in a named module");
+        Assertions.assertEquals("foo", Foo.class.getModule().getName());
     }
 }

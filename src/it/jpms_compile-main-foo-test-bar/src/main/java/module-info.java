@@ -17,8 +17,8 @@
  * under the License.
  */
 
-module foo
-{
+module foo {
     requires org.apache.commons.lang3;
+
     exports foo;
 }
