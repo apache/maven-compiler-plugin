@@ -77,7 +77,7 @@ under the License.
     <groovyVersion>2.4.21</groovyVersion>
     <groovyEclipseCompilerVersion>3.7.0</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.5.14-02</groovy-eclipse-batch>
-    <plexus-java.version>1.1.1</plexus-java.version>
+    <plexus-java.version>1.1.2</plexus-java.version>
     <javaVersion>8</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
     <project.build.outputTimestamp>2022-03-08T01:04:02Z</project.build.outputTimestamp>
