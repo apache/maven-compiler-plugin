@@ -36,13 +36,19 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.maven.RepositoryUtils;
 import org.apache.maven.artifact.handler.ArtifactHandler;
 import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -77,11 +83,10 @@ import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.ArtifactTypeRegistry;
 import org.eclipse.aether.artifact.DefaultArtifact;
 import org.eclipse.aether.collection.CollectRequest;
-import org.eclipse.aether.graph.Dependency;
 import org.eclipse.aether.graph.Exclusion;
-import org.eclipse.aether.resolution.ArtifactResult;
 import org.eclipse.aether.resolution.DependencyRequest;
 import org.eclipse.aether.resolution.DependencyResult;
 import org.eclipse.aether.util.artifact.JavaScopes;
@@ -309,7 +314,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      *     &lt;path&gt;
      *       &lt;groupId&gt;org.sample&lt;/groupId&gt;
      *       &lt;artifactId&gt;sample-annotation-processor&lt;/artifactId&gt;
-     *       &lt;version&gt;1.2.3&lt;/version&gt;
+     *       &lt;version&gt;1.2.3&lt;/version&gt; &lt;!-- Optional - taken from dependency management if not specified --&gt;
      *       &lt;!-- Optionally exclude transitive dependencies --&gt;
      *       &lt;exclusions&gt;
      *         &lt;exclusion&gt;
@@ -329,6 +334,22 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      */
     @Parameter
     private List<DependencyCoordinate> annotationProcessorPaths;
+
+    /**
+     * <p>
+     * Whether to use the Maven dependency management section when resolving transitive dependencies of annotation
+     * processor paths.
+     * </p>
+     * <p>
+     * This flag does not enable / disable the ability to resolve the version of annotation processor paths
+     * from dependency management section. It only influences the resolution o transitive dependencies of those
+     * top-level paths.
+     * </p>
+     *
+     * @since 3.12.0
+     */
+    @Parameter(defaultValue = "false")
+    private boolean annotationProcessorPathsUseDepMgmt;
 
     /**
      * <p>
@@ -1584,40 +1605,89 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             return null;
         }
 
-        Set<String> elements = new LinkedHashSet<>();
         try {
-            List<Dependency> dependencies = convertToDependencies(annotationProcessorPaths);
+            List<org.eclipse.aether.graph.Dependency> dependencies = convertToDependencies(annotationProcessorPaths);
+            List<org.eclipse.aether.graph.Dependency> managedDependencies =
+                    getManagedDependenciesForAnnotationProcessorPaths();
             CollectRequest collectRequest =
-                    new CollectRequest(dependencies, Collections.emptyList(), project.getRemoteProjectRepositories());
+                    new CollectRequest(dependencies, managedDependencies, project.getRemoteProjectRepositories());
             DependencyRequest dependencyRequest = new DependencyRequest();
             dependencyRequest.setCollectRequest(collectRequest);
             DependencyResult dependencyResult =
                     repositorySystem.resolveDependencies(session.getRepositorySession(), dependencyRequest);
 
-            for (ArtifactResult resolved : dependencyResult.getArtifactResults()) {
-                elements.add(resolved.getArtifact().getFile().getAbsolutePath());
-            }
-            return new ArrayList<>(elements);
+            return dependencyResult.getArtifactResults().stream()
+                    .map(resolved -> resolved.getArtifact().getFile().getAbsolutePath())
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             throw new MojoExecutionException(
                     "Resolution of annotationProcessorPath dependencies failed: " + e.getLocalizedMessage(), e);
         }
     }
 
-    private List<Dependency> convertToDependencies(List<DependencyCoordinate> annotationProcessorPaths) {
-        List<Dependency> dependencies = new ArrayList<>();
+    private List<org.eclipse.aether.graph.Dependency> convertToDependencies(
+            List<DependencyCoordinate> annotationProcessorPaths) throws MojoExecutionException {
+        List<org.eclipse.aether.graph.Dependency> dependencies = new ArrayList<>();
         for (DependencyCoordinate annotationProcessorPath : annotationProcessorPaths) {
             ArtifactHandler handler = artifactHandlerManager.getArtifactHandler(annotationProcessorPath.getType());
+            String version = getAnnotationProcessorPathVersion(annotationProcessorPath);
             Artifact artifact = new DefaultArtifact(
                     annotationProcessorPath.getGroupId(),
                     annotationProcessorPath.getArtifactId(),
                     annotationProcessorPath.getClassifier(),
                     handler.getExtension(),
-                    annotationProcessorPath.getVersion());
+                    version);
             Set<Exclusion> exclusions = convertToAetherExclusions(annotationProcessorPath.getExclusions());
-            dependencies.add(new Dependency(artifact, JavaScopes.RUNTIME, false, exclusions));
+            dependencies.add(new org.eclipse.aether.graph.Dependency(artifact, JavaScopes.RUNTIME, false, exclusions));
         }
         return dependencies;
+    }
+
+    private String getAnnotationProcessorPathVersion(DependencyCoordinate annotationProcessorPath)
+            throws MojoExecutionException {
+        String configuredVersion = annotationProcessorPath.getVersion();
+        if (configuredVersion != null) {
+            return configuredVersion;
+        } else {
+            List<Dependency> managedDependencies = getProjectManagedDependencies();
+            return findManagedVersion(annotationProcessorPath, managedDependencies)
+                    .orElseThrow(() -> new MojoExecutionException(String.format(
+                            "Cannot find version for annotation processor path '%s'. The version needs to be either"
+                                    + " provided directly in the plugin configuration or via dependency management.",
+                            annotationProcessorPath)));
+        }
+    }
+
+    private Optional<String> findManagedVersion(
+            DependencyCoordinate dependencyCoordinate, List<Dependency> managedDependencies) {
+        return managedDependencies.stream()
+                .filter(dep -> Objects.equals(dep.getGroupId(), dependencyCoordinate.getGroupId())
+                        && Objects.equals(dep.getArtifactId(), dependencyCoordinate.getArtifactId())
+                        && Objects.equals(dep.getClassifier(), dependencyCoordinate.getClassifier())
+                        && Objects.equals(dep.getType(), dependencyCoordinate.getType()))
+                .findAny()
+                .map(org.apache.maven.model.Dependency::getVersion);
+    }
+
+    private List<org.eclipse.aether.graph.Dependency> getManagedDependenciesForAnnotationProcessorPaths() {
+        if (!annotationProcessorPathsUseDepMgmt) {
+            return Collections.emptyList();
+        }
+        List<Dependency> projectManagedDependencies = getProjectManagedDependencies();
+        ArtifactTypeRegistry artifactTypeRegistry =
+                session.getRepositorySession().getArtifactTypeRegistry();
+
+        return projectManagedDependencies.stream()
+                .map(dep -> RepositoryUtils.toDependency(dep, artifactTypeRegistry))
+                .collect(Collectors.toList());
+    }
+
+    private List<Dependency> getProjectManagedDependencies() {
+        DependencyManagement dependencyManagement = project.getDependencyManagement();
+        if (dependencyManagement == null || dependencyManagement.getDependencies() == null) {
+            return Collections.emptyList();
+        }
+        return dependencyManagement.getDependencies();
     }
 
     private Set<Exclusion> convertToAetherExclusions(Set<DependencyExclusion> exclusions) {
