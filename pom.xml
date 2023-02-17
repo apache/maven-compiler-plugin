@@ -80,16 +80,6 @@ under the License.
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
   </properties>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <!-- to remove with plexus-java upgrade -->
-        <groupId>com.thoughtworks.qdox</groupId>
-        <artifactId>qdox</artifactId>
-        <version>2.0.3</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>org.apache.maven.plugin-tools</groupId>
@@ -161,6 +151,10 @@ under the License.
       <artifactId>plexus-compiler-javac</artifactId>
       <version>${plexusCompilerVersion}</version>
       <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-utils</artifactId>
     </dependency>
 
     <dependency>

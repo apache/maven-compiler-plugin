@@ -27,6 +27,8 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,11 +61,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
 import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
-import org.apache.maven.shared.utils.ReaderFactory;
 import org.apache.maven.shared.utils.StringUtils;
-import org.apache.maven.shared.utils.io.DirectoryScanResult;
-import org.apache.maven.shared.utils.io.DirectoryScanner;
-import org.apache.maven.shared.utils.io.FileUtils;
 import org.apache.maven.shared.utils.logging.MessageBuilder;
 import org.apache.maven.shared.utils.logging.MessageUtils;
 import org.apache.maven.toolchain.Toolchain;
@@ -83,6 +81,7 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
+import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;
@@ -560,12 +559,11 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     /**
      * File extensions to check timestamp for incremental build.
-     * Default contains only <code>class</code> and <code>jar</code>.
      *
      * @since 3.1
      */
-    @Parameter
-    private List<String> fileExtensions;
+    @Parameter(defaultValue = "class,jar")
+    private Set<String> fileExtensions;
 
     /**
      * <p>to enable/disable incremental compilation feature.</p>
@@ -897,37 +895,30 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
 
-                DirectoryScanResult dsr = computeInputFileTreeChanges(incrementalBuildHelper, sources);
+                // Strategies used to detect modifications.
+                String immutableOutputFile = (compiler.getCompilerOutputStyle()
+                                        .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                                && !canUpdateTarget)
+                        ? "immutable single output file"
+                        : null;
+                String dependencyChanged = isDependencyChanged() ? "changed dependency" : null;
+                String sourceChanged = isSourceChanged(compilerConfiguration, compiler) ? "changed source code" : null;
+                String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
+                        ? "added or removed source files"
+                        : null;
 
-                boolean immutableOutputFile = compiler.getCompilerOutputStyle()
-                                .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
-                        && !canUpdateTarget;
-                boolean dependencyChanged = isDependencyChanged();
-                boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
-                boolean inputFileTreeChanged = hasInputFileTreeChanged(dsr);
-                // CHECKSTYLE_OFF: LineLength
-                if (immutableOutputFile || dependencyChanged || sourceChanged || inputFileTreeChanged)
-                // CHECKSTYLE_ON: LineLength
-                {
-                    String cause = immutableOutputFile
-                            ? "immutable single output file"
-                            : (dependencyChanged
-                                    ? "changed dependency"
-                                    : (sourceChanged ? "changed source code" : "added or removed source files"));
-                    getLog().info("Recompiling the module because of " + cause + ".");
-                    if (showCompilationChanges) {
-                        for (String fileAdded : dsr.getFilesAdded()) {
-                            getLog().info("\t+ " + fileAdded);
-                        }
-                        for (String fileRemoved : dsr.getFilesRemoved()) {
-                            getLog().info("\t- " + fileRemoved);
-                        }
-                    }
+                // Get the first cause for the rebuild compilation detection.
+                String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse(null);
 
+                if (cause != null) {
+                    getLog().info("Recompiling the module because of "
+                            + MessageUtils.buffer().strong(cause) + ".");
                     compilerConfiguration.setSourceFiles(sources);
                 } else {
                     getLog().info("Nothing to compile - all classes are up to date.");
-
                     return;
                 }
             } catch (CompilerException e) {
@@ -958,8 +949,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
 
             if (staleSources.isEmpty()) {
-                getLog().info("Nothing to compile - all classes are up to date");
-
+                getLog().info("Nothing to compile - all classes are up to date.");
                 return;
             }
 
@@ -1166,7 +1156,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         // ----------------------------------------------------------------------
 
         if (StringUtils.isEmpty(compilerConfiguration.getSourceEncoding())) {
-            getLog().warn("File encoding has not been set, using platform encoding " + ReaderFactory.FILE_ENCODING
+            getLog().warn("File encoding has not been set, using platform encoding "
+                    + MessageUtils.buffer().strong(Charset.defaultCharset())
                     + ", i.e. build is platform dependent!");
         }
 
@@ -1229,13 +1220,17 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         List<CompilerMessage> errors = new ArrayList<>();
         List<CompilerMessage> others = new ArrayList<>();
         for (CompilerMessage message : compilerResult.getCompilerMessages()) {
-            if (message.getKind() == CompilerMessage.Kind.ERROR) {
-                errors.add(message);
-            } else if (message.getKind() == CompilerMessage.Kind.WARNING
-                    || message.getKind() == CompilerMessage.Kind.MANDATORY_WARNING) {
-                warnings.add(message);
-            } else {
-                others.add(message);
+            switch (message.getKind()) {
+                case ERROR:
+                    errors.add(message);
+                    break;
+                case WARNING:
+                case MANDATORY_WARNING:
+                    warnings.add(message);
+                    break;
+                default:
+                    others.add(message);
+                    break;
             }
         }
 
@@ -1280,11 +1275,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     case OTHER:
                         getLog().info(message.toString());
                         break;
-
                     case ERROR:
                         getLog().error(message.toString());
                         break;
-
                     case MANDATORY_WARNING:
                     case WARNING:
                     default:
@@ -1409,20 +1402,21 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     /**
      * @param compilerConfiguration
      * @param compiler
-     * @return <code>true</code> if at least a single source file is newer than it's class file
+     * @return {@code true} if at least a single source file is newer than it's class file
      */
-    private boolean isSourceChanged(CompilerConfiguration compilerConfiguration, Compiler compiler)
-            throws CompilerException, MojoExecutionException {
-        Set<File> staleSources =
-                computeStaleSources(compilerConfiguration, compiler, getSourceInclusionScanner(staleMillis));
+    private boolean isSourceChanged(CompilerConfiguration compilerConfiguration, Compiler compiler) {
+        Set<File> staleSources = Collections.emptySet();
+        try {
+            staleSources = computeStaleSources(compilerConfiguration, compiler, getSourceInclusionScanner(staleMillis));
+        } catch (MojoExecutionException | CompilerException ex) {
+            // we cannot detect Stale Sources, so don't do anything beside logging
+            getLog().warn("Cannot detect stale sources.");
+            return false;
+        }
 
         if (getLog().isDebugEnabled() || showCompilationChanges) {
             for (File f : staleSources) {
-                if (showCompilationChanges) {
-                    getLog().info("Stale source detected: " + f.getAbsolutePath());
-                } else {
-                    getLog().debug("Stale source detected: " + f.getAbsolutePath());
-                }
+                getLog().info("\tStale source detected: " + f.getAbsolutePath());
             }
         }
         return !staleSources.isEmpty();
@@ -1438,9 +1432,14 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     }
 
     protected Date getBuildStartTime() {
-        MavenExecutionRequest request = session.getRequest();
-        Date buildStartTime = request == null ? new Date() : request.getStartTime();
-        return buildStartTime == null ? new Date() : buildStartTime;
+        return getBuildStartTimeInstant().map(Date::from).orElseGet(Date::new);
+    }
+
+    private Optional<Instant> getBuildStartTimeInstant() {
+        return Optional.ofNullable(session.getRequest())
+                .map(MavenExecutionRequest::getStartTime)
+                .map(Date::toInstant)
+                .map(i -> i.truncatedTo(ChronoUnit.MILLIS));
     }
 
     private String getMemoryValue(String setting) {
@@ -1576,36 +1575,41 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * generated classes and if we got a file which is &gt;= the build-started timestamp, then we caught a file which
      * got changed during this build.
      *
-     * @return <code>true</code> if at least one single dependency has changed.
+     * @return {@code true} if at least one single dependency has changed.
      */
     protected boolean isDependencyChanged() {
-        if (session == null) {
+        final Instant buildStartTime = getBuildStartTimeInstant().orElse(null);
+        if (buildStartTime == null) {
             // we just cannot determine it, so don't do anything beside logging
-            getLog().info("Cannot determine build start date, skipping incremental build detection.");
+            getLog().debug("Cannot determine build start time, skipping incremental build detection.");
             return false;
         }
 
         if (fileExtensions == null || fileExtensions.isEmpty()) {
-            fileExtensions = Collections.unmodifiableList(Arrays.asList("class", "jar"));
+            fileExtensions = new HashSet<>(Arrays.asList("class", "jar"));
         }
-
-        Date buildStartTime = getBuildStartTime();
 
         List<String> pathElements = new ArrayList<>();
         pathElements.addAll(getClasspathElements());
         pathElements.addAll(getModulepathElements());
 
         for (String pathElement : pathElements) {
-            File artifactPath = new File(pathElement);
-            if (artifactPath.isDirectory() || artifactPath.isFile()) {
-                if (!artifactPath.equals(getOutputDirectory()) && hasNewFile(artifactPath, buildStartTime)) {
-                    if (showCompilationChanges) {
-                        getLog().info("New dependency detected: " + artifactPath.getAbsolutePath());
-                    } else {
-                        getLog().debug("New dependency detected: " + artifactPath.getAbsolutePath());
+            Path artifactPath = Paths.get(pathElement);
+
+            // Search files only on dependencies (other modules), not on the current project,
+            if (Files.isDirectory(artifactPath)
+                    && !artifactPath.equals(getOutputDirectory().toPath())) {
+                try (Stream<Path> walk = Files.walk(artifactPath)) {
+                    if (walk.anyMatch(p -> hasNewFile(p, buildStartTime))) {
+                        return true;
                     }
-                    return true;
+                } catch (IOException ex) {
+                    // we just cannot determine it, so don't do anything beside logging
+                    getLog().warn("I/O error walking the path: " + ex.getMessage());
+                    return false;
                 }
+            } else if (hasNewFile(artifactPath, buildStartTime)) {
+                return true;
             }
         }
 
@@ -1614,25 +1618,27 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     }
 
     /**
-     * @param classPathEntry entry to check
+     * @param file entry to check
      * @param buildStartTime time build start
      * @return if any changes occurred
      */
-    private boolean hasNewFile(File classPathEntry, Date buildStartTime) {
-        if (!classPathEntry.exists()) {
-            return false;
-        }
-
-        if (classPathEntry.isFile()) {
-            return classPathEntry.lastModified() >= buildStartTime.getTime()
-                    && fileExtensions.contains(FileUtils.getExtension(classPathEntry.getName()));
-        }
-
-        File[] children = classPathEntry.listFiles();
-
-        for (File child : children) {
-            if (hasNewFile(child, buildStartTime)) {
-                return true;
+    private boolean hasNewFile(Path file, Instant buildStartTime) {
+        if (Files.isRegularFile(file)
+                && fileExtensions.contains(
+                        FileUtils.extension(file.getFileName().toString()))) {
+            try {
+                Instant lastModifiedTime = Files.getLastModifiedTime(file)
+                        .toInstant()
+                        .minusMillis(staleMillis)
+                        .truncatedTo(ChronoUnit.MILLIS);
+                boolean hasChanged = lastModifiedTime.isAfter(buildStartTime);
+                if (hasChanged && (getLog().isDebugEnabled() || showCompilationChanges)) {
+                    getLog().info("\tNew dependency detected: " + file.toAbsolutePath());
+                }
+                return hasChanged;
+            } catch (IOException ex) {
+                // we just cannot determine it, so don't do anything beside logging
+                getLog().warn("I/O error reading the lastModifiedTime: " + ex.getMessage());
             }
         }
 
@@ -1790,36 +1796,50 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return pomProperties.getProperty("version");
     }
 
-    private DirectoryScanResult computeInputFileTreeChanges(IncrementalBuildHelper ibh, Set<File> inputFiles)
-            throws MojoExecutionException {
-        File mojoConfigBase = ibh.getMojoStatusDirectory();
-        File mojoConfigFile = new File(mojoConfigBase, INPUT_FILES_LST_FILENAME);
+    private boolean hasInputFileTreeChanged(IncrementalBuildHelper ibh, Set<File> inputFiles) {
+        Path mojoConfigBase;
+        try {
+            mojoConfigBase = ibh.getMojoStatusDirectory().toPath();
+        } catch (MojoExecutionException e) {
+            // we cannot get the mojo status dir, so don't do anything beside logging
+            getLog().warn("Error reading mojo status directory.");
+            return false;
+        }
+        Path mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
 
-        String[] oldInputFiles = new String[0];
-
-        if (mojoConfigFile.exists()) {
+        List<String> oldInputFiles = Collections.emptyList();
+        if (Files.isRegularFile(mojoConfigFile)) {
             try {
-                oldInputFiles = FileUtils.fileReadArray(mojoConfigFile);
+                oldInputFiles = Files.readAllLines(mojoConfigFile);
             } catch (IOException e) {
-                throw new MojoExecutionException("Error reading old mojo status " + mojoConfigFile, e);
+                // we cannot read the mojo config file, so don't do anything beside logging
+                getLog().warn("Error while reading old mojo status: " + mojoConfigFile);
+                return false;
             }
         }
 
-        String[] inputFileNames = inputFiles.stream().map(File::getAbsolutePath).toArray(String[]::new);
-
-        DirectoryScanResult dsr = DirectoryScanner.diffFiles(oldInputFiles, inputFileNames);
+        List<String> newInputFiles =
+                inputFiles.stream().sorted().map(File::getAbsolutePath).collect(Collectors.toList());
 
         try {
-            FileUtils.fileWriteArray(mojoConfigFile, inputFileNames);
+            Files.write(mojoConfigFile, newInputFiles);
         } catch (IOException e) {
-            throw new MojoExecutionException("Error while storing the mojo status", e);
+            // we cannot write the mojo config file, so don't do anything beside logging
+            getLog().warn("Error while writing new mojo status: " + mojoConfigFile);
+            return false;
         }
 
-        return dsr;
-    }
+        DeltaList<String> inputTreeChanges = new DeltaList<>(oldInputFiles, newInputFiles);
+        if (getLog().isDebugEnabled() || showCompilationChanges) {
+            for (String fileAdded : inputTreeChanges.getAdded()) {
+                getLog().info("\tInput tree files (+): " + fileAdded);
+            }
+            for (String fileRemoved : inputTreeChanges.getRemoved()) {
+                getLog().info("\tInput tree files (-): " + fileRemoved);
+            }
+        }
 
-    private boolean hasInputFileTreeChanged(DirectoryScanResult dsr) {
-        return dsr.getFilesAdded().length > 0 || dsr.getFilesRemoved().length > 0;
+        return inputTreeChanges.hasChanged();
     }
 
     public void setTarget(String target) {
