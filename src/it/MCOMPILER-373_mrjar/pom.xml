@@ -33,8 +33,8 @@ under the License.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <source>1.7</source>
-          <target>1.7</target>
+          <source>8</source>
+          <target>8</target>
         </configuration>
         <!-- define the possible compilations -->
         <executions>
