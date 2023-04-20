@@ -1131,6 +1131,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         if (useIncrementalCompilation) {
             incrementalBuildHelperRequest.outputDirectory(getOutputDirectory());
 
+            if (generatedSourcesDirectory != null) {
+                incrementalBuildHelperRequest.generatedSourcesDirectory(generatedSourcesDirectory);
+            }
+
             incrementalBuildHelper.beforeRebuildExecution(incrementalBuildHelperRequest);
 
             getLog().debug("incrementalBuildHelper#beforeRebuildExecution");
