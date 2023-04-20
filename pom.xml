@@ -237,7 +237,7 @@ under the License.
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-invoker-plugin</artifactId>
               <!-- TODO: verify the version override is still needed when upgrading parent -->
-              <version>3.5.0</version>
+              <version>3.5.1</version>
               <executions>
                 <execution>
                   <id>integration-test</id>
