@@ -80,3 +80,29 @@ Setting the <<<--release>>> of the Java Compiler
   since Java 9. As such, the release number does not start with 1.x anymore. Also note that the
   supported <<<release>>> targets include the release of the currently used JDK plus a limited number
   of previous releases.
+
+* Usage on JDK 8
+
+  The <<<--release>>> option is not supported using JDK 8. To enable a project that targets Java 8
+  to be built using JDK 8 and also JDK 9 or later requires the conditional usage of the
+  <<<--release>>> option. This may be done through the use of a profile:
+
++-----
+<project>
+  [...]
+  <profiles>
+    [...]
+    <profile>
+      <id>set-compiler-release</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <properties>
+        <maven.compiler.release>8</maven.compiler.release>
+      </properties>
+    </profile>
+    [...]
+  </profiles>
+  [...]
+</project>
++-----
