@@ -697,7 +697,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         compilerConfiguration.setImplicitOption(implicit);
 
-        if (debug && StringUtils.isNotEmpty(debuglevel)) {
+        if (debug && (debuglevel != null && !debuglevel.isEmpty())) {
             String[] split = StringUtils.split(debuglevel, ",");
             for (String aSplit : split) {
                 if (!(aSplit.equalsIgnoreCase("none")
@@ -779,7 +779,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         compilerConfiguration.setFork(fork);
 
         if (fork) {
-            if (!StringUtils.isEmpty(meminitial)) {
+            if (!(meminitial == null || meminitial.isEmpty())) {
                 String value = getMemoryValue(meminitial);
 
                 if (value != null) {
@@ -789,7 +789,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 }
             }
 
-            if (!StringUtils.isEmpty(maxmem)) {
+            if (!(maxmem == null || maxmem.isEmpty())) {
                 String value = getMemoryValue(maxmem);
 
                 if (value != null) {
@@ -960,14 +960,14 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                         key = "-" + key;
                     }
 
-                    if (key.startsWith("-A") && StringUtils.isNotEmpty(value)) {
+                    if (key.startsWith("-A") && (value != null && !value.isEmpty())) {
                         compilerConfiguration.addCompilerCustomArgument(key + "=" + value, null);
                     } else {
                         compilerConfiguration.addCompilerCustomArgument(key, value);
                     }
                 }
             }
-            if (!StringUtils.isEmpty(effectiveCompilerArgument)) {
+            if (!(effectiveCompilerArgument == null || effectiveCompilerArgument.isEmpty())) {
                 compilerConfiguration.addCompilerCustomArgument(effectiveCompilerArgument, null);
             }
             if (compilerArgs != null) {
@@ -1310,7 +1310,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private Set<File> getCompileSources(Compiler compiler, CompilerConfiguration compilerConfiguration)
             throws MojoExecutionException, CompilerException {
         String inputFileEnding = compiler.getInputFileEnding(compilerConfiguration);
-        if (StringUtils.isEmpty(inputFileEnding)) {
+        if (inputFileEnding == null || inputFileEnding.isEmpty()) {
             // see MCOMPILER-199 GroovyEclipseCompiler doesn't set inputFileEnding
             // so we can presume it's all files from the source directory
             inputFileEnding = ".*";
@@ -1710,7 +1710,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     }
 
     private boolean hasInputFileTreeChanged(DirectoryScanResult dsr) {
-        return (dsr.getFilesAdded().length > 0 || dsr.getFilesRemoved().length > 0);
+        return dsr.getFilesAdded().length > 0 || dsr.getFilesRemoved().length > 0;
     }
 
     public void setTarget(String target) {
