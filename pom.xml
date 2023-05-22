@@ -63,11 +63,11 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>4.0.0-alpha-1-SNAPSHOT</mavenVersion>
+    <mavenVersion>4.0.0-alpha-5</mavenVersion>
     <!--
       ! The following property is used in the integration tests MCOMPILER-157
     -->
-    <mavenPluginPluginVersion>4.0.0-SNAPSHOT</mavenPluginPluginVersion>
+    <mavenPluginPluginVersion>3.8.1</mavenPluginPluginVersion>
     <plexusCompilerVersion>2.12.1</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
@@ -77,7 +77,7 @@ under the License.
     <javaVersion>8</javaVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
     <surefire.version>2.22.2</surefire.version>
-    <mavenPluginToolsVersion>4.0.0-SNAPSHOT</mavenPluginToolsVersion>
+    <mavenPluginToolsVersion>3.8.1</mavenPluginToolsVersion>
     <project.build.outputTimestamp>2022-03-08T01:04:02Z</project.build.outputTimestamp>
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
   </properties>
@@ -127,7 +127,7 @@ under the License.
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
-      <version>${mavenVersion}</version>
+      <version>3.5.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.maven.shared</groupId>
@@ -151,7 +151,7 @@ under the License.
     <dependency>
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-shared-utils</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
+      <version>3.3.4</version>
     </dependency>
 
     <dependency>
@@ -204,7 +204,7 @@ under the License.
     <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>4.0.0-SNAPSHOT</version>
+      <version>4.0.0-alpha-1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -256,7 +256,7 @@ under the License.
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-invoker-plugin</artifactId>
-          <version>3.3.0</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
