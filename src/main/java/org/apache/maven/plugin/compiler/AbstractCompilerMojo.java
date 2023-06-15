@@ -768,8 +768,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
             String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
 
-            compileSourceRoots.add(generatedSourcesPath);
-
             if (isTestCompile()) {
                 getLog().debug("Adding " + generatedSourcesPath + " to test-compile source roots:\n  "
                         + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
