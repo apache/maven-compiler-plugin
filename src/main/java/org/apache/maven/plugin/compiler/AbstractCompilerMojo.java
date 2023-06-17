@@ -1063,7 +1063,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 String value = entry.getValue();
                 if (value == null) {
                     entry = entryIter.next();
-                    value = entry.getKey();
+                    value = entry.getKey().replaceAll(new File("").getAbsolutePath(), ".");
                 }
                 jpmsLines.add(value);
             } else if ("--patch-module".equals(entry.getKey())) {
