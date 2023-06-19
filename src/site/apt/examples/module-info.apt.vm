@@ -106,10 +106,9 @@ Older projects with module-info
 
 * Java 5 or below Compatibility
 
-  Given Maven 3 requires newer Java release at runtime, you'll absolutely need to use Toolchains to use a JDK different from
+  Given that Maven 3 requires newer Java release at runtime, you'll absolutely need to use Toolchains to use a JDK different from
   Maven runtime.
 
-  Be aware that you will need at least Maven 3.3.1 to specify a custom jdkToolchain in your plugin configuration.
   You could add a jdkToolchain to do base-compile execution-block as well referring to JDK 5. 
 
 +-------
