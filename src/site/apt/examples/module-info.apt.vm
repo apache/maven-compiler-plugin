@@ -54,8 +54,8 @@ Older projects with module-info
   In case you want the project to be Java 6, 7 or 8 compatible, you can simply use JDK 9 for both execution blocks.
 
   The easiest way is to use Java 9 as the runtime for Maven, by setting <<<JAVA_HOME=/path/to/jdk-9>>> before running <<<mvn>>>.
-  But if you want to use an older Java runtime for Maven, you can use the maven-toolchain-plugin to specify the shared JDK (supported since Maven 2.0.9)
-  or a custom jdkToolchain (supported since Maven 3.3.1) and refer to the JDK 9 installation on your system.  
+  But if you want to use an older Java runtime for Maven, you can use the maven-toolchain-plugin to specify the shared JDK
+  or a custom jdkToolchain and refer to the JDK 9 installation on your system.  
 
 +-------
 <project>
