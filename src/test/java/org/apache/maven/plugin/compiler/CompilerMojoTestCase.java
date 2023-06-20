@@ -347,6 +347,38 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         assertFalse(testClass.exists());
     }
 
+    /**
+     * Tests that the --module-version argument is preserved if defined in the plugin configuration
+     */
+    public void testModuleVersionOverriden() throws Exception {
+        CompilerMojo compileMojo =
+                getCompilerMojo("target/test-classes/unit/compiler-module-info-test/plugin-config-overriden.xml");
+
+        setVariableValueToObject(compileMojo, "compilerManager", new CompilerManagerStub());
+
+        compileMojo.execute();
+
+        File testClass = new File(compileMojo.getOutputDirectory(), "compiled.class");
+        assertTrue(testClass.exists());
+        assertEquals(Arrays.asList("--module-version", "custom"), compileMojo.compilerArgs);
+    }
+
+    /**
+     * Tests that the --module-version argument is set with the project version if not specified in the plugin configuration
+     */
+    public void testModuleVersionDefault() throws Exception {
+        CompilerMojo compileMojo =
+                getCompilerMojo("target/test-classes/unit/compiler-module-info-test/plugin-config-default.xml");
+
+        setVariableValueToObject(compileMojo, "compilerManager", new CompilerManagerStub());
+
+        compileMojo.execute();
+
+        File testClass = new File(compileMojo.getOutputDirectory(), "compiled.class");
+        assertTrue(testClass.exists());
+        assertEquals(Arrays.asList("--module-version", "0"), compileMojo.compilerArgs);
+    }
+
     private CompilerMojo getCompilerMojo(String pomXml) throws Exception {
         File testPom = new File(getBasedir(), pomXml);
 

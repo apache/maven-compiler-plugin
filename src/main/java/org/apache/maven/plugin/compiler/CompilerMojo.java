@@ -284,9 +284,10 @@ public class CompilerMojo extends AbstractCompilerMojo {
                     modulepathElements.add(file.getPath());
                 }
 
-                compilerArgs.add("--module-version");
-                compilerArgs.add(getProject().getVersion());
-
+                if (!isModuleVersionDefined(compilerArgs)) {
+                    compilerArgs.add("--module-version");
+                    compilerArgs.add(getProject().getVersion());
+                }
             } catch (IOException e) {
                 getLog().warn(e.getMessage());
             }
@@ -409,5 +410,9 @@ public class CompilerMojo extends AbstractCompilerMojo {
         getLog().warn(line);
         getLog().warn("* " + MessageUtils.buffer().strong(message) + " *");
         getLog().warn(line);
+    }
+
+    private boolean isModuleVersionDefined(List<String> args) {
+        return args.stream().anyMatch(s -> s.trim().equals("--module-version"));
     }
 }
