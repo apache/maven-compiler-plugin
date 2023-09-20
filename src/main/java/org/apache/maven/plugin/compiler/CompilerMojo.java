@@ -151,6 +151,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     private Map<String, JavaModuleDescriptor> pathElements;
 
+    @Override
     protected List<String> getCompileSourceRoots() {
         return compileSourceRoots;
     }
@@ -170,6 +171,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         return pathElements;
     }
 
+    @Override
     protected File getOutputDirectory() {
         File dir;
         if (!multiReleaseOutput) {
@@ -180,6 +182,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         return dir;
     }
 
+    @Override
     public void execute() throws MojoExecutionException, CompilationFailureException {
         if (skipMain) {
             getLog().info("Not compiling main sources");
@@ -344,11 +347,14 @@ public class CompilerMojo extends AbstractCompilerMojo {
         list.add(new File(project.getBuild().getOutputDirectory()));
 
         for (Artifact a : project.getArtifacts()) {
-            list.add(a.getFile());
+            if (a.getArtifactHandler().isAddedToClasspath()) {
+                list.add(a.getFile());
+            }
         }
         return list;
     }
 
+    @Override
     protected SourceInclusionScanner getSourceInclusionScanner(int staleMillis) {
         if (includes.isEmpty() && excludes.isEmpty() && incrementalExcludes.isEmpty()) {
             return new StaleSourceScanner(staleMillis);
@@ -363,6 +369,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         return new StaleSourceScanner(staleMillis, includes, excludesIncr);
     }
 
+    @Override
     protected SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding) {
         // it's not defined if we get the ending with or without the dot '.'
         String defaultIncludePattern = "**/*" + (inputFileEnding.startsWith(".") ? "" : ".") + inputFileEnding;
@@ -375,10 +382,12 @@ public class CompilerMojo extends AbstractCompilerMojo {
         return new SimpleSourceInclusionScanner(includes, excludesIncr);
     }
 
+    @Override
     protected String getSource() {
         return source;
     }
 
+    @Override
     protected String getTarget() {
         return target;
     }
@@ -388,14 +397,17 @@ public class CompilerMojo extends AbstractCompilerMojo {
         return release;
     }
 
+    @Override
     protected String getCompilerArgument() {
         return compilerArgument;
     }
 
+    @Override
     protected Map<String, String> getCompilerArguments() {
         return compilerArguments;
     }
 
+    @Override
     protected File getGeneratedSourcesDirectory() {
         return generatedSourcesDirectory;
     }
