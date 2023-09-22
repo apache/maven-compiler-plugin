@@ -296,6 +296,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
                 classpathElements.add(element.getPath());
             }
             modulepathElements = Collections.emptyList();
+            pathElements = Collections.emptyMap();
         }
     }
 
