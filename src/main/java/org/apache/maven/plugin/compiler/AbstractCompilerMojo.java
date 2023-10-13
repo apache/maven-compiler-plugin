@@ -878,7 +878,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                 DirectoryScanResult dsr = computeInputFileTreeChanges(incrementalBuildHelper, sources);
 
-                boolean immutableOutputFile = compiler.getCompilerOutputStyle().equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                boolean immutableOutputFile = compiler.getCompilerOutputStyle()
+                                .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
                         && !canUpdateTarget;
                 boolean dependencyChanged = isDependencyChanged();
                 boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
@@ -889,7 +890,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 {
                     String cause = immutableOutputFile
                             ? "immutable single output file"
-                            : (dependencyChanged ? "dependency changed" : (sourceChanged ? "source code changed" : "source files added or removed"));
+                            : (dependencyChanged
+                                    ? "dependency changed"
+                                    : (sourceChanged ? "source code changed" : "source files added or removed"));
                     getLog().info("Recompiling the module because of " + cause + ".");
                     if (showCompilationChanges) {
                         for (String fileAdded : dsr.getFilesAdded()) {
