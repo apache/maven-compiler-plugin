@@ -878,20 +878,19 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                 DirectoryScanResult dsr = computeInputFileTreeChanges(incrementalBuildHelper, sources);
 
-                boolean idk = compiler.getCompilerOutputStyle()
-                                .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                boolean immutableOutputFile = compiler.getCompilerOutputStyle().equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
                         && !canUpdateTarget;
                 boolean dependencyChanged = isDependencyChanged();
                 boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
                 boolean inputFileTreeChanged = hasInputFileTreeChanged(dsr);
                 // CHECKSTYLE_OFF: LineLength
-                if (idk || dependencyChanged || sourceChanged || inputFileTreeChanged)
+                if (immutableOutputFile || dependencyChanged || sourceChanged || inputFileTreeChanged)
                 // CHECKSTYLE_ON: LineLength
                 {
-                    String cause = idk
-                            ? "idk"
+                    String cause = immutableOutputFile
+                            ? "Immutable Single Output File"
                             : (dependencyChanged ? "dependency" : (sourceChanged ? "source" : "input tree"));
-                    getLog().info("Changes detected - recompiling the module! :" + cause);
+                    getLog().info("Changes detected - recompiling the module!: " + cause);
                     if (showCompilationChanges) {
                         for (String fileAdded : dsr.getFilesAdded()) {
                             getLog().info("\t+ " + fileAdded);
