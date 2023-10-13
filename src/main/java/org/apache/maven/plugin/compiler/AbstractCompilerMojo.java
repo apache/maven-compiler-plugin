@@ -891,8 +891,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     String cause = immutableOutputFile
                             ? "immutable single output file"
                             : (dependencyChanged
-                                    ? "dependency changed"
-                                    : (sourceChanged ? "source code changed" : "source files added or removed"));
+                                    ? "changed dependency"
+                                    : (sourceChanged ? "changed source code" : "added or removed source files"));
                     getLog().info("Recompiling the module because of " + cause + ".");
                     if (showCompilationChanges) {
                         for (String fileAdded : dsr.getFilesAdded()) {
