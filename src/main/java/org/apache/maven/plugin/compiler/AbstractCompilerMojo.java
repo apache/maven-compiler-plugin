@@ -888,9 +888,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 // CHECKSTYLE_ON: LineLength
                 {
                     String cause = immutableOutputFile
-                            ? "Immutable Single Output File"
-                            : (dependencyChanged ? "dependency" : (sourceChanged ? "source" : "input tree"));
-                    getLog().info("Changes detected - recompiling the module!: " + cause);
+                            ? "immutable single output file"
+                            : (dependencyChanged ? "dependency changed" : (sourceChanged ? "source code changed" : "source files added or removed"));
+                    getLog().info("Recompiling the module because of " + cause + ".");
                     if (showCompilationChanges) {
                         for (String fileAdded : dsr.getFilesAdded()) {
                             getLog().info("\t+ " + fileAdded);
@@ -902,7 +902,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                     compilerConfiguration.setSourceFiles(sources);
                 } else {
-                    getLog().info("Nothing to compile - all classes are up to date");
+                    getLog().info("Nothing to compile - all classes are up to date.");
 
                     return;
                 }
