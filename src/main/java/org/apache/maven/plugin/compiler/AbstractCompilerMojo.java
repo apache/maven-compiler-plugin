@@ -878,20 +878,22 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                 DirectoryScanResult dsr = computeInputFileTreeChanges(incrementalBuildHelper, sources);
 
-                boolean idk = compiler.getCompilerOutputStyle()
+                boolean immutableOutputFile = compiler.getCompilerOutputStyle()
                                 .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
                         && !canUpdateTarget;
                 boolean dependencyChanged = isDependencyChanged();
                 boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
                 boolean inputFileTreeChanged = hasInputFileTreeChanged(dsr);
                 // CHECKSTYLE_OFF: LineLength
-                if (idk || dependencyChanged || sourceChanged || inputFileTreeChanged)
+                if (immutableOutputFile || dependencyChanged || sourceChanged || inputFileTreeChanged)
                 // CHECKSTYLE_ON: LineLength
                 {
-                    String cause = idk
-                            ? "idk"
-                            : (dependencyChanged ? "dependency" : (sourceChanged ? "source" : "input tree"));
-                    getLog().info("Changes detected - recompiling the module! :" + cause);
+                    String cause = immutableOutputFile
+                            ? "immutable single output file"
+                            : (dependencyChanged
+                                    ? "changed dependency"
+                                    : (sourceChanged ? "changed source code" : "added or removed source files"));
+                    getLog().info("Recompiling the module because of " + cause + ".");
                     if (showCompilationChanges) {
                         for (String fileAdded : dsr.getFilesAdded()) {
                             getLog().info("\t+ " + fileAdded);
@@ -903,7 +905,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                     compilerConfiguration.setSourceFiles(sources);
                 } else {
-                    getLog().info("Nothing to compile - all classes are up to date");
+                    getLog().info("Nothing to compile - all classes are up to date.");
 
                     return;
                 }
