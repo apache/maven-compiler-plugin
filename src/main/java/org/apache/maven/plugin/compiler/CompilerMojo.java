@@ -70,8 +70,17 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * The directory for compiled classes.
+     * <p>
+     * This parameter should only be modified in special cases. One example is creating
+     * a multi-release jar with a lower bytecode level (i.e. setting it to
+     * {@code ${project.build.outputDirectory}/META-INF/versions/21} or similar) in an additional
+     * execution.
+     * <p>
+     * When the required bytecode level is available though an installed JDK or toolchain,
+     * it is recommended to use the {@code <release>} property
+     * in conjunction with the ${multiReleaseOutput} parameter instead.
      */
-    @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
+    @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = false)
     private File outputDirectory;
 
     /**
