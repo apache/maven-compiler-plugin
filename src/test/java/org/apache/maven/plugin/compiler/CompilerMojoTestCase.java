@@ -382,17 +382,9 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         when(handler.isAddedToClasspath()).thenReturn(true);
         when(junitArtifact.getArtifactHandler()).thenReturn(handler);
 
-        File artifactFile;
-        String localRepository = System.getProperty("localRepository");
-        if (localRepository != null) {
-            artifactFile = new File(localRepository, "junit/junit/3.8.1/junit-3.8.1.jar");
-        } else {
-            // for IDE
-            String junitURI =
-                    org.junit.Test.class.getResource("Test.class").toURI().toString();
-            junitURI = junitURI.substring("jar:".length(), junitURI.indexOf('!'));
-            artifactFile = new File(URI.create(junitURI));
-        }
+        String junitURI = org.junit.Test.class.getResource("Test.class").toURI().toString();
+        junitURI = junitURI.substring("jar:".length(), junitURI.indexOf('!'));
+        File artifactFile = new File(URI.create(junitURI));
         when(junitArtifact.getFile()).thenReturn(artifactFile);
 
         testClasspathList.add(artifactFile.getAbsolutePath());

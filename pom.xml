@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>39</version>
+    <version>40</version>
     <relativePath />
   </parent>
 
@@ -68,10 +68,6 @@ under the License.
 
   <properties>
     <mavenVersion>3.2.5</mavenVersion>
-    <!--
-      ! The following property is used in the integration tests MCOMPILER-157
-    -->
-    <mavenPluginPluginVersion>3.5</mavenPluginPluginVersion>
     <plexusCompilerVersion>2.13.0</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
@@ -181,6 +177,13 @@ under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
+      <!-- used by maven-plugin-testing-harness -->
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-xml</artifactId>
+      <version>3.0.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
       <version>4.8.0</version>
@@ -208,21 +211,26 @@ under the License.
   </repositories>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>com.diffplug.spotless</groupId>
+          <artifactId>spotless-maven-plugin</artifactId>
+          <configuration>
+            <java>
+              <includes>
+                <include>src/**/*.java</include>
+              </includes>
+            </java>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
     <plugins>
       <plugin>
         <groupId>org.eclipse.sisu</groupId>
         <artifactId>sisu-maven-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>com.diffplug.spotless</groupId>
-        <artifactId>spotless-maven-plugin</artifactId>
-        <configuration>
-          <java>
-            <includes>
-              <include>src/**/*.java</include>
-            </includes>
-          </java>
-        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -236,8 +244,6 @@ under the License.
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-invoker-plugin</artifactId>
-              <!-- TODO: verify the version override is still needed when upgrading parent -->
-              <version>3.5.0</version>
               <executions>
                 <execution>
                   <id>integration-test</id>
