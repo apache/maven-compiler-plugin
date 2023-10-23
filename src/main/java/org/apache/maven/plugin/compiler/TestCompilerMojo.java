@@ -75,8 +75,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * The directory where compiled test classes go.
+     * <p>
+     * This parameter should only be modified in special cases.
+     * See the {@link CompilerMojo#outputDirectory} for more information.
+     *
+     * @see CompilerMojo#outputDirectory
      */
-    @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = true)
+    @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = false)
     private File outputDirectory;
 
     /**
