@@ -67,7 +67,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>3.2.5</mavenVersion>
+    <mavenVersion>3.9.5</mavenVersion>
     <plexusCompilerVersion>2.13.0</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
