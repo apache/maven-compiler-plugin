@@ -16,4 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module app {}
+module app {
+    requires java.logging;
+    requires jdk.zipfs;
+    requires org.slf4j.jdk.platform.logging;
+}
