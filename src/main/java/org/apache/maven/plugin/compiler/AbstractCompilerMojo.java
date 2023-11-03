@@ -644,6 +644,15 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return project;
     }
 
+    protected final Optional<Path> getModuleDeclaration(final Set<File> sourceFiles) {
+        for (File sourceFile : sourceFiles) {
+            if ("module-info.java".equals(sourceFile.getName())) {
+                return Optional.of(sourceFile.toPath());
+            }
+        }
+        return Optional.empty();
+    }
+
     private boolean targetOrReleaseSet;
 
     @Override
@@ -1176,6 +1185,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 getLog().warn("Error creating missing package info classes", e);
             }
         }
+
+        patchJdkModuleVersion(compilerResult, sources);
 
         if (useIncrementalCompilation) {
             if (incrementalBuildHelperRequest.getOutputDirectory().exists()) {
@@ -1797,5 +1808,30 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     final String getImplicit() {
         return implicit;
+    }
+
+    /**
+     * Patch module-info.class to set the java release version for java/jdk modules.
+     *
+     * @param compilerResult should succeed.
+     * @param sources the list of the source files to check for the "module-info.java"
+     *
+     * @see <a href="https://issues.apache.org/jira/browse/MCOMPILER-542">MCOMPILER-542</a>
+     * @see <a href="https://bugs.openjdk.org/browse/JDK-8318913">JDK-8318913</a>
+     */
+    private void patchJdkModuleVersion(CompilerResult compilerResult, Set<File> sources) throws MojoExecutionException {
+        if (compilerResult.isSuccess() && getModuleDeclaration(sources).isPresent()) {
+            Path moduleDescriptor = getOutputDirectory().toPath().resolve("module-info.class");
+            if (Files.isRegularFile(moduleDescriptor)) {
+                try {
+                    final byte[] descriptorOriginal = Files.readAllBytes(moduleDescriptor);
+                    final byte[] descriptorMod =
+                            ModuleInfoTransformer.transform(descriptorOriginal, getRelease(), getLog());
+                    Files.write(moduleDescriptor, descriptorMod);
+                } catch (IOException ex) {
+                    throw new MojoExecutionException("Error reading or writing module-info.class", ex);
+                }
+            }
+        }
     }
 }

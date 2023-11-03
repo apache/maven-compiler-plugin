@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
@@ -228,18 +230,9 @@ public class CompilerMojo extends AbstractCompilerMojo {
     protected void preparePaths(Set<File> sourceFiles) {
         // assert compilePath != null;
 
-        File moduleDescriptorPath = null;
+        Optional<Path> moduleDeclaration = getModuleDeclaration(sourceFiles);
 
-        boolean hasModuleDescriptor = false;
-        for (File sourceFile : sourceFiles) {
-            if ("module-info.java".equals(sourceFile.getName())) {
-                moduleDescriptorPath = sourceFile;
-                hasModuleDescriptor = true;
-                break;
-            }
-        }
-
-        if (hasModuleDescriptor) {
+        if (moduleDeclaration.isPresent()) {
             // For now only allow named modules. Once we can create a graph with ASM we can specify exactly the modules
             // and we can detect if auto modules are used. In that case, MavenProject.setFile() should not be used, so
             // you cannot depend on this project and so it won't be distributed.
@@ -254,7 +247,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
                 ResolvePathsRequest<File> request = ResolvePathsRequest.ofFiles(dependencyArtifacts)
                         .setIncludeStatic(true)
-                        .setMainModuleDescriptor(moduleDescriptorPath);
+                        .setMainModuleDescriptor(moduleDeclaration.get().toFile());
 
                 Toolchain toolchain = getToolchain();
                 if (toolchain instanceof DefaultJavaToolChain) {
