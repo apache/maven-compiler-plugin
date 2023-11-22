@@ -31,4 +31,4 @@ jobs:
       ff-jdk: "20"
       jdk-matrix: '[ "8", "11", "17", "20" ]'
       matrix-exclude: '[{ "jdk": "8", "distribution": "microsoft"},{ "jdk": "20", "distribution": "microsoft"},{ "jdk": "20", "distribution": "adopt-openj9"},]'
-      maven-matrix: '[ "3.3.9", "3.8.8", "3.9.2" ]'  # Maven versions matrix for verify builds
+      maven-matrix: '[ "3.6.3", "3.8.8", "3.9.5" ]'  # Maven versions matrix for verify builds
