@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 
 import org.apache.maven.artifact.Artifact;
@@ -205,6 +206,10 @@ public class CompilerMojo extends AbstractCompilerMojo {
         super.execute();
 
         if (outputDirectory.isDirectory()) {
+            File artifactFile = projectArtifact.getFile();
+            if (artifactFile != null && !Objects.equals(artifactFile, outputDirectory)) {
+                getLog().warn("Overwriting artifact's file from " + artifactFile + " to " + outputDirectory);
+            }
             projectArtifact.setFile(outputDirectory);
         }
     }
