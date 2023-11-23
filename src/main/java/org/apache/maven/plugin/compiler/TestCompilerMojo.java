@@ -70,7 +70,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * The source directories containing the test-source to be compiled.
      */
-    @Parameter(defaultValue = "${project.testCompileSourceRoots}", readonly = true, required = true)
+    @Parameter(defaultValue = "${project.testCompileSourceRoots}", readonly = false, required = true)
     private List<String> compileSourceRoots;
 
     /**
