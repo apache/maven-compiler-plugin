@@ -48,11 +48,46 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
-          <configuration>
-            <release>${java.specification.version}</release>
-          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-compile</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>${java.specification.version}</release>
+            </configuration>
+          </execution>
+          <execution>
+            <id>compile-release-9</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>9</release>
+              <outputDirectory>${project.build.outputDirectory}-9</outputDirectory>
+            </configuration>
+          </execution>
+          <execution>
+            <id>compile-target</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <source>${java.specification.version}</source>
+              <target>${java.specification.version}</target>
+              <outputDirectory>${project.build.outputDirectory}-target</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 </project>

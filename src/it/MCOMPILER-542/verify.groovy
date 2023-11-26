@@ -47,7 +47,8 @@ if (javaVersion != javaSpecVersion) { // handle the case when is the first relea
 }
 assert out.contains('// ' + javaSpecVersion) : "java specification version not found in module descriptor"
 
-// Additional validation that the checksum is always the same
+// Additional validation that the checksum is always the same: useful because constant pool reordering happens when
+// transforming bytecode, then we need to check results precisely
 def checksumMap = [
     '21': 'SHA-256 checksum ccc6515c8fc1bf4e675e205b2a5200d02545b06014b304c292eeddc68cffee8d',
     '17': 'SHA-256 checksum 102f24c71aff97210d66ef791b7d56f8a25ff8692d2c97b21682bc7170aaca9c',

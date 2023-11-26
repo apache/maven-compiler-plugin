@@ -598,6 +598,16 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     @Parameter(defaultValue = "false", property = "maven.compiler.showCompilationChanges")
     private boolean showCompilationChanges = false;
+
+    /**
+     * Timestamp for reproducible output archive entries, either formatted as ISO 8601
+     * <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like
+     * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
+     * @since 3.12.0
+     */
+    @Parameter(defaultValue = "${project.build.outputTimestamp}")
+    private String outputTimestamp;
+
     /**
      * Resolves the artifacts needed.
      */
@@ -1186,7 +1196,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
 
-        patchJdkModuleVersion(compilerResult, sources);
+        if (outputTimestamp != null && (outputTimestamp.length() > 1 || Character.isDigit(outputTimestamp.charAt(0)))) {
+            // if Reproducible Builds mode, apply workaround
+            patchJdkModuleVersion(compilerResult, sources);
+        }
 
         if (useIncrementalCompilation) {
             if (incrementalBuildHelperRequest.getOutputDirectory().exists()) {
@@ -1811,7 +1824,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     }
 
     /**
-     * Patch module-info.class to set the java release version for java/jdk modules.
+     * JDK-8318913 workaround: Patch module-info.class to set the java release version for java/jdk modules.
      *
      * @param compilerResult should succeed.
      * @param sources the list of the source files to check for the "module-info.java"
@@ -1827,7 +1840,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     final byte[] descriptorOriginal = Files.readAllBytes(moduleDescriptor);
                     final byte[] descriptorMod =
                             ModuleInfoTransformer.transform(descriptorOriginal, getRelease(), getLog());
-                    Files.write(moduleDescriptor, descriptorMod);
+                    if (descriptorMod != null) {
+                        Files.write(moduleDescriptor, descriptorMod);
+                    }
                 } catch (IOException ex) {
                     throw new MojoExecutionException("Error reading or writing module-info.class", ex);
                 }
