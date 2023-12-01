@@ -34,8 +34,13 @@ under the License.
         <version>@project.version@</version>
       </plugin>
     </plugins>
-
   </build>
+
+  <properties>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
+  </properties>
+
   <modules>
     <module>mcompiler-170-1</module>
     <module>mcompiler-170-2</module>

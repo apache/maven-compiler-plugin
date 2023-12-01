@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,6 +16,7 @@ package org.apache.maven.plugin.compiler;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,9 +29,9 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -45,9 +44,7 @@ import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.LifecyclePhase;
 import org.apache.maven.api.plugin.annotations.Mojo;
 import org.apache.maven.api.plugin.annotations.Parameter;
-import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
-import org.apache.maven.api.services.ProjectManager;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -64,49 +61,44 @@ import org.codehaus.plexus.util.StringUtils;
  * @author <a href="mailto:jason@maven.org">Jason van Zyl </a>
  * @since 2.0
  */
-@Mojo( name = "compile", defaultPhase = LifecyclePhase.COMPILE,
-    requiresDependencyResolution = ResolutionScope.COMPILE )
-public class CompilerMojo
-    extends AbstractCompilerMojo
-{
+@Mojo(name = "compile", defaultPhase = LifecyclePhase.COMPILE)
+public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * The source directories containing the sources to be compiled.
      */
     @Parameter
-    private List<String> compileSourceRoots;
+    protected List<String> compileSourceRoots;
+
+    /**
+     * Projects main artifact.
+     */
+    @Parameter(defaultValue = "${project.artifact}", readonly = true, required = true)
+    protected Artifact projectArtifact;
 
     /**
      * The directory for compiled classes.
      */
-    @Parameter( defaultValue = "${project.build.outputDirectory}", required = true, readonly = true )
-    private Path outputDirectory;
-
-    /**
-     * Projects main artifact.
-     *
-     * @todo this is an export variable, really
-     */
-    @Parameter( defaultValue = "${project.artifact}", readonly = true, required = true )
-    private Artifact projectArtifact;
+    @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
+    protected Path outputDirectory;
 
     /**
      * A list of inclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> includes = new HashSet<>();
+    protected Set<String> includes = new HashSet<>();
 
     /**
      * A list of exclusion filters for the compiler.
      */
     @Parameter
-    private Set<String> excludes = new HashSet<>();
+    protected Set<String> excludes = new HashSet<>();
 
     /**
      * A list of exclusion filters for the incremental calculation.
      * @since 3.11
      */
     @Parameter
-    private Set<String> incrementalExcludes = new HashSet<>();
+    protected Set<String> incrementalExcludes = new HashSet<>();
 
     /**
      * <p>
@@ -115,18 +107,18 @@ public class CompilerMojo
      *
      * @since 2.2
      */
-    @Parameter( defaultValue = "${project.build.directory}/generated-sources/annotations" )
-    private Path generatedSourcesDirectory;
+    @Parameter(defaultValue = "${project.build.directory}/generated-sources/annotations")
+    protected Path generatedSourcesDirectory;
 
     /**
      * Set this to 'true' to bypass compilation of main sources. Its use is NOT RECOMMENDED, but quite convenient on
      * occasion.
      */
-    @Parameter( property = "maven.main.skip" )
-    private boolean skipMain;
+    @Parameter(property = "maven.main.skip")
+    protected boolean skipMain;
 
     @Parameter
-    private List<String> compilePath;
+    protected List<String> compilePath;
 
     /**
      * <p>
@@ -137,370 +129,301 @@ public class CompilerMojo
      * <code>Multi-Release: true</code>. You need to set this by configuring the <a href=
      * "https://maven.apache.org/plugins/maven-jar-plugin/examples/manifest-customization.html">maven-jar-plugin</a>.
      * This implies that you cannot test a multirelease jar using the outputDirectory.
-     * 
+     *
      * @since 3.7.1
      */
     @Parameter
-    private boolean multiReleaseOutput;
+    protected boolean multiReleaseOutput;
 
     /**
      * when forking and debug activated the commandline used will be dumped in this file
      * @since 3.10.0
      */
-    @Parameter( defaultValue = "javac" )
-    private String debugFileName;
+    @Parameter(defaultValue = "javac")
+    protected String debugFileName;
 
     final LocationManager locationManager = new LocationManager();
 
     private List<String> classpathElements;
 
     private List<String> modulepathElements;
-    
+
     private Map<String, JavaModuleDescriptor> pathElements;
 
-    protected List<String> getCompileSourceRoots()
-    {
-        if ( compileSourceRoots == null || compileSourceRoots.isEmpty() )
-        {
-            return session.getService( ProjectManager.class )
-                    .getCompileSourceRoots( getProject() );
-        }
-        else
-        {
+    protected List<String> getCompileSourceRoots() {
+        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+            return projectManager.getCompileSourceRoots(getProject());
+        } else {
             return compileSourceRoots;
         }
     }
 
     @Override
-    protected List<String> getClasspathElements()
-    {
+    protected List<String> getClasspathElements() {
         return classpathElements;
     }
 
     @Override
-    protected List<String> getModulepathElements()
-    {
+    protected List<String> getModulepathElements() {
         return modulepathElements;
     }
 
     @Override
-    protected Map<String, JavaModuleDescriptor> getPathElements()
-    {
+    protected Map<String, JavaModuleDescriptor> getPathElements() {
         return pathElements;
     }
-    
-    protected Path getOutputDirectory()
-    {
+
+    protected Path getOutputDirectory() {
         Path dir;
-        if ( !multiReleaseOutput )
-        {
+        if (!multiReleaseOutput) {
             dir = outputDirectory;
-        }
-        else
-        {
-            dir = outputDirectory.resolve( "META-INF/versions/" + release );
+        } else {
+            dir = outputDirectory.resolve("META-INF/versions/" + release);
         }
         return dir;
     }
 
-    public void execute()
-        throws MojoException
-    {
-        if ( skipMain )
-        {
-            getLog().info( "Not compiling main sources" );
+    public void execute() throws MojoException {
+        if (skipMain) {
+            getLog().info("Not compiling main sources");
             return;
         }
-        
-        if ( multiReleaseOutput && release == null )
-        {
-            throw new MojoException( "When using 'multiReleaseOutput' the release must be set" );
+
+        if (multiReleaseOutput && release == null) {
+            throw new MojoException("When using 'multiReleaseOutput' the release must be set");
         }
 
         super.execute();
 
-        if ( Files.isDirectory( outputDirectory ) )
-        {
-            session.getService( ArtifactManager.class ).setPath( projectArtifact, outputDirectory );
+        if (Files.isDirectory(outputDirectory)) {
+            artifactManager.setPath(projectArtifact, outputDirectory);
         }
     }
 
     @Override
-    protected Set<String> getIncludes()
-    {
+    protected Set<String> getIncludes() {
         return includes;
     }
 
     @Override
-    protected Set<String> getExcludes()
-    {
+    protected Set<String> getExcludes() {
         return excludes;
     }
 
     @Override
-    protected void preparePaths( Set<Path> sourceFiles )
-    {
-        //assert compilePath != null;
+    protected void preparePaths(Set<Path> sourceFiles) {
+        // assert compilePath != null;
         List<String> compilePath = this.compilePath;
-        if ( compilePath == null )
-        {
-            ProjectManager projectManager = session.getService( ProjectManager.class );
-            ArtifactManager artifactManager = session.getService( ArtifactManager.class );
-            Stream<String> s1 = Stream.of( getOutputDirectory().toString() );
-            Stream<String> s2 = projectManager.getResolvedDependencies( getProject(),
-                            ResolutionScope.COMPILE ).stream()
-                    .map( artifactManager::getPath )
-                    .filter( Optional::isPresent )
-                    .map( Optional::get )
-                    .map( Path::toString );
-            compilePath = Stream.concat( s1, s2 ).collect( Collectors.toList() );
+        if (compilePath == null) {
+            Stream<String> s1 = Stream.of(getOutputDirectory().toString());
+            Stream<String> s2 = session.resolveDependencies(getProject(), ResolutionScope.PROJECT_COMPILE).stream()
+                    .map(Path::toString);
+            compilePath = Stream.concat(s1, s2).collect(Collectors.toList());
         }
 
         Path moduleDescriptorPath = null;
 
         boolean hasModuleDescriptor = false;
-        for ( Path sourceFile : sourceFiles )
-        {
-            if ( "module-info.java".equals( sourceFile.getFileName().toString() ) )
-            {
+        for (Path sourceFile : sourceFiles) {
+            if ("module-info.java".equals(sourceFile.getFileName().toString())) {
                 moduleDescriptorPath = sourceFile;
                 hasModuleDescriptor = true;
                 break;
             }
         }
 
-        if ( hasModuleDescriptor )
-        {
+        if (hasModuleDescriptor) {
             // For now only allow named modules. Once we can create a graph with ASM we can specify exactly the modules
             // and we can detect if auto modules are used. In that case, MavenProject.setFile() should not be used, so
             // you cannot depend on this project and so it won't be distributed.
 
-            modulepathElements = new ArrayList<>( compilePath.size() );
-            classpathElements = new ArrayList<>( compilePath.size() );
-            pathElements = new LinkedHashMap<>( compilePath.size() );
+            modulepathElements = new ArrayList<>(compilePath.size());
+            classpathElements = new ArrayList<>(compilePath.size());
+            pathElements = new LinkedHashMap<>(compilePath.size());
 
             ResolvePathsResult<File> resolvePathsResult;
-            try
-            {
-                Collection<File> dependencyArtifacts = getCompileClasspathElements( getProject() )
-                        .stream().map( Path::toFile ).collect( Collectors.toList() );
-                
-                ResolvePathsRequest<File> request =
-                    ResolvePathsRequest.ofFiles( dependencyArtifacts )
-                                       .setIncludeStatic( true )
-                                       .setMainModuleDescriptor( moduleDescriptorPath.toFile() );
-                
+            try {
+                Collection<File> dependencyArtifacts = getCompileClasspathElements(getProject()).stream()
+                        .map(Path::toFile)
+                        .collect(Collectors.toList());
+
+                ResolvePathsRequest<File> request = ResolvePathsRequest.ofFiles(dependencyArtifacts)
+                        .setIncludeStatic(true)
+                        .setMainModuleDescriptor(moduleDescriptorPath.toFile());
+
                 Optional<Toolchain> toolchain = getToolchain();
-                if ( toolchain.isPresent() && toolchain.get() instanceof JavaToolchain )
-                {
-                    request.setJdkHome( new File( ( (JavaToolchain) toolchain.get() ).getJavaHome() ) );
+                if (toolchain.isPresent() && toolchain.get() instanceof JavaToolchain) {
+                    request.setJdkHome(new File(((JavaToolchain) toolchain.get()).getJavaHome()));
                 }
 
-                resolvePathsResult = locationManager.resolvePaths( request );
-                
-                for ( Entry<File, Exception> pathException : resolvePathsResult.getPathExceptions().entrySet() )
-                {
+                resolvePathsResult = locationManager.resolvePaths(request);
+
+                for (Entry<File, Exception> pathException :
+                        resolvePathsResult.getPathExceptions().entrySet()) {
                     Throwable cause = pathException.getValue();
-                    while ( cause.getCause() != null )
-                    {
+                    while (cause.getCause() != null) {
                         cause = cause.getCause();
                     }
                     String fileName = pathException.getKey().getName();
-                    getLog().warn( "Can't extract module name from " + fileName + ": " + cause.getMessage() );
+                    getLog().warn("Can't extract module name from " + fileName + ": " + cause.getMessage());
                 }
-                
+
                 JavaModuleDescriptor moduleDescriptor = resolvePathsResult.getMainModuleDescriptor();
 
-                detectFilenameBasedAutomodules( resolvePathsResult, moduleDescriptor );
-                
-                for ( Map.Entry<File, JavaModuleDescriptor> entry : resolvePathsResult.getPathElements().entrySet() )
-                {
-                    pathElements.put( entry.getKey().getPath(), entry.getValue() );
+                detectFilenameBasedAutomodules(resolvePathsResult, moduleDescriptor);
+
+                for (Map.Entry<File, JavaModuleDescriptor> entry :
+                        resolvePathsResult.getPathElements().entrySet()) {
+                    pathElements.put(entry.getKey().getPath(), entry.getValue());
                 }
 
-                if ( compilerArgs == null )
-                {
+                if (compilerArgs == null) {
                     compilerArgs = new ArrayList<>();
                 }
 
-                for ( File file : resolvePathsResult.getClasspathElements() )
-                {
-                    classpathElements.add( file.getPath() );
-                    
-                    if ( multiReleaseOutput )
-                    {
-                        if ( getOutputDirectory().startsWith( file.getPath() ) )
-                        {
-                            compilerArgs.add( "--patch-module" );
-                            compilerArgs.add( String.format( "%s=%s", moduleDescriptor.name(), file.getPath() ) );
+                for (File file : resolvePathsResult.getClasspathElements()) {
+                    classpathElements.add(file.getPath());
+
+                    if (multiReleaseOutput) {
+                        if (getOutputDirectory().startsWith(file.getPath())) {
+                            compilerArgs.add("--patch-module");
+                            compilerArgs.add(String.format("%s=%s", moduleDescriptor.name(), file.getPath()));
                         }
                     }
                 }
-                
-                for ( File file : resolvePathsResult.getModulepathElements().keySet() )
-                {
-                    modulepathElements.add( file.getPath() );
+
+                for (File file : resolvePathsResult.getModulepathElements().keySet()) {
+                    modulepathElements.add(file.getPath());
                 }
-                
-                compilerArgs.add( "--module-version" );
-                compilerArgs.add( getProject().getVersion() );
-                
+
+                compilerArgs.add("--module-version");
+                compilerArgs.add(getProject().getVersion());
+
+            } catch (IOException e) {
+                getLog().warn(e.getMessage());
             }
-            catch ( IOException e )
-            {
-                getLog().warn( e.getMessage() );
-            }
-        }
-        else
-        {
+        } else {
             classpathElements = new ArrayList<>();
-            for ( Path element : getCompileClasspathElements( getProject() ) )
-            {
-                classpathElements.add( element.toString() );
+            for (Path element : getCompileClasspathElements(getProject())) {
+                classpathElements.add(element.toString());
             }
             modulepathElements = Collections.emptyList();
         }
     }
 
-    private void detectFilenameBasedAutomodules( final ResolvePathsResult<File> resolvePathsResult,
-            final JavaModuleDescriptor moduleDescriptor )
-    {
+    private void detectFilenameBasedAutomodules(
+            final ResolvePathsResult<File> resolvePathsResult, final JavaModuleDescriptor moduleDescriptor) {
         List<String> automodulesDetected = new ArrayList<>();
-        for ( Entry<File, ModuleNameSource> entry : resolvePathsResult.getModulepathElements().entrySet() )
-        {
-            if ( ModuleNameSource.FILENAME.equals( entry.getValue() ) )
-            {
-                automodulesDetected.add( entry.getKey().getName() );
+        for (Entry<File, ModuleNameSource> entry :
+                resolvePathsResult.getModulepathElements().entrySet()) {
+            if (ModuleNameSource.FILENAME.equals(entry.getValue())) {
+                automodulesDetected.add(entry.getKey().getName());
             }
         }
 
-        if ( !automodulesDetected.isEmpty() )
-        {
+        if (!automodulesDetected.isEmpty()) {
             final String message = "Required filename-based automodules detected: "
-                    +  automodulesDetected + ". "
+                    + automodulesDetected + ". "
                     + "Please don't publish this project to a public artifact repository!";
 
-            if ( moduleDescriptor.exports().isEmpty() )
-            {
+            if (moduleDescriptor.exports().isEmpty()) {
                 // application
-                getLog().info( message );
-            }
-            else
-            {
+                getLog().info(message);
+            } else {
                 // library
-                writeBoxedWarning( message );
+                writeBoxedWarning(message);
             }
         }
     }
-    
-    private List<Path> getCompileClasspathElements( Project project )
-    {
-        ProjectManager projectManager = session.getService( ProjectManager.class );
-        ResolutionScope scope = ResolutionScope.COMPILE;
-        List<Artifact> artifacts = projectManager.getResolvedDependencies( project, scope );
-        // 3 is outputFolder + 2 preserved for multirelease  
-        List<Path> list = new ArrayList<>( artifacts.size() + 3 );
 
-        if ( multiReleaseOutput )
-        {
-            Path versionsFolder = outputDirectory.resolve( "META-INF/versions" );
-            
+    private List<Path> getCompileClasspathElements(Project project) {
+        List<Path> artifacts = session.resolveDependencies(project, ResolutionScope.PROJECT_COMPILE);
+
+        // 3 is outputFolder + 2 preserved for multirelease
+        List<Path> list = new ArrayList<>(artifacts.size() + 3);
+
+        if (multiReleaseOutput) {
+            Path versionsFolder = outputDirectory.resolve("META-INF/versions");
+
             // in reverse order
-            for ( int version = Integer.parseInt( getRelease() ) - 1; version >= 9 ; version-- )
-            {
-                Path versionSubFolder = versionsFolder.resolve( String.valueOf( version ) );
-                if ( Files.exists( versionSubFolder ) )
-                {
-                    list.add( versionSubFolder );
+            for (int version = Integer.parseInt(getRelease()) - 1; version >= 9; version--) {
+                Path versionSubFolder = versionsFolder.resolve(String.valueOf(version));
+                if (Files.exists(versionSubFolder)) {
+                    list.add(versionSubFolder);
                 }
             }
         }
 
-        list.add( outputDirectory );
+        list.add(outputDirectory);
 
-        ArtifactManager artifactManager = session.getService( ArtifactManager.class );
-        for ( Artifact a : artifacts )
-        {
-            list.add( artifactManager.getPath( a ).get() );
-        }
+        list.addAll(artifacts);
+
         return list;
     }
-    
-    protected SourceInclusionScanner getSourceInclusionScanner( int staleMillis )
-    {
-        if ( includes.isEmpty() && excludes.isEmpty() && incrementalExcludes.isEmpty() )
-        {
-            return new StaleSourceScanner( staleMillis );
+
+    protected SourceInclusionScanner getSourceInclusionScanner(int staleMillis) {
+        if (includes.isEmpty() && excludes.isEmpty() && incrementalExcludes.isEmpty()) {
+            return new StaleSourceScanner(staleMillis);
         }
 
-        if ( includes.isEmpty() )
-        {
-            includes.add( "**/*.java" );
+        if (includes.isEmpty()) {
+            includes.add("**/*.java");
         }
 
-        Set<String> excludesIncr = new HashSet<>( excludes );
-        excludesIncr.addAll( this.incrementalExcludes );
-        return new StaleSourceScanner( staleMillis, includes, excludesIncr );
+        Set<String> excludesIncr = new HashSet<>(excludes);
+        excludesIncr.addAll(this.incrementalExcludes);
+        return new StaleSourceScanner(staleMillis, includes, excludesIncr);
     }
 
-    protected SourceInclusionScanner getSourceInclusionScanner( String inputFileEnding )
-    {
+    protected SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding) {
         // it's not defined if we get the ending with or without the dot '.'
-        String defaultIncludePattern = "**/*" + ( inputFileEnding.startsWith( "." ) ? "" : "." ) + inputFileEnding;
+        String defaultIncludePattern = "**/*" + (inputFileEnding.startsWith(".") ? "" : ".") + inputFileEnding;
 
-        if ( includes.isEmpty() )
-        {
-            includes.add( defaultIncludePattern );
+        if (includes.isEmpty()) {
+            includes.add(defaultIncludePattern);
         }
-        Set<String> excludesIncr = new HashSet<>( excludes );
-        excludesIncr.addAll( excludesIncr );
-        return new SimpleSourceInclusionScanner( includes, excludesIncr );
+        Set<String> excludesIncr = new HashSet<>(excludes);
+        excludesIncr.addAll(excludesIncr);
+        return new SimpleSourceInclusionScanner(includes, excludesIncr);
     }
 
-    protected String getSource()
-    {
+    protected String getSource() {
         return source;
     }
 
-    protected String getTarget()
-    {
+    protected String getTarget() {
         return target;
     }
 
     @Override
-    protected String getRelease()
-    {
+    protected String getRelease() {
         return release;
     }
 
-    protected String getCompilerArgument()
-    {
+    protected String getCompilerArgument() {
         return compilerArgument;
     }
 
-    protected Path getGeneratedSourcesDirectory()
-    {
+    protected Path getGeneratedSourcesDirectory() {
         return generatedSourcesDirectory;
     }
 
     @Override
-    protected String getDebugFileName()
-    {
+    protected String getDebugFileName() {
         return debugFileName;
     }
 
-    private void writeBoxedWarning( String message )
-    {
-        String line = StringUtils.repeat( "*", message.length() + 4 );
-        getLog().warn( line );
-        getLog().warn( "* " + strong( message )  + " *" );
-        getLog().warn( line );
+    private void writeBoxedWarning(String message) {
+        String line = StringUtils.repeat("*", message.length() + 4);
+        getLog().warn(line);
+        getLog().warn("* " + strong(message) + " *");
+        getLog().warn(line);
     }
 
-    private String strong( String message )
-    {
-        return session.getService( MessageBuilderFactory.class ).builder().strong( message ).build();
+    private String strong(String message) {
+        return session.getService(MessageBuilderFactory.class)
+                .builder()
+                .strong(message)
+                .build();
     }
-
-
 }

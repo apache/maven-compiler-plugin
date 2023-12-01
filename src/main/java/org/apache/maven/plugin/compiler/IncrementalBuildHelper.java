@@ -1,5 +1,3 @@
-package org.apache.maven.plugin.compiler;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,8 +16,8 @@ package org.apache.maven.plugin.compiler;
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.maven.plugin.compiler;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,25 +27,24 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.maven.api.MojoExecution;
 import org.apache.maven.api.plugin.MojoException;
 
 /**
  * Various helper methods to support incremental builds
  */
-public class IncrementalBuildHelper
-{
+public class IncrementalBuildHelper {
     /**
      * the root directory to store status information about Maven executions in.
      */
     private static final String MAVEN_STATUS_ROOT = "maven-status";
+
     public static final String CREATED_FILES_LST_FILENAME = "createdFiles.lst";
     private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
     /**
      * Needed for storing the status for the incremental build support.
      */
-    private final MojoExecution mojoExecution;
+    private final String mojoStatusPath;
 
     private final Set<Path> sources;
 
@@ -61,15 +58,12 @@ public class IncrementalBuildHelper
      */
     private List<Path> filesBeforeAction = Collections.emptyList();
 
-    public IncrementalBuildHelper( MojoExecution mojoExecution, Set<Path> sources,
-                                   Path directory, Path outputDirectory )
-    {
-        if ( mojoExecution == null )
-        {
-            throw new IllegalArgumentException( "MojoExecution must not be null!" );
+    public IncrementalBuildHelper(String mojoStatusPath, Set<Path> sources, Path directory, Path outputDirectory) {
+        if (mojoStatusPath == null) {
+            throw new IllegalArgumentException("MojoExecution must not be null!");
         }
 
-        this.mojoExecution = mojoExecution;
+        this.mojoStatusPath = mojoStatusPath;
         this.sources = sources;
         this.directory = directory;
         this.outputDirectory = outputDirectory;
@@ -80,26 +74,16 @@ public class IncrementalBuildHelper
      * which is needed during the next build invocation run.
      * @return the directory for storing status information of the current Mojo execution.
      */
-    public Path getMojoStatusDirectory()
-        throws MojoException
-    {
-        //X TODO the executionId contains -cli and -mojoname
-        //X we should remove those postfixes as it should not make
-        //X any difference whether being run on the cli or via build
-        String mojoStatusPath =
-            MAVEN_STATUS_ROOT + File.separator
-                + mojoExecution.getPlugin().getArtifactId() + File.separator
-                + mojoExecution.getGoal() + File.separator + mojoExecution.getExecutionId();
+    public Path getMojoStatusDirectory() throws MojoException {
+        // X TODO the executionId contains -cli and -mojoname
+        // X we should remove those postfixes as it should not make
+        // X any difference whether being run on the cli or via build
+        Path mojoStatusDir = directory.resolve(mojoStatusPath);
 
-        Path mojoStatusDir = directory.resolve( mojoStatusPath );
-
-        try
-        {
-            Files.createDirectories( mojoStatusDir );
-        }
-        catch ( IOException e )
-        {
-            throw new MojoException( "Unable to create directory: " + mojoStatusDir, e );
+        try {
+            Files.createDirectories(mojoStatusDir);
+        } catch (IOException e) {
+            throw new MojoException("Unable to create directory: " + mojoStatusDir, e);
         }
 
         return mojoStatusDir;
@@ -112,47 +96,33 @@ public class IncrementalBuildHelper
      *
      * @return <code>true</code> if the set of inputFiles got changed since the last build.
      */
-    public boolean inputFileTreeChanged( List<String> added, List<String> removed )
-    {
+    public boolean inputFileTreeChanged(List<String> added, List<String> removed) {
         Path mojoConfigBase = getMojoStatusDirectory();
-        Path mojoConfigFile = mojoConfigBase.resolve( INPUT_FILES_LST_FILENAME );
+        Path mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
 
         List<String> oldInputFiles = Collections.emptyList();
 
-        if ( Files.exists( mojoConfigFile ) )
-        {
-            try
-            {
-                oldInputFiles = Files.readAllLines( mojoConfigFile );
-            }
-            catch ( IOException e )
-            {
-                throw new MojoException( "Error reading old mojo status " + mojoConfigFile, e );
+        if (Files.exists(mojoConfigFile)) {
+            try {
+                oldInputFiles = Files.readAllLines(mojoConfigFile);
+            } catch (IOException e) {
+                throw new MojoException("Error reading old mojo status " + mojoConfigFile, e);
             }
         }
 
-        List<String> newFiles = sources.stream()
-                .map( Path::toAbsolutePath )
-                .map( Path::toString )
-                .collect( Collectors.toList() );
+        List<String> newFiles =
+                sources.stream().map(Path::toAbsolutePath).map(Path::toString).collect(Collectors.toList());
 
         List<String> previousFiles = oldInputFiles;
-        newFiles.stream()
-                .filter( s -> !previousFiles.contains( s ) )
-                .forEach( added::add );
-        previousFiles.stream()
-                .filter( s -> !newFiles.contains( s ) )
-                .forEach( removed::add );
-        try
-        {
-            Files.write( mojoConfigFile, added );
-        }
-        catch ( IOException e )
-        {
-            throw new MojoException( "Error while storing the mojo status", e );
+        newFiles.stream().filter(s -> !previousFiles.contains(s)).forEach(added::add);
+        previousFiles.stream().filter(s -> !newFiles.contains(s)).forEach(removed::add);
+        try {
+            Files.write(mojoConfigFile, added);
+        } catch (IOException e) {
+            throw new MojoException("Error while storing the mojo status", e);
         }
 
-        return ( added.size() > 0 || removed.size() > 0 );
+        return (added.size() > 0 || removed.size() > 0);
     }
 
     /**
@@ -174,38 +144,27 @@ public class IncrementalBuildHelper
      * list of files which got changed by this task.
      * </p>
      */
-    public void beforeRebuildExecution()
-    {
+    public void beforeRebuildExecution() {
         Path mojoConfigBase = getMojoStatusDirectory();
-        Path mojoConfigFile = mojoConfigBase.resolve( CREATED_FILES_LST_FILENAME );
+        Path mojoConfigFile = mojoConfigBase.resolve(CREATED_FILES_LST_FILENAME);
 
-        try
-        {
-            if ( Files.exists( mojoConfigFile ) )
-            {
-                for ( String oldFileName : Files.readAllLines( mojoConfigFile ) )
-                {
-                    Path oldFile = outputDirectory.resolve( oldFileName );
-                    Files.deleteIfExists( oldFile );
+        try {
+            if (Files.exists(mojoConfigFile)) {
+                for (String oldFileName : Files.readAllLines(mojoConfigFile)) {
+                    Path oldFile = outputDirectory.resolve(oldFileName);
+                    Files.deleteIfExists(oldFile);
                 }
             }
 
             // we remember all files which currently exist in the output directory
-            if ( Files.exists( outputDirectory ) )
-            {
-                try ( Stream<Path> walk = Files.walk( outputDirectory ) )
-                {
-                    filesBeforeAction = walk
-                            .filter( Files::isRegularFile )
-                            .collect( Collectors.toList() );
+            if (Files.exists(outputDirectory)) {
+                try (Stream<Path> walk = Files.walk(outputDirectory)) {
+                    filesBeforeAction = walk.filter(Files::isRegularFile).collect(Collectors.toList());
                 }
             }
+        } catch (IOException e) {
+            throw new MojoException("Error reading old mojo status", e);
         }
-        catch ( IOException e )
-        {
-            throw new MojoException( "Error reading old mojo status", e );
-        }
-
     }
 
     /**
@@ -214,46 +173,32 @@ public class IncrementalBuildHelper
      *
      * <p><b>Attention:</b> This method shall only get invoked if the plugin re-creates <b>all</b> the output.</p>
      */
-    public void afterRebuildExecution()
-    {
+    public void afterRebuildExecution() {
         Path mojoConfigBase = getMojoStatusDirectory();
-        Path mojoConfigFile = mojoConfigBase.resolve( CREATED_FILES_LST_FILENAME );
+        Path mojoConfigFile = mojoConfigBase.resolve(CREATED_FILES_LST_FILENAME);
 
-        try
-        {
-            try ( Stream<Path> walk = Files.walk( outputDirectory ) )
-            {
-                List<String> added = walk
-                        .filter( Files::isRegularFile )
-                        .filter( p -> !filesBeforeAction.contains( p ) )
-                        .map( Path::toString )
-                        .collect( Collectors.toList() );
+        try {
+            try (Stream<Path> walk = Files.walk(outputDirectory)) {
+                List<String> added = walk.filter(Files::isRegularFile)
+                        .filter(p -> !filesBeforeAction.contains(p))
+                        .map(Path::toString)
+                        .collect(Collectors.toList());
 
-                Files.write( mojoConfigFile, added );
+                Files.write(mojoConfigFile, added);
             }
-        }
-        catch ( IOException e )
-        {
-            throw new MojoException( "Error while storing the mojo status", e );
+        } catch (IOException e) {
+            throw new MojoException("Error while storing the mojo status", e);
         }
 
         // in case of clean compile the file is not created so next compile won't see it
         // we mus create it here
-        mojoConfigFile = mojoConfigBase.resolve( INPUT_FILES_LST_FILENAME );
-        if ( !Files.exists( mojoConfigFile ) )
-        {
-            try
-            {
-                Files.write( mojoConfigFile, sources.stream()
-                                .map( Path::toString )
-                                .collect( Collectors.toList() ) );
-            }
-            catch ( IOException e )
-            {
-                throw new MojoException( "Error while storing the mojo status", e );
+        mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
+        if (!Files.exists(mojoConfigFile)) {
+            try {
+                Files.write(mojoConfigFile, sources.stream().map(Path::toString).collect(Collectors.toList()));
+            } catch (IOException e) {
+                throw new MojoException("Error while storing the mojo status", e);
             }
         }
-
     }
-
 }

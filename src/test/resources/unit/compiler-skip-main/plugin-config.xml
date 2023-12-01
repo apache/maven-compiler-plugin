@@ -24,13 +24,13 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-skip-main/src/main/java</compileSourceRoot>
+            <compileSourceRoot>${basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>
-          <buildDirectory>${basedir}/target/test/unit/compiler-skip-main/target</buildDirectory>
-          <outputDirectory>${basedir}/target/test/unit/compiler-skip-main/target/classes</outputDirectory>
-          <testOutputDirectory>${basedir}/target/test/unit/compiler-skip-main/target/test-classes</testOutputDirectory>
+          <buildDirectory>${basedir}/target</buildDirectory>
+          <outputDirectory>${basedir}/target/classes</outputDirectory>
+          <testOutputDirectory>${basedir}/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>

@@ -33,10 +33,10 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <fork>true</fork>
-          <compilerArguments>
-             <Xlint/>
-             <Xlint:-path/>
-           </compilerArguments>
+          <compilerArgs>
+            <compilerArg>-Xlint</compilerArg>
+            <compilerArg>-Xlint:-path</compilerArg>
+           </compilerArgs>
         </configuration>
       </plugin>
     </plugins>
