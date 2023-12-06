@@ -83,7 +83,11 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * it is recommended to use the {@code <release>} property
      * in conjunction with the ${multiReleaseOutput} parameter instead.
      */
-    @Parameter(property = "maven.compiler.outputDirectory", defaultValue = "${project.build.outputDirectory}", required = true, readonly = false)
+    @Parameter(
+            property = "maven.compiler.outputDirectory",
+            defaultValue = "${project.build.outputDirectory}",
+            required = true,
+            readonly = false)
     private File outputDirectory;
 
     /**
