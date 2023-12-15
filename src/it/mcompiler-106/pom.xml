@@ -34,9 +34,9 @@ under the License.
         <configuration>
           <fork>true</fork>
           <compilerArguments>
-             <Xlint/>
-             <Xlint:-path/>
-           </compilerArguments>
+            <Xlint/>
+            <Averbose>true</Averbose>
+          </compilerArguments>
         </configuration>
       </plugin>
     </plugins>

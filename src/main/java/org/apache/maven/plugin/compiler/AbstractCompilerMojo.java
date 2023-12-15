@@ -407,7 +407,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     /**
      * <p>
      * Sets the unformatted single argument string to be passed to the compiler. To pass multiple arguments such as
-     * <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArguments}.
+     * <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArgs}.
      * </p>
      * <p>
      * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
