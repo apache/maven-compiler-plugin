@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
@@ -43,6 +44,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -80,6 +83,7 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
+import org.codehaus.plexus.languages.java.version.JavaClassfileVersion;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
 import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.aether.RepositorySystem;
@@ -906,12 +910,17 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
                         ? "added or removed source files"
                         : null;
+                Supplier<String> bytecodeChanged = () -> hasBytecodeChanged() ? "bytecode version changed" : null;
 
                 // Get the first cause for the rebuild compilation detection.
                 String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
                         .filter(Objects::nonNull)
                         .findFirst()
-                        .orElse(null);
+                        .orElseGet(() -> Stream.of(bytecodeChanged)
+                                .map(Supplier::get)
+                                .filter(Objects::nonNull)
+                                .findFirst()
+                                .orElse(null));
 
                 if (cause != null) {
                     getLog().info("Recompiling the module because of "
@@ -1840,6 +1849,48 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
 
         return inputTreeChanges.hasChanged();
+    }
+
+    private static final int MAX_FILE_WALK_LIMIT = 20;
+
+    /**
+     * Performs a check on compiled class files to ensure that the bytecode version
+     * hasn't changed between runs.
+     *
+     * <p>This is limited to check a maximum of {@link #MAX_FILE_WALK_LIMIT}.
+     *
+     * @return true if a bytecode version differs from the actual release version.
+     */
+    private boolean hasBytecodeChanged() {
+        String currentVersion = getVersionRelease();
+        JavaVersion javaVersion = JavaVersion.parse(currentVersion).asMajor();
+
+        try (Stream<Path> walk = Files.walk(getOutputDirectory().toPath())) {
+            Map<Path, JavaClassfileVersion> pathVersionMap = walk.filter(file -> "class"
+                            .equals(FileUtils.extension(file.getFileName().toString())))
+                    .limit(MAX_FILE_WALK_LIMIT)
+                    .collect(Collectors.toMap(Function.identity(), JavaClassfileVersion::of));
+            for (Map.Entry<Path, JavaClassfileVersion> entry : pathVersionMap.entrySet()) {
+                Path path = entry.getKey();
+                JavaClassfileVersion classFileVersion = entry.getValue();
+                JavaVersion javaFileVersion = classFileVersion.javaVersion().asMajor();
+                if (enablePreview != classFileVersion.isPreview() || javaFileVersion.compareTo(javaVersion) != 0) {
+                    if (getLog().isDebugEnabled() || showCompilationChanges) {
+                        getLog().info(String.format(
+                                "\tBytecode file change: %s from %s to %s", path, javaFileVersion, javaVersion));
+                    }
+                    return true;
+                }
+            }
+            return false;
+        } catch (UncheckedIOException | IOException e) {
+            getLog().warn("Error reading bytecode version", e);
+            return false;
+        }
+    }
+
+    private String getVersionRelease() {
+        return getRelease() != null ? getRelease() : getTarget() != null ? getTarget() : DEFAULT_TARGET;
     }
 
     public void setTarget(String target) {
