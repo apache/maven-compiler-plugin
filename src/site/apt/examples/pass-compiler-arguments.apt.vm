@@ -28,8 +28,8 @@
 
 Pass Compiler Arguments
 
-  Sometimes, you need to pass other compiler arguments that are not handled by
-  the Compiler Plugin itself but is supported by the <<<compilerId>>> selected.
+  Sometimes, you need to pass compiler arguments that are not handled by
+  the Compiler Plugin itself but are supported by the <<<compilerId>>> selected.
   For such arguments, use the Compiler Plugin's <<<compilerArgs>>> parameter
   The following example passes compiler arguments to the <<<javac>>>
   compiler:
