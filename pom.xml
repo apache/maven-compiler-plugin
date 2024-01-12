@@ -67,7 +67,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>4.0.0-alpha-11-SNAPSHOT</mavenVersion>
+    <mavenVersion>4.0.0-alpha-12</mavenVersion>
     <!--
       ! The following property is used in the integration tests MCOMPILER-157
     -->
