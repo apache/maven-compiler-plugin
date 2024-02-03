@@ -280,6 +280,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * <ul>
      * <li><code>none</code> - no annotation processing is performed.</li>
      * <li><code>only</code> - only annotation processing is done, no compilation.</li>
+     * <li><code>full</code> - since JDK 21, annotation processing and compilation are done.</li>
      * </ul>
      *
      * @since 2.2
