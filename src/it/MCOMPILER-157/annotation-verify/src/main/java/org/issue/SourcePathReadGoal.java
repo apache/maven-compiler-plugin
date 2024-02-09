@@ -21,21 +21,25 @@ package org.issue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 
-import jakarta.inject.Inject;
+import org.apache.maven.api.Session;
+import org.apache.maven.api.di.Inject;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.LifecyclePhase;
 import org.apache.maven.api.plugin.annotations.Mojo;
 import org.apache.maven.api.plugin.annotations.Parameter;
 import org.apache.maven.api.Project;
+import org.apache.maven.api.ProjectScope;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.shared.utils.io.FileUtils;
 
 @Mojo( name = "read-source", defaultPhase = LifecyclePhase.PROCESS_TEST_CLASSES )
 public class SourcePathReadGoal
-    implements org.apache.maven.api.plugin.Mojo
+        implements org.apache.maven.api.plugin.Mojo
 {
 
     @Parameter
@@ -51,35 +55,36 @@ public class SourcePathReadGoal
     protected Log log;
 
     @Inject
-    protected ProjectManager projectManager;
+    protected Session session;
 
     @SuppressWarnings( "unchecked" )
     public void execute()
-        throws MojoException
+            throws MojoException
     {
+        ProjectManager projectManager = session.getService(ProjectManager.class);
         if ( sourceClass != null )
         {
             log.info( "Checking compile source roots for: '" + sourceClass + "'" );
-            assertGeneratedSourceFileFor( sourceClass, projectManager.getCompileSourceRoots(project) );
+            assertGeneratedSourceFileFor( sourceClass, projectManager.getCompileSourceRoots(project, ProjectScope.MAIN) );
         }
 
         if ( testSourceClass != null )
         {
             log.info( "Checking test-compile source roots for: '" + testSourceClass + "'" );
-            assertGeneratedSourceFileFor( testSourceClass, projectManager.getTestCompileSourceRoots(project) );
+            assertGeneratedSourceFileFor( testSourceClass, projectManager.getCompileSourceRoots(project, ProjectScope.TEST) );
         }
     }
 
-    private void assertGeneratedSourceFileFor( String sourceClass, List<String> sourceRoots )
-        throws MojoException
+    private void assertGeneratedSourceFileFor( String sourceClass, List<Path> sourceRoots )
+            throws MojoException
     {
         String sourceFile = sourceClass.replace( '.', '/' )
-                                       .concat( ".txt" );
+                .concat( ".txt" );
 
         boolean found = false;
-        for ( String root : sourceRoots )
+        for ( Path root : sourceRoots )
         {
-            File f = new File( root, sourceFile );
+            File f = root.resolve( sourceFile ).toFile();
             log.info( "Looking for: " + f );
             if ( f.exists() )
             {
@@ -90,9 +95,9 @@ public class SourcePathReadGoal
                     if ( !nameParts[nameParts.length-1].equals( content ) )
                     {
                         throw new MojoException( "Non-matching content in: " + f + "\n  expected: '"
-                            + sourceClass + "'\n  found: '" + content + "'" );
+                                + sourceClass + "'\n  found: '" + content + "'" );
                     }
-                    
+
                     found = true;
                     break;
                 }
@@ -106,7 +111,7 @@ public class SourcePathReadGoal
         if ( !found )
         {
             throw new MojoException( "Cannot find generated source file: " + sourceFile + " in:\n  "
-                + String.join( "\n  ", sourceRoots) );
+                    + sourceRoots.stream().map( Path::toString ).collect(Collectors.joining( "\n  " ) ) );
         }
     }
 

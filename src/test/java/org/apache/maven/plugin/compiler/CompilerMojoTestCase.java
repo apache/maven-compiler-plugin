@@ -18,9 +18,6 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import java.io.File;
 import java.net.URI;
 import java.nio.file.Files;
@@ -37,11 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.inject.Provides;
 import org.apache.maven.api.Artifact;
+import org.apache.maven.api.PathScope;
 import org.apache.maven.api.Project;
-import org.apache.maven.api.ResolutionScope;
 import org.apache.maven.api.Session;
+import org.apache.maven.api.di.Inject;
+import org.apache.maven.api.di.Provides;
+import org.apache.maven.api.di.Singleton;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
 import org.apache.maven.api.plugin.Log;
@@ -86,7 +85,7 @@ import static org.mockito.Mockito.verify;
 @MojoTest
 public class CompilerMojoTestCase {
 
-    private final String LOCAL_REPO = getBasedir() + "/target/local-repo";
+    private static final String LOCAL_REPO = "/target/local-repo";
 
     @Inject
     private Session session;
@@ -101,7 +100,7 @@ public class CompilerMojoTestCase {
                     @MojoParameter(name = "mojoStatusPath", value = "maven-status/compile")
                     CompilerMojo compileMojo,
             @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${basedir}/src/test/java")
+                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
                     @MojoParameter(name = "mojoStatusPath", value = "maven-status/testCompile")
                     TestCompilerMojo testCompileMojo)
             throws Exception {
@@ -176,7 +175,7 @@ public class CompilerMojoTestCase {
                     @MojoParameter(name = "mojoStatusPath", value = "maven-status/compile")
                     CompilerMojo compileMojo,
             @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${basedir}/src/test/java")
+                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
                     @MojoParameter(name = "mojoStatusPath", value = "maven-status/testCompile")
                     TestCompilerMojo testCompileMojo)
             throws Exception {
@@ -225,7 +224,7 @@ public class CompilerMojoTestCase {
                     @MojoParameter(name = "mojoStatusPath", value = "maven-status/compile")
                     CompilerMojo compileMojo,
             @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${basedir}/src/test/java")
+                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
                     @MojoParameter(name = "mojoStatusPath", value = "maven-status/testCompile")
                     TestCompilerMojo testCompileMojo)
             throws Exception {
@@ -447,8 +446,8 @@ public class CompilerMojoTestCase {
     @Provides
     @Singleton
     @SuppressWarnings("unused")
-    private InternalSession createSession() {
-        InternalSession session = SessionStub.getMockSession(LOCAL_REPO);
+    private static InternalSession createSession() {
+        InternalSession session = SessionStub.getMockSession(getBasedir() + LOCAL_REPO);
 
         ToolchainManager toolchainManager = mock(ToolchainManager.class);
         doReturn(toolchainManager).when(session).getService(ToolchainManager.class);
@@ -505,10 +504,8 @@ public class CompilerMojoTestCase {
         }
 
         ProjectManager projectManager = session.getService(ProjectManager.class);
-        doAnswer(iom -> Collections.emptyList())
-                .when(session)
-                .resolveDependencies(any(), eq(ResolutionScope.PROJECT_COMPILE));
-        doAnswer(iom -> artifacts).when(session).resolveDependencies(any(), eq(ResolutionScope.TEST_COMPILE));
+        doAnswer(iom -> Collections.emptyList()).when(session).resolveDependencies(any(), eq(PathScope.MAIN_COMPILE));
+        doAnswer(iom -> artifacts).when(session).resolveDependencies(any(), eq(PathScope.TEST_COMPILE));
 
         return session;
     }
@@ -516,10 +513,10 @@ public class CompilerMojoTestCase {
     @Provides
     @Singleton
     @SuppressWarnings("unused")
-    private Project createProject() {
+    private static Project createProject() {
         ProjectStub stub = new ProjectStub();
         ArtifactStub artifact = new ArtifactStub("myGroupId", "myArtifactId", null, "1.0-SNAPSHOT", "jar");
-        stub.setArtifact(artifact);
+        stub.setMainArtifact(artifact);
         stub.setModel(Model.newBuilder()
                 .groupId(artifact.getGroupId())
                 .artifactId(artifact.getArtifactId())
@@ -535,17 +532,17 @@ public class CompilerMojoTestCase {
         return stub;
     }
 
-    @Provides
-    @SuppressWarnings("unused")
-    ProjectManager createProjectManager(InternalSession session) {
-        return session.getService(ProjectManager.class);
-    }
+    //    @Provides
+    //    @SuppressWarnings("unused")
+    //    ProjectManager createProjectManager(InternalSession session) {
+    //        return session.getService(ProjectManager.class);
+    //    }
 
-    @Provides
-    @SuppressWarnings("unused")
-    ArtifactManager createArtifactManager(InternalSession session) {
-        return session.getService(ArtifactManager.class);
-    }
+    //    @Provides
+    //    @SuppressWarnings("unused")
+    //    ArtifactManager createArtifactManager(InternalSession session) {
+    //        return session.getService(ArtifactManager.class);
+    //    }
 
     private Log setMockLogger(AbstractCompilerMojo mojo) throws IllegalAccessException {
         Log log = mock(Log.class);

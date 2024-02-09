@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -35,11 +36,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.maven.api.Artifact;
-import org.apache.maven.api.JavaToolchain;
-import org.apache.maven.api.Project;
-import org.apache.maven.api.ResolutionScope;
-import org.apache.maven.api.Toolchain;
+import org.apache.maven.api.*;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.LifecyclePhase;
 import org.apache.maven.api.plugin.annotations.Mojo;
@@ -72,7 +69,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * Projects main artifact.
      */
-    @Parameter(defaultValue = "${project.artifact}", readonly = true, required = true)
+    @Parameter(defaultValue = "${project.mainArtifact}", readonly = true, required = true)
     protected Artifact projectArtifact;
 
     /**
@@ -150,11 +147,11 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     private Map<String, JavaModuleDescriptor> pathElements;
 
-    protected List<String> getCompileSourceRoots() {
+    protected List<Path> getCompileSourceRoots() {
         if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            return projectManager.getCompileSourceRoots(getProject());
+            return projectManager.getCompileSourceRoots(getProject(), ProjectScope.MAIN);
         } else {
-            return compileSourceRoots;
+            return compileSourceRoots.stream().map(Paths::get).collect(Collectors.toList());
         }
     }
 
@@ -195,7 +192,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
         super.execute();
 
-        if (Files.isDirectory(outputDirectory)) {
+        if (Files.isDirectory(outputDirectory) && projectArtifact != null) {
             artifactManager.setPath(projectArtifact, outputDirectory);
         }
     }
@@ -216,7 +213,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         List<String> compilePath = this.compilePath;
         if (compilePath == null) {
             Stream<String> s1 = Stream.of(getOutputDirectory().toString());
-            Stream<String> s2 = session.resolveDependencies(getProject(), ResolutionScope.PROJECT_COMPILE).stream()
+            Stream<String> s2 = session.resolveDependencies(getProject(), PathScope.MAIN_COMPILE).stream()
                     .map(Path::toString);
             compilePath = Stream.concat(s1, s2).collect(Collectors.toList());
         }
@@ -337,7 +334,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     private List<Path> getCompileClasspathElements(Project project) {
-        List<Path> artifacts = session.resolveDependencies(project, ResolutionScope.PROJECT_COMPILE);
+        List<Path> artifacts = session.resolveDependencies(project, PathScope.MAIN_COMPILE);
 
         // 3 is outputFolder + 2 preserved for multirelease
         List<Path> list = new ArrayList<>(artifacts.size() + 3);

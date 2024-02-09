@@ -19,13 +19,15 @@
 
 <project>
   <build>
+    <directory>${project.basedir}/target</directory>
+    <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+    <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/src/main/java
-            </compileSourceRoot>
+            <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <!--
           one would think that if you specifically include something and then do a pattern exclude that happened
@@ -50,9 +52,6 @@
 
           <compilerId>javac</compilerId>
           <debug>true</debug>
-          <buildDirectory>${basedir}/target</buildDirectory>
-          <outputDirectory>${basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${basedir}/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>

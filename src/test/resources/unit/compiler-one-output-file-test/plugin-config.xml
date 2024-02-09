@@ -24,14 +24,14 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/src/main/java
+            <compileSourceRoot>${project.basedir}/src/main/java
             </compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>
-          <buildDirectory>${basedir}/target</buildDirectory>
-          <outputDirectory>${basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${basedir}/target/test-classes</testOutputDirectory>
+          <buildDirectory>${project.basedir}/target</buildDirectory>
+          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>

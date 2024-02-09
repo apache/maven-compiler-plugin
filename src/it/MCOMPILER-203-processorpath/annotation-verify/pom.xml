@@ -52,6 +52,7 @@ under the License.
           <artifactId>maven-plugin-plugin</artifactId>
           <version>@mavenPluginPluginVersion@</version>
           <configuration>
+            <goalPrefix>foo</goalPrefix>
             <skipErrorNoDescriptorsFound>true</skipErrorNoDescriptorsFound>
           </configuration>
           <executions>

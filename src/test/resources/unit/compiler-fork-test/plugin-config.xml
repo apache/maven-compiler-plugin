@@ -29,13 +29,13 @@
           <!--
              basedir is required to be set when forking
           -->
-          <basedir>${basedir}</basedir>
+          <basedir>${project.basedir}</basedir>
           <meminitial>64m</meminitial>
           <maxmem>128m</maxmem>
           <showWarnings>true</showWarnings>
           <verbose>true</verbose>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/src/main/java</compileSourceRoot>
+            <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>
@@ -45,9 +45,9 @@
              This value would have been better, but ${env.JAVA_HOME} can't be resolved.
              So it is adjusted in org.apache.maven.plugin.compiler.CompilerMojoTestCase.testCompilerFork()   
            -->
-          <buildDirectory>${basedir}/target</buildDirectory>
-          <outputDirectory>${basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${basedir}/target/test-classes</testOutputDirectory>
+          <buildDirectory>${project.basedir}/target</buildDirectory>
+          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>

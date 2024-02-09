@@ -35,7 +35,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaToolchain;
-import org.apache.maven.api.ResolutionScope;
+import org.apache.maven.api.PathScope;
+import org.apache.maven.api.ProjectScope;
 import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.LifecyclePhase;
@@ -74,13 +75,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * The directory where compiled test classes go.
      */
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
-    private Path outputDirectory;
+    private Path mainOutputDirectory;
 
     /**
      * The directory where compiled test classes go.
      */
     @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = true)
-    private Path testOutputDirectory;
+    private Path outputDirectory;
 
     /**
      * A list of inclusion filters for the compiler.
@@ -190,11 +191,11 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         super.execute();
     }
 
-    protected List<String> getCompileSourceRoots() {
+    protected List<Path> getCompileSourceRoots() {
         if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            return projectManager.getTestCompileSourceRoots(getProject());
+            return projectManager.getCompileSourceRoots(getProject(), ProjectScope.TEST);
         } else {
-            return compileSourceRoots;
+            return compileSourceRoots.stream().map(Paths::get).collect(Collectors.toList());
         }
     }
 
@@ -213,15 +214,15 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     protected Path getOutputDirectory() {
-        return testOutputDirectory;
+        return outputDirectory;
     }
 
     @Override
     protected void preparePaths(Set<Path> sourceFiles) {
         List<String> testPath = this.testPath;
         if (testPath == null) {
-            Stream<String> s1 = Stream.of(testOutputDirectory.toString(), outputDirectory.toString());
-            Stream<String> s2 = session.resolveDependencies(getProject(), ResolutionScope.TEST_COMPILE).stream()
+            Stream<String> s1 = Stream.of(outputDirectory.toString(), mainOutputDirectory.toString());
+            Stream<String> s2 = session.resolveDependencies(getProject(), PathScope.TEST_COMPILE).stream()
                     .map(Path::toString);
             testPath = Stream.concat(s1, s2).collect(Collectors.toList());
         }
@@ -340,8 +341,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                     patchModuleValue.append(testModuleDescriptor.name());
                     patchModuleValue.append('=');
 
-                    for (String root : projectManager.getCompileSourceRoots(getProject())) {
-                        if (Files.exists(Paths.get(root))) {
+                    for (Path root : projectManager.getCompileSourceRoots(getProject(), ProjectScope.MAIN)) {
+                        if (Files.exists(root)) {
                             patchModuleValue.append(root).append(PS);
                         }
                     }
@@ -373,7 +374,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                         .append('=')
                         .append(mainOutputDirectory)
                         .append(PS);
-                for (String root : getCompileSourceRoots()) {
+                for (Path root : getCompileSourceRoots()) {
                     patchModuleValue.append(root).append(PS);
                 }
 

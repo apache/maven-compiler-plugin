@@ -67,11 +67,11 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>4.0.0-alpha-12</mavenVersion>
+    <mavenVersion>4.0.0-alpha-13-SNAPSHOT</mavenVersion>
     <!--
       ! The following property is used in the integration tests MCOMPILER-157
     -->
-    <mavenPluginPluginVersion>3.8.1</mavenPluginPluginVersion>
+    <mavenPluginPluginVersion>3.11.1-SNAPSHOT</mavenPluginPluginVersion>
     <plexusCompilerVersion>2.12.1</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
@@ -80,9 +80,11 @@ under the License.
     <plexus-java.version>1.1.1</plexus-java.version>
     <version.plexus-xml>4.0.1</version.plexus-xml>
     <javaVersion>8</javaVersion>
+    <junitVersion>5.10.1</junitVersion>
+    <mockitoVersion>4.11.0</mockitoVersion>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
     <surefire.version>3.2.1</surefire.version>
-    <mavenPluginPluginVersion>3.10.3-SNAPSHOT</mavenPluginPluginVersion>
+    <mavenPluginPluginVersion>3.11.1-SNAPSHOT</mavenPluginPluginVersion>
     <mavenPluginTestingHarnessVersion>4.0.0-alpha-3-SNAPSHOT</mavenPluginTestingHarnessVersion>
     <project.build.outputTimestamp>2022-03-08T01:04:02Z</project.build.outputTimestamp>
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
@@ -96,8 +98,23 @@ under the License.
         <artifactId>qdox</artifactId>
         <version>2.0.1</version>
       </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junitVersion}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-bom</artifactId>
+        <version>${mockitoVersion}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
+
   <dependencies>
     <!-- Maven -->
     <dependency>
@@ -181,7 +198,6 @@ under the License.
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-javac</artifactId>
       <version>${plexusCompilerVersion}</version>
-      <scope>runtime</scope>
       <exclusions>
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
@@ -217,13 +233,11 @@ under the License.
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.6.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <version>5.10.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

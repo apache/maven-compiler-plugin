@@ -39,11 +39,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import jakarta.inject.Inject;
-import org.apache.maven.api.Project;
-import org.apache.maven.api.ResolutionScope;
-import org.apache.maven.api.Session;
-import org.apache.maven.api.Toolchain;
+import org.apache.maven.api.*;
+import org.apache.maven.api.di.Inject;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.Mojo;
 import org.apache.maven.api.plugin.MojoException;
@@ -97,9 +94,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
-    static final String DEFAULT_SOURCE = "1.7";
+    static final String DEFAULT_SOURCE = "1.8";
 
-    static final String DEFAULT_TARGET = "1.7";
+    static final String DEFAULT_TARGET = "1.8";
 
     // Used to compare with older targets
     static final String MODULE_INFO_TARGET = "1.9";
@@ -556,7 +553,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     protected abstract Map<String, JavaModuleDescriptor> getPathElements();
 
-    protected abstract List<String> getCompileSourceRoots();
+    protected abstract List<Path> getCompileSourceRoots();
 
     protected abstract void preparePaths(Set<Path> sourceFiles);
 
@@ -618,11 +615,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
         //
         // ----------------------------------------------------------------------
 
-        List<String> compileSourceRoots = removeEmptyCompileSourceRoots(getCompileSourceRoots());
+        List<Path> compileSourceRoots = removeEmptyCompileSourceRoots(getCompileSourceRoots());
 
         if (compileSourceRoots.isEmpty()) {
             getLog().info("No sources to compile");
-
             return;
         }
 
@@ -706,41 +702,25 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 }
             }
 
-            String generatedSourcesPath =
-                    generatedSourcesDirectory.toAbsolutePath().toString();
+            Path generatedSourcesPath = generatedSourcesDirectory.toAbsolutePath();
 
             compileSourceRoots.add(generatedSourcesPath);
 
-            if (isTestCompile()) {
-                getLog().debug("Adding " + generatedSourcesPath + " to test-compile source roots:\n  "
-                        + StringUtils.join(
-                                projectManager
-                                        .getTestCompileSourceRoots(project)
-                                        .iterator(),
-                                "\n  "));
+            ProjectScope scope = isTestCompile() ? ProjectScope.TEST : ProjectScope.MAIN;
 
-                projectManager.addTestCompileSourceRoot(project, generatedSourcesPath);
+            getLog().debug("Adding " + generatedSourcesPath + " to " + scope.id() + "-compile source roots:\n  "
+                    + StringUtils.join(
+                            projectManager.getCompileSourceRoots(project, scope).iterator(), "\n  "));
 
-                getLog().debug("New test-compile source roots:\n  "
-                        + StringUtils.join(
-                                projectManager
-                                        .getTestCompileSourceRoots(project)
-                                        .iterator(),
-                                "\n  "));
-            } else {
-                getLog().debug("Adding " + generatedSourcesPath + " to compile source roots:\n  "
-                        + StringUtils.join(
-                                projectManager.getCompileSourceRoots(project).iterator(), "\n  "));
+            projectManager.addCompileSourceRoot(project, scope, generatedSourcesPath);
 
-                projectManager.addCompileSourceRoot(project, generatedSourcesPath);
-
-                getLog().debug("New compile source roots:\n  "
-                        + StringUtils.join(
-                                projectManager.getCompileSourceRoots(project).iterator(), "\n  "));
-            }
+            getLog().debug("New " + scope.id() + "-compile source roots:\n  "
+                    + StringUtils.join(
+                            projectManager.getCompileSourceRoots(project, scope).iterator(), "\n  "));
         }
 
-        compilerConfiguration.setSourceLocations(compileSourceRoots);
+        compilerConfiguration.setSourceLocations(
+                compileSourceRoots.stream().map(Path::toString).collect(Collectors.toList()));
 
         compilerConfiguration.setAnnotationProcessors(annotationProcessors);
 
@@ -953,7 +933,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
             getLog().debug("Source roots:");
 
-            for (String root : getCompileSourceRoots()) {
+            for (Path root : getCompileSourceRoots()) {
                 getLog().debug(" " + root);
             }
 
@@ -1015,10 +995,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 patchModule.append('=');
 
                 Set<String> patchModules = new LinkedHashSet<>();
-                Set<Path> sourceRoots = new HashSet<>(getCompileSourceRoots().size());
-                for (String sourceRoot : getCompileSourceRoots()) {
-                    sourceRoots.add(Paths.get(sourceRoot));
-                }
+                Set<Path> sourceRoots = new HashSet<>(getCompileSourceRoots());
 
                 String[] files = values[1].split(PS);
 
@@ -1200,8 +1177,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
         for (Path source : sources) {
             String path = source.toString();
             if (path.endsWith(File.separator + "package-info.java")) {
-                for (String root : getCompileSourceRoots()) {
-                    root = root + File.separator;
+                for (Path rootPath : getCompileSourceRoots()) {
+                    String root = rootPath.toString() + File.separator;
                     if (path.startsWith(root)) {
                         String rel = path.substring(root.length());
                         Set<File> files = sourceMapping.getTargetFiles(
@@ -1306,18 +1283,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
         Set<Path> compileSources = new HashSet<>();
 
-        for (String sourceRoot : getCompileSourceRoots()) {
-            Path rootFile = Paths.get(sourceRoot);
-
-            if (!Files.isDirectory(rootFile)
-                    || rootFile.toAbsolutePath()
-                            .toFile()
-                            .equals(compilerConfiguration.getGeneratedSourcesDirectory())) {
+        for (Path sourceRoot : getCompileSourceRoots()) {
+            if (!Files.isDirectory(sourceRoot)
+                    || sourceRoot.toFile().equals(compilerConfiguration.getGeneratedSourcesDirectory())) {
                 continue;
             }
 
             try {
-                scanner.getIncludedSources(rootFile.toFile(), null).forEach(f -> compileSources.add(f.toPath()));
+                scanner.getIncludedSources(sourceRoot.toFile(), null).forEach(f -> compileSources.add(f.toPath()));
             } catch (InclusionScanException e) {
                 throw new MojoException(
                         "Error scanning source root: '" + sourceRoot + "' for stale files to recompile.", e);
@@ -1415,15 +1388,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
         Set<File> staleSources = new HashSet<>();
 
-        for (String sourceRoot : getCompileSourceRoots()) {
-            Path rootFile = Paths.get(sourceRoot);
-
-            if (!Files.isDirectory(rootFile)) {
+        for (Path sourceRoot : getCompileSourceRoots()) {
+            if (!Files.isDirectory(sourceRoot)) {
                 continue;
             }
 
             try {
-                staleSources.addAll(scanner.getIncludedSources(rootFile.toFile(), outputDirectory.toFile()));
+                staleSources.addAll(scanner.getIncludedSources(sourceRoot.toFile(), outputDirectory.toFile()));
             } catch (InclusionScanException e) {
                 throw new MojoException(
                         "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e);
@@ -1456,17 +1427,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @todo also in ant plugin. This should be resolved at some point so that it does not need to
      * be calculated continuously - or should the plugins accept empty source roots as is?
      */
-    private static List<String> removeEmptyCompileSourceRoots(List<String> compileSourceRootsList) {
-        List<String> newCompileSourceRootsList = new ArrayList<>();
+    private static List<Path> removeEmptyCompileSourceRoots(List<Path> compileSourceRootsList) {
         if (compileSourceRootsList != null) {
-            // copy as I may be modifying it
-            for (String srcDir : compileSourceRootsList) {
-                if (!newCompileSourceRootsList.contains(srcDir) && new File(srcDir).exists()) {
-                    newCompileSourceRootsList.add(srcDir);
-                }
-            }
+            return compileSourceRootsList.stream().filter(Files::exists).collect(Collectors.toList());
+        } else {
+            return new ArrayList<>();
         }
-        return newCompileSourceRootsList;
     }
 
     /**
@@ -1544,7 +1510,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         }
 
         try {
-            Session session = this.session.withRemoteRepositories(projectManager.getRepositories(project));
+            Session session = this.session.withRemoteRepositories(projectManager.getRemoteProjectRepositories(project));
             List<org.apache.maven.api.DependencyCoordinate> coords =
                     annotationProcessorPaths.stream().map(this::toCoordinate).collect(Collectors.toList());
             return session
@@ -1553,7 +1519,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                             .session(session)
                             .dependencies(coords)
                             .managedDependencies(project.getManagedDependencies())
-                            .resolutionScope(ResolutionScope.PROJECT_RUNTIME)
+                            .pathScope(PathScope.MAIN_RUNTIME)
                             .build())
                     .getPaths()
                     .stream()
