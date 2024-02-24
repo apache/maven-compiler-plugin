@@ -50,9 +50,13 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
 
 /**
  * Compiles application test sources.
+ * By default uses the <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac</a> compiler
+ * of the JDK used to execute Maven. This can be overwritten through <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html">Toolchains</a>
+ * or parameter {@link AbstractCompilerMojo#compilerId}.
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @since 2.0
+ * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac Command</a>
  */
 @Mojo(
         name = "testCompile",

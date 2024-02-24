@@ -138,6 +138,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     /**
      * Set to <code>true</code> to include debugging information in the compiled class files.
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac -g</a>
+     * @see #debuglevel
      */
     @Parameter(property = "maven.compiler.debug", defaultValue = "true")
     private boolean debug = true;
@@ -145,19 +147,23 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     /**
      * Set to <code>true</code> to generate metadata for reflection on method parameters.
      * @since 3.6.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-parameters">javac -parameters</a>
      */
     @Parameter(property = "maven.compiler.parameters", defaultValue = "false")
     private boolean parameters;
 
     /**
-     * Set to <code>true</code> to Enable preview language features of the java compiler
+     * Set to <code>true</code> to enable preview language features of the java compiler
      * @since 3.10.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-enable-preview">javac --enable-preview</a>
      */
     @Parameter(property = "maven.compiler.enablePreview", defaultValue = "false")
     private boolean enablePreview;
 
     /**
      * Set to <code>true</code> to show messages about what the compiler is doing.
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac -verbose</a>
      */
     @Parameter(property = "maven.compiler.verbose", defaultValue = "false")
     private boolean verbose;
@@ -183,39 +189,44 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private boolean showWarnings;
 
     /**
-     * <p>The -source argument for the Java compiler.</p>
+     * <p>The {@code -source} argument for the Java compiler.</p>
      *
      * <p><b>NOTE: </b></p>
      * <p>Since 3.8.0 the default value has changed from 1.5 to 1.6</p>
      * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
      * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-source">javac -source</a>
      */
     @Parameter(property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE)
     protected String source;
 
     /**
-     * <p>The -target argument for the Java compiler.</p>
+     * <p>The {@code -target} argument for the Java compiler.</p>
      *
      * <p><b>NOTE: </b></p>
      * <p>Since 3.8.0 the default value has changed from 1.5 to 1.6</p>
      * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
      * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-target">javac -target</a>
      */
     @Parameter(property = "maven.compiler.target", defaultValue = DEFAULT_TARGET)
     protected String target;
 
     /**
-     * The -release argument for the Java compiler, supported since Java9
+     * The {@code -release} argument for the Java compiler, supported since Java9
      *
      * @since 3.6
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-release">javac -release</a>
      */
     @Parameter(property = "maven.compiler.release")
     protected String release;
 
     /**
-     * The -encoding argument for the Java compiler.
+     * The {@code -encoding} argument for the Java compiler.
      *
      * @since 2.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-encoding">javac -encoding</a>
      */
     @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
     private String encoding;
@@ -283,6 +294,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * </ul>
      *
      * @since 2.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      */
     @Parameter
     private String proc;
@@ -294,6 +307,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * </p>
      *
      * @since 2.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor">javac -processor</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      */
     @Parameter
     private String[] annotationProcessors;
@@ -332,6 +347,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * <b>Note:</b> Exclusions are supported from version 3.11.0.
      *
      * @since 3.5
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor-path">javac -processorpath</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
+     *
      */
     @Parameter
     private List<DependencyCoordinate> annotationProcessorPaths;
@@ -343,7 +361,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * </p>
      * <p>
      * This flag does not enable / disable the ability to resolve the version of annotation processor paths
-     * from dependency management section. It only influences the resolution o transitive dependencies of those
+     * from dependency management section. It only influences the resolution of transitive dependencies of those
      * top-level paths.
      * </p>
      *
@@ -400,6 +418,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * </pre>
      *
      * @since 3.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
      */
     @Parameter
     protected List<String> compilerArgs;
@@ -415,6 +434,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * <p>
      * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
      * </p>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
      */
     @Parameter
     protected String compilerArgument;
@@ -432,9 +452,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * Keyword list to be appended to the <code>-g</code> command-line switch. Legal values are none or a
      * comma-separated list of the following keywords: <code>lines</code>, <code>vars</code>, and <code>source</code>.
      * If debug level is not specified, by default, nothing will be appended to <code>-g</code>.
-     * If debug is not turned on, this attribute will be ignored.
+     * If {@link #debug} is not turned on, this attribute will be ignored.
      *
      * @since 2.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac -G:[lines,vars,source]</a>
      */
     @Parameter(property = "maven.compiler.debuglevel")
     private String debuglevel;
@@ -443,6 +464,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * Keyword to be appended to the <code>-implicit:</code> command-line switch.
      *
      * @since 3.10.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-implicit">javac -implicit</a>
      */
     @Parameter(property = "maven.compiler.implicit")
     private String implicit;
@@ -543,8 +565,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private boolean skipMultiThreadWarning;
 
     /**
-     * compiler can now use javax.tools if available in your current jdk, you can disable this feature
-     * using -Dmaven.compiler.forceJavacCompilerUse=true or in the plugin configuration
+     * The underlying compiler now uses <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">{@code javax.tools} API</a>
+     * if available in your current JDK.
+     * Set this to {@code true} to always use the legacy <a href="https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">
+     * {@code com.sun.tools.javac} API</a> instead.
      *
      * @since 3.0
      */
