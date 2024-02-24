@@ -236,7 +236,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     /**
      * Version of the compiler to use, ex. "1.3", "1.5", if {@link #fork} is set to <code>true</code>.
+     * @deprecated This parameter is no longer evaluated by the underlying compilers, instead the actual
+     * version of the {@code javac} binary is automatically retrieved.
      */
+    @Deprecated
     @Parameter(property = "maven.compiler.compilerVersion")
     private String compilerVersion;
 
