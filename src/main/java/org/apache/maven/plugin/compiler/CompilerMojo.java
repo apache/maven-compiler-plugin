@@ -54,10 +54,14 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
 
 /**
- * Compiles application sources
+ * Compiles application sources.
+ * By default uses the <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac</a> compiler
+ * of the JDK used to execute Maven. This can be overwritten through <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html">Toolchains</a>
+ * or parameter {@link AbstractCompilerMojo#compilerId}.
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl </a>
  * @since 2.0
+ * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac Command</a>
  */
 @Mojo(
         name = "compile",
@@ -118,9 +122,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     private Set<String> incrementalExcludes = new HashSet<>();
 
     /**
-     * <p>
      * Specify where to place generated source files created by annotation processing. Only applies to JDK 1.6+
-     * </p>
      *
      * @since 2.2
      */
@@ -128,7 +130,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     private File generatedSourcesDirectory;
 
     /**
-     * Set this to 'true' to bypass compilation of main sources. Its use is NOT RECOMMENDED, but quite convenient on
+     * Set this to {@code true} to bypass compilation of main sources. Its use is NOT RECOMMENDED, but quite convenient on
      * occasion.
      */
     @Parameter(property = "maven.main.skip")
@@ -153,7 +155,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
     private boolean multiReleaseOutput;
 
     /**
-     * when forking and debug activated the commandline used will be dumped in this file
+     * When both {@link AbstractCompilerMojo#fork} and {@link AbstractCompilerMojo#debug} are enabled the commandline arguments used
+     * will be dumped to this file.
      * @since 3.10.0
      */
     @Parameter(defaultValue = "javac")
