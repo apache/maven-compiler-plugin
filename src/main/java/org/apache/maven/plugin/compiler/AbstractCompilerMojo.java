@@ -568,15 +568,27 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private boolean skipMultiThreadWarning;
 
     /**
+     * Legacy parameter name of {@link #forceLegacyJavacApi}. Only considered if {@link #forceLegacyJavacApi} is
+     * not set or {@code false}.
+     * @since 3.0
+     * @deprecated Use {@link #forceLegacyJavacApi} instead
+     */
+    @Deprecated
+    @Parameter(defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse")
+    private boolean forceJavacCompilerUse;
+
+    /**
      * The underlying compiler now uses <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">{@code javax.tools} API</a>
      * if available in your current JDK.
      * Set this to {@code true} to always use the legacy <a href="https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">
      * {@code com.sun.tools.javac} API</a> instead.
+     * <p>
+     * <em>This only has an effect for {@link #compilerId} being {@code javac} and {@link #fork} being {@code false}</em>.
      *
-     * @since 3.0
+     * @since 3.13
      */
-    @Parameter(defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse")
-    private boolean forceJavacCompilerUse;
+    @Parameter(defaultValue = "false", property = "maven.compiler.forceLegacyJavacApi")
+    private boolean forceLegacyJavacApi;
 
     /**
      * @since 3.0 needed for storing the status for the incremental build support.
@@ -901,7 +913,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         getLog().debug("CompilerReuseStrategy: "
                 + compilerConfiguration.getCompilerReuseStrategy().getStrategy());
 
-        compilerConfiguration.setForceJavacCompilerUse(forceJavacCompilerUse);
+        compilerConfiguration.setForceJavacCompilerUse(forceLegacyJavacApi || forceJavacCompilerUse);
 
         boolean canUpdateTarget;
 
