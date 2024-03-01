@@ -1076,7 +1076,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             try {
                 if (fork) {
                     if (compilerConfiguration.getExecutable() != null) {
-                        getLog().debug("Excutable: ");
+                        getLog().debug("Executable: ");
                         getLog().debug(" " + compilerConfiguration.getExecutable());
                     }
                 }
@@ -1496,14 +1496,13 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return value;
     }
 
-    // TODO remove the part with ToolchainManager lookup once we depend on
-    // 3.0.9 (have it as prerequisite). Define as regular component field then.
     protected final Toolchain getToolchain() {
         Toolchain tc = null;
 
         if (jdkToolchain != null) {
-            // Maven 3.3.1 has plugin execution scoped Toolchain Support
+            // require Maven 3.3.1, that has plugin execution scoped Toolchain support MNG-5755
             try {
+                // TODO use direct method invocation when prerequisite upgraded to Maven 3.3.1
                 Method getToolchainsMethod = toolchainManager
                         .getClass()
                         .getMethod("getToolchains", MavenSession.class, String.class, Map.class);
