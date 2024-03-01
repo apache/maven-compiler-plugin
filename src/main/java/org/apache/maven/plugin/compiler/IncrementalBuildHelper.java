@@ -122,7 +122,7 @@ public class IncrementalBuildHelper {
             throw new MojoException("Error while storing the mojo status", e);
         }
 
-        return (added.size() > 0 || removed.size() > 0);
+        return added.size() + removed.size() > 0;
     }
 
     /**
