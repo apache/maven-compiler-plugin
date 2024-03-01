@@ -1500,26 +1500,11 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         Toolchain tc = null;
 
         if (jdkToolchain != null) {
-            // require Maven 3.3.1, that has plugin execution scoped Toolchain support MNG-5755
-            try {
-                // TODO use direct method invocation when prerequisite upgraded to Maven 3.3.1
-                Method getToolchainsMethod = toolchainManager
-                        .getClass()
-                        .getMethod("getToolchains", MavenSession.class, String.class, Map.class);
+            // require Maven 3.3.1, that has plugin execution scoped Toolchain support: MNG-5755
+            List<Toolchain> tcs = getToolchains();
 
-                @SuppressWarnings("unchecked")
-                List<Toolchain> tcs =
-                        (List<Toolchain>) getToolchainsMethod.invoke(toolchainManager, session, "jdk", jdkToolchain);
-
-                if (tcs != null && !tcs.isEmpty()) {
-                    tc = tcs.get(0);
-                }
-            } catch (NoSuchMethodException
-                    | SecurityException
-                    | IllegalAccessException
-                    | IllegalArgumentException
-                    | InvocationTargetException e) {
-                // ignore
+            if (tcs != null && !tcs.isEmpty()) {
+                tc = tcs.get(0);
             }
         }
 
@@ -1528,6 +1513,26 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
 
         return tc;
+    }
+
+    // TODO use direct method invocation when prerequisite upgraded to Maven 3.3.1
+    private List<Toolchain> getToolchains() {
+        try {
+            Method getToolchainsMethod =
+                    toolchainManager.getClass().getMethod("getToolchains", MavenSession.class, String.class, Map.class);
+
+            @SuppressWarnings("unchecked")
+            List<Toolchain> tcs =
+                    (List<Toolchain>) getToolchainsMethod.invoke(toolchainManager, session, "jdk", jdkToolchain);
+            return tcs;
+        } catch (NoSuchMethodException
+                | SecurityException
+                | IllegalAccessException
+                | IllegalArgumentException
+                | InvocationTargetException e) {
+            // ignore
+        }
+        return null;
     }
 
     private boolean isDigits(String string) {
