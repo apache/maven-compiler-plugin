@@ -303,7 +303,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      */
-    @Parameter
+    @Parameter(property = "maven.compiler.proc")
     private String proc;
 
     /**
