@@ -294,13 +294,16 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * <ul>
      * <li><code>none</code> - no annotation processing is performed.</li>
      * <li><code>only</code> - only annotation processing is done, no compilation.</li>
+     * <li><code>full</code> - annotation processing and compilation.</li>
      * </ul>
+     *
+     * <code>full</code> is the default. Starting with JDK 21, this option must be set explicitly.
      *
      * @since 2.2
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      */
-    @Parameter
+    @Parameter(property = "maven.compiler.proc")
     private String proc;
 
     /**
