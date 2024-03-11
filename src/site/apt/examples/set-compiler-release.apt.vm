@@ -85,7 +85,12 @@ Setting the <<<--release>>> of the Java Compiler
 
   The <<<--release>>> option is not supported using JDK 8. To enable a project that targets Java 8
   to be built using JDK 8 and also JDK 9 or later requires the conditional usage of the
-  <<<--release>>> option. This may be done through the use of a profile:
+  <<<--release>>> option.
+
+  Conditional parametrization is required for the Compiler Plugin version below <<<3.13.0>>>
+  or compilerId different that <<<javac>>>.
+
+  This may be done through the use of a profile:
 
 +-----
 <project>
@@ -106,3 +111,32 @@ Setting the <<<--release>>> of the Java Compiler
   [...]
 </project>
 +-----
+
+  Since version <<<3.13.0>>> of the Compiler Plugin together with the default <<<javac>>> compilerId you don't need conditional parametrisation of <<<release>>>.
+  The <<<release>>> parameter will only be effective for Java 9 or above, otherwise the <<<source>>> and <<<target>>> will be passed to the compiler.
+
+  So you can simply configure as:
+
++-----
+<project>
+ [...]
+ <build>
+   [...]
+   <plugins>
+     <plugin>
+       <groupId>org.apache.maven.plugins</groupId>
+       <artifactId>maven-compiler-plugin</artifactId>
+       <version>${project.version}</version>
+       <configuration>
+         <release>8</release>
+         <source>8</source>
+         <target>8</target>
+       </configuration>
+     </plugin>
+   </plugins>
+   [...]
+ </build>
+ [...]
+</project>
++-----
+
