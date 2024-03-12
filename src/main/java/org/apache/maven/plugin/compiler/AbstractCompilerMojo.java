@@ -21,8 +21,6 @@ package org.apache.maven.plugin.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -1503,9 +1501,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         Toolchain tc = null;
 
         if (jdkToolchain != null) {
-            // require Maven 3.3.1, that has plugin execution scoped Toolchain support: MNG-5755
-            List<Toolchain> tcs = getToolchains();
-
+            List<Toolchain> tcs = toolchainManager.getToolchains(session, "jdk", jdkToolchain);
             if (tcs != null && !tcs.isEmpty()) {
                 tc = tcs.get(0);
             }
@@ -1516,26 +1512,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
 
         return tc;
-    }
-
-    // TODO use direct method invocation when prerequisite upgraded to Maven 3.3.1
-    private List<Toolchain> getToolchains() {
-        try {
-            Method getToolchainsMethod =
-                    toolchainManager.getClass().getMethod("getToolchains", MavenSession.class, String.class, Map.class);
-
-            @SuppressWarnings("unchecked")
-            List<Toolchain> tcs =
-                    (List<Toolchain>) getToolchainsMethod.invoke(toolchainManager, session, "jdk", jdkToolchain);
-            return tcs;
-        } catch (NoSuchMethodException
-                | SecurityException
-                | IllegalAccessException
-                | IllegalArgumentException
-                | InvocationTargetException e) {
-            // ignore
-        }
-        return null;
     }
 
     private boolean isDigits(String string) {

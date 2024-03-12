@@ -67,7 +67,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>3.2.5</mavenVersion>
+    <mavenVersion>3.6.3</mavenVersion>
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
@@ -127,6 +127,10 @@ under the License.
           <groupId>org.apache.maven.shared</groupId>
           <artifactId>maven-shared-utils</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.codehaus.plexus</groupId>
+          <artifactId>plexus-component-annotations</artifactId>
+        </exclusion>
       </exclusions>
     </dependency>
 
@@ -160,14 +164,7 @@ under the License.
     <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>3.3.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <!-- still needed because of AbstractMojoTestCase -->
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-compat</artifactId>
-      <version>${mavenVersion}</version>
+      <version>4.0.0-alpha-2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -216,6 +213,29 @@ under the License.
                 <include>src/**/*.java</include>
               </includes>
             </java>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-plugin-report-plugin</artifactId>
+          <configuration>
+            <requirementsHistories>
+              <requirementsHistory>
+                <version>from 3.13.0</version>
+                <maven>3.6.3</maven>
+                <jdk>8</jdk>
+              </requirementsHistory>
+              <requirementsHistory>
+                <version>from 3.9.0 to 3.12.1</version>
+                <maven>3.2.5</maven>
+                <jdk>8</jdk>
+              </requirementsHistory>
+              <requirementsHistory>
+                <version>from 3.0 to 3.8.1</version>
+                <maven>3.0</maven>
+                <jdk>7</jdk>
+              </requirementsHistory>
+            </requirementsHistories>
           </configuration>
         </plugin>
       </plugins>
