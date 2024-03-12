@@ -31,22 +31,24 @@ Using Non-Javac Compilers
 
   Contrary to this plugin's name, the Compiler Plugin does not compile the
   sources of your project by itself. To compile, the Compiler Plugin uses
-  another class to compile them. The parameter <<<compilerId>>> determines
-  which class will be used. Currently, the Compiler Plugin is bundled with the
-  <<<javac>>> compiler artifact with artifactId <<<plexus-compiler-javac>>>,
-  which can be seen as one of the dependencies declared inside the Compiler
-  Plugin's POM.
+  another class to compile them.
 
-  {{{http://codehaus-plexus.github.io/plexus-compiler/}Plexus Compiler}} component 
+  The parameter <<<compilerId>>> determines which class will be used.
+
+  Currently, the Compiler Plugin is bundled with the <<<javac>>> compiler
+  with artifactId <<<plexus-compiler-javac>>> version <<${plexusCompilerVersion}>>,
+  which can be seen as one of the dependencies declared inside the Compiler Plugin's POM.
+
+  {{{https://codehaus-plexus.github.io/plexus-compiler/}Plexus Compiler}} component
   has some other compiler Ids available under the groupId <<<org.codehaus.plexus>>>:
 
-  * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>>.
+  * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>> - <<requires>>: <<<JDK 17+>>> and <<<Maven 3.9.6 +>>>
 
-  * <<<csharp>>> with artifactId <<<plexus-compiler-csharp>>>.
+  * <<<csharp>>> with artifactId <<<plexus-compiler-csharp>>> - <<requires>>: <<<JDK 8+>>>
 
-  * <<<eclipse>>> with artifactId <<<plexus-compiler-eclipse>>>.
+  * <<<eclipse>>> with artifactId <<<plexus-compiler-eclipse>>> - <<requires>>: <<<JDK 17+>>> and <<<Maven 3.9.6 +>>>
 
-  * <<<jikes>>> with artifactId <<<plexus-compiler-jikes>>>.
+  * <<<javac-with-errorprone>>>  with artifactId <<<plexus-compiler-javac-errorprone>>> - <<requires>>: <<<JDK 11+>>>
 
   []
 
@@ -74,7 +76,7 @@ Using Non-Javac Compilers
           <dependency>
             <groupId>org.codehaus.plexus</groupId>
             <artifactId>plexus-compiler-csharp</artifactId>
-            <version>1.6</version>
+            <version>${plexusCompilerVersion}</version>
           </dependency>
         </dependencies>
       </plugin>
