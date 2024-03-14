@@ -720,7 +720,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         try {
             compiler = compilerManager.getCompiler(compilerId);
         } catch (NoSuchCompilerException e) {
-            throw new MojoExecutionException("No such compiler '" + e.getCompilerId() + "'.");
+            throw new MojoExecutionException("No such compiler '" + e.getCompilerId() + "'.", e);
         }
 
         // -----------toolchains start here ----------------------------------
