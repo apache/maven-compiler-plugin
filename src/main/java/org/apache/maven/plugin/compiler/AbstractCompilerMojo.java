@@ -547,6 +547,12 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private MavenProject project;
 
     /**
+     * Reactor projects list
+     */
+    @Parameter( defaultValue = "${reactorProjects}", readonly = true, required = true )
+    private List<MavenProject> reactorProjects;
+
+    /**
      * Strategy to re use javacc class created:
      * <ul>
      * <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds, each
@@ -1876,6 +1882,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         targetOrReleaseSet = true;
     }
 
+    public List<MavenProject> getReactorProjects() {
+        return reactorProjects;
+    }
+    
     final String getImplicit() {
         return implicit;
     }
