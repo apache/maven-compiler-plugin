@@ -16,10 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package foo;
+package org.apache.maven.plugin.junit.modern.support;
 
-public class TestCompile3TestCase {
-    public void testCompile3() {
-        TestCompile3 test = new TestCompile3();
+import java.io.File;
+
+import static java.util.Optional.ofNullable;
+
+public abstract class JUnit5PlexusTestCase {
+
+    private static final String BASE_DIR =
+            ofNullable(System.getProperty("basedir")).orElseGet(() -> new File("").getAbsolutePath());
+
+    protected static String getBaseDir() {
+        return BASE_DIR;
     }
 }

@@ -18,9 +18,7 @@
  */
 package foo;
 
-import junit.framework.TestCase;
-
-public class TestCompile2TestCase extends TestCase {
+public class TestCompile2TestCase {
     public void testCompile2() {
         TestCompile2 test = new TestCompile2();
     }

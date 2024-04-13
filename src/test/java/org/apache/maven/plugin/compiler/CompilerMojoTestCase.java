@@ -19,6 +19,7 @@
 package org.apache.maven.plugin.compiler;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -35,25 +36,29 @@ import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.compiler.stubs.DebugEnabledLog;
 import org.apache.maven.plugin.descriptor.MojoDescriptor;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
+import org.apache.maven.plugin.junit.modern.support.JUnit5AbstractMojoTestCase;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.testing.AbstractMojoTestCase;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.ReflectionUtils;
+import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class CompilerMojoTestCase extends AbstractMojoTestCase {
+public class CompilerMojoTestCase extends JUnit5AbstractMojoTestCase {
 
     /**
      * tests the ability of the plugin to compile a basic file
      *
      * @throws Exception
      */
-    public void testCompilerBasic() throws Exception {
+    @Test
+    void testCompilerBasic() throws Exception {
         CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-basic-test/plugin-config.xml");
 
         Log log = mock(Log.class);
@@ -71,10 +76,10 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
 
         testCompileMojo.execute();
 
-        Artifact projectArtifact = (Artifact) getVariableValueFromObject(compileMojo, "projectArtifact");
+        Artifact projectArtifact = getVariableValueFromObject(compileMojo, "projectArtifact");
         assertNotNull(
-                "MCOMPILER-94: artifact file should only be null if there is nothing to compile",
-                projectArtifact.getFile());
+                projectArtifact.getFile(),
+                "MCOMPILER-94: artifact file should only be null if there is nothing to compile");
 
         testClass = new File(testCompileMojo.getOutputDirectory(), "foo/TestCompile0Test.class");
 
@@ -83,7 +88,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         assertTrue(testClass.exists());
     }
 
-    public void testCompilerBasicSourceTarget() throws Exception {
+    @Test
+    void testCompilerBasicSourceTarget() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-basic-sourcetarget/plugin-config.xml");
 
@@ -101,7 +107,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
      *
      * @throws Exception
      */
-    public void testCompilerEmptySource() throws Exception {
+    @Test
+    void testCompilerEmptySource() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-empty-source-test/plugin-config.xml");
 
@@ -109,9 +116,9 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
 
         assertFalse(compileMojo.getOutputDirectory().exists());
 
-        Artifact projectArtifact = (Artifact) getVariableValueFromObject(compileMojo, "projectArtifact");
+        Artifact projectArtifact = getVariableValueFromObject(compileMojo, "projectArtifact");
         assertNull(
-                "MCOMPILER-94: artifact file should be null if there is nothing to compile", projectArtifact.getFile());
+                projectArtifact.getFile(), "MCOMPILER-94: artifact file should be null if there is nothing to compile");
 
         TestCompilerMojo testCompileMojo = getTestCompilerMojo(
                 compileMojo, "target/test-classes/unit/compiler-empty-source-test/plugin-config.xml");
@@ -126,7 +133,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
      *
      * @throws Exception
      */
-    public void testCompilerIncludesExcludes() throws Exception {
+    @Test
+    void testCompilerIncludesExcludes() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-includes-excludes-test/plugin-config.xml");
 
@@ -173,7 +181,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
      *
      * @throws Exception
      */
-    public void testCompilerFork() throws Exception {
+    @Test
+    void testCompilerFork() throws Exception {
         CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-fork-test/plugin-config.xml");
 
         // JAVA_HOME doesn't have to be on the PATH.
@@ -198,7 +207,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         assertTrue(testClass.exists());
     }
 
-    public void testOneOutputFileForAllInput() throws Exception {
+    @Test
+    void testOneOutputFileForAllInput() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-one-output-file-test/plugin-config.xml");
 
@@ -220,7 +230,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         assertTrue(testClass.exists());
     }
 
-    public void testCompilerArgs() throws Exception {
+    @Test
+    void testCompilerArgs() throws Exception {
         CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-args-test/plugin-config.xml");
 
         setVariableValueToObject(compileMojo, "compilerManager", new CompilerManagerStub());
@@ -234,21 +245,24 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
                 compileMojo.compilerArgs);
     }
 
-    public void testImplicitFlagNone() throws Exception {
+    @Test
+    void testImplicitFlagNone() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-implicit-test/plugin-config-none.xml");
 
         assertEquals("none", compileMojo.getImplicit());
     }
 
-    public void testImplicitFlagNotSet() throws Exception {
+    @Test
+    void testImplicitFlagNotSet() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-implicit-test/plugin-config-not-set.xml");
 
         assertNull(compileMojo.getImplicit());
     }
 
-    public void testOneOutputFileForAllInput2() throws Exception {
+    @Test
+    void testOneOutputFileForAllInput2() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-one-output-file-test2/plugin-config.xml");
 
@@ -281,7 +295,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         assertTrue(testClass.exists());
     }
 
-    public void testCompileFailure() throws Exception {
+    @Test
+    void testCompileFailure() throws Exception {
         CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-fail-test/plugin-config.xml");
 
         setVariableValueToObject(compileMojo, "compilerManager", new CompilerManagerStub(true));
@@ -295,7 +310,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         }
     }
 
-    public void testCompileFailOnError() throws Exception {
+    @Test
+    void testCompileFailOnError() throws Exception {
         CompilerMojo compileMojo =
                 getCompilerMojo("target/test-classes/unit/compiler-failonerror-test/plugin-config.xml");
 
@@ -314,7 +330,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
      * files are still compiled.
      * @throws Exception
      */
-    public void testCompileSkipMain() throws Exception {
+    @Test
+    void testCompileSkipMain() throws Exception {
         CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-skip-main/plugin-config.xml");
         setVariableValueToObject(compileMojo, "skipMain", true);
         compileMojo.execute();
@@ -333,7 +350,8 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
      * files are still compiled.
      * @throws Exception
      */
-    public void testCompileSkipTest() throws Exception {
+    @Test
+    void testCompileSkipTest() throws Exception {
         CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-skip-test/plugin-config.xml");
         compileMojo.execute();
         File testClass = new File(compileMojo.getOutputDirectory(), "foo/TestSkipTestCompile0.class");
@@ -348,9 +366,9 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
     }
 
     private CompilerMojo getCompilerMojo(String pomXml) throws Exception {
-        File testPom = new File(getBasedir(), pomXml);
+        File testPom = new File(getBaseDir(), pomXml);
 
-        CompilerMojo mojo = (CompilerMojo) lookupMojo("compile", testPom);
+        CompilerMojo mojo = lookupMojo("compile", testPom);
 
         setVariableValueToObject(mojo, "log", new DebugEnabledLog());
         setVariableValueToObject(mojo, "projectArtifact", new ArtifactStub());
@@ -365,7 +383,7 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
     }
 
     private TestCompilerMojo getTestCompilerMojo(CompilerMojo compilerMojo, String pomXml) throws Exception {
-        File testPom = new File(getBasedir(), pomXml);
+        File testPom = new File(getBaseDir(), pomXml);
 
         TestCompilerMojo mojo = (TestCompilerMojo) lookupMojo("testCompile", testPom);
 
@@ -382,7 +400,10 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         when(handler.isAddedToClasspath()).thenReturn(true);
         when(junitArtifact.getArtifactHandler()).thenReturn(handler);
 
-        String junitURI = org.junit.Test.class.getResource("Test.class").toURI().toString();
+        String junitURI = org.junit.jupiter.api.Test.class
+                .getResource("Test.class")
+                .toURI()
+                .toString();
         junitURI = junitURI.substring("jar:".length(), junitURI.indexOf('!'));
         File artifactFile = new File(URI.create(junitURI));
         when(junitArtifact.getFile()).thenReturn(artifactFile);
@@ -436,5 +457,17 @@ public class CompilerMojoTestCase extends AbstractMojoTestCase {
         md.setPluginDescriptor(pd);
 
         return me;
+    }
+
+    private <T> T getVariableValueFromObject(Object object, String variable) throws IllegalAccessException {
+        Field field = ReflectionUtils.getFieldByNameIncludingSuperclasses(variable, object.getClass());
+        field.setAccessible(true);
+        return (T) field.get(object);
+    }
+
+    private <T> void setVariableValueToObject(Object object, String variable, T value) throws IllegalAccessException {
+        Field field = ReflectionUtils.getFieldByNameIncludingSuperclasses(variable, object.getClass());
+        field.setAccessible(true);
+        field.set(object, value);
     }
 }

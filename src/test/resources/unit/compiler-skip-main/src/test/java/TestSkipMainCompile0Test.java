@@ -18,8 +18,6 @@
  */
 package foo;
 
-import junit.framework.TestCase;
-
-public class TestSkipMainCompile0Test extends TestCase {
+public class TestSkipMainCompile0Test {
     public void testSkipMainCompile0Test() {}
 }
