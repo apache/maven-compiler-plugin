@@ -36,7 +36,7 @@ import static org.mockito.Mockito.verify;
 public class CompilerTest {
 
     @Test
-    @InjectMojo(goal = "compile", pom = "classpath:target/test-classes/unit/compiler-basic-test/plugin-config.xml")
+    @InjectMojo(goal = "compile", pom = "classpath:/unit/compiler-basic-test/plugin-config.xml")
     void testCompilerBasic(CompilerMojo compileMojo) throws Exception {
 //        CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-basic-test/plugin-config.xml");
 
