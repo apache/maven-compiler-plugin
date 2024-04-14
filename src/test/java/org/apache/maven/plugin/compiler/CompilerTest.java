@@ -20,10 +20,10 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 
-import org.apache.maven.api.plugin.testing.InjectMojo;
-import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugin.testing.junit5.InjectMojo;
+import org.apache.maven.plugin.testing.junit5.MojoTest;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.verify;
 public class CompilerTest {
 
     @Test
-    @InjectMojo(goal = "compile", pom = "classpath:/target/test-classes/unit/compiler-basic-test/plugin-config.xml")
+    @InjectMojo(goal = "compile", pom = "classpath:target/test-classes/unit/compiler-basic-test/plugin-config.xml")
     void testCompilerBasic(CompilerMojo compileMojo) throws Exception {
 //        CompilerMojo compileMojo = getCompilerMojo("target/test-classes/unit/compiler-basic-test/plugin-config.xml");
 
