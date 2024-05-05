@@ -171,7 +171,6 @@ under the License.
       <!-- used by maven-plugin-testing-harness -->
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-xml</artifactId>
-      <version>3.0.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -221,29 +220,6 @@ under the License.
             </java>
           </configuration>
         </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-plugin-report-plugin</artifactId>
-          <configuration>
-            <requirementsHistories>
-              <requirementsHistory>
-                <version>from 3.13.0</version>
-                <maven>3.6.3</maven>
-                <jdk>8</jdk>
-              </requirementsHistory>
-              <requirementsHistory>
-                <version>from 3.9.0 to 3.12.1</version>
-                <maven>3.2.5</maven>
-                <jdk>8</jdk>
-              </requirementsHistory>
-              <requirementsHistory>
-                <version>from 3.0 to 3.8.1</version>
-                <maven>3.0</maven>
-                <jdk>7</jdk>
-              </requirementsHistory>
-            </requirementsHistories>
-          </configuration>
-        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -268,9 +244,6 @@ under the License.
                 <execution>
                   <id>integration-test</id>
                   <configuration>
-                    <environmentVariables>
-                      <JENKINS_MAVEN_AGENT_DISABLED>true</JENKINS_MAVEN_AGENT_DISABLED>
-                    </environmentVariables>
                     <debug>true</debug>
                     <projectsDirectory>src/it</projectsDirectory>
                     <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
