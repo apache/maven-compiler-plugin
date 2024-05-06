@@ -111,9 +111,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     static final String DEFAULT_TARGET = "1.8";
 
-    // Used to compare with older targets
-    static final String MODULE_INFO_TARGET = "1.9";
-
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
