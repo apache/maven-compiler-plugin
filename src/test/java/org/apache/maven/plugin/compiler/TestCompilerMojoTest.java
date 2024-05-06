@@ -24,11 +24,15 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.testing.junit5.InjectMojo;
 import org.apache.maven.plugin.testing.junit5.MojoTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenProject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession;
@@ -185,5 +189,21 @@ class TestCompilerMojoTest {
         setVariableValueToObject(mojo, "mojoExecution", getMockMojoExecution());
         setVariableValueToObject(mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE);
         setVariableValueToObject(mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET);
+    }
+
+    static Stream<Arguments> olderThanJDK9() {
+        return Stream.of(
+                Arguments.of("1.8", true),
+                Arguments.of("8", true),
+                Arguments.of("1.9", false),
+                Arguments.of("1.9", false),
+                Arguments.of("9", false),
+                Arguments.of("11", false));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void olderThanJDK9(String version, boolean expected) {
+        assertEquals(expected, TestCompilerMojo.isOlderThanJDK9(version));
     }
 }

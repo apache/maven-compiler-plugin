@@ -316,13 +316,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             return;
         }
         if (StringUtils.isNotEmpty(getRelease())) {
-            if (Integer.parseInt(getRelease()) < 9) {
+            if (isOlderThanJDK9(getRelease())) {
                 pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
                 return;
             }
-        } else if (Double.parseDouble(getTarget()) < Double.parseDouble(MODULE_INFO_TARGET)) {
+        } else if (isOlderThanJDK9(getTarget())) {
             pathElements = Collections.emptyMap();
             modulepathElements = Collections.emptyList();
             classpathElements = testPath;
@@ -434,6 +434,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         }
 
         return scanner;
+    }
+
+    static boolean isOlderThanJDK9(String version) {
+        if (version.startsWith("1.")) {
+            return Integer.parseInt(version.substring(2)) < 9;
+        }
+
+        return Integer.parseInt(version) < 9;
     }
 
     protected String getSource() {
