@@ -75,5 +75,3 @@ mvn test-compile
 </project>
 +-----
 
-  <<Note>>: Maven 3.0 will issue warnings if you do not specify the version of a
-  plugin.
