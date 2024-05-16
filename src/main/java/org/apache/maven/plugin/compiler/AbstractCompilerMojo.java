@@ -933,7 +933,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
 
                 // Strategies used to detect modifications.
-                String cleanState = isCleanState(incrementalBuildHelper) ? "clean state" : null;
+                boolean cleanState = isCleanState(incrementalBuildHelper);
                 String immutableOutputFile = (compiler.getCompilerOutputStyle()
                                         .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
                                 && !canUpdateTarget)
@@ -946,19 +946,20 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                         : null;
 
                 // Get the first cause for the rebuild compilation detection.
-                String cause = Stream.of(
-                                cleanState, immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
+                String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
                         .filter(Objects::nonNull)
                         .findFirst()
                         .orElse(null);
 
-                if (cause != null) {
-                    getLog().info("Recompiling the module because of "
-                            + MessageUtils.buffer().strong(cause) + ".");
-                    compilerConfiguration.setSourceFiles(sources);
-                } else {
-                    getLog().info("Nothing to compile - all classes are up to date.");
-                    return;
+                if (!cleanState) {
+                    if (cause != null) {
+                        getLog().info("Recompiling the module because of "
+                                + MessageUtils.buffer().strong(cause) + ".");
+                        compilerConfiguration.setSourceFiles(sources);
+                    } else {
+                        getLog().info("Nothing to compile - all classes are up to date.");
+                        return;
+                    }
                 }
             } catch (CompilerException e) {
                 throw new MojoExecutionException("Error while computing stale sources.", e);
