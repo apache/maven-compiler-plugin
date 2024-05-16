@@ -934,24 +934,26 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
                 // Strategies used to detect modifications.
                 boolean cleanState = isCleanState(incrementalBuildHelper);
-                String immutableOutputFile = (compiler.getCompilerOutputStyle()
-                                        .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
-                                && !canUpdateTarget)
-                        ? "immutable single output file"
-                        : null;
-                String dependencyChanged = isDependencyChanged() ? "changed dependency" : null;
-                String sourceChanged = isSourceChanged(compilerConfiguration, compiler) ? "changed source code" : null;
-                String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
-                        ? "added or removed source files"
-                        : null;
-
-                // Get the first cause for the rebuild compilation detection.
-                String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
-                        .filter(Objects::nonNull)
-                        .findFirst()
-                        .orElse(null);
-
                 if (!cleanState) {
+                    String immutableOutputFile = (compiler.getCompilerOutputStyle()
+                                            .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                                    && !canUpdateTarget)
+                            ? "immutable single output file"
+                            : null;
+                    String dependencyChanged = isDependencyChanged() ? "changed dependency" : null;
+                    String sourceChanged =
+                            isSourceChanged(compilerConfiguration, compiler) ? "changed source code" : null;
+                    String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
+                            ? "added or removed source files"
+                            : null;
+
+                    // Get the first cause for the rebuild compilation detection.
+                    String cause = Stream.of(
+                                    immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
+                            .filter(Objects::nonNull)
+                            .findFirst()
+                            .orElse(null);
+
                     if (cause != null) {
                         getLog().info("Recompiling the module because of "
                                 + MessageUtils.buffer().strong(cause) + ".");
