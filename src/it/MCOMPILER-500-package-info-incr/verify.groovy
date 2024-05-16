@@ -20,7 +20,7 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-assert 1 == content.count( "Recompiling the module because of ")
+assert 0 == content.count( "Recompiling the module because of ")
 assert 1 == content.count( 'Nothing to compile - all classes are up to date.' )
 
 
