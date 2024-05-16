@@ -933,6 +933,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
 
                 // Strategies used to detect modifications.
+                String cleanState = isCleanState(incrementalBuildHelper) ? "clean state" : null;
                 String immutableOutputFile = (compiler.getCompilerOutputStyle()
                                         .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
                                 && !canUpdateTarget)
@@ -945,7 +946,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                         : null;
 
                 // Get the first cause for the rebuild compilation detection.
-                String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
+                String cause = Stream.of(
+                                cleanState, immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
                         .filter(Objects::nonNull)
                         .findFirst()
                         .orElse(null);
@@ -1589,6 +1591,22 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
         return newCompileSourceRootsList;
+    }
+
+    /**
+     *
+     */
+    protected boolean isCleanState(IncrementalBuildHelper ibh) {
+        Path mojoConfigBase;
+        try {
+            mojoConfigBase = ibh.getMojoStatusDirectory().toPath();
+        } catch (MojoExecutionException e) {
+            // we cannot get the mojo status dir, so don't do anything beside logging
+            getLog().warn("Error reading mojo status directory.");
+            return false;
+        }
+        Path mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
+        return !Files.exists(mojoConfigFile);
     }
 
     /**
