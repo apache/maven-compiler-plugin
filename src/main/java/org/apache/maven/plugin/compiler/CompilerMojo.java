@@ -392,7 +392,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             includes.add(defaultIncludePattern);
         }
         Set<String> excludesIncr = new HashSet<>(excludes);
-        excludesIncr.addAll(excludesIncr);
+        excludesIncr.addAll(this.incrementalExcludes);
         return new SimpleSourceInclusionScanner(includes, excludesIncr);
     }
 
