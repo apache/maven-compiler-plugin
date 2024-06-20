@@ -25,12 +25,13 @@
         <configuration>
           <failOnError>false</failOnError>
           <compileSourceRoots>
-            <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-fail-test/src/main/java</compileSourceRoot>
+            <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
           <debug>true</debug>
-          <outputDirectory>${basedir}/target/test/unit/compiler-fail-test/target/classes</outputDirectory>
-          <buildDirectory>${basedir}/target/test/unit/compiler-fail-test/target</buildDirectory>
+          <buildDirectory>${project.basedir}/target</buildDirectory>
+          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>

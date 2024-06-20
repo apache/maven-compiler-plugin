@@ -18,28 +18,29 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.LifecyclePhase;
-import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.shared.utils.StringUtils;
-import org.apache.maven.toolchain.Toolchain;
-import org.apache.maven.toolchain.java.DefaultJavaToolChain;
+import org.apache.maven.api.JavaToolchain;
+import org.apache.maven.api.PathScope;
+import org.apache.maven.api.ProjectScope;
+import org.apache.maven.api.Toolchain;
+import org.apache.maven.api.plugin.MojoException;
+import org.apache.maven.api.plugin.annotations.Mojo;
+import org.apache.maven.api.plugin.annotations.Parameter;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -58,11 +59,7 @@ import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
  * @since 2.0
  * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac Command</a>
  */
-@Mojo(
-        name = "testCompile",
-        defaultPhase = LifecyclePhase.TEST_COMPILE,
-        threadSafe = true,
-        requiresDependencyResolution = ResolutionScope.TEST)
+@Mojo(name = "testCompile", defaultPhase = "test-compile")
 public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * Set this to 'true' to bypass compilation of test sources.
@@ -74,8 +71,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * The source directories containing the test-source to be compiled.
      */
-    @Parameter(defaultValue = "${project.testCompileSourceRoots}", readonly = false, required = true)
+    @Parameter
     private List<String> compileSourceRoots;
+
+    /**
+     * The directory where compiled test classes go.
+     */
+    @Parameter(defaultValue = "${project.build.outputDirectory}", required = true)
+    private Path mainOutputDirectory;
 
     /**
      * The directory where compiled test classes go.
@@ -85,8 +88,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      *
      * @see CompilerMojo#outputDirectory
      */
-    @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = false)
-    private File outputDirectory;
+    @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true)
+    private Path outputDirectory;
 
     /**
      * A list of inclusion filters for the compiler.
@@ -168,7 +171,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * @since 2.2
      */
     @Parameter(defaultValue = "${project.build.directory}/generated-test-sources/test-annotations")
-    private File generatedTestSourcesDirectory;
+    private Path generatedTestSourcesDirectory;
 
     /**
      * <p>
@@ -182,7 +185,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     @Parameter(defaultValue = "true")
     private boolean useModulePath;
 
-    @Parameter(defaultValue = "${project.testClasspathElements}", readonly = true)
+    @Parameter
     private List<String> testPath;
 
     /**
@@ -196,11 +199,11 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     private Map<String, JavaModuleDescriptor> pathElements;
 
-    private Collection<String> classpathElements;
+    private List<String> classpathElements;
 
-    private Collection<String> modulepathElements;
+    private List<String> modulepathElements;
 
-    public void execute() throws MojoExecutionException, CompilationFailureException {
+    public void execute() throws MojoException {
         if (skip) {
             getLog().info("Not compiling test sources");
             return;
@@ -208,8 +211,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         super.execute();
     }
 
-    protected List<String> getCompileSourceRoots() {
-        return compileSourceRoots;
+    protected List<Path> getCompileSourceRoots() {
+        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+            return projectManager.getCompileSourceRoots(getProject(), ProjectScope.TEST);
+        } else {
+            return compileSourceRoots.stream().map(Paths::get).collect(Collectors.toList());
+        }
     }
 
     @Override
@@ -218,49 +225,58 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     protected List<String> getClasspathElements() {
-        return new ArrayList<>(classpathElements);
+        return classpathElements;
     }
 
     @Override
     protected List<String> getModulepathElements() {
-        return new ArrayList<>(modulepathElements);
+        return modulepathElements;
     }
 
-    protected File getOutputDirectory() {
+    protected Path getOutputDirectory() {
         return outputDirectory;
     }
 
     @Override
-    protected void preparePaths(Set<File> sourceFiles) {
-        File mainOutputDirectory = new File(getProject().getBuild().getOutputDirectory());
+    protected void preparePaths(Set<Path> sourceFiles) {
+        List<String> testPath = this.testPath;
+        if (testPath == null) {
+            Stream<String> s1 = Stream.of(outputDirectory.toString(), mainOutputDirectory.toString());
+            Stream<String> s2 = session.resolveDependencies(getProject(), PathScope.TEST_COMPILE).stream()
+                    .map(Path::toString);
+            testPath = Stream.concat(s1, s2).collect(Collectors.toList());
+        }
 
-        File mainModuleDescriptorClassFile = new File(mainOutputDirectory, "module-info.class");
+        Path mainOutputDirectory = Paths.get(getProject().getBuild().getOutputDirectory());
+
+        Path mainModuleDescriptorClassFile = mainOutputDirectory.resolve("module-info.class");
         JavaModuleDescriptor mainModuleDescriptor = null;
 
-        File testModuleDescriptorJavaFile = new File("module-info.java");
+        Path testModuleDescriptorJavaFile = Paths.get("module-info.java");
         JavaModuleDescriptor testModuleDescriptor = null;
 
         // Go through the source files to respect includes/excludes
-        for (File sourceFile : sourceFiles) {
+        for (Path sourceFile : sourceFiles) {
             // @todo verify if it is the root of a sourcedirectory?
-            if ("module-info.java".equals(sourceFile.getName())) {
+            if ("module-info.java".equals(sourceFile.getFileName().toString())) {
                 testModuleDescriptorJavaFile = sourceFile;
                 break;
             }
         }
 
         // Get additional information from the main module descriptor, if available
-        if (mainModuleDescriptorClassFile.exists()) {
+        if (Files.exists(mainModuleDescriptorClassFile)) {
             ResolvePathsResult<String> result;
 
             try {
                 ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(testPath)
                         .setIncludeStatic(true)
-                        .setMainModuleDescriptor(mainModuleDescriptorClassFile.getAbsolutePath());
+                        .setMainModuleDescriptor(
+                                mainModuleDescriptorClassFile.toAbsolutePath().toString());
 
-                Toolchain toolchain = getToolchain();
-                if (toolchain instanceof DefaultJavaToolChain) {
-                    request.setJdkHome(((DefaultJavaToolChain) toolchain).getJavaHome());
+                Optional<Toolchain> toolchain = getToolchain();
+                if (toolchain.isPresent() && toolchain.get() instanceof JavaToolchain) {
+                    request.setJdkHome(((JavaToolchain) toolchain.get()).getJavaHome());
                 }
 
                 result = locationManager.resolvePaths(request);
@@ -284,21 +300,22 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             pathElements = new LinkedHashMap<>(result.getPathElements().size());
             pathElements.putAll(result.getPathElements());
 
-            modulepathElements = result.getModulepathElements().keySet();
-            classpathElements = result.getClasspathElements();
+            modulepathElements = new ArrayList<>(result.getModulepathElements().keySet());
+            classpathElements = new ArrayList<>(result.getClasspathElements());
         }
 
         // Get additional information from the test module descriptor, if available
-        if (testModuleDescriptorJavaFile.exists()) {
+        if (Files.exists(testModuleDescriptorJavaFile)) {
             ResolvePathsResult<String> result;
 
             try {
                 ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(testPath)
-                        .setMainModuleDescriptor(testModuleDescriptorJavaFile.getAbsolutePath());
+                        .setMainModuleDescriptor(
+                                testModuleDescriptorJavaFile.toAbsolutePath().toString());
 
-                Toolchain toolchain = getToolchain();
-                if (toolchain instanceof DefaultJavaToolChain) {
-                    request.setJdkHome(((DefaultJavaToolChain) toolchain).getJavaHome());
+                Optional<Toolchain> toolchain = getToolchain();
+                if (toolchain.isPresent() && toolchain.get() instanceof JavaToolchain) {
+                    request.setJdkHome(((JavaToolchain) toolchain.get()).getJavaHome());
                 }
 
                 result = locationManager.resolvePaths(request);
@@ -309,20 +326,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             testModuleDescriptor = result.getMainModuleDescriptor();
         }
 
-        if (!useModulePath) {
-            pathElements = Collections.emptyMap();
-            modulepathElements = Collections.emptyList();
-            classpathElements = testPath;
-            return;
-        }
-        if (StringUtils.isNotEmpty(getRelease())) {
-            if (isOlderThanJDK9(getRelease())) {
+        if (release != null && !release.isEmpty()) {
+            if (Integer.parseInt(release) < 9) {
                 pathElements = Collections.emptyMap();
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
                 return;
             }
-        } else if (isOlderThanJDK9(getTarget())) {
+        } else if (Double.parseDouble(getTarget()) < Double.parseDouble(MODULE_INFO_TARGET)) {
             pathElements = Collections.emptyMap();
             modulepathElements = Collections.emptyList();
             classpathElements = testPath;
@@ -350,8 +361,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                     patchModuleValue.append(testModuleDescriptor.name());
                     patchModuleValue.append('=');
 
-                    for (String root : getProject().getCompileSourceRoots()) {
-                        if (Files.exists(Paths.get(root))) {
+                    for (Path root : projectManager.getCompileSourceRoots(getProject(), ProjectScope.MAIN)) {
+                        if (Files.exists(root)) {
                             patchModuleValue.append(root).append(PS);
                         }
                     }
@@ -362,7 +373,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 }
             } else {
                 // No main binaries available? Means we're a test-only project.
-                if (!mainOutputDirectory.exists()) {
+                if (!Files.exists(mainOutputDirectory)) {
                     return;
                 }
                 // very odd
@@ -383,7 +394,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                         .append('=')
                         .append(mainOutputDirectory)
                         .append(PS);
-                for (String root : compileSourceRoots) {
+                for (Path root : getCompileSourceRoots()) {
                     patchModuleValue.append(root).append(PS);
                 }
 
@@ -436,14 +447,6 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return scanner;
     }
 
-    static boolean isOlderThanJDK9(String version) {
-        if (version.startsWith("1.")) {
-            return Integer.parseInt(version.substring(2)) < 9;
-        }
-
-        return Integer.parseInt(version) < 9;
-    }
-
     protected String getSource() {
         return testSource == null ? source : testSource;
     }
@@ -461,11 +464,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
     }
 
-    protected Map<String, String> getCompilerArguments() {
-        return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
-    }
-
-    protected File getGeneratedSourcesDirectory() {
+    protected Path getGeneratedSourcesDirectory() {
         return generatedTestSourcesDirectory;
     }
 

@@ -31,10 +31,10 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <fork>true</fork>
-          <compilerArguments>
-            <Xlint />
-            <Averbose>true</Averbose>
-          </compilerArguments>
+          <compilerArgs>
+            <arg>-Xlint</arg>
+            <arg>-Averbose=true</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
     </plugins>
