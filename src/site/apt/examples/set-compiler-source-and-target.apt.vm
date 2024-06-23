@@ -82,3 +82,7 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   In the same way, setting the <<<source>>> option does not guarantee that your code actually compiles on a JDK with
   the specified version. To compile your code with a specific JDK version, different than the one used to launch Maven,
   refer to the {{{../examples/compile-using-different-jdk.html}Compile Using A Different JDK}} example.
+
+  <<Note:>> When you build your project using newer JDK (9+) you can also use "8" instead of "1.8" to set Java 8 as the
+  desired source/target, but you should use the
+  {{{../examples/set-compiler-release.html}"maven.compiler.release" property}} instead.
