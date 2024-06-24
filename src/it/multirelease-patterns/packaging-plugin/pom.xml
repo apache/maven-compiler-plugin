@@ -17,15 +17,23 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                               http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>multirelease</groupId>
 
   <artifactId>multirelease</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <packaging>multi-release-jar</packaging>
+  <name>Packaging Plugin</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
   <build>
     <pluginManagement>
@@ -57,6 +65,11 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <version>@version.maven-surefire@</version>
+        <configuration>
+          <includes>
+            <include>**/*Test.java</include>
+          </includes>
+        </configuration>
         <executions>
           <execution>
             <goals>
@@ -65,22 +78,7 @@
             </goals>
           </execution>
         </executions>
-        <configuration>
-          <includes>
-              <include>**/*Test.java</include>
-          </includes>      
-        </configuration>
       </plugin>
     </plugins>
   </build>
-
-  <dependencies>
-   <dependency>
-     <groupId>junit</groupId>
-     <artifactId>junit</artifactId>
-     <version>4.13.1</version>
-     <scope>test</scope>
-   </dependency>
-  </dependencies>
-  <name>Packaging Plugin</name>
 </project>

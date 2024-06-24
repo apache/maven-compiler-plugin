@@ -17,10 +17,7 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                               http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -32,15 +29,24 @@
 
   <name>Base</name>
 
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
   <build>
     <resources>
       <resource>
-        <directory>src/main/resources</directory>
         <filtering>true</filtering>
+        <directory>src/main/resources</directory>
       </resource>
       <resource>
-        <directory>target/generated-resources</directory>
         <filtering>false</filtering>
+        <directory>target/generated-resources</directory>
       </resource>
     </resources>
     <pluginManagement>
@@ -57,21 +63,26 @@
     </pluginManagement>
   </build>
 
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.13.1</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
   <profiles>
     <profile>
       <id>nine</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
+      <dependencies>
+        <dependency>
+          <groupId>multirelease</groupId>
+          <artifactId>multirelease-nine</artifactId>
+          <version>1.0.0-SNAPSHOT</version>
+          <scope>provided</scope>
+          <exclusions>
+            <exclusion>
+              <groupId>${project.groupId}</groupId>
+              <artifactId>${project.artifactId}</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
       <build>
         <pluginManagement>
           <plugins>
@@ -89,42 +100,28 @@
           </plugins>
         </pluginManagement>
         <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-dependency-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>add-java9-supplement</id>
-                  <phase>generate-resources</phase>
-                  <goals>
-                    <goal>unpack-dependencies</goal>
-                  </goals>
-                  <configuration>
-                    <includeGroupIds>multirelease</includeGroupIds>
-                    <includeArtifactIds>multirelease-nine</includeArtifactIds>
-                    <excludeTransitive>true</excludeTransitive>
-                    <includes>**/*.class</includes>
-                    <outputDirectory>${project.build.directory}/generated-resources/META-INF/versions/9</outputDirectory>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-java9-supplement</id>
+                <goals>
+                  <goal>unpack-dependencies</goal>
+                </goals>
+                <phase>generate-resources</phase>
+                <configuration>
+                  <includeGroupIds>multirelease</includeGroupIds>
+                  <includeArtifactIds>multirelease-nine</includeArtifactIds>
+                  <excludeTransitive>true</excludeTransitive>
+                  <includes>**/*.class</includes>
+                  <outputDirectory>${project.build.directory}/generated-resources/META-INF/versions/9</outputDirectory>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
-      <dependencies>
-        <dependency>
-          <groupId>multirelease</groupId>
-          <artifactId>multirelease-nine</artifactId>
-          <version>1.0.0-SNAPSHOT</version>
-          <scope>provided</scope>
-          <exclusions>
-            <exclusion>
-              <groupId>${project.groupId}</groupId>
-              <artifactId>${project.artifactId}</artifactId>
-            </exclusion>
-          </exclusions>
-        </dependency>
-      </dependencies>
     </profile>
   </profiles>
 </project>

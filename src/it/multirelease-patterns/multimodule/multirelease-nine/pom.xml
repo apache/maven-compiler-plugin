@@ -17,37 +17,34 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <groupId>multirelease</groupId>
-        <artifactId>multirelease-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
-    </parent>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                               http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>multirelease</groupId>
+    <artifactId>multirelease-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
 
-    <artifactId>multirelease-nine</artifactId>
+  <artifactId>multirelease-nine</artifactId>
 
-    <name>Version 9</name>
+  <name>Version 9</name>
 
-    <properties>
-        <maven.compiler.release>9</maven.compiler.release>
-        <maven.install.skip>true</maven.install.skip>
-    </properties>
+  <properties>
+    <maven.compiler.release>9</maven.compiler.release>
+    <maven.install.skip>true</maven.install.skip>
+  </properties>
 
-    <dependencies>
-        <dependency>
-            <groupId>multirelease</groupId>
-            <artifactId>multirelease-base</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-       <dependency>
-         <groupId>junit</groupId>
-         <artifactId>junit</artifactId>
-         <version>4.13.1</version>
-         <scope>test</scope>
-       </dependency>
-    </dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>multirelease</groupId>
+      <artifactId>multirelease-base</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

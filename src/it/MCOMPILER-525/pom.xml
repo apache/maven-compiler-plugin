@@ -21,9 +21,9 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.apache.maven.plugins</groupId>
   <artifactId>MCOMPILER-525-no-recreation</artifactId>
-  <name>MCOMPILER-525-no-recreation</name>
-  <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>MCOMPILER-525-no-recreation</name>
 
   <build>
     <plugins>
@@ -44,16 +44,14 @@
         <executions>
           <execution>
             <id>touch</id>
-            <phase>integration-test</phase>
             <goals>
               <goal>run</goal>
             </goals>
+            <phase>integration-test</phase>
             <configuration>
               <target>
                 <!-- Save the JAR and especially its timestamp for evaluation by the post-build hook script -->
-                <copy file="target/MCOMPILER-525-no-recreation-1.0-SNAPSHOT.jar"
-                      tofile="target/reference.jar"
-                      preservelastmodified="true" overwrite="true"/>
+                <copy file="target/MCOMPILER-525-no-recreation-1.0-SNAPSHOT.jar" overwrite="true" preservelastmodified="true" tofile="target/reference.jar" />
               </target>
             </configuration>
           </execution>
