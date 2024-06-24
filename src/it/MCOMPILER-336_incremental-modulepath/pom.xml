@@ -17,17 +17,18 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.maven.plugins.compiler.it</groupId>
   <artifactId>mcompiler336</artifactId>
   <version>1</version>
   <packaging>pom</packaging>
+
+  <modules>
+    <module>a</module>
+    <module>b</module>
+  </modules>
 
   <build>
     <plugins>
@@ -37,14 +38,10 @@
         <version>@project.version@</version>
         <configuration>
           <release>9</release>
-          <useIncrementalCompilation>false</useIncrementalCompilation>  <!-- https://issues.apache.org/jira/browse/MCOMPILER-209 -->
+          <useIncrementalCompilation>false</useIncrementalCompilation>
+          <!-- https://issues.apache.org/jira/browse/MCOMPILER-209 -->
         </configuration>
       </plugin>
     </plugins>
   </build>
-
-  <modules>
-    <module>a</module>
-    <module>b</module>
-  </modules>
 </project>

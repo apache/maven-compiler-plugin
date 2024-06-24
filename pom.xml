@@ -218,6 +218,11 @@ under the License.
                 <include>src/**/*.java</include>
               </includes>
             </java>
+            <pom>
+              <includes>
+                <include>**/pom.xml</include>
+              </includes>
+            </pom>
           </configuration>
         </plugin>
       </plugins>
