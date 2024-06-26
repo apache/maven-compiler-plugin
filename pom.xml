@@ -78,7 +78,7 @@ under the License.
     <junit4Version>4.13.2</junit4Version>
     <junitVersion>5.10.1</junitVersion>
     <mockitoVersion>5.12.0</mockitoVersion>
-    <mavenPluginTestingHarnessVersion>4.0.0-beta-1</mavenPluginTestingHarnessVersion>
+    <mavenPluginTestingHarnessVersion>4.0.0-beta-2-SNAPSHOT</mavenPluginTestingHarnessVersion>
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
     <plexusJavaVersion>1.2.0</plexusJavaVersion>
     <sisuPlexusVersion>0.9.0.M2</sisuPlexusVersion>
@@ -86,7 +86,7 @@ under the License.
     <surefire.version>3.2.1</surefire.version>
     <version.maven-invoker-plugin>3.7.0</version.maven-invoker-plugin>
     <version.maven-plugin-tools-3.x>3.13.1</version.maven-plugin-tools-3.x>
-    <version.maven-plugin-tools>4.0.0-beta-1</version.maven-plugin-tools>
+    <version.maven-plugin-tools>4.0.0-beta-2-SNAPSHOT</version.maven-plugin-tools>
     <version.plexus-xml>4.0.1</version.plexus-xml>
 
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
