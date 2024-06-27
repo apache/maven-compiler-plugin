@@ -17,4 +17,4 @@
  * under the License.
  */
 
-asfMavenTlpPlgnBuild(jdks:[ "17", "21" ])
+asfMavenTlpPlgnBuild(jdks:[ "17", "21" ], maven: [ "4.0.x" ], siteJdk:[ "17" ], siteMvn:[ "4.0.x" ])
