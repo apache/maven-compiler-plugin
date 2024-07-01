@@ -486,13 +486,11 @@ public class CompilerMojoTestCase {
             Path artifactFile;
             String localRepository = System.getProperty("localRepository");
             if (localRepository != null) {
-                artifactFile = Paths.get(localRepository, "junit/junit/3.8.1/junit-3.8.1.jar");
+                artifactFile = Paths.get(
+                        localRepository, "org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar");
             } else {
                 // for IDE
-                String junitURI = junit.framework.Test.class
-                        .getResource("Test.class")
-                        .toURI()
-                        .toString();
+                String junitURI = Test.class.getResource("Test.class").toURI().toString();
                 junitURI = junitURI.substring("jar:".length(), junitURI.indexOf('!'));
                 artifactFile = new File(URI.create(junitURI)).toPath();
             }
