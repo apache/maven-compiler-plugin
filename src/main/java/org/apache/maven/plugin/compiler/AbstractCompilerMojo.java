@@ -665,7 +665,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         // use the compilerId as identifier for toolchains as well.
         Optional<Toolchain> tc = getToolchain();
         if (tc.isPresent()) {
-            getLog().info("Toolchain in maven-compiler-plugin: " + tc);
+            getLog().info("Toolchain in maven-compiler-plugin: " + tc.get());
             if (executable != null) {
                 getLog().warn("Toolchains are ignored, 'executable' parameter is set to " + executable);
             } else {
