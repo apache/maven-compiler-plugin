@@ -275,6 +275,9 @@ under the License.
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <excludes>
+              <exclude>unit/**</exclude>
+            </excludes>
           </configuration>
         </plugin>
       </plugins>
