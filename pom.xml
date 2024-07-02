@@ -28,7 +28,7 @@ under the License.
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>3.13.1-SNAPSHOT</version>
+  <version>4.0.0-beta-2-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
@@ -67,144 +67,183 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>3.6.3</mavenVersion>
-    <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
+    <javaVersion>17</javaVersion>
+    <mavenVersion>4.0.0-beta-3</mavenVersion>
 
+    <asmVersion>9.7</asmVersion>
     <groovyVersion>2.4.21</groovyVersion>
     <groovyEclipseCompilerVersion>3.7.0</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.5.14-02</groovy-eclipse-batch>
-    <plexus-java.version>1.2.0</plexus-java.version>
-    <javaVersion>8</javaVersion>
-    <maven.it.failure.ignore>false</maven.it.failure.ignore>
-    <project.build.outputTimestamp>2024-03-15T07:28:09Z</project.build.outputTimestamp>
+    <guiceVersion>6.0.0</guiceVersion>
+    <junit4Version>4.13.2</junit4Version>
+    <junitVersion>5.10.1</junitVersion>
+    <mockitoVersion>5.12.0</mockitoVersion>
+    <mavenPluginTestingHarnessVersion>4.0.0-beta-2-SNAPSHOT</mavenPluginTestingHarnessVersion>
+    <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
+    <plexusJavaVersion>1.2.0</plexusJavaVersion>
+    <sisuPlexusVersion>0.9.0.M2</sisuPlexusVersion>
+    <slf4jVersion>2.0.13</slf4jVersion>
+    <surefire.version>3.2.1</surefire.version>
+    <version.maven-invoker-plugin>3.7.0</version.maven-invoker-plugin>
+    <version.maven-plugin-tools-3.x>3.13.1</version.maven-plugin-tools-3.x>
+    <version.maven-plugin-tools>4.0.0-beta-2-SNAPSHOT</version.maven-plugin-tools>
+    <version.plexus-xml>4.0.1</version.plexus-xml>
+
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
+    <maven.it.failure.ignore>false</maven.it.failure.ignore>
+
+    <project.build.outputTimestamp>2024-06-26T08:45:58Z</project.build.outputTimestamp>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>32.0.1-jre</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
-    <dependency>
-      <groupId>org.apache.maven.plugin-tools</groupId>
-      <artifactId>maven-plugin-annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <!-- Maven -->
     <dependency>
       <groupId>org.apache.maven</groupId>
-      <artifactId>maven-plugin-api</artifactId>
+      <artifactId>maven-api-core</artifactId>
       <version>${mavenVersion}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
-      <artifactId>maven-artifact</artifactId>
+      <artifactId>maven-api-di</artifactId>
       <version>${mavenVersion}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.maven</groupId>
-      <artifactId>maven-core</artifactId>
+      <artifactId>maven-api-meta</artifactId>
       <version>${mavenVersion}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.maven.shared</groupId>
-      <artifactId>maven-shared-utils</artifactId>
-      <version>3.4.2</version>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-api-model</artifactId>
+      <version>${mavenVersion}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.maven.shared</groupId>
-      <artifactId>maven-shared-incremental</artifactId>
-      <version>1.1</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.maven</groupId>
-          <artifactId>maven-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.maven</groupId>
-          <artifactId>maven-plugin-api</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.maven.shared</groupId>
-          <artifactId>maven-shared-utils</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.codehaus.plexus</groupId>
-          <artifactId>plexus-component-annotations</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-api-xml</artifactId>
+      <version>${mavenVersion}</version>
+      <scope>provided</scope>
     </dependency>
-
+    <dependency>
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-utils</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.eclipse.sisu</groupId>
+      <artifactId>org.eclipse.sisu.plexus</artifactId>
+      <version>${sisuPlexusVersion}</version>
+    </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-java</artifactId>
-      <version>${plexus-java.version}</version>
+      <version>${plexusJavaVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>${asmVersion}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4jVersion}</version>
     </dependency>
 
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-api</artifactId>
       <version>${plexusCompilerVersion}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.plexus</groupId>
+          <artifactId>plexus-component-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-manager</artifactId>
       <version>${plexusCompilerVersion}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.plexus</groupId>
+          <artifactId>plexus-component-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-compiler-javac</artifactId>
       <version>${plexusCompilerVersion}</version>
-      <scope>runtime</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-utils</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.codehaus.plexus</groupId>
+          <artifactId>plexus-component-api</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
 
     <dependency>
-      <groupId>org.apache.maven.plugin-testing</groupId>
-      <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>4.0.0-alpha-2</version>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-core</artifactId>
+      <version>${mavenVersion}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <!-- used by maven-plugin-testing-harness -->
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-xml</artifactId>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-api-impl</artifactId>
+      <version>${mavenVersion}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-xml-impl</artifactId>
+      <version>${mavenVersion}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.google.inject</groupId>
+      <artifactId>guice</artifactId>
+      <version>${guiceVersion}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.plugin-testing</groupId>
+      <artifactId>maven-plugin-testing-harness</artifactId>
+      <version>${mavenPluginTestingHarnessVersion}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
-      <version>4.8.0</version>
+      <version>${mockitoVersion}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
-      <version>5.10.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-params</artifactId>
-      <version>5.10.2</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4jVersion}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>plexus.snapshots</id>
-      <url>https://oss.sonatype.org/content/repositories/plexus-snapshots</url>
-    </repository>
-  </repositories>
 
   <build>
     <pluginManagement>
@@ -218,17 +257,25 @@ under the License.
                 <include>src/**/*.java</include>
               </includes>
             </java>
+            <pom>
+              <includes>
+                <include>**/pom.xml</include>
+              </includes>
+            </pom>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <configuration>
+            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <excludes>
+              <exclude>unit/**</exclude>
+            </excludes>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
-
-    <plugins>
-      <plugin>
-        <groupId>org.eclipse.sisu</groupId>
-        <artifactId>sisu-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
   </build>
 
   <profiles>

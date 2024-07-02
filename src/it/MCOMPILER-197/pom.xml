@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
@@ -18,16 +17,12 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.issue</groupId>
   <artifactId>compiler-test</artifactId>
   <version>1.0-SNAPSHOT</version>
-    
 
   <dependencies>
     <dependency>
@@ -44,13 +39,20 @@ under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.openjpa</groupId>
+            <artifactId>openjpa</artifactId>
+            <version>2.4.2</version>
+          </dependency>
+        </dependencies>
         <executions>
           <execution>
             <id>generate-entity-metamodel</id>
-            <phase>generate-sources</phase>
             <goals>
               <goal>compile</goal>
             </goals>
+            <phase>generate-sources</phase>
             <configuration>
               <target>1.6</target>
               <source>1.6</source>
@@ -64,23 +66,16 @@ under the License.
           </execution>
           <execution>
             <id>compile</id>
-            <phase>compile</phase>
             <goals>
               <goal>compile</goal>
             </goals>
+            <phase>compile</phase>
             <configuration>
               <source>1.6</source>
               <target>1.6</target>
             </configuration>
           </execution>
         </executions>
-        <dependencies>
-          <dependency>
-            <groupId>org.apache.openjpa</groupId>
-            <artifactId>openjpa</artifactId>
-            <version>2.4.2</version>
-          </dependency>
-        </dependencies>
       </plugin>
     </plugins>
   </build>
