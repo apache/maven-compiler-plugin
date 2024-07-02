@@ -238,12 +238,6 @@ under the License.
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit4Version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-simple</artifactId>
       <version>${slf4jVersion}</version>
@@ -275,6 +269,9 @@ under the License.
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
+            <excludes>
+              <exclude>unit/**</exclude>
+            </excludes>
           </configuration>
         </plugin>
       </plugins>

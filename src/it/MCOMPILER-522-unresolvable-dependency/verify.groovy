@@ -21,7 +21,7 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 
 def buildLog = logFile.getText('UTF-8')
-assert buildLog.contains( "Caused by: org.apache.maven.plugin.MojoExecutionException: " +
+assert buildLog.contains( "Caused by: org.apache.maven.api.plugin.MojoException: " +
         "Resolution of annotationProcessorPath dependencies failed: " )
 assert buildLog.contains(
         "The POM for org.apache.maven.plugins.compiler.it:annotation-processor-non-existing:jar:1.0-SNAPSHOT is missing, no dependency information available" )
