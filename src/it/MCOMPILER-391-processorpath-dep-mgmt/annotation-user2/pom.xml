@@ -17,10 +17,7 @@
   ~ specific language governing permissions and limitations
   ~ under the License.
   -->
-
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
@@ -31,14 +28,6 @@
 
   <artifactId>mcompiler391-annotation-user2</artifactId>
   <name>Annotation processor version from depMgmt + useDepMgmt=true</name>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.apache.maven.plugins.compiler.it</groupId>
-      <artifactId>mcompiler391-annotation-api</artifactId>
-      <version>1.0.0-SNAPSHOT</version>
-    </dependency>
-  </dependencies>
 
   <dependencyManagement>
     <dependencies>
@@ -55,6 +44,14 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.apache.maven.plugins.compiler.it</groupId>
+      <artifactId>mcompiler391-annotation-api</artifactId>
+      <version>1.0.0-SNAPSHOT</version>
+    </dependency>
+  </dependencies>
 
   <build>
     <plugins>
@@ -80,10 +77,10 @@
         <executions>
           <execution>
             <id>verify-annotations</id>
-            <phase>process-test-classes</phase>
             <goals>
               <goal>read-source</goal>
             </goals>
+            <phase>process-test-classes</phase>
             <configuration>
               <sourceClass>mcompiler391.SimpleObject2</sourceClass>
               <testSourceClass>mcompiler391.SimpleTestObject2</testSourceClass>

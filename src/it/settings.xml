@@ -32,17 +32,21 @@ under the License.
           <url>@localRepositoryUrl@</url>
           <releases>
             <enabled>true</enabled>
+            <checksumPolicy>ignore</checksumPolicy>
           </releases>
           <snapshots>
             <enabled>true</enabled>
+            <checksumPolicy>ignore</checksumPolicy>
           </snapshots>
         </repository>
         <repository>
           <releases>
             <enabled>false</enabled>
+            <checksumPolicy>ignore</checksumPolicy>
           </releases>
           <snapshots>
             <enabled>true</enabled>
+            <checksumPolicy>ignore</checksumPolicy>
           </snapshots>
           <id>plexus-snapshots</id>
           <name>Plexus Snapshot Repository</name>
@@ -55,9 +59,11 @@ under the License.
           <url>@localRepositoryUrl@</url>
           <releases>
             <enabled>true</enabled>
+            <checksumPolicy>ignore</checksumPolicy>
           </releases>
           <snapshots>
             <enabled>true</enabled>
+            <checksumPolicy>ignore</checksumPolicy>
           </snapshots>
         </pluginRepository>
       </pluginRepositories>

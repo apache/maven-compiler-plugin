@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
 or more contributor license agreements.  See the NOTICE file
@@ -18,18 +17,15 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-
 <project>
   <modelVersion>4.0.0</modelVersion>
-  
+
   <groupId>org.apache.maven.plugins.compiler.it</groupId>
   <artifactId>includes-excludes</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <description>
-    Test that source includes/excludes with in the compiler plugin config.
-    This will test excludes and testExcludes...
-  </description>
+  <description>Test that source includes/excludes with in the compiler plugin config.
+    This will test excludes and testExcludes...</description>
 
   <dependencies>
     <dependency>

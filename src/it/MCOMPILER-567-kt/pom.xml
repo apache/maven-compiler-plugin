@@ -17,15 +17,13 @@
   specific language governing permissions and limitations
   under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.apache.maven.plugins</groupId>
   <artifactId>MCOMPILER-567-kt</artifactId>
-  <name>MCOMPILER-567-kt</name>
-  <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  <name>MCOMPILER-567-kt</name>
 
   <dependencies>
     <dependency>
@@ -36,7 +34,6 @@
   </dependencies>
 
   <build>
-    <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
     <plugins>
       <plugin>
         <groupId>org.jetbrains.kotlin</groupId>
@@ -66,13 +63,14 @@
           </execution>
           <execution>
             <id>java-compile</id>
-            <phase>compile</phase>
             <goals>
               <goal>compile</goal>
             </goals>
+            <phase>compile</phase>
           </execution>
         </executions>
       </plugin>
     </plugins>
+    <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
   </build>
 </project>
