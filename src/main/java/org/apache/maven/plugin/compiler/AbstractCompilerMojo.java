@@ -1148,7 +1148,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
             }
         }
 
-        if (outputTimestamp != null && (outputTimestamp.length() > 1 || Character.isDigit(outputTimestamp.charAt(0)))) {
+        if (outputTimestamp != null
+                && !outputTimestamp.isEmpty()
+                && (outputTimestamp.length() > 1 || Character.isDigit(outputTimestamp.charAt(0)))) {
             // if Reproducible Builds mode, apply workaround
             patchJdkModuleVersion(compilerResult, sources);
         }
