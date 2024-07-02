@@ -869,39 +869,43 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 incrementalBuildHelper =
                         new IncrementalBuildHelper(mojoStatusPath, sources, buildDirectory, getOutputDirectory());
 
-                List<String> added = new ArrayList<>();
-                List<String> removed = new ArrayList<>();
-                boolean immutableOutputFile = compiler.getCompilerOutputStyle()
-                                .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
-                        && !canUpdateTarget;
-                boolean dependencyChanged = isDependencyChanged();
-                boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
-                boolean inputFileTreeChanged = incrementalBuildHelper.inputFileTreeChanged(added, removed);
-                // CHECKSTYLE_OFF: LineLength
-                if (immutableOutputFile || dependencyChanged || sourceChanged || inputFileTreeChanged)
-                // CHECKSTYLE_ON: LineLength
-                {
-                    String cause = immutableOutputFile
-                            ? "immutable single output file"
-                            : (dependencyChanged
-                                    ? "changed dependency"
-                                    : (sourceChanged ? "changed source code" : "added or removed source files"));
-                    getLog().info("Recompiling the module because of " + cause + ".");
-                    if (showCompilationChanges) {
-                        for (String fileAdded : added) {
-                            getLog().info("\t+ " + fileAdded);
+                // Strategies used to detect modifications.
+                boolean cleanState = isCleanState(incrementalBuildHelper);
+                if (!cleanState) {
+                    List<String> added = new ArrayList<>();
+                    List<String> removed = new ArrayList<>();
+                    boolean immutableOutputFile = compiler.getCompilerOutputStyle()
+                                    .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                            && !canUpdateTarget;
+                    boolean dependencyChanged = isDependencyChanged();
+                    boolean sourceChanged = isSourceChanged(compilerConfiguration, compiler);
+                    boolean inputFileTreeChanged = incrementalBuildHelper.inputFileTreeChanged(added, removed);
+                    // CHECKSTYLE_OFF: LineLength
+                    if (immutableOutputFile || dependencyChanged || sourceChanged || inputFileTreeChanged)
+                    // CHECKSTYLE_ON: LineLength
+                    {
+                        String cause = immutableOutputFile
+                                ? "immutable single output file"
+                                : (dependencyChanged
+                                        ? "changed dependency"
+                                        : (sourceChanged ? "changed source code" : "added or removed source files"));
+                        getLog().info("Recompiling the module because of " + cause + ".");
+                        if (showCompilationChanges) {
+                            for (String fileAdded : added) {
+                                getLog().info("\t+ " + fileAdded);
+                            }
+                            for (String fileRemoved : removed) {
+                                getLog().info("\t- " + fileRemoved);
+                            }
                         }
-                        for (String fileRemoved : removed) {
-                            getLog().info("\t- " + fileRemoved);
-                        }
+
+                        compilerConfiguration.setSourceFiles(
+                                sources.stream().map(Path::toFile).collect(Collectors.toSet()));
+                    } else {
+                        getLog().info("Nothing to compile - all classes are up to date.");
+
+                        return;
                     }
-
-                    compilerConfiguration.setSourceFiles(
-                            sources.stream().map(Path::toFile).collect(Collectors.toSet()));
-                } else {
-                    getLog().info("Nothing to compile - all classes are up to date.");
-
-                    return;
                 }
             } catch (CompilerException e) {
                 throw new MojoException("Error while computing stale sources.", e);
@@ -1473,6 +1477,22 @@ public abstract class AbstractCompilerMojo implements Mojo {
         } else {
             return new ArrayList<>();
         }
+    }
+
+    /**
+     *
+     */
+    protected boolean isCleanState(IncrementalBuildHelper ibh) {
+        Path mojoConfigBase;
+        try {
+            mojoConfigBase = ibh.getMojoStatusDirectory();
+        } catch (MojoException e) {
+            // we cannot get the mojo status dir, so don't do anything beside logging
+            getLog().warn("Error reading mojo status directory.");
+            return false;
+        }
+        Path mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
+        return !Files.exists(mojoConfigFile);
     }
 
     /**
