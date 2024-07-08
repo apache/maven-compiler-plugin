@@ -418,9 +418,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             if (testIncludes.isEmpty()) {
                 testIncludes.add("**/*.java");
             }
-            Set<String> excludesIncr = new HashSet<>(testExcludes);
-            excludesIncr.addAll(this.testIncrementalExcludes);
-            scanner = new StaleSourceScanner(staleMillis, testIncludes, excludesIncr);
+            scanner = new StaleSourceScanner(staleMillis, testIncludes, add(testExcludes, testIncrementalExcludes));
         }
 
         return scanner;
@@ -439,9 +437,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             if (testIncludes.isEmpty()) {
                 testIncludes.add(defaultIncludePattern);
             }
-            Set<String> excludesIncr = new HashSet<>(testExcludes);
-            excludesIncr.addAll(this.testIncrementalExcludes);
-            scanner = new SimpleSourceInclusionScanner(testIncludes, excludesIncr);
+            scanner = new SimpleSourceInclusionScanner(testIncludes, add(testExcludes, testIncrementalExcludes));
         }
 
         return scanner;

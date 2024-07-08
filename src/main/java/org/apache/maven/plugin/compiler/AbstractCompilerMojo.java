@@ -1808,4 +1808,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
             return this;
         }
     }
+
+    protected static <T> Set<T> add(Set<T> t1, Set<T> t2) {
+        Set<T> s = new HashSet<>();
+        s.addAll(t1);
+        s.addAll(t2);
+        return s;
+    }
 }

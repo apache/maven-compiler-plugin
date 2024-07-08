@@ -219,7 +219,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             Stream<String> s1 = Stream.of(getOutputDirectory().toString());
             Stream<String> s2 = session.resolveDependencies(getProject(), PathScope.MAIN_COMPILE).stream()
                     .map(Path::toString);
-            compilePath = Stream.concat(s1, s2).collect(Collectors.toList());
+            compilePath = Stream.concat(s1, s2).toList();
         }
 
         Path moduleDescriptorPath = null;
@@ -371,9 +371,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             includes.add("**/*.java");
         }
 
-        Set<String> excludesIncr = new HashSet<>(excludes);
-        excludesIncr.addAll(this.incrementalExcludes);
-        return new StaleSourceScanner(staleMillis, includes, excludesIncr);
+        return new StaleSourceScanner(staleMillis, includes, add(excludes, incrementalExcludes));
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding) {
@@ -383,9 +381,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         if (includes.isEmpty()) {
             includes.add(defaultIncludePattern);
         }
-        Set<String> excludesIncr = new HashSet<>(excludes);
-        excludesIncr.addAll(excludesIncr);
-        return new SimpleSourceInclusionScanner(includes, excludesIncr);
+        return new SimpleSourceInclusionScanner(includes, add(excludes, incrementalExcludes));
     }
 
     @Override
