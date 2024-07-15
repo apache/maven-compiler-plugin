@@ -50,7 +50,22 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <release>9</release>
+          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+          <source />
+          <target />
+          <release>17</release>
+          <!--
+            Normally, the following arguments should not be provided. Instead, an automatic module name
+            should be used in the `module-info.java` file. However, this is not possible for the JAR in
+            this test because they have invalid module name or they have classes in the root package.
+            But it is nevertheless possible to build the project with the dependency on the classpath
+            and this `add-reads` option. The compiler plugin do not have this option automatically for
+            the main classes as a matter of policy.
+          -->
+          <compilerArgs>
+            <arg>--add-reads</arg>
+            <arg>M.N=ALL-UNNAMED</arg>
+          </compilerArgs>
         </configuration>
       </plugin>
     </plugins>

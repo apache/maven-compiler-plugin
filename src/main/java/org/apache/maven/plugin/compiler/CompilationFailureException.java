@@ -18,60 +18,32 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import java.util.List;
-
 import org.apache.maven.api.plugin.MojoException;
-import org.codehaus.plexus.compiler.CompilerMessage;
 
 /**
+ * Thrown when the Maven compiler plugin cannot complete the project compilation.
+ *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @since 2.0
  */
 @SuppressWarnings("serial")
 public class CompilationFailureException extends MojoException {
-    private static final String LS = System.lineSeparator();
-
     /**
-     * Wrap error messages from the compiler
+     * Creates a new exception with the given message.
      *
-     * @param messages the messages, not null
-     * @since 2.0
+     * @param message the short message
      */
-    public CompilationFailureException(List<CompilerMessage> messages) {
-        super(null, shortMessage(messages), longMessage(messages));
+    public CompilationFailureException(String message) {
+        super(message);
     }
 
     /**
-     * Long message will have all messages, one per line
+     * Creates a new exception with the given message and cause.
      *
-     * @param messages the messages, not null
-     * @return the long error message
-     * @since 2.0
+     * @param message the short message
+     * @param cause the cause of the failure, or {@code null} if none
      */
-    public static String longMessage(List<CompilerMessage> messages) {
-        StringBuilder sb = new StringBuilder();
-
-        for (CompilerMessage compilerError : messages) {
-            sb.append(compilerError).append(LS);
-        }
-
-        return sb.toString();
-    }
-
-    /**
-     * Short message will have the error message if there's only one, useful for errors forking the compiler
-     *
-     * @param messages the messages, not null
-     * @return the short error message
-     * @since 2.0.2
-     */
-    public static String shortMessage(List<CompilerMessage> messages) {
-        StringBuilder sb = new StringBuilder("Compilation failure");
-
-        if (messages.size() == 1) {
-            sb.append(LS).append(messages.get(0)).append(LS);
-        }
-
-        return sb.toString();
+    public CompilationFailureException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

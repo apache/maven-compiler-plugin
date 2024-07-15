@@ -31,12 +31,14 @@ under the License.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <source>8</source>
-          <target>8</target>
+          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+          <source />
+          <target />
+          <release>15</release>
         </configuration>
         <!-- define the possible compilations -->
         <executions>
-          <!-- for Java 9 -->
+          <!-- Pseudo-Java 9 (actually using a more recent version for avoiding unsupported versions) -->
           <execution>
             <id>java9</id>
             <goals>
@@ -44,14 +46,14 @@ under the License.
             </goals>
             <phase>compile</phase>
             <configuration>
-              <release>9</release>
+              <release>16</release>
               <compileSourceRoots>
                 <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
               </compileSourceRoots>
               <multiReleaseOutput>true</multiReleaseOutput>
             </configuration>
           </execution>
-          <!-- for Java 11 -->
+          <!-- Pseudo-Java 11 (actually using a more recent version for avoiding unsupported versions) -->
           <execution>
             <id>java11</id>
             <goals>
@@ -59,7 +61,7 @@ under the License.
             </goals>
             <phase>compile</phase>
             <configuration>
-              <release>11</release>
+              <release>17</release>
               <compileSourceRoots>
                 <compileSourceRoot>${project.basedir}/src/main/java11</compileSourceRoot>
               </compileSourceRoots>

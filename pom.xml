@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>42</version>
+    <version>43</version>
     <relativePath />
   </parent>
 
@@ -38,6 +38,20 @@ under the License.
   <contributors>
     <contributor>
       <name>Jan Sievers</name>
+    </contributor>
+    <contributor>
+      <name>Trygve Laugstøl</name>
+      <email>trygvis@inamo.no</email>
+    </contributor>
+    <contributor>
+      <name>Jason van Zyl</name>
+      <email>jason@maven.org</email>
+    </contributor>
+    <contributor>
+      <name>Andreas Gudian</name>
+    </contributor>
+    <contributor>
+      <name>Martin Desruisseaux</name>
     </contributor>
   </contributors>
 
@@ -68,7 +82,7 @@ under the License.
 
   <properties>
     <javaVersion>17</javaVersion>
-    <mavenVersion>4.0.0-beta-3</mavenVersion>
+    <mavenVersion>4.0.0-beta-5</mavenVersion>
 
     <asmVersion>9.7</asmVersion>
     <groovyVersion>2.4.21</groovyVersion>
@@ -82,28 +96,16 @@ under the License.
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
     <plexusJavaVersion>1.2.0</plexusJavaVersion>
     <sisuPlexusVersion>0.9.0.M2</sisuPlexusVersion>
-    <slf4jVersion>2.0.13</slf4jVersion>
     <surefire.version>3.2.1</surefire.version>
     <version.maven-invoker-plugin>3.7.0</version.maven-invoker-plugin>
     <version.maven-plugin-tools-3.x>3.13.1</version.maven-plugin-tools-3.x>
-    <version.maven-plugin-tools>4.0.0-beta-2-SNAPSHOT</version.maven-plugin-tools>
-    <version.plexus-xml>4.0.1</version.plexus-xml>
+    <version.maven-plugin-tools>4.0.0-beta-1</version.maven-plugin-tools>
 
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
 
     <project.build.outputTimestamp>2024-06-26T08:45:58Z</project.build.outputTimestamp>
   </properties>
-
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>32.0.1-jre</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <dependencies>
     <!-- Maven -->
@@ -114,86 +116,9 @@ under the License.
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-api-di</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-api-meta</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-api-model</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-api-xml</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-utils</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.eclipse.sisu</groupId>
-      <artifactId>org.eclipse.sisu.plexus</artifactId>
-      <version>${sisuPlexusVersion}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-java</artifactId>
-      <version>${plexusJavaVersion}</version>
-    </dependency>
-    <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
       <version>${asmVersion}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${slf4jVersion}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-compiler-api</artifactId>
-      <version>${plexusCompilerVersion}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.codehaus.plexus</groupId>
-          <artifactId>plexus-component-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-compiler-manager</artifactId>
-      <version>${plexusCompilerVersion}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.codehaus.plexus</groupId>
-          <artifactId>plexus-component-api</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.codehaus.plexus</groupId>
-      <artifactId>plexus-compiler-javac</artifactId>
-      <version>${plexusCompilerVersion}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.codehaus.plexus</groupId>
-          <artifactId>plexus-component-api</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
 
     <dependency>
@@ -237,17 +162,18 @@ under the License.
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <version>${slf4jVersion}</version>
-      <scope>test</scope>
-    </dependency>
   </dependencies>
 
   <build>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <release>${javaVersion}</release>
+          </configuration>
+        </plugin>
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>

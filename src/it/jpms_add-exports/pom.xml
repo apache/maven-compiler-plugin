@@ -36,7 +36,10 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <release>9</release>
+            <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+            <source />
+            <target />
+            <release>17</release>
             <compilerArgs>
               <arg>--add-exports</arg>
               <arg>app/org.maven.test=ALL_UNNAMED</arg>

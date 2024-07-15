@@ -33,11 +33,15 @@
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
       <version>3.0.24</version>
+      <type>modular-jar</type>
+      <!-- Force placement on the module-path. -->
     </dependency>
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-resources</artifactId>
       <version>1.1.0</version>
+      <type>modular-jar</type>
+      <!-- Force placement on the module-path. -->
     </dependency>
   </dependencies>
 
@@ -49,7 +53,10 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <release>9</release>
+            <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+            <source />
+            <target />
+            <release>17</release>
           </configuration>
         </plugin>
       </plugins>

@@ -19,13 +19,15 @@
 
 <project>
   <build>
+    <directory>${project.basedir}/target</directory>
+    <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+    <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <fork>true</fork>
-          <source>8</source>
-          <target>8</target>
+          <release>17</release>
           <!--
              basedir is required to be set when forking
           -->
@@ -37,17 +39,13 @@
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <compilerId>javac</compilerId>
-          <debug>true</debug>
+          <incrementalCompilation>none</incrementalCompilation>
           <executable>javac</executable>
           <!--
              <executable>${env.JAVA_HOME}/bin/javac</executable>
              This value would have been better, but ${env.JAVA_HOME} can't be resolved.
-             So it is adjusted in org.apache.maven.plugin.compiler.CompilerMojoTestCase.testCompilerFork()   
+             So it is adjusted in org.apache.maven.plugin.compiler.CompilerMojoTestCase.testCompilerFork()
            -->
-          <buildDirectory>${project.basedir}/target</buildDirectory>
-          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
         </configuration>
       </plugin>
     </plugins>

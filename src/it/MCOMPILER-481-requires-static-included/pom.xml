@@ -41,9 +41,11 @@ under the License.
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <source>11</source>
-            <target>11</target>
+            <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+            <source />
+            <target />
             <release>11</release>
+            <!-- Older release required by the surefire plugin tested below. -->
           </configuration>
         </plugin>
         <plugin>

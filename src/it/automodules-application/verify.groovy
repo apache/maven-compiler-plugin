@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -19,4 +19,5 @@
 
 buildLog = new File( basedir, 'build.log' ).text;
 
-assert buildLog.contains("[INFO] Required filename-based automodules detected: [plexus-utils-3.0.24.jar]. Please don't publish this project to a public artifact repository!");
+assert buildLog.contains("[WARNING] Filename-based automodules detected on the module-path:")
+assert buildLog.contains("  - plexus-utils-3.0.24.jar")

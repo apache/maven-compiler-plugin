@@ -24,19 +24,22 @@ assert 1 == log.text.count('[INFO] Building multirelease-parent 1.0.0-SNAPSHOT')
 assert 2 == log.text.count('[INFO] Building Base 1.0.0-SNAPSHOT')                : 'base should be built twice'
 assert 1 == log.text.count('[INFO] Building multirelease-nine 1.0.0-SNAPSHOT')   : 'nine should be built once'
 
+def baseVersion = 60 // Java 16
+def nextVersion = 61; // Java 17
+
 def mrjar = new JarFile(new File(basedir,'multirelease-base/target/multirelease-1.0.0-SNAPSHOT.jar'))
 
 assert mrjar.manifest.mainAttributes.getValue('Multi-Release') == 'true' : 'Multi-Release attribute in manifest should be true'
 
 assert (je = mrjar.getEntry('base/Base.class')) != null : 'jar should contain base/Base.class'
-assert 52 == getMajor(mrjar.getInputStream(je))         : 'base/Base.class should have 52 as major bytecode version'
+assert baseVersion == getMajor(mrjar.getInputStream(je)) : 'base/Base.class has unexpected major bytecode version'
 assert (je = mrjar.getEntry('mr/A.class')) != null      : 'jar should contain mr/A.class'
-assert 52 == getMajor(mrjar.getInputStream(je))         : 'mr/A.class should have 52 as major bytecode version'
+assert baseVersion == getMajor(mrjar.getInputStream(je)) : 'mr/A.class shas unexpected major bytecode version'
 assert (je = mrjar.getEntry('mr/I.class')) != null      : 'jar should contain mr/I.class'
-assert 52 == getMajor(mrjar.getInputStream(je))         : 'mr/I.class should have 52 as major bytecode version'
+assert baseVersion == getMajor(mrjar.getInputStream(je)) : 'mr/I.class has unexpected major bytecode version'
 
 assert (je = mrjar.getEntry('META-INF/versions/9/mr/A.class')) != null : 'jar should contain META-INF/versions/9/mr/A.class'
-assert 53 == getMajor(mrjar.getInputStream(je))                        : 'META-INF/versions/9/mr/A.class should have 53 as major bytecode version'
+assert nextVersion == getMajor(mrjar.getInputStream(je))                        : 'META-INF/versions/9/mr/A.class has unexpected major bytecode version'
 
 /*
   base

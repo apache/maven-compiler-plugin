@@ -20,7 +20,7 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( 'Compilation failure' )
+assert content.contains( 'COMPILATION ERROR:' )
+assert content.contains( 'CompilationFailureException' ) // In debug level logs.
 assert !content.contains( 'invalid flag' )
 assert content.contains( 'unchecked call to add(E) as a member of the raw type ' ) // List or java.util.List
-

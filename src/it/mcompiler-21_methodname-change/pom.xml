@@ -46,11 +46,11 @@ under the License.
         <version>2.1.1</version>
         <configuration>
           <source>def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
-            
-            processFileInplace( beanAFile ) { text -&gt; 
+
+            processFileInplace( beanAFile ) { text -&gt;
               text.replaceAll( /getI/, 'getI_doesntexistanymore')
             }
-            
+
             def processFileInplace(file, Closure processText) {
               def text = file.text
               file.write(processText(text))

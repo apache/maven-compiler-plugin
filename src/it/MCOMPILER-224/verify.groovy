@@ -48,4 +48,3 @@ if ( !mandatoryWarningExists ){
 if ( fail ){
     throw new RuntimeException( messages )
 }
-

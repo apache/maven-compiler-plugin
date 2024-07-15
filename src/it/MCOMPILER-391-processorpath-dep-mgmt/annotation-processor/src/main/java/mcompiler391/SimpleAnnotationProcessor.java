@@ -36,7 +36,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Set;
 
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @SupportedAnnotationTypes("mcompiler391.SimpleAnnotation")
 public class SimpleAnnotationProcessor extends AbstractProcessor {
 
@@ -47,9 +47,7 @@ public class SimpleAnnotationProcessor extends AbstractProcessor {
         }
 
         Filer filer = processingEnv.getFiler();
-
         Elements elementUtils = processingEnv.getElementUtils();
-
         Set<? extends Element> elements =
                 roundEnv.getElementsAnnotatedWith(annotations.iterator().next());
 

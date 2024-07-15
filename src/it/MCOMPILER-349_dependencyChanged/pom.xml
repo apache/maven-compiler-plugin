@@ -25,11 +25,10 @@
   <version>1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <description>IT test to verify that dependent-module recompile, when run 'mvn compile' without 'clean' if module dependency
-    changed.
-    The compilation should fail as dependent-module use method that is no longer exists (run() method of TestService
-    renamed to
-    newMethodName()).</description>
+  <description>IT test to verify that dependent-module is recompiled when
+    `mvn compile` is executed without `mvn clean` while a module dependency has changed.
+    The compilation should fail as dependent-module uses a method that no longer exists
+    (run() method of TestService renamed to newMethodName()).</description>
 
   <modules>
     <module>dependent-module</module>

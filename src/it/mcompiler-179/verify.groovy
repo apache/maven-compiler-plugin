@@ -21,7 +21,6 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-// messages differ per vendor 
-assert content.contains( '[WARNING] COMPILATION WARNING :' )
-assert content =~ /\d+ warnings?/
-assert content.contains( '1 error' )
+assert content.contains( '[WARNING] unchecked call' )
+assert content.contains( 'COMPILATION ERROR:' )
+assert content.contains( 'CompilationFailureException' ) // In debug level logs.

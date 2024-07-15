@@ -32,6 +32,12 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
+          <configuration>
+            <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+            <source />
+            <target />
+            <release>16</release>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>

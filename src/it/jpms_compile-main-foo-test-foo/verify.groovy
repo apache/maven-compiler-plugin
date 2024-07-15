@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -17,15 +17,8 @@
  * under the License.
  */
 
-def jpmsArgs = new File( basedir, 'target/test-classes/META-INF/jpms.args' )
-def lines = jpmsArgs.readLines()
-assert lines[0] == "--patch-module"
-assert lines[1].startsWith( "foo=" )
-assert lines[1].contains( java.nio.file.Paths.get ("src", "main", "java").toString() )
+assert new File( basedir, "target/classes/module-info.class").exists()
+assert new File( basedir, "target/classes/foo/Foo.class").exists()
 
-assert new File( basedir, "target/classes/module-info.class" ).exists()
-assert new File( basedir, "target/classes/foo/Foo.class" ).exists()
-
-assert new File( basedir, "target/test-classes/module-info.class" ).exists()
-assert new File( basedir, "target/test-classes/foo/Foo.class" ).exists()
-assert new File( basedir, "target/test-classes/foo/FooTests.class" ).exists()
+assert new File( basedir, "target/test-classes/module-info.class").exists()
+assert new File( basedir, "target/test-classes/foo/FooTests.class").exists()

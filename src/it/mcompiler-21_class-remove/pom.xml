@@ -46,7 +46,7 @@ under the License.
         <version>2.1.1</version>
         <configuration>
           <source>def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
-            
+
             beanAFile.delete()</source>
         </configuration>
         <dependencies>

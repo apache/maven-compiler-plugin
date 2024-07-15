@@ -36,23 +36,19 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Set;
 
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @SupportedAnnotationTypes("org.issue.SimpleAnnotation")
 public class SimpleAnnotationProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         Filer filer = processingEnv.getFiler();
-
         Elements elementUtils = processingEnv.getElementUtils();
-
         Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(SimpleAnnotation.class);
 
         for (Element element : elements) {
             Name name = element.getSimpleName();
-
             PackageElement packageElement = elementUtils.getPackageOf(element);
-
             try {
                 FileObject resource = filer.createResource(
                         StandardLocation.SOURCE_OUTPUT, packageElement.getQualifiedName(), name + ".txt", element);
@@ -64,7 +60,6 @@ public class SimpleAnnotationProcessor extends AbstractProcessor {
                 throw new RuntimeException(e);
             }
         }
-
         return !elements.isEmpty();
     }
 }

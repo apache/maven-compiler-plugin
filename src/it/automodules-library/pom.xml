@@ -33,6 +33,7 @@
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
       <version>3.0.24</version>
+      <type>modular-jar</type>
     </dependency>
   </dependencies>
 
@@ -44,7 +45,10 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <release>9</release>
+            <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+            <source />
+            <target />
+            <release>17</release>
           </configuration>
         </plugin>
       </plugins>

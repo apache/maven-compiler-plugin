@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def log = new File( basedir, 'build.log').text
+def cmd = new File(basedir, 'target/javac.args').text
+assert cmd.count("--release") == 1
 
-assert log.count( " --release" ) == 2
-
-assert !( log =~  /\s-source\s/ )
-assert !( log =~  /\s-target\s/ )
-
+assert !( cmd =~  /\s-source\s/ )
+assert !( cmd =~  /\s-target\s/ )

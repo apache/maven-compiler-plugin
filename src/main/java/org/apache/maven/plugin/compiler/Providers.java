@@ -18,19 +18,17 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import java.lang.reflect.Field;
-import java.util.Map;
-
 import org.apache.maven.api.Session;
 import org.apache.maven.api.di.Named;
 import org.apache.maven.api.di.Provides;
-import org.apache.maven.api.services.*;
-import org.codehaus.plexus.compiler.Compiler;
-import org.codehaus.plexus.compiler.javac.JavacCompiler;
-import org.codehaus.plexus.compiler.javac.JavaxToolsCompiler;
-import org.codehaus.plexus.compiler.manager.CompilerManager;
-import org.codehaus.plexus.compiler.manager.NoSuchCompilerException;
+import org.apache.maven.api.services.ArtifactManager;
+import org.apache.maven.api.services.MessageBuilderFactory;
+import org.apache.maven.api.services.ProjectManager;
+import org.apache.maven.api.services.ToolchainManager;
 
+/**
+ * For providing instances to fields annotated with {@code @Inject} if the MOJO.
+ */
 @Named
 class Providers {
 
@@ -52,27 +50,5 @@ class Providers {
     @Provides
     static MessageBuilderFactory messageBuilderFactory(Session session) {
         return session.getService(MessageBuilderFactory.class);
-    }
-
-    @Provides
-    static CompilerManager compilerManager(Map<String, Compiler> compilers) {
-        return compilerId -> {
-            Compiler compiler = compilers.get(compilerId);
-            if (compiler == null) {
-                throw new NoSuchCompilerException(compilerId);
-            } else {
-                return compiler;
-            }
-        };
-    }
-
-    @Provides
-    @Named("javac")
-    static Compiler javacCompiler() throws Exception {
-        JavacCompiler compiler = new JavacCompiler();
-        Field ipc = JavacCompiler.class.getDeclaredField("inProcessCompiler");
-        ipc.setAccessible(true);
-        ipc.set(compiler, new JavaxToolsCompiler());
-        return compiler;
     }
 }

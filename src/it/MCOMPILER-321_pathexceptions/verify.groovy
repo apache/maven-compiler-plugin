@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def log = new File( basedir, 'build.log').text
 
-assert 2 == log.count( "[WARNING] Can't extract module name from geronimo-servlet_2.4_spec-1.1.1.jar: "  
-					    /* Invalid module name: '2' is not a Java identifier */ )
-assert 2 == log.count( "[WARNING] Can't extract module name from jdom-1.0.jar: " 
-                        /* JDOMAbout$Author.class found in top-level directory (unnamed package not allowed in module) */ )
+/*
+ * A previous version of this test was looking for the following warnings in the logs:
+ *
+ *    - Can't extract module name from geronimo-servlet_2.4_spec-1.1.1.jar
+ *      (because of invalid module name: '2' is not a Java identifier)
+ *
+ *    - Can't extract module name from jdom-1.0.jar
+ *      (because of JDOMAbout.class found in top-level directory while unnamed package not allowed in module)
+ *
+ * Those warnings do not happen anymore, even if above JARs are still invalid. However, it is nevertheless
+ * possible to build the project with the dependency on the classpath and an `--add-reads` option.
+ * We verify by ensuring that the test file, which use JDOM, has been compiled.
+ */
+def targetFile = new File( basedir, 'target/test-classes/test/MyTest.class')
+assert targetFile.exists()

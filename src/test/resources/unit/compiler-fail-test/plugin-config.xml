@@ -29,8 +29,8 @@
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <compilerId>javac</compilerId>
-          <debug>true</debug>
+          <compilerId>maven-failing-compiler-stub</compilerId>
+          <incrementalCompilation>none</incrementalCompilation>
         </configuration>
       </plugin>
     </plugins>

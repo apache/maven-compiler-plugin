@@ -33,11 +33,6 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <fork>true</fork>
-          <!-- this has been deprecated, but still works  
-            <compilerArguments>
-              <J-Duser.language>en_us</J-Duser.language>
-            </compilerArguments>
-           -->
           <compilerArgs>
             <compilerArg>-J-Duser.language=en_us</compilerArg>
           </compilerArgs>

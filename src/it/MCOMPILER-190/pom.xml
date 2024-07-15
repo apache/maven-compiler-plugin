@@ -34,8 +34,6 @@ under the License.
         <version>@pom.version@</version>
         <configuration>
           <compilerId>eclipse</compilerId>
-          <source>1.5</source>
-          <target>1.5</target>
         </configuration>
         <dependencies>
           <dependency>

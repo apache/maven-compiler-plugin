@@ -32,26 +32,20 @@ import java.util.Set;
 /* @formatter:off */
 @SupportedAnnotationTypes({"org.issue.MCompiler224"})
 /* @formatter:on */
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 public class MCompiler224AnnotationProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(final Set<? extends TypeElement> elts, final RoundEnvironment env) {
-        if (elts.isEmpty()) {
-            return true;
-        }
-
-        final Messager messager = this.processingEnv.getMessager();
-
-        for (final Kind kind : Kind.values()) {
-            if (Kind.ERROR == kind) {
-                continue;
+        if (!elts.isEmpty()) {
+            final Messager messager = processingEnv.getMessager();
+            for (final Kind kind : Kind.values()) {
+                if (Kind.ERROR != kind) {
+                    System.out.println("Testing message for: " + kind);
+                    messager.printMessage(kind, kind + " Test message.");
+                }
             }
-
-            System.out.println("Testing message for: " + kind);
-            messager.printMessage(kind, kind + " Test message.");
         }
-
         return true;
     }
 }
