@@ -39,6 +39,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import org.apache.maven.api.*;
@@ -1014,11 +1015,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
                 String[] cl = compiler.createCommandLine(compilerConfiguration);
                 if (cl != null && cl.length > 0) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(cl[0]);
-                    for (int i = 1; i < cl.length; i++) {
-                        sb.append(" ");
-                        sb.append(cl[i]);
+                    StringJoiner sb = new StringJoiner(" ");
+                    for (String s : cl) {
+                        sb.add(s);
                     }
                     getLog().debug("Command line options:");
                     getLog().debug(sb.toString());
@@ -1058,8 +1057,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
                 String[] values = value.split("=");
 
-                StringBuilder patchModule = new StringBuilder(values[0]);
-                patchModule.append('=');
+                String patchModule = values[0] + "=";
 
                 Set<String> patchModules = new LinkedHashSet<>();
                 Set<Path> sourceRoots = new HashSet<>(getCompileSourceRoots());
@@ -1090,19 +1088,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     }
                 }
 
-                StringBuilder sb = new StringBuilder();
-
                 if (!patchModules.isEmpty()) {
+                    StringJoiner sb = new StringJoiner(", ");
                     for (String mod : patchModules) {
-                        if (sb.length() > 0) {
-                            sb.append(", ");
-                        }
                         // use 'invalid' separator to ensure values are transformed
-                        sb.append(mod);
+                        sb.add(mod);
                     }
 
                     jpmsLines.add("--patch-module");
-                    jpmsLines.add(patchModule + sb.toString());
+                    jpmsLines.add(patchModule + sb);
                 }
             }
         }
