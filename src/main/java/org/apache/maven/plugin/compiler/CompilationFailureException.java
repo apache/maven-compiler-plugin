@@ -29,7 +29,7 @@ import org.codehaus.plexus.compiler.CompilerMessage;
  */
 @SuppressWarnings("serial")
 public class CompilationFailureException extends MojoException {
-    private static final String LS = System.getProperty("line.separator");
+    private static final String LS = System.lineSeparator();
 
     /**
      * Wrap error messages from the compiler

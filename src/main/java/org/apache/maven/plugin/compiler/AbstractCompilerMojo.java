@@ -91,7 +91,7 @@ import org.objectweb.asm.Opcodes;
  * @since 2.0
  */
 public abstract class AbstractCompilerMojo implements Mojo {
-    protected static final String PS = System.getProperty("path.separator");
+    protected static final String PS = File.pathSeparator;
 
     private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
@@ -834,7 +834,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame."
                             + " This can cause issues in some environments (os/jdk)!"
                             + " Consider using reuseCreated strategy."
-                            + System.getProperty("line.separator")
+                            + System.lineSeparator()
                             + "If your env is fine with reuseSame, you can skip this warning with the "
                             + "configuration field skipMultiThreadWarning "
                             + "or -Dmaven.compiler.skipMultiThreadWarning=true");
