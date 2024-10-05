@@ -1152,8 +1152,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
             }
         }
 
-        if (outputTimestamp != null
-                && !outputTimestamp.isEmpty()
+        // One chat like "x" in outputTimestamp may be used reset the value from a parent POM
+        if (StringUtils.isNotBlank(outputTimestamp)
                 && (outputTimestamp.length() > 1 || Character.isDigit(outputTimestamp.charAt(0)))) {
             // if Reproducible Builds mode, apply workaround
             patchJdkModuleVersion(compilerResult, sources);
