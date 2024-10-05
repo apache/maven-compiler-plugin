@@ -1013,15 +1013,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 }
 
                 String[] cl = compiler.createCommandLine(compilerConfiguration);
-                if (cl != null && cl.length > 0) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(cl[0]);
-                    for (int i = 1; i < cl.length; i++) {
-                        sb.append(" ");
-                        sb.append(cl[i]);
-                    }
+                if (cl != null && cl.length > 0 && getLog().isDebugEnabled()) {
                     getLog().debug("Command line options:");
-                    getLog().debug(sb.toString());
+                    getLog().debug(String.join(" ", cl));
                 }
             } catch (CompilerException ce) {
                 getLog().debug("Compilation error", ce);
@@ -1058,13 +1052,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
                 String[] values = value.split("=");
 
-                StringBuilder patchModule = new StringBuilder(values[0]);
-                patchModule.append('=');
+                String patchModule = values[0] + "=";
 
-                Set<String> patchModules = new LinkedHashSet<>();
                 Set<Path> sourceRoots = new HashSet<>(getCompileSourceRoots());
 
                 String[] files = values[1].split(PS);
+                Set<String> patchModules = new LinkedHashSet<>(files.length, 1);
 
                 for (String file : files) {
                     Path filePath = Paths.get(file);
@@ -1090,19 +1083,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     }
                 }
 
-                StringBuilder sb = new StringBuilder();
-
                 if (!patchModules.isEmpty()) {
-                    for (String mod : patchModules) {
-                        if (sb.length() > 0) {
-                            sb.append(", ");
-                        }
-                        // use 'invalid' separator to ensure values are transformed
-                        sb.append(mod);
-                    }
-
                     jpmsLines.add("--patch-module");
-                    jpmsLines.add(patchModule + sb.toString());
+                    jpmsLines.add(patchModule + String.join(", ", patchModules));
                 }
             }
         }
