@@ -586,6 +586,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Timestamp for reproducible output archive entries, either formatted as ISO 8601
      * <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like
      * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
+     * Use the special constant value {@code "REPRODUCIBLE_BUILD_STATIC_DATE"} to set the default time i.e. 1980-02-01T00:00:00Z.
      * @since 3.12.0
      */
     @Parameter(defaultValue = "${project.build.outputTimestamp}")
