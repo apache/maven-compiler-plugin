@@ -27,7 +27,7 @@ jobs:
     uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v4
     with:
       # maven-args: "-Dinvoker.parallelThreads=2" cannot do this as this generate some concurrent download issues
-      ff-maven: "4.0.0-beta-3"                     # Maven version for fail-fast-build
+      ff-maven: "4.0.0-beta-4"                     # Maven version for fail-fast-build
       jdk-distribution-matrix: '[ "temurin", "zulu", "microsoft", "adopt-openj9" ]'
       jdk-matrix: '[ "17", "21" ]'
-      maven-matrix: '[ "4.0.0-beta-3" ]'  # Maven versions matrix for verify builds
+      maven-matrix: '[ "4.0.0-beta-4" ]'  # Maven versions matrix for verify builds
