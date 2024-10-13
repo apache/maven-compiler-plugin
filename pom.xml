@@ -80,7 +80,7 @@ under the License.
     <mockitoVersion>5.12.0</mockitoVersion>
     <mavenPluginTestingHarnessVersion>4.0.0-beta-2-SNAPSHOT</mavenPluginTestingHarnessVersion>
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
-    <plexusJavaVersion>1.2.0</plexusJavaVersion>
+    <plexusJavaVersion>1.3.0</plexusJavaVersion>
     <sisuPlexusVersion>0.9.0.M2</sisuPlexusVersion>
     <slf4jVersion>2.0.13</slf4jVersion>
     <surefire.version>3.2.1</surefire.version>
