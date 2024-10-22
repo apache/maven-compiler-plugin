@@ -73,7 +73,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * Projects main artifact.
      */
     @Parameter(defaultValue = "${project.mainArtifact}", readonly = true, required = true)
-    protected Artifact projectArtifact;
+    protected ProducedArtifact projectArtifact;
 
     /**
      * The directory for compiled classes.
