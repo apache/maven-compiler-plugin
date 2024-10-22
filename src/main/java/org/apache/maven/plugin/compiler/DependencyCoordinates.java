@@ -27,7 +27,7 @@ import java.util.Set;
  * @author Andreas Gudian
  * @since 3.4
  */
-public class DependencyCoordinate {
+public class DependencyCoordinates {
     private String groupId;
 
     private String artifactId;
@@ -104,7 +104,7 @@ public class DependencyCoordinate {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        DependencyCoordinate other = (DependencyCoordinate) obj;
+        DependencyCoordinates other = (DependencyCoordinates) obj;
         return Objects.equals(groupId, other.groupId)
                 && Objects.equals(artifactId, other.artifactId)
                 && Objects.equals(version, other.version)

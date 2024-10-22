@@ -50,7 +50,7 @@ import org.apache.maven.api.plugin.testing.InjectMojo;
 import org.apache.maven.api.plugin.testing.MojoExtension;
 import org.apache.maven.api.plugin.testing.MojoParameter;
 import org.apache.maven.api.plugin.testing.MojoTest;
-import org.apache.maven.api.plugin.testing.stubs.ArtifactStub;
+import org.apache.maven.api.plugin.testing.stubs.ProducedArtifactStub;
 import org.apache.maven.api.plugin.testing.stubs.ProjectStub;
 import org.apache.maven.api.plugin.testing.stubs.SessionMock;
 import org.apache.maven.api.services.ArtifactManager;
@@ -456,7 +456,7 @@ public class CompilerMojoTestCase {
                 .when(session)
                 .getStartTime();
 
-        Artifact junit = new ArtifactStub("junit", "junit", null, "3.8.1", "jar");
+        ProducedArtifactStub junit = new ProducedArtifactStub("junit", "junit", null, "3.8.1", "jar");
 
         MessageBuilderFactory messageBuilderFactory = new DefaultMessageBuilderFactory();
         doReturn(messageBuilderFactory).when(session).getService(MessageBuilderFactory.class);
@@ -513,7 +513,8 @@ public class CompilerMojoTestCase {
     @SuppressWarnings("unused")
     private static Project createProject() {
         ProjectStub stub = new ProjectStub();
-        ArtifactStub artifact = new ArtifactStub("myGroupId", "myArtifactId", null, "1.0-SNAPSHOT", "jar");
+        ProducedArtifactStub artifact =
+                new ProducedArtifactStub("myGroupId", "myArtifactId", null, "1.0-SNAPSHOT", "jar");
         stub.setMainArtifact(artifact);
         stub.setModel(Model.newBuilder()
                 .groupId(artifact.getGroupId())

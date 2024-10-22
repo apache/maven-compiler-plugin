@@ -48,8 +48,8 @@ import org.apache.maven.api.plugin.Mojo;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.Parameter;
 import org.apache.maven.api.services.ArtifactManager;
-import org.apache.maven.api.services.DependencyCoordinateFactory;
-import org.apache.maven.api.services.DependencyCoordinateFactoryRequest;
+import org.apache.maven.api.services.DependencyCoordinatesFactory;
+import org.apache.maven.api.services.DependencyCoordinatesFactoryRequest;
 import org.apache.maven.api.services.DependencyResolver;
 import org.apache.maven.api.services.DependencyResolverRequest;
 import org.apache.maven.api.services.MessageBuilder;
@@ -344,7 +344,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      */
     @Parameter
-    protected List<DependencyCoordinate> annotationProcessorPaths;
+    protected List<DependencyCoordinates> annotationProcessorPaths;
 
     /**
      * <p>
@@ -1556,8 +1556,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
         try {
             Session session = this.session.withRemoteRepositories(projectManager.getRemoteProjectRepositories(project));
-            List<org.apache.maven.api.DependencyCoordinate> coords =
-                    annotationProcessorPaths.stream().map(this::toCoordinate).collect(Collectors.toList());
+            List<org.apache.maven.api.DependencyCoordinates> coords =
+                    annotationProcessorPaths.stream().map(this::toCoordinates).collect(Collectors.toList());
             return session
                     .getService(DependencyResolver.class)
                     .resolve(DependencyResolverRequest.builder()
@@ -1575,9 +1575,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
         }
     }
 
-    private org.apache.maven.api.DependencyCoordinate toCoordinate(DependencyCoordinate coord) {
-        return session.getService(DependencyCoordinateFactory.class)
-                .create(DependencyCoordinateFactoryRequest.builder()
+    private org.apache.maven.api.DependencyCoordinates toCoordinates(DependencyCoordinates coord) {
+        return session.getService(DependencyCoordinatesFactory.class)
+                .create(DependencyCoordinatesFactoryRequest.builder()
                         .session(session)
                         .groupId(coord.getGroupId())
                         .artifactId(coord.getArtifactId())
@@ -1607,13 +1607,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 .toList();
     }
 
-    private String getAnnotationProcessorPathVersion(DependencyCoordinate annotationProcessorPath)
+    private String getAnnotationProcessorPathVersion(DependencyCoordinates annotationProcessorPath)
             throws MojoException {
         String configuredVersion = annotationProcessorPath.getVersion();
         if (configuredVersion != null) {
             return configuredVersion;
         } else {
-            List<org.apache.maven.api.DependencyCoordinate> managedDependencies = project.getManagedDependencies();
+            List<org.apache.maven.api.DependencyCoordinates> managedDependencies = project.getManagedDependencies();
             return findManagedVersion(annotationProcessorPath, managedDependencies)
                     .orElseThrow(() -> new MojoException(String.format(
                             "Cannot find version for annotation processor path '%s'. The version needs to be either"
@@ -1623,15 +1623,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     private Optional<String> findManagedVersion(
-            DependencyCoordinate dependencyCoordinate,
-            List<org.apache.maven.api.DependencyCoordinate> managedDependencies) {
+            DependencyCoordinates dependencyCoordinate,
+            List<org.apache.maven.api.DependencyCoordinates> managedDependencies) {
         return managedDependencies.stream()
                 .filter(dep -> Objects.equals(dep.getGroupId(), dependencyCoordinate.getGroupId())
                         && Objects.equals(dep.getArtifactId(), dependencyCoordinate.getArtifactId())
                         && Objects.equals(dep.getClassifier(), dependencyCoordinate.getClassifier())
                         && Objects.equals(dep.getType().id(), dependencyCoordinate.getType()))
                 .findAny()
-                .map(d -> d.getVersion().asString());
+                .map(d -> d.getVersionConstraint().asString());
     }
 
     private void writePlugin(MessageBuilder mb) {
