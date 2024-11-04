@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>foo</groupId>
+    <artifactId>bar</artifactId>
+    <version>${revision}</version>
+  </parent>
+  <version>${revision}</version>
+  <packaging>jar</packaging>
+  <artifactId>code</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>foo</groupId>
+      <artifactId>processor</artifactId>
+      <version>${revision}</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.honton.chas</groupId>
+          <artifactId>touch-maven-plugin</artifactId>
+          <version>0.0.3</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>touchFiles</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.honton.chas</groupId>
+            <artifactId>touch-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>touch-gen-src</id>
+                <goals>
+                  <goal>touch</goal>
+                </goals>
+                <phase>validate</phase>
+                <configuration>
+                  <files>
+                    <directory>${basedir}/target/generated-sources/annotations/bar</directory>
+                    <includes>
+                      <include>MyGeneratedClass.java</include>
+                    </includes>
+                  </files>
+                </configuration>
+              </execution>
+              <execution>
+                <id>touch-src</id>
+                <goals>
+                  <goal>touch</goal>
+                </goals>
+                <phase>validate</phase>
+                <configuration>
+                  <files>
+                    <directory>${project.build.sourceDirectory}/bar</directory>
+                    <includes>
+                      <include>MyAnnotatedClass.java</include>
+                    </includes>
+                  </files>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>
