@@ -41,15 +41,10 @@ import java.util.function.Predicate;
  * Applies inclusion and exclusion filters on paths, and builds a list of files in a directory tree.
  * The set of allowed syntax contains at least "glob" and "regex".
  * See {@link FileSystem#getPathMatcher(String)} Javadoc for a description of the "glob" syntax.
- * If no syntax is specified, then the default syntax is "glob" with the following modification:
+ * If no syntax is specified, then the default syntax is "glob".
  *
- * <ul>
- *   <li>Unless escaped by {@code '\'}, all occurrences of the {@code '/'} character are replaced
- *       by the file system specific separator.</li>
- * </ul>
- *
- * The list of files to process is built by applying the path matcher on each regular (non directory) files.
- * The walk in file trees has the following characteristics:
+ * <p>The list of files to process is built by applying the path matcher on each regular (non directory) files.
+ * The walk in file trees has the following characteristics:</p>
  *
  * <ul>
  *   <li>Symbolic links are followed.</li>
@@ -189,8 +184,7 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
 
     /**
      * Fills the target array with path matchers created from the given patterns.
-     * If a pattern does not specify a syntax, then the "glob" syntax is used by default
-     * but with the {@code '/'} characters replaced by the file system specific separator.
+     * If a pattern does not specify a syntax, then the "glob" syntax is used by default.
      *
      * <p>This method should be invoked only once, unless different paths are on different file systems.</p>
      */
@@ -198,30 +192,7 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
         for (int i = 0; i < patterns.length; i++) {
             String pattern = patterns[i];
             if (pattern.indexOf(':') < 0) {
-                var sb = new StringBuilder(pattern);
-                String separator = fs.getSeparator();
-                if (!separator.equals("/")) {
-                    int j = pattern.length();
-                    while ((j = pattern.lastIndexOf('/', j)) >= 0) {
-                        /*
-                         * Count the number of occurrences of the escape character, because that character
-                         * can itself be escaped. The '/' character is escaped if the number of '\' before
-                         * '/' is odd. The count is (s-j)-1, so testing if the count is odd is equivalent
-                         * to testing if (s-j) is even (rightmost bit equals to 0). Since we want to do
-                         * the replacement if non-escaped, the condition in inverted again.
-                         */
-                        final int s = j;
-                        while (--j >= 0) {
-                            if (pattern.charAt(j) != '\\') {
-                                break;
-                            }
-                        }
-                        if (((s - j) & 1) != 0) { // See above comment for explanation.
-                            sb.replace(s, s + 1, separator);
-                        }
-                    }
-                }
-                pattern = sb.insert(0, "glob:").toString();
+                pattern = "glob:" + pattern;
             }
             target[i] = fs.getPathMatcher(pattern);
         }
