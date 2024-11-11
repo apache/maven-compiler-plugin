@@ -1013,7 +1013,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 logger.info(tipForCommandLineCompilation);
                 tipForCommandLineCompilation = null;
             }
-            throw e;
+            if (failOnError) {
+                throw e;
+            }
         } catch (IOException e) {
             logger.error("I/O error while compiling the project.", e);
             throw new CompilationFailureException("I/O error while compiling the project.", e);
@@ -1414,10 +1416,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
          */
         String additionalMessage = compilerOutput.toString();
         if (!additionalMessage.isBlank()) {
-            if (success) {
+            if (success || failureCause != null) { // Keep the error level for the exception message.
                 logger.warn(additionalMessage);
             } else {
                 logger.error(additionalMessage);
+            }
+        }
+        if (failureCause != null) {
+            String message = failureCause.getMessage();
+            if (message != null) {
+                logger.error(message);
+            } else {
+                logger.error(failureCause);
             }
         }
         /*
@@ -1425,6 +1435,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * By default, the file will have the ".args" extension.
          */
         if (!success || logger.isDebugEnabled()) {
+            IOException suppressed = null;
             try {
                 writeDebugFile(compilerConfiguration.options, dependencies, sourceFiles);
                 if (success && tipForCommandLineCompilation != null) {
@@ -1432,22 +1443,27 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     tipForCommandLineCompilation = null;
                 }
             } catch (IOException e) {
-                if (failureCause != null) {
-                    failureCause.addSuppressed(e);
-                }
+                suppressed = e;
             }
-        }
-        if (!success && failOnError) {
-            var message = new StringBuilder(100)
-                    .append("Cannot compile ")
-                    .append(project.getId())
-                    .append(' ')
-                    .append(isTestCompile ? "test" : "main")
-                    .append(" classes.");
-            listener.firstError(failureCause).ifPresent((c) -> message.append(System.lineSeparator())
-                    .append("The first error is: ")
-                    .append(c));
-            throw new CompilationFailureException(message.toString(), failureCause);
+            if (!success) {
+                var message = new StringBuilder(100)
+                        .append("Cannot compile ")
+                        .append(project.getId())
+                        .append(' ')
+                        .append(isTestCompile ? "test" : "main")
+                        .append(" classes.");
+                listener.firstError(failureCause).ifPresent((c) -> message.append(System.lineSeparator())
+                        .append("The first error is: ")
+                        .append(c));
+                var failure = new CompilationFailureException(message.toString(), failureCause);
+                if (suppressed != null) {
+                    failure.addSuppressed(suppressed);
+                }
+                throw failure;
+            }
+            if (suppressed != null) {
+                throw suppressed;
+            }
         }
         /*
          * Workaround for MCOMPILER-542, needed only if a modular project is compiled with a JDK older than Java 22.
