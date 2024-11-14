@@ -104,7 +104,7 @@ under the License.
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
 
-    <project.build.outputTimestamp>2024-06-26T08:45:58Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2024-11-14T13:00:00Z</project.build.outputTimestamp>
   </properties>
 
   <dependencies>
