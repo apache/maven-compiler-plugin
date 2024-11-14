@@ -78,7 +78,7 @@ under the License.
     <junit4Version>4.13.2</junit4Version>
     <junitVersion>5.10.1</junitVersion>
     <mockitoVersion>5.12.0</mockitoVersion>
-    <mavenPluginTestingHarnessVersion>4.0.0-beta-2-SNAPSHOT</mavenPluginTestingHarnessVersion>
+    <mavenPluginTestingHarnessVersion>4.0.0-beta-2</mavenPluginTestingHarnessVersion>
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
     <plexusJavaVersion>1.2.0</plexusJavaVersion>
     <sisuPlexusVersion>0.9.0.M2</sisuPlexusVersion>
