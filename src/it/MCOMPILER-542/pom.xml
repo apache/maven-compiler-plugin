@@ -59,6 +59,9 @@
               <goal>compile</goal>
             </goals>
             <configuration>
+              <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+              <source />
+              <target />
               <release>${java.specification.version}</release>
             </configuration>
           </execution>
@@ -68,7 +71,10 @@
               <goal>compile</goal>
             </goals>
             <configuration>
-              <release>9</release>
+              <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+              <source />
+              <target />
+              <release>17</release>
               <outputDirectory>${project.build.outputDirectory}-9</outputDirectory>
             </configuration>
           </execution>
@@ -78,8 +84,10 @@
               <goal>compile</goal>
             </goals>
             <configuration>
-              <source>${java.specification.version}</source>
-              <target>${java.specification.version}</target>
+              <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+              <source />
+              <target />
+              <release>${java.specification.version}</release>
               <outputDirectory>${project.build.outputDirectory}-target</outputDirectory>
             </configuration>
           </execution>

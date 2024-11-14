@@ -74,8 +74,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <source>${base.java.version}</source>
-          <target>${base.java.version}</target>
+          <release>${base.java.version}</release>
         </configuration>
         <executions>
           <!-- for Java 9 -->
@@ -86,9 +85,12 @@
             </goals>
             <phase />
             <configuration>
-              <release>9</release>
+              <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+              <source />
+              <target />
+              <release>17</release>
               <jdkToolchain>
-                <version>1.9</version>
+                <version>17</version>
               </jdkToolchain>
               <compileSourceRoots>
                 <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>

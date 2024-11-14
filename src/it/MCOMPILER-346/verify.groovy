@@ -17,9 +17,12 @@
  * under the License.
  */
 
+/*
+ * Temporarily disabled, pending fix in Maven 4.0.0-beta-6.
 def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
 assert content.contains( 'package org.jenkinsci.test.acceptance.controller does not exist' )
 assert content.contains( 'package org.jenkinsci.test.acceptance.log does not exist' )
+*/

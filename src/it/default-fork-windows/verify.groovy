@@ -18,7 +18,6 @@
  */
 
 assert new File( basedir, 'target/classes/foo/MyClass.class').exists()
-
 assert new File( basedir, 'target/test-classes/foo/MyTest.class').exists()
 
 assert !new File( basedir, 'target/classes/javac.sh').exists()
@@ -28,5 +27,3 @@ assert !new File( basedir, 'target/javac.sh').exists()
 assert !new File( basedir, 'target/javac-test.sh').exists()
 assert new File( basedir, 'target/javac.bat').exists()
 assert new File( basedir, 'target/javac-test.bat').exists()
-
-

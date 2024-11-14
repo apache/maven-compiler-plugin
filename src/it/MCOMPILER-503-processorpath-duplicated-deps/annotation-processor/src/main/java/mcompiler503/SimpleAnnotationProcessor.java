@@ -37,7 +37,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.Set;
 
-@SupportedSourceVersion(SourceVersion.RELEASE_6)
+@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @SupportedAnnotationTypes("mcompiler503.SimpleAnnotation")
 public class SimpleAnnotationProcessor extends AbstractProcessor {
 
@@ -68,17 +68,13 @@ public class SimpleAnnotationProcessor extends AbstractProcessor {
         }
 
         Filer filer = processingEnv.getFiler();
-
         Elements elementUtils = processingEnv.getElementUtils();
-
         Set<? extends Element> elements =
                 roundEnv.getElementsAnnotatedWith(annotations.iterator().next());
 
         for (Element element : elements) {
             Name name = element.getSimpleName();
-
             PackageElement packageElement = elementUtils.getPackageOf(element);
-
             try {
                 Name packageName = packageElement.getQualifiedName();
                 FileObject resource =
@@ -102,7 +98,6 @@ public class SimpleAnnotationProcessor extends AbstractProcessor {
                 throw new RuntimeException(e);
             }
         }
-
         return !elements.isEmpty();
     }
 }

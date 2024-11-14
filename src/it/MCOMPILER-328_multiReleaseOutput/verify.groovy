@@ -18,5 +18,4 @@
  */
 
 assert !new File( basedir, 'target/classes/foo/MyClass.class').exists()
-
-assert new File( basedir, 'target/classes/META-INF/versions/9/foo/MyClass.class').exists()
+assert  new File( basedir, 'target/classes/META-INF/versions/17/foo/MyClass.class').exists()

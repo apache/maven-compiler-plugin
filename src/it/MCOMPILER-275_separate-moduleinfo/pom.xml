@@ -53,7 +53,10 @@
               <jdkToolchain>
                 <version>1.9</version>
               </jdkToolchain>
-              <release>9</release>
+              <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+              <source />
+              <target />
+              <release>17</release>
             </configuration>
           </execution>
           <execution>

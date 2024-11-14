@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -17,9 +17,12 @@
  * under the License.
  */
 
-def jpmsArgs = new File( basedir, 'target/test-classes/META-INF/jpms.args' );
-def lines = jpmsArgs.readLines();
-assert lines[0] == "--patch-module"
-assert lines[1] == "app=_"
-assert lines[2] == "--add-reads"
-assert lines[3] == "app=ALL-UNNAMED"
+def args = new File( basedir, 'target/javac-test.args' ).text;
+assert args.contains( '--patch-module' )
+/*
+ * A previous version of this file made more extensive checks of `jpms.args` file content.
+ * But the `jpms.args` file is no longer generated since Maven compiler plugin version 4.
+ */
+
+assert new File( basedir, "./target/classes/module-info.class" ).exists()
+assert new File( basedir, "target/test-classes/org/maven/test/MainTest.class" ).exists()

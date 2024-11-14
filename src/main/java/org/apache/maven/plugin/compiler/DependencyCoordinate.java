@@ -18,16 +18,29 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+
+import org.apache.maven.api.Exclusion;
+import org.apache.maven.api.Project;
+import org.apache.maven.api.Session;
+import org.apache.maven.api.plugin.MojoException;
+import org.apache.maven.api.services.DependencyCoordinatesFactory;
+import org.apache.maven.api.services.DependencyCoordinatesFactoryRequest;
 
 /**
  * Simple representation of Maven-coordinates of a dependency.
  *
  * @author Andreas Gudian
  * @since 3.4
+ *
+ * @deprecated Used for {@link AbstractCompilerMojo#annotationProcessorPaths}, which is deprecated.
  */
-public class DependencyCoordinate {
+@Deprecated(since = "4.0.0")
+public final class DependencyCoordinate {
     private String groupId;
 
     private String artifactId;
@@ -40,54 +53,6 @@ public class DependencyCoordinate {
 
     private Set<DependencyExclusion> exclusions;
 
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
-    public String getArtifactId() {
-        return artifactId;
-    }
-
-    public void setArtifactId(String artifactId) {
-        this.artifactId = artifactId;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public String getClassifier() {
-        return classifier;
-    }
-
-    public void setClassifier(String classifier) {
-        this.classifier = classifier;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Set<DependencyExclusion> getExclusions() {
-        return exclusions;
-    }
-
-    public void setExclusions(Set<DependencyExclusion> exclusions) {
-        this.exclusions = exclusions;
-    }
-
     @Override
     public int hashCode() {
         return Objects.hash(groupId, artifactId, version, classifier, type, exclusions);
@@ -98,14 +63,8 @@ public class DependencyCoordinate {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        DependencyCoordinate other = (DependencyCoordinate) obj;
-        return Objects.equals(groupId, other.groupId)
+        return obj instanceof DependencyCoordinate other
+                && Objects.equals(groupId, other.groupId)
                 && Objects.equals(artifactId, other.artifactId)
                 && Objects.equals(version, other.version)
                 && Objects.equals(classifier, other.classifier)
@@ -117,5 +76,71 @@ public class DependencyCoordinate {
     public String toString() {
         return groupId + ":" + artifactId + (version != null ? ":" + version : "")
                 + (classifier != null ? ":" + classifier : "") + (type != null ? "." + type : "");
+    }
+
+    /**
+     * Converts this coordinate to the Maven API.
+     *
+     * @param project the current project
+     * @param session the current build session instance
+     * @return this coordinate as Maven API
+     */
+    org.apache.maven.api.DependencyCoordinates toCoordinate(Project project, Session session) {
+        return session.getService(DependencyCoordinatesFactory.class)
+                .create(DependencyCoordinatesFactoryRequest.builder()
+                        .session(session)
+                        .groupId(groupId)
+                        .artifactId(artifactId)
+                        .classifier(classifier)
+                        .type(type)
+                        .version(version)
+                        .version(getAnnotationProcessorPathVersion(project))
+                        .exclusions(toExclusions(exclusions))
+                        .build());
+    }
+
+    private String getAnnotationProcessorPathVersion(Project project) throws MojoException {
+        if (version != null) {
+            return version;
+        } else {
+            if (classifier == null) {
+                classifier = ""; // Needed for comparison with dep.getClassifier() because of method contract.
+            }
+            List<org.apache.maven.api.DependencyCoordinates> managedDependencies = project.getManagedDependencies();
+            return findManagedVersion(managedDependencies)
+                    .orElseThrow(() -> new CompilationFailureException(String.format(
+                            "Cannot find version for annotation processor path '%s'.%nThe version needs to be either"
+                                    + " provided directly in the plugin configuration or via dependency management.",
+                            this)));
+        }
+    }
+
+    private Optional<String> findManagedVersion(List<org.apache.maven.api.DependencyCoordinates> managedDependencies) {
+        return managedDependencies.stream()
+                .filter(dep -> Objects.equals(dep.getGroupId(), groupId)
+                        && Objects.equals(dep.getArtifactId(), artifactId)
+                        && Objects.equals(dep.getClassifier(), classifier)
+                        && Objects.equals(dep.getType().id(), type))
+                .findAny()
+                .map(d -> d.getVersionConstraint().asString());
+    }
+
+    private static Collection<Exclusion> toExclusions(Set<DependencyExclusion> exclusions) {
+        if (exclusions == null || exclusions.isEmpty()) {
+            return List.of();
+        }
+        return exclusions.stream()
+                .map(e -> (Exclusion) new Exclusion() {
+                    @Override
+                    public String getGroupId() {
+                        return e.groupId;
+                    }
+
+                    @Override
+                    public String getArtifactId() {
+                        return e.artifactId;
+                    }
+                })
+                .toList();
     }
 }

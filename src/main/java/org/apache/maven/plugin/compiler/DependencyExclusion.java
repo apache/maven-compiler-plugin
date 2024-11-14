@@ -22,58 +22,26 @@ import java.util.Objects;
 
 /**
  * Simple representation of a Maven dependency exclusion.
+ *
+ * @deprecated Used for {@link AbstractCompilerMojo#annotationProcessorPaths}, which is deprecated.
  */
-public class DependencyExclusion {
-    private String groupId;
+@Deprecated(since = "4.0.0")
+public final class DependencyExclusion {
+    String groupId;
 
-    private String artifactId;
+    String artifactId;
 
     private String classifier;
 
     private String extension = "jar";
-
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public void setGroupId(String groupId) {
-        this.groupId = groupId;
-    }
-
-    public String getArtifactId() {
-        return artifactId;
-    }
-
-    public void setArtifactId(String artifactId) {
-        this.artifactId = artifactId;
-    }
-
-    public String getClassifier() {
-        return classifier;
-    }
-
-    public void setClassifier(String classifier) {
-        this.classifier = classifier;
-    }
-
-    public String getExtension() {
-        return extension;
-    }
-
-    public void setExtension(String extension) {
-        this.extension = extension;
-    }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
-        DependencyExclusion other = (DependencyExclusion) obj;
-        return Objects.equals(groupId, other.groupId)
+        return obj instanceof DependencyExclusion other
+                && Objects.equals(groupId, other.groupId)
                 && Objects.equals(artifactId, other.artifactId)
                 && Objects.equals(classifier, other.classifier)
                 && Objects.equals(extension, other.extension);

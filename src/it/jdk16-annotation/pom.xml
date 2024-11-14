@@ -46,6 +46,15 @@ under the License.
               <proc>none</proc>
             </configuration>
           </execution>
+          <execution>
+            <id>default-testCompile</id>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+            <configuration>
+              <proc>full</proc>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
     </plugins>

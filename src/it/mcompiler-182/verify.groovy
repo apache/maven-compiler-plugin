@@ -20,6 +20,7 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( 'COMPILATION ERROR :' )
+assert content.contains( 'COMPILATION ERROR:' )
+assert content.contains( 'CompilationFailureException' ) // In debug level logs.
 
 assert !new File( basedir, 'target/classes/foo/BeanA.class' ).exists();

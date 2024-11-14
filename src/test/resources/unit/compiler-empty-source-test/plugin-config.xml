@@ -19,6 +19,9 @@
 
 <project>
   <build>
+    <directory>${project.basedir}/target</directory>
+    <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+    <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -26,13 +29,8 @@
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <compilerId>javac</compilerId>
-          <debug>true</debug>
-          <buildDirectory>${project.basedir}/target</buildDirectory>
-          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
-          <source>8</source>
-          <target>8</target>
+          <release>17</release>
+          <incrementalCompilation>none</incrementalCompilation>
         </configuration>
       </plugin>
     </plugins>

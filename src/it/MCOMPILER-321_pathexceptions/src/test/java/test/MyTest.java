@@ -18,4 +18,10 @@
  */
 package test;
 
-public class MyTest {}
+import org.jdom.CDATA;
+
+public class MyTest {
+    public static void main(String[] args) {
+        CDATA.class.getName();
+    }
+}

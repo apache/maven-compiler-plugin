@@ -18,469 +18,600 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.tools.JavaCompiler;
+import javax.tools.OptionChecker;
+
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.StringJoiner;
 
-import org.apache.maven.api.JavaToolchain;
-import org.apache.maven.api.PathScope;
+import org.apache.maven.api.Dependency;
+import org.apache.maven.api.JavaPathType;
+import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProjectScope;
-import org.apache.maven.api.Toolchain;
+import org.apache.maven.api.annotations.Nonnull;
+import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.Mojo;
 import org.apache.maven.api.plugin.annotations.Parameter;
-import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
-import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
-import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
-import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
-import org.codehaus.plexus.languages.java.jpms.LocationManager;
-import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
-import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
+import org.apache.maven.api.services.DependencyResolverResult;
+import org.apache.maven.api.services.MessageBuilder;
+
+import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
+import static org.apache.maven.plugin.compiler.SourceDirectory.JAVA_FILE_SUFFIX;
+import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
 
 /**
  * Compiles application test sources.
- * By default uses the <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac</a> compiler
- * of the JDK used to execute Maven. This can be overwritten through <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html">Toolchains</a>
- * or parameter {@link AbstractCompilerMojo#compilerId}.
+ * Each instance shall be used only once, then discarded.
  *
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
- * @since 2.0
+ * @author Martin Desruisseaux
  * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html">javac Command</a>
+ * @since 2.0
  */
 @Mojo(name = "testCompile", defaultPhase = "test-compile")
 public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
-     * Set this to 'true' to bypass compilation of test sources.
-     * Its use is NOT RECOMMENDED, but quite convenient on occasion.
+     * Whether to bypass compilation of test sources.
+     * Its use is not recommended, but quite convenient on occasion.
+     *
+     * @see CompilerMojo#skipMain
      */
     @Parameter(property = "maven.test.skip")
-    private boolean skip;
+    protected boolean skip;
 
     /**
      * The source directories containing the test-source to be compiled.
+     *
+     * @see CompilerMojo#compileSourceRoots
      */
     @Parameter
-    private List<String> compileSourceRoots;
+    protected List<String> compileSourceRoots;
 
     /**
-     * The directory where compiled test classes go.
+     * Specify where to place generated source files created by annotation processing.
+     *
+     * @see CompilerMojo#generatedSourcesDirectory
+     * @since 2.2
      */
-    @Parameter(defaultValue = "${project.build.outputDirectory}", required = true)
-    private Path mainOutputDirectory;
+    @Parameter(defaultValue = "${project.build.directory}/generated-test-sources/test-annotations")
+    protected Path generatedTestSourcesDirectory;
+
+    /**
+     * A set of inclusion filters for the compiler.
+     *
+     * @see CompilerMojo#includes
+     */
+    @Parameter
+    protected Set<String> testIncludes;
+
+    /**
+     * A set of exclusion filters for the compiler.
+     *
+     * @see CompilerMojo#excludes
+     */
+    @Parameter
+    protected Set<String> testExcludes;
+
+    /**
+     * A set of exclusion filters for the incremental calculation.
+     * Updated files, if excluded by this filter, will not cause the project to be rebuilt.
+     *
+     * @see CompilerMojo#incrementalExcludes
+     * @since 3.11
+     */
+    @Parameter
+    protected Set<String> testIncrementalExcludes;
+
+    /**
+     * The {@code --source} argument for the test Java compiler.
+     *
+     * @see CompilerMojo#source
+     * @since 2.1
+     */
+    @Parameter(property = "maven.compiler.testSource")
+    protected String testSource;
+
+    /**
+     * The {@code --target} argument for the test Java compiler.
+     *
+     * @see CompilerMojo#target
+     * @since 2.1
+     */
+    @Parameter(property = "maven.compiler.testTarget")
+    protected String testTarget;
+
+    /**
+     * the {@code --release} argument for the test Java compiler
+     *
+     * @see CompilerMojo#release
+     * @since 3.6
+     */
+    @Parameter(property = "maven.compiler.testRelease")
+    protected String testRelease;
+
+    /**
+     * The arguments to be passed to the test compiler.
+     * If this parameter is specified, it replaces {@link #compilerArgs}.
+     * Otherwise, the {@code compilerArgs} parameter is used.
+     *
+     * @see CompilerMojo#compilerArgs
+     * @since 4.0.0
+     */
+    @Parameter
+    protected List<String> testCompilerArgs;
+
+    /**
+     * The arguments to be passed to test compiler.
+     *
+     * @deprecated Replaced by {@link #testCompilerArgs} for consistency with the main phase.
+     *
+     * @since 2.1
+     */
+    @Parameter
+    @Deprecated(since = "4.0.0")
+    protected Map<String, String> testCompilerArguments;
+
+    /**
+     * The single argument string to be passed to the test compiler.
+     * If this parameter is specified, it replaces {@link #compilerArgument}.
+     * Otherwise, the {@code compilerArgument} parameter is used.
+     *
+     * @deprecated Use {@link #testCompilerArgs} instead.
+     *
+     * @see CompilerMojo#compilerArgument
+     * @since 2.1
+     */
+    @Parameter
+    @Deprecated(since = "4.0.0")
+    protected String testCompilerArgument;
 
     /**
      * The directory where compiled test classes go.
-     * <p>
      * This parameter should only be modified in special cases.
      * See the {@link CompilerMojo#outputDirectory} for more information.
      *
      * @see CompilerMojo#outputDirectory
      */
     @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true)
-    private Path outputDirectory;
+    protected Path outputDirectory;
 
     /**
-     * A list of inclusion filters for the compiler.
-     */
-    @Parameter
-    private Set<String> testIncludes = new HashSet<>();
-
-    /**
-     * A list of exclusion filters for the compiler.
-     */
-    @Parameter
-    private Set<String> testExcludes = new HashSet<>();
-
-    /**
-     * A list of exclusion filters for the incremental calculation.
-     * @since 3.11
-     */
-    @Parameter
-    private Set<String> testIncrementalExcludes = new HashSet<>();
-
-    /**
-     * The -source argument for the test Java compiler.
+     * The output directory of the main classes.
+     * This directory will be added to the class-path or module-path.
+     * Its value should be the same as {@link CompilerMojo#outputDirectory}.
      *
-     * @since 2.1
+     * @see CompilerMojo#outputDirectory
+     * @see #addImplicitDependencies(Map, boolean)
      */
-    @Parameter(property = "maven.compiler.testSource")
-    private String testSource;
+    @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
+    protected Path mainOutputDirectory;
 
     /**
-     * The -target argument for the test Java compiler.
-     *
-     * @since 2.1
-     */
-    @Parameter(property = "maven.compiler.testTarget")
-    private String testTarget;
-
-    /**
-     * the -release argument for the test Java compiler
-     *
-     * @since 3.6
-     */
-    @Parameter(property = "maven.compiler.testRelease")
-    private String testRelease;
-
-    /**
-     * <p>
-     * Sets the arguments to be passed to test compiler (prepending a dash) if fork is set to true.
-     * </p>
-     * <p>
-     * This is because the list of valid arguments passed to a Java compiler
-     * varies based on the compiler version.
-     * </p>
-     *
-     * @since 2.1
-     */
-    @Parameter
-    private Map<String, String> testCompilerArguments;
-
-    /**
-     * <p>
-     * Sets the unformatted argument string to be passed to test compiler if fork is set to true.
-     * </p>
-     * <p>
-     * This is because the list of valid arguments passed to a Java compiler
-     * varies based on the compiler version.
-     * </p>
-     *
-     * @since 2.1
-     */
-    @Parameter
-    private String testCompilerArgument;
-
-    /**
-     * <p>
-     * Specify where to place generated source files created by annotation processing.
-     * Only applies to JDK 1.6+
-     * </p>
-     *
-     * @since 2.2
-     */
-    @Parameter(defaultValue = "${project.build.directory}/generated-test-sources/test-annotations")
-    private Path generatedTestSourcesDirectory;
-
-    /**
-     * <p>
-     * When {@code true}, uses the module path when compiling with a release or target of 9+ and
-     * <em>module-info.java</em> or <em>module-info.class</em> is present.
-     * When {@code false}, always uses the class path.
-     * </p>
+     * Whether to place the main classes on the module path when {@code module-info} is present.
+     * When {@code false}, always places the main classes on the class path.
+     * Dependencies are also placed on the class-path, unless their type is {@code module-jar}.
      *
      * @since 3.11
+     *
+     * @deprecated Use {@code "claspath-jar"} dependency type instead, and avoid {@code module-info.java} in tests.
      */
+    @Deprecated(since = "4.0.0")
     @Parameter(defaultValue = "true")
-    private boolean useModulePath;
-
-    @Parameter
-    private List<String> testPath;
+    protected boolean useModulePath = true;
 
     /**
-     * when forking and debug activated the commandline used will be dumped in this file
+     * Name of the main module to compile, or {@code null} if not yet determined.
+     * If the project is not modular, an empty string.
+     *
+     * TODO: use "*" as a sentinel value for modular source hierarchy.
+     *
+     * @see #getMainModuleName()
+     */
+    private String moduleName;
+
+    /**
+     * Whether a {@code module-info.java} file is defined in the test sources.
+     * In such case, it has precedence over the {@code module-info.java} in main sources.
+     * This is defined for compatibility with Maven 3, but not recommended.
+     */
+    private boolean hasTestModuleInfo;
+
+    /**
+     * Whether the {@code module-info} of the tests overwrites the main {@code module-info}.
+     * This is a deprecated practice, but is accepted if {@link #SUPPORT_LEGACY} is true.
+     */
+    private boolean overwriteMainModuleInfo;
+
+    /**
+     * The file where to dump the command-line when debug is activated or when the compilation failed.
+     * For example, if the value is {@code "javac-test"}, then the Java compiler can be launched
+     * from the command-line by typing {@code javac @target/javac-test.args}.
+     * The debug file will contain the compiler options together with the list of source files to compile.
+     *
+     * @see CompilerMojo#debugFileName
      * @since 3.10.0
      */
-    @Parameter(defaultValue = "javac-test")
-    private String debugFileName;
+    @Parameter(defaultValue = "javac-test.args")
+    protected String debugFileName;
 
-    final LocationManager locationManager = new LocationManager();
+    /**
+     * Creates a new test compiler MOJO.
+     */
+    public TestCompilerMojo() {
+        super(true);
+    }
 
-    private Map<String, JavaModuleDescriptor> pathElements;
-
-    private List<String> classpathElements;
-
-    private List<String> modulepathElements;
-
+    /**
+     * Runs the Java compiler on the test source code.
+     *
+     * @throws MojoException if the compiler cannot be run.
+     */
+    @Override
     public void execute() throws MojoException {
         if (skip) {
-            getLog().info("Not compiling test sources");
+            logger.info("Not compiling test sources");
             return;
         }
         super.execute();
     }
 
+    /**
+     * Parses the parameters declared in the MOJO.
+     *
+     * @param  compiler  the tools to use for verifying the validity of options
+     * @return the options after validation
+     */
+    @Override
+    @SuppressWarnings("deprecation")
+    protected Options acceptParameters(final OptionChecker compiler) {
+        Options compilerConfiguration = super.acceptParameters(compiler);
+        compilerConfiguration.addUnchecked(
+                testCompilerArgs == null || testCompilerArgs.isEmpty() ? compilerArgs : testCompilerArgs);
+        if (testCompilerArguments != null) {
+            for (Map.Entry<String, String> entry : testCompilerArguments.entrySet()) {
+                compilerConfiguration.addUnchecked(List.of(entry.getKey(), entry.getValue()));
+            }
+        }
+        compilerConfiguration.addUnchecked(testCompilerArgument == null ? compilerArgument : testCompilerArgument);
+        return compilerConfiguration;
+    }
+
+    /**
+     * {@return the root directories of Java source files to compile for the tests}.
+     */
+    @Nonnull
+    @Override
     protected List<Path> getCompileSourceRoots() {
         if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            return projectManager.getCompileSourceRoots(getProject(), ProjectScope.TEST);
+            return projectManager.getCompileSourceRoots(project, ProjectScope.TEST);
         } else {
-            return compileSourceRoots.stream().map(Paths::get).collect(Collectors.toList());
+            return compileSourceRoots.stream().map(Paths::get).toList();
         }
     }
 
+    /**
+     * {@return the path where to place generated source files created by annotation processing on the test classes}.
+     */
+    @Nullable
     @Override
-    protected Map<String, JavaModuleDescriptor> getPathElements() {
-        return pathElements;
+    protected Path getGeneratedSourcesDirectory() {
+        return generatedTestSourcesDirectory;
     }
 
-    protected List<String> getClasspathElements() {
-        return classpathElements;
-    }
-
+    /**
+     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}.
+     */
     @Override
-    protected List<String> getModulepathElements() {
-        return modulepathElements;
+    protected Set<String> getIncludes() {
+        return (testIncludes != null) ? testIncludes : Set.of();
     }
 
-    protected Path getOutputDirectory() {
-        return outputDirectory;
-    }
-
+    /**
+     * {@return the exclusion filters for the compiler, or an empty set if none}.
+     */
     @Override
-    protected void preparePaths(Set<Path> sourceFiles) {
-        List<String> testPath = this.testPath;
-        if (testPath == null) {
-            Stream<String> s1 = Stream.of(outputDirectory.toString(), mainOutputDirectory.toString());
-            Stream<String> s2 = session.resolveDependencies(getProject(), PathScope.TEST_COMPILE).stream()
-                    .map(Path::toString);
-            testPath = Stream.concat(s1, s2).collect(Collectors.toList());
-        }
-
-        Path mainOutputDirectory = Paths.get(getProject().getBuild().getOutputDirectory());
-
-        Path mainModuleDescriptorClassFile = mainOutputDirectory.resolve("module-info.class");
-        JavaModuleDescriptor mainModuleDescriptor = null;
-
-        Path testModuleDescriptorJavaFile = Paths.get("module-info.java");
-        JavaModuleDescriptor testModuleDescriptor = null;
-
-        // Go through the source files to respect includes/excludes
-        for (Path sourceFile : sourceFiles) {
-            // @todo verify if it is the root of a sourcedirectory?
-            if ("module-info.java".equals(sourceFile.getFileName().toString())) {
-                testModuleDescriptorJavaFile = sourceFile;
-                break;
-            }
-        }
-
-        // Get additional information from the main module descriptor, if available
-        if (Files.exists(mainModuleDescriptorClassFile)) {
-            ResolvePathsResult<String> result;
-
-            try {
-                ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(testPath)
-                        .setIncludeStatic(true)
-                        .setMainModuleDescriptor(
-                                mainModuleDescriptorClassFile.toAbsolutePath().toString());
-
-                Optional<Toolchain> toolchain = getToolchain();
-                if (toolchain.isPresent() && toolchain.get() instanceof JavaToolchain) {
-                    request.setJdkHome(((JavaToolchain) toolchain.get()).getJavaHome());
-                }
-
-                result = locationManager.resolvePaths(request);
-
-                for (Entry<String, Exception> pathException :
-                        result.getPathExceptions().entrySet()) {
-                    Throwable cause = pathException.getValue();
-                    while (cause.getCause() != null) {
-                        cause = cause.getCause();
-                    }
-                    String fileName =
-                            Paths.get(pathException.getKey()).getFileName().toString();
-                    getLog().warn("Can't extract module name from " + fileName + ": " + cause.getMessage());
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            mainModuleDescriptor = result.getMainModuleDescriptor();
-
-            pathElements = new LinkedHashMap<>(result.getPathElements().size());
-            pathElements.putAll(result.getPathElements());
-
-            modulepathElements = new ArrayList<>(result.getModulepathElements().keySet());
-            classpathElements = new ArrayList<>(result.getClasspathElements());
-        }
-
-        // Get additional information from the test module descriptor, if available
-        if (Files.exists(testModuleDescriptorJavaFile)) {
-            ResolvePathsResult<String> result;
-
-            try {
-                ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(testPath)
-                        .setMainModuleDescriptor(
-                                testModuleDescriptorJavaFile.toAbsolutePath().toString());
-
-                Optional<Toolchain> toolchain = getToolchain();
-                if (toolchain.isPresent() && toolchain.get() instanceof JavaToolchain) {
-                    request.setJdkHome(((JavaToolchain) toolchain.get()).getJavaHome());
-                }
-
-                result = locationManager.resolvePaths(request);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-
-            testModuleDescriptor = result.getMainModuleDescriptor();
-        }
-
-        if (release != null && !release.isEmpty()) {
-            if (Integer.parseInt(release) < 9) {
-                pathElements = Collections.emptyMap();
-                modulepathElements = Collections.emptyList();
-                classpathElements = testPath;
-                return;
-            }
-        } else if (Double.parseDouble(getTarget()) < Double.parseDouble(MODULE_INFO_TARGET)) {
-            pathElements = Collections.emptyMap();
-            modulepathElements = Collections.emptyList();
-            classpathElements = testPath;
-            return;
-        }
-
-        if (testModuleDescriptor != null) {
-            modulepathElements = testPath;
-            classpathElements = Collections.emptyList();
-
-            if (mainModuleDescriptor != null) {
-                if (getLog().isDebugEnabled()) {
-                    getLog().debug("Main and test module descriptors exist:");
-                    getLog().debug("  main module = " + mainModuleDescriptor.name());
-                    getLog().debug("  test module = " + testModuleDescriptor.name());
-                }
-
-                if (testModuleDescriptor.name().equals(mainModuleDescriptor.name())) {
-                    if (compilerArgs == null) {
-                        compilerArgs = new ArrayList<>();
-                    }
-                    compilerArgs.add("--patch-module");
-
-                    StringBuilder patchModuleValue = new StringBuilder();
-                    patchModuleValue.append(testModuleDescriptor.name());
-                    patchModuleValue.append('=');
-
-                    for (Path root : projectManager.getCompileSourceRoots(getProject(), ProjectScope.MAIN)) {
-                        if (Files.exists(root)) {
-                            patchModuleValue.append(root).append(PS);
-                        }
-                    }
-
-                    compilerArgs.add(patchModuleValue.toString());
-                } else {
-                    getLog().debug("Black-box testing - all is ready to compile");
-                }
-            } else {
-                // No main binaries available? Means we're a test-only project.
-                if (!Files.exists(mainOutputDirectory)) {
-                    return;
-                }
-                // very odd
-                // Means that main sources must be compiled with -modulesource and -Xmodule:<moduleName>
-                // However, this has a huge impact since you can't simply use it as a classpathEntry
-                // due to extra folder in between
-                throw new UnsupportedOperationException(
-                        "Can't compile test sources " + "when main sources are missing a module descriptor");
-            }
-        } else {
-            if (mainModuleDescriptor != null) {
-                if (compilerArgs == null) {
-                    compilerArgs = new ArrayList<>();
-                }
-                compilerArgs.add("--patch-module");
-
-                StringBuilder patchModuleValue = new StringBuilder(mainModuleDescriptor.name())
-                        .append('=')
-                        .append(mainOutputDirectory)
-                        .append(PS);
-                for (Path root : getCompileSourceRoots()) {
-                    patchModuleValue.append(root).append(PS);
-                }
-
-                compilerArgs.add(patchModuleValue.toString());
-
-                compilerArgs.add("--add-reads");
-                compilerArgs.add(mainModuleDescriptor.name() + "=ALL-UNNAMED");
-            } else {
-                modulepathElements = Collections.emptyList();
-                classpathElements = testPath;
-            }
-        }
+    protected Set<String> getExcludes() {
+        return (testExcludes != null) ? testExcludes : Set.of();
     }
 
-    protected SourceInclusionScanner getSourceInclusionScanner(int staleMillis) {
-        SourceInclusionScanner scanner;
-
-        if (testIncludes.isEmpty() && testExcludes.isEmpty() && testIncrementalExcludes.isEmpty()) {
-            scanner = new StaleSourceScanner(staleMillis);
-        } else {
-            if (testIncludes.isEmpty()) {
-                testIncludes.add("**/*.java");
-            }
-            scanner = new StaleSourceScanner(staleMillis, testIncludes, add(testExcludes, testIncrementalExcludes));
-        }
-
-        return scanner;
+    /**
+     * {@return the exclusion filters for the incremental calculation, or an empty set if none}.
+     */
+    @Override
+    protected Set<String> getIncrementalExcludes() {
+        return (testIncrementalExcludes != null) ? testIncrementalExcludes : Set.of();
     }
 
-    protected SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding) {
-        SourceInclusionScanner scanner;
-
-        // it's not defined if we get the ending with or without the dot '.'
-        String defaultIncludePattern = "**/*" + (inputFileEnding.startsWith(".") ? "" : ".") + inputFileEnding;
-
-        if (testIncludes.isEmpty() && testExcludes.isEmpty() && testIncrementalExcludes.isEmpty()) {
-            testIncludes = Collections.singleton(defaultIncludePattern);
-            scanner = new SimpleSourceInclusionScanner(testIncludes, Collections.emptySet());
-        } else {
-            if (testIncludes.isEmpty()) {
-                testIncludes.add(defaultIncludePattern);
-            }
-            scanner = new SimpleSourceInclusionScanner(testIncludes, add(testExcludes, testIncrementalExcludes));
-        }
-
-        return scanner;
-    }
-
+    /**
+     * If a different source version has been specified for the tests, returns that version.
+     * Otherwise returns the same source version as the main code.
+     *
+     * @return the {@code --source} argument for the Java compiler
+     */
+    @Nullable
+    @Override
     protected String getSource() {
         return testSource == null ? source : testSource;
     }
 
+    /**
+     * If a different target version has been specified for the tests, returns that version.
+     * Otherwise returns the same target version as the main code.
+     *
+     * @return the {@code --target} argument for the Java compiler
+     */
+    @Nullable
+    @Override
     protected String getTarget() {
         return testTarget == null ? target : testTarget;
     }
 
+    /**
+     * If a different release version has been specified for the tests, returns that version.
+     * Otherwise returns the same release version as the main code.
+     *
+     * @return the {@code --release} argument for the Java compiler
+     */
+    @Nullable
     @Override
     protected String getRelease() {
         return testRelease == null ? release : testRelease;
     }
 
-    protected String getCompilerArgument() {
-        return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
+    /**
+     * {@return the destination directory for test class files}.
+     */
+    @Nonnull
+    @Override
+    protected Path getOutputDirectory() {
+        return outputDirectory;
     }
 
-    protected Path getGeneratedSourcesDirectory() {
-        return generatedTestSourcesDirectory;
-    }
-
+    /**
+     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}.
+     */
+    @Nullable
     @Override
     protected String getDebugFileName() {
         return debugFileName;
     }
 
-    @Override
-    protected boolean isTestCompile() {
-        return true;
+    /**
+     * {@return the module name of the main code, or an empty string if none}.
+     * This method reads the module descriptor when first needed and caches the result.
+     *
+     * @throws IOException if the module descriptor cannot be read.
+     */
+    private String getMainModuleName() throws IOException {
+        if (moduleName == null) {
+            Path file = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
+            if (Files.isRegularFile(file)) {
+                try (InputStream in = Files.newInputStream(file)) {
+                    moduleName = ModuleDescriptor.read(in).name();
+                }
+            } else {
+                moduleName = "";
+            }
+        }
+        return moduleName;
     }
 
-    @Override
-    protected Set<String> getIncludes() {
-        return testIncludes;
+    /**
+     * {@return the module name declared in the test sources}. We have to parse the source instead
+     * of the {@code module-info.class} file because the classes may not have been compiled yet.
+     * This is not very reliable, but putting a {@code module-info.java} file in the tests is
+     * deprecated anyway.
+     */
+    private String getTestModuleName(List<SourceDirectory> compileSourceRoots) throws IOException {
+        for (SourceDirectory directory : compileSourceRoots) {
+            if (directory.moduleName != null) {
+                return directory.moduleName;
+            }
+            String name = parseModuleInfoName(directory.getModuleInfo().orElse(null));
+            if (name != null) {
+                return name;
+            }
+        }
+        return null;
     }
 
+    /**
+     * {@return whether the project has at least one {@code module-info.class} file}.
+     * This method opportunistically fetches the module name.
+     *
+     * @param roots root directories of the sources to compile
+     * @throws IOException if this method needed to read a module descriptor and failed
+     */
     @Override
-    protected Set<String> getExcludes() {
-        return testExcludes;
+    final boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
+        hasTestModuleInfo = super.hasModuleDeclaration(roots);
+        if (hasTestModuleInfo) {
+            MessageBuilder message = messageBuilderFactory.builder();
+            message.a("Overwriting the ")
+                    .warning(MODULE_INFO + JAVA_FILE_SUFFIX)
+                    .a(" file in the test directory is deprecated. Use ")
+                    .info("--add-reads")
+                    .a(", ")
+                    .info("--add-modules")
+                    .a(" and related options instead.");
+            logger.warn(message.toString());
+            if (SUPPORT_LEGACY) {
+                return useModulePath;
+            }
+        }
+        return useModulePath && !getMainModuleName().isEmpty();
+    }
+
+    /**
+     * Adds the main compilation output directories as test dependencies.
+     *
+     * @param addTo where to add dependencies
+     * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
+     */
+    @Override
+    protected void addImplicitDependencies(Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration) {
+        var pathType = hasModuleDeclaration ? JavaPathType.MODULES : JavaPathType.CLASSES;
+        if (Files.exists(mainOutputDirectory)) {
+            addTo.computeIfAbsent(pathType, (key) -> new ArrayList<>()).add(mainOutputDirectory);
+        }
+    }
+
+    /**
+     * Adds {@code --patch-module} options for the given source directories.
+     * In this case, the option values are directory of <em>source</em> files.
+     * Not to be confused with cases where a module is patched with compiled
+     * classes (it may happen in other parts of the compiler plugin).
+     *
+     * @param addTo the collection of source paths to augment
+     * @param compileSourceRoots the source paths to eventually adds to the {@code toAdd} map
+     * @throws IOException if this method needs to read a module descriptor and this operation failed
+     */
+    @Override
+    final void addSourceDirectories(Map<PathType, List<Path>> addTo, List<SourceDirectory> compileSourceRoots)
+            throws IOException {
+        for (SourceDirectory dir : compileSourceRoots) {
+            String moduleToPatch = dir.moduleName;
+            if (moduleToPatch == null) {
+                moduleToPatch = getMainModuleName();
+                if (moduleToPatch.isEmpty()) {
+                    continue; // No module-info found.
+                }
+                if (SUPPORT_LEGACY) {
+                    String testModuleName = getTestModuleName(compileSourceRoots);
+                    if (testModuleName != null) {
+                        overwriteMainModuleInfo = testModuleName.equals(getMainModuleName());
+                        if (!overwriteMainModuleInfo) {
+                            continue; // The test classes are in their own module.
+                        }
+                    }
+                }
+            }
+            addTo.computeIfAbsent(JavaPathType.patchModule(moduleToPatch), (key) -> new ArrayList<>())
+                    .add(dir.root);
+        }
+    }
+
+    /**
+     * Generates the {@code --add-modules} and {@code --add-reads} options for the dependencies that are not
+     * in the main compilation. This method is invoked only if {@code hasModuleDeclaration} is {@code true}.
+     *
+     * @param dependencies the project dependencies
+     * @param addTo where to add the options
+     * @throws IOException if the module information of a dependency cannot be read
+     */
+    @Override
+    @SuppressWarnings({"checkstyle:MissingSwitchDefault", "fallthrough"})
+    protected void addModuleOptions(DependencyResolverResult dependencies, Options addTo) throws IOException {
+        if (SUPPORT_LEGACY && useModulePath && hasTestModuleInfo) {
+            /*
+             * Do not add any `--add-reads` parameters. The developers should put
+             * everything needed in the `module-info`, including test dependencies.
+             */
+            return;
+        }
+        final var done = new HashSet<String>(); // Added modules and their dependencies.
+        final var addModules = new StringJoiner(",");
+        StringJoiner addReads = null;
+        boolean hasUnnamed = false;
+        for (Map.Entry<Dependency, Path> entry : dependencies.getDependencies().entrySet()) {
+            boolean compile = false;
+            switch (entry.getKey().getScope()) {
+                case TEST:
+                case TEST_ONLY:
+                    compile = true;
+                    // Fall through
+                case TEST_RUNTIME:
+                    if (compile) {
+                        // Needs to be initialized even if `name` is null.
+                        if (addReads == null) {
+                            addReads = new StringJoiner(",", getMainModuleName() + "=", "");
+                        }
+                    }
+                    Path path = entry.getValue();
+                    String name = dependencies.getModuleName(path).orElse(null);
+                    if (name == null) {
+                        hasUnnamed = true;
+                    } else if (done.add(name)) {
+                        addModules.add(name);
+                        if (compile) {
+                            addReads.add(name);
+                        }
+                        /*
+                         * For making the options simpler, we do not add `--add-modules` or `--add-reads`
+                         * options for modules that are required by a module that we already added. This
+                         * simplification is not necessary, but makes the command-line easier to read.
+                         */
+                        dependencies.getModuleDescriptor(path).ifPresent((descriptor) -> {
+                            for (ModuleDescriptor.Requires r : descriptor.requires()) {
+                                done.add(r.name());
+                            }
+                        });
+                    }
+                    break;
+            }
+        }
+        if (!done.isEmpty()) {
+            addTo.addIfNonBlank("--add-modules", addModules.toString());
+        }
+        if (addReads != null) {
+            if (hasUnnamed) {
+                addReads.add("ALL-UNNAMED");
+            }
+            addTo.addIfNonBlank("--add-reads", addReads.toString());
+        }
+    }
+
+    /**
+     * Separates the compilation of {@code module-info} from other classes. This is needed when the
+     * {@code module-info} of the test classes overwrite the {@code module-info} of the main classes.
+     * In the latter case, we need to compile the test {@code module-info} first in order to substitute
+     * the main module-info by the test one before to compile the remaining test classes.
+     */
+    @Override
+    final CompilationTaskSources[] toCompilationTasks(final SourcesForRelease unit) {
+        if (!(SUPPORT_LEGACY && useModulePath && hasTestModuleInfo && overwriteMainModuleInfo)) {
+            return super.toCompilationTasks(unit);
+        }
+        CompilationTaskSources moduleInfo = null;
+        final List<Path> files = unit.files;
+        for (int i = files.size(); --i >= 0; ) {
+            if (SourceDirectory.isModuleInfoSource(files.get(i))) {
+                moduleInfo = new CompilationTaskSources(List.of(files.remove(i)));
+                if (files.isEmpty()) {
+                    return new CompilationTaskSources[] {moduleInfo};
+                }
+                break;
+            }
+        }
+        var task = new CompilationTaskSources(files) {
+            /**
+             * Substitutes the main {@code module-info.class} by the test's one, compiles test classes,
+             * then restores the original {@code module-info.class}. The test {@code module-info.class}
+             * must have been compiled separately before this method is invoked.
+             */
+            @Override
+            boolean compile(JavaCompiler.CompilationTask task) throws IOException {
+                try (unit) {
+                    unit.substituteModuleInfos(mainOutputDirectory, outputDirectory);
+                    return super.compile(task);
+                }
+            }
+        };
+        if (moduleInfo != null) {
+            return new CompilationTaskSources[] {moduleInfo, task};
+        } else {
+            return new CompilationTaskSources[] {task};
+        }
     }
 }

@@ -19,6 +19,9 @@
 
 <project>
   <build>
+    <directory>${project.basedir}/target</directory>
+    <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+    <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -27,11 +30,8 @@
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <compilerId>javac</compilerId>
-          <debug>true</debug>
-          <buildDirectory>${project.basedir}/target</buildDirectory>
-          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
+          <compilerId>maven-failing-compiler-stub</compilerId>
+          <incrementalCompilation>none</incrementalCompilation>
         </configuration>
       </plugin>
     </plugins>

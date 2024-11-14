@@ -19,24 +19,22 @@
 
 <project>
   <build>
+    <directory>${project.basedir}/target</directory>
+    <outputDirectory>${project.basedir}/target/classes</outputDirectory>
+    <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
+          <!--
+            Incremental compilation must be disabled, otherwise arguments
+            are not given to the compiler if there is nothing to compile.
+          -->
+          <incrementalCompilation>none</incrementalCompilation>
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <compilerId>javac</compilerId>
-          <debug>true</debug>
-          <buildDirectory>${project.basedir}/target</buildDirectory>
-          <outputDirectory>${project.basedir}/target/classes</outputDirectory>
-          <testOutputDirectory>${project.basedir}/target/test-classes</testOutputDirectory>
-          <compilerArguments>
-            <compilerArgument>
-              <param1>value1</param1>
-              <param2>value2</param2>
-            </compilerArgument>
-          </compilerArguments>
+          <compilerId>maven-compiler-stub</compilerId>
           <compilerArgs>
               <arg>key1=value1</arg>
               <arg>-Xlint</arg>

@@ -29,29 +29,21 @@
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <!--
-          one would think that if you specifically include something and then do a pattern exclude that happened
-          to catch that include, the include would take precedence...which it doesn't seem to
-          -->
-          <!--
           <includes>
-              <includes>**/TestCompile4.java</includes>
+            <include>**/TestCompile4.java</include>
           </includes>
           <excludes>
-            <exclude>**/TestCompile*.java</exclude>
+            <exclude>**/TestCompile2*.java</exclude>
+            <exclude>**/TestCompile3*.java</exclude>
           </excludes>
-          -->
-
-          <!--includes>
-                <includes>**/TestCompile4*.java</includes>
-          </includes>
-          <excludes>
-              <exclude>**/TestCompile2*.java</exclude>
-              <exclude>**/TestCompile3*.java</exclude>
-          </excludes-->
-
-          <compilerId>javac</compilerId>
-          <debug>true</debug>
+          <testIncludes>
+            <includes>**/TestCompile4*.java</includes>
+          </testIncludes>
+          <testExcludes>
+            <exclude>**/TestCompile2*.java</exclude>
+            <exclude>**/TestCompile3*.java</exclude>
+          </testExcludes>
+          <incrementalCompilation>none</incrementalCompilation>
         </configuration>
       </plugin>
     </plugins>

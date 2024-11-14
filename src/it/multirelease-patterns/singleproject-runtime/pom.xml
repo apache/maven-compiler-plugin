@@ -41,10 +41,6 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
-          <configuration>
-            <source>1.8</source>
-            <target>1.8</target>
-          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -68,6 +64,31 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
+          <source />
+          <target />
+          <release>16</release>
+        </configuration>
+        <executions>
+          <execution>
+            <id>jdk9</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <release>17</release>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
+              </compileSourceRoots>
+              <multiReleaseOutput>true</multiReleaseOutput>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <!-- Rerun unittests with the multirelease jar, cannot be done with exploded directory of classes  -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -98,25 +119,6 @@
       <build>
         <pluginManagement>
           <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>jdk9</id>
-                  <goals>
-                    <goal>compile</goal>
-                  </goals>
-                  <configuration>
-                    <release>9</release>
-                    <compileSourceRoots>
-                      <compileSourceRoot>${project.basedir}/src/main/java9</compileSourceRoot>
-                    </compileSourceRoots>
-                    <multiReleaseOutput>true</multiReleaseOutput>
-                  </configuration>
-                </execution>
-              </executions>
-            </plugin>
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-jar-plugin</artifactId>
