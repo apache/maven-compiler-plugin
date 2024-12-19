@@ -302,7 +302,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
                 }
 
                 compilerArgs.add("--module-version");
-                compilerArgs.add(getProject().getVersion());
+                compilerArgs.add(moduleVersion);
 
             } catch (IOException e) {
                 getLog().warn(e.getMessage());

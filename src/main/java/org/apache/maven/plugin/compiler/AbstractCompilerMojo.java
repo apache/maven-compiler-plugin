@@ -218,6 +218,16 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     protected String release;
 
     /**
+     * The {@code --module-version} argument for the Java compiler.
+     * This is ignored if not applicable, e.g., in non-modular projects.
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-module-version">javac --module-version</a>
+     * @since 3.13.1
+     */
+    @Parameter(property = "moduleVersion", defaultValue = "${project.version}")
+    protected String moduleVersion;
+
+    /**
      * The {@code -encoding} argument for the Java compiler.
      *
      * @since 2.1
