@@ -1451,7 +1451,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         if (!success || logger.isDebugEnabled()) {
             IOException suppressed = null;
             try {
-                writeDebugFile(compilerConfiguration.options, dependencies, sourceFiles);
+                writeDebugFile(compilerConfiguration, dependencies, sourceFiles);
                 if (success && tipForCommandLineCompilation != null) {
                     logger.debug(tipForCommandLineCompilation);
                     tipForCommandLineCompilation = null;
@@ -1767,13 +1767,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * If a file name contains embedded spaces, then the whole file name must be between double quotation marks.
      * The -J options are not supported.
      *
-     * @param options the compiler options
+     * @param compilerConfiguration options to provide to the compiler
      * @param dependencies the dependencies
      * @param sourceFiles all files to compile
      * @throws IOException if an error occurred while writing the debug file
      */
     private void writeDebugFile(
-            List<String> options, Map<PathType, List<Path>> dependencies, List<SourceFile> sourceFiles)
+            Options compilerConfiguration, Map<PathType, List<Path>> dependencies, List<SourceFile> sourceFiles)
             throws IOException {
         final Path path = getDebugFilePath();
         if (path == null) {
@@ -1784,36 +1784,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 .append(System.lineSeparator())
                 .append("    ")
                 .append(executable != null ? executable : compilerId);
-        boolean hasOptions = false;
         try (BufferedWriter out = Files.newBufferedWriter(path)) {
-            for (String option : options) {
-                if (option.isBlank()) {
-                    continue;
-                }
-                if (option.startsWith("-J")) {
-                    commandLine.append(' ').append(option);
-                    continue;
-                }
-                if (hasOptions) {
-                    if (option.charAt(0) == '-') {
-                        out.newLine();
-                    } else {
-                        out.write(' ');
-                    }
-                }
-                boolean needsQuote = option.indexOf(' ') >= 0;
-                if (needsQuote) {
-                    out.write('"');
-                }
-                out.write(option);
-                if (needsQuote) {
-                    out.write('"');
-                }
-                hasOptions = true;
-            }
-            if (hasOptions) {
-                out.newLine();
-            }
+            compilerConfiguration.format(commandLine, out);
             for (Map.Entry<PathType, List<Path>> entry : dependencies.entrySet()) {
                 String separator = "";
                 for (String element : entry.getKey().option(entry.getValue())) {
