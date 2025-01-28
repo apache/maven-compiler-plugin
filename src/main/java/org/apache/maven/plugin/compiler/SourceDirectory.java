@@ -28,6 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
+
+import org.apache.maven.api.SourceRoot;
 
 /**
  * A single root directory of source files, associated with module name and release version.
@@ -147,18 +150,40 @@ final class SourceDirectory {
     }
 
     /**
-     * Converts the given list of paths to a list of source directories.
+     * Gets the list of source directories from the project manager.
      * The returned list includes only the directories that exist.
      *
      * @param compileSourceRoots the root paths to source files
      * @param outputDirectory the directory where to store the compilation results
      * @return the given list of paths wrapped as source directory objects
      */
-    static List<SourceDirectory> fromPaths(List<Path> compileSourceRoots, Path outputDirectory) {
-        var roots = new ArrayList<SourceDirectory>(compileSourceRoots.size());
-        for (Path p : compileSourceRoots) {
+    static List<SourceDirectory> fromProject(Stream<SourceRoot> compileSourceRoots, Path outputDirectory) {
+        var roots = new ArrayList<SourceDirectory>();
+        compileSourceRoots.forEach((SourceRoot r) -> {
+            Path p = r.directory();
             if (Files.exists(p)) {
                 // TODO: specify file kind, module name and release version.
+                roots.add(new SourceDirectory(
+                        p, JavaFileObject.Kind.SOURCE, null, null, outputDirectory, JavaFileObject.Kind.CLASS));
+            }
+        });
+        return roots;
+    }
+
+    /**
+     * Converts the given list of paths to a list of source directories.
+     * The returned list includes only the directories that exist.
+     * Used only when the compiler plugin is configured with the {@code compileSourceRoots} option.
+     *
+     * @param compileSourceRoots the root paths to source files
+     * @param outputDirectory the directory where to store the compilation results
+     * @return the given list of paths wrapped as source directory objects
+     */
+    static List<SourceDirectory> fromPluginConfiguration(List<String> compileSourceRoots, Path outputDirectory) {
+        var roots = new ArrayList<SourceDirectory>(compileSourceRoots.size());
+        for (String file : compileSourceRoots) {
+            Path p = Path.of(file);
+            if (Files.exists(p)) {
                 roots.add(new SourceDirectory(
                         p, JavaFileObject.Kind.SOURCE, null, null, outputDirectory, JavaFileObject.Kind.CLASS));
             }

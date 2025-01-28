@@ -54,13 +54,16 @@ import java.util.StringJoiner;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaPathType;
+import org.apache.maven.api.Language;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.Project;
 import org.apache.maven.api.ProjectScope;
 import org.apache.maven.api.Session;
+import org.apache.maven.api.SourceRoot;
 import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
@@ -201,6 +204,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     @Parameter(property = "maven.compiler.enablePreview", defaultValue = "false")
     protected boolean enablePreview;
+
+    /**
+     * The root directories containing the source files to be compiled. If {@code null} or empty,
+     * the directories will be obtained from the {@code <Source>} elements declared in the project.
+     * If non-empty, the project {@code <Source>} elements are ignored. This configuration option
+     * should be used only when there is a need to override the project configuration.
+     */
+    @Parameter
+    protected List<String> compileSourceRoots;
 
     /**
      * Additional arguments to be passed verbatim to the Java compiler. This parameter can be used when
@@ -817,25 +829,19 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private String tipForCommandLineCompilation;
 
     /**
-     * {@code true} if this MOJO is for compiling tests, or {@code false} if compiling the main code.
+     * {@code MAIN_COMPILE} if this MOJO is for compiling the main code,
+     * or {@code TEST_COMPILE} if compiling the tests.
      */
-    final boolean isTestCompile;
+    final PathScope compileScope;
 
     /**
      * Creates a new MOJO.
      *
-     * @param isTestCompile {@code true} for compiling tests, or {@code false} for compiling the main code
+     * @param compileScope {@code MAIN_COMPILE} or {@code TEST_COMPILE}
      */
-    protected AbstractCompilerMojo(boolean isTestCompile) {
-        this.isTestCompile = isTestCompile;
+    protected AbstractCompilerMojo(PathScope compileScope) {
+        this.compileScope = compileScope;
     }
-
-    /**
-     * {@return the root directories of Java source files to compile}. If the sources are organized according the
-     * <i>Module Source Hierarchy</i>, then the list shall enumerate the root source directory for each module.
-     */
-    @Nonnull
-    protected abstract List<Path> getCompileSourceRoots();
 
     /**
      * {@return the inclusion filters for the compiler, or an empty list for all Java source files}.
@@ -924,11 +930,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * The typical case is the compilation of tests, which depends on the main compilation outputs.
      * The default implementation does nothing.
      *
+     * @param sourceDirectories the source directories
      * @param addTo where to add dependencies
      * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
      * @throws IOException if this method needs to walk through directories and that operation failed
      */
-    protected void addImplicitDependencies(Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
+    void addImplicitDependencies(
+            List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
             throws IOException {
         // Nothing to add in a standard build of main classes.
     }
@@ -939,10 +947,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * options may be used) or the test classes (in which case the {@code --patch-module} option may be used).
      *
      * @param addTo the collection of source paths to augment
-     * @param compileSourceRoots the source paths to eventually adds to the {@code toAdd} map
+     * @param sourceDirectories the source paths to eventually adds to the {@code toAdd} map
      * @throws IOException if this method needs to read a module descriptor and this operation failed
      */
-    void addSourceDirectories(Map<PathType, List<Path>> addTo, List<SourceDirectory> compileSourceRoots)
+    void addSourceDirectories(Map<PathType, List<Path>> addTo, List<SourceDirectory> sourceDirectories)
             throws IOException {
         // No need to specify --source-path at this time, as it is for additional sources.
     }
@@ -1100,7 +1108,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         compilerConfiguration.addIfNonBlank("--source", getSource());
         targetOrReleaseSet = compilerConfiguration.addIfNonBlank("--target", getTarget());
         targetOrReleaseSet |= compilerConfiguration.addIfNonBlank("--release", getRelease());
-        if (!targetOrReleaseSet && !isTestCompile) {
+        if (!targetOrReleaseSet && ProjectScope.MAIN.equals(compileScope.projectScope())) {
             MessageBuilder mb = messageBuilderFactory
                     .builder()
                     .a("No explicit value set for --release or --target. "
@@ -1186,11 +1194,17 @@ public abstract class AbstractCompilerMojo implements Mojo {
          */
         List<SourceFile> sourceFiles = List.of();
         final Path outputDirectory = Files.createDirectories(getOutputDirectory());
-        final List<SourceDirectory> compileSourceRoots =
-                SourceDirectory.fromPaths(getCompileSourceRoots(), outputDirectory);
+        final List<SourceDirectory> sourceDirectories;
+        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+            ProjectScope scope = compileScope.projectScope();
+            Stream<SourceRoot> roots = projectManager.getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY);
+            sourceDirectories = SourceDirectory.fromProject(roots, outputDirectory);
+        } else {
+            sourceDirectories = SourceDirectory.fromPluginConfiguration(compileSourceRoots, outputDirectory);
+        }
         final boolean hasModuleDeclaration;
         if (incAspects.contains(IncrementalBuild.Aspect.MODULES)) {
-            for (SourceDirectory root : compileSourceRoots) {
+            for (SourceDirectory root : sourceDirectories) {
                 if (root.moduleName == null) {
                     throw new CompilationFailureException("The <incrementalCompilation> value can be \"modules\" "
                             + "only if all source directories are Java modules.");
@@ -1205,7 +1219,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             hasModuleDeclaration = true;
         } else {
             var filter = new PathFilter(getIncludes(), getExcludes(), getIncrementalExcludes());
-            sourceFiles = filter.walkSourceFiles(compileSourceRoots);
+            sourceFiles = filter.walkSourceFiles(sourceDirectories);
             if (sourceFiles.isEmpty()) {
                 String message = "No sources to compile.";
                 try {
@@ -1224,7 +1238,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     hasModuleDeclaration = true;
                     break;
                 default:
-                    hasModuleDeclaration = hasModuleDeclaration(compileSourceRoots);
+                    hasModuleDeclaration = hasModuleDeclaration(sourceDirectories);
                     break;
             }
         }
@@ -1234,13 +1248,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * and this MOJO is compiling the main code, then a warning will be logged.
          *
          * NOTE: this method assumes that the map and the list values are modifiable.
-         * This is true with org.apache.maven.internal.impl.DefaultDependencyResolverResult,
+         * This is true with org.apache.maven.impl.DefaultDependencyResolverResult,
          * but may not be true in the general case. To be safe, we should perform a deep copy.
          * But it would be unnecessary copies in most cases.
          */
         final Map<PathType, List<Path>> dependencies = resolveDependencies(compilerConfiguration, hasModuleDeclaration);
         resolveProcessorPathEntries(dependencies);
-        addImplicitDependencies(dependencies, hasModuleDeclaration);
+        addImplicitDependencies(sourceDirectories, dependencies, hasModuleDeclaration);
         /*
          * Verify if a dependency changed since the build started, or if a source file changed since the last build.
          * If there is no change, we can skip the build. If a dependency or the source tree has changed, we may
@@ -1305,7 +1319,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * the `javax.tools.StandardLocation` API.
          */
         if (hasModuleDeclaration) {
-            addSourceDirectories(dependencies, compileSourceRoots);
+            addSourceDirectories(dependencies, sourceDirectories);
         }
         /*
          * Create a `JavaFileManager`, configure all paths (dependencies and sources), then run the compiler.
@@ -1450,7 +1464,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                         .append("Cannot compile ")
                         .append(project.getId())
                         .append(' ')
-                        .append(isTestCompile ? "test" : "main")
+                        .append(compileScope.projectScope().id())
                         .append(" classes.");
                 listener.firstError(failureCause).ifPresent((c) -> message.append(System.lineSeparator())
                         .append("The first error is: ")
@@ -1571,7 +1585,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 .session(session)
                 .project(project)
                 .requestType(DependencyResolverRequest.RequestType.RESOLVE)
-                .pathScope(isTestCompile ? PathScope.TEST_COMPILE : PathScope.MAIN_COMPILE)
+                .pathScope(compileScope)
                 .pathTypeFilter(allowedTypes)
                 .build());
         /*
@@ -1597,7 +1611,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 throw (RuntimeException) exception; // A ClassCastException here would be a bug in above loop.
             }
         }
-        if (!isTestCompile) {
+        if (ProjectScope.MAIN.equals(compileScope.projectScope())) {
             String warning = dependencies.warningForFilenameBasedAutomodules().orElse(null);
             if (warning != null) { // Do not use Optional.ifPresent(…) for avoiding confusing source class name.
                 logger.warn(warning);
@@ -1619,7 +1633,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * to the {@link JavaPathType#PROCESSOR_CLASSES} entry of given map, which should be modifiable.
      *
      * <h4>Implementation note</h4>
-     * We rely on the fact that {@link org.apache.maven.internal.impl.DefaultDependencyResolverResult} creates
+     * We rely on the fact that {@link org.apache.maven.impl.DefaultDependencyResolverResult} creates
      * modifiable instances of map and lists. This is a fragile assumption, but this method is deprecated anyway
      * and may be removed in a future version.
      *
@@ -1690,17 +1704,19 @@ public abstract class AbstractCompilerMojo implements Mojo {
             // `createDirectories(Path)` does nothing if the directory already exists.
             generatedSourcesDirectory = Files.createDirectories(generatedSourcesDirectory);
         }
-        ProjectScope scope = isTestCompile ? ProjectScope.TEST : ProjectScope.MAIN;
-        projectManager.addCompileSourceRoot(project, scope, generatedSourcesDirectory.toAbsolutePath());
+        ProjectScope scope = compileScope.projectScope();
+        projectManager.addSourceRoot(project, scope, Language.JAVA_FAMILY, generatedSourcesDirectory.toAbsolutePath());
         if (logger.isDebugEnabled()) {
             var sb = new StringBuilder("Adding \"")
                     .append(generatedSourcesDirectory)
                     .append("\" to ")
                     .append(scope.id())
                     .append("-compile source roots. New roots are:");
-            for (Path p : projectManager.getCompileSourceRoots(project, scope)) {
-                sb.append(System.lineSeparator()).append("    ").append(p);
-            }
+            projectManager
+                    .getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY)
+                    .forEach((p) -> {
+                        sb.append(System.lineSeparator()).append("    ").append(p.directory());
+                    });
             logger.debug(sb.toString());
         }
         return Set.of(generatedSourcesDirectory);
