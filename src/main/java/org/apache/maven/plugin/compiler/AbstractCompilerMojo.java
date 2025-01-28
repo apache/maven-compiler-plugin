@@ -1889,7 +1889,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * @see <a href="https://bugs.openjdk.org/browse/JDK-8318913">JDK-8318913</a>
      */
     private void patchJdkModuleVersion(CompilerResult compilerResult, Set<File> sources) throws MojoExecutionException {
-        if (compilerResult.isSuccess() && getModuleDeclaration(sources).isPresent()) {
+        if (compilerResult.isSuccess()
+                && getModuleDeclaration(sources).isPresent()
+                && !JavaVersion.JAVA_VERSION.isAtLeast("22")) {
             Path moduleDescriptor = getOutputDirectory().toPath().resolve("module-info.class");
             if (Files.isRegularFile(moduleDescriptor)) {
                 try {
