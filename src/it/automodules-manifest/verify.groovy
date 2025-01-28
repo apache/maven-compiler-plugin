@@ -19,4 +19,4 @@
 
 buildLog = new File( basedir, 'build.log' ).text;
 
-assert !buildLog.contains("Filename-based automodules detected on the module-path")
+assert !buildLog.contains("Filename-based automodules detected on the module path")

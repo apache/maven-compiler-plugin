@@ -50,8 +50,8 @@ import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
-import org.apache.maven.internal.impl.DefaultMessageBuilderFactory;
-import org.apache.maven.internal.impl.InternalSession;
+import org.apache.maven.impl.DefaultMessageBuilderFactory;
+import org.apache.maven.impl.InternalSession;
 import org.apache.maven.plugin.compiler.stubs.CompilerStub;
 import org.junit.jupiter.api.Test;
 

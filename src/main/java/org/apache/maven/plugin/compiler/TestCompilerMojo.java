@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -36,8 +35,8 @@ import java.util.StringJoiner;
 
 import org.apache.maven.api.Dependency;
 import org.apache.maven.api.JavaPathType;
+import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
-import org.apache.maven.api.ProjectScope;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
@@ -69,14 +68,6 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      */
     @Parameter(property = "maven.test.skip")
     protected boolean skip;
-
-    /**
-     * The source directories containing the test-source to be compiled.
-     *
-     * @see CompilerMojo#compileSourceRoots
-     */
-    @Parameter
-    protected List<String> compileSourceRoots;
 
     /**
      * Specify where to place generated source files created by annotation processing.
@@ -192,7 +183,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * Its value should be the same as {@link CompilerMojo#outputDirectory}.
      *
      * @see CompilerMojo#outputDirectory
-     * @see #addImplicitDependencies(Map, boolean)
+     * @see #addImplicitDependencies(List, Map, boolean)
      */
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
     protected Path mainOutputDirectory;
@@ -249,7 +240,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * Creates a new test compiler MOJO.
      */
     public TestCompilerMojo() {
-        super(true);
+        super(PathScope.TEST_COMPILE);
     }
 
     /**
@@ -285,19 +276,6 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         }
         compilerConfiguration.addUnchecked(testCompilerArgument == null ? compilerArgument : testCompilerArgument);
         return compilerConfiguration;
-    }
-
-    /**
-     * {@return the root directories of Java source files to compile for the tests}.
-     */
-    @Nonnull
-    @Override
-    protected List<Path> getCompileSourceRoots() {
-        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            return projectManager.getCompileSourceRoots(project, ProjectScope.TEST);
-        } else {
-            return compileSourceRoots.stream().map(Paths::get).toList();
-        }
     }
 
     /**
@@ -456,11 +434,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * Adds the main compilation output directories as test dependencies.
      *
+     * @param sourceDirectories the source directories (ignored)
      * @param addTo where to add dependencies
      * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
      */
     @Override
-    protected void addImplicitDependencies(Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration) {
+    void addImplicitDependencies(
+            List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration) {
         var pathType = hasModuleDeclaration ? JavaPathType.MODULES : JavaPathType.CLASSES;
         if (Files.exists(mainOutputDirectory)) {
             addTo.computeIfAbsent(pathType, (key) -> new ArrayList<>()).add(mainOutputDirectory);
@@ -474,13 +454,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * classes (it may happen in other parts of the compiler plugin).
      *
      * @param addTo the collection of source paths to augment
-     * @param compileSourceRoots the source paths to eventually adds to the {@code toAdd} map
+     * @param sourceDirectories the source paths to eventually adds to the {@code toAdd} map
      * @throws IOException if this method needs to read a module descriptor and this operation failed
      */
     @Override
-    final void addSourceDirectories(Map<PathType, List<Path>> addTo, List<SourceDirectory> compileSourceRoots)
+    final void addSourceDirectories(Map<PathType, List<Path>> addTo, List<SourceDirectory> sourceDirectories)
             throws IOException {
-        for (SourceDirectory dir : compileSourceRoots) {
+        for (SourceDirectory dir : sourceDirectories) {
             String moduleToPatch = dir.moduleName;
             if (moduleToPatch == null) {
                 moduleToPatch = getMainModuleName();
@@ -488,7 +468,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                     continue; // No module-info found.
                 }
                 if (SUPPORT_LEGACY) {
-                    String testModuleName = getTestModuleName(compileSourceRoots);
+                    String testModuleName = getTestModuleName(sourceDirectories);
                     if (testModuleName != null) {
                         overwriteMainModuleInfo = testModuleName.equals(getMainModuleName());
                         if (!overwriteMainModuleInfo) {

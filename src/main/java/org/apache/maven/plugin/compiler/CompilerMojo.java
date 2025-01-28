@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +32,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.maven.api.JavaPathType;
+import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProducedArtifact;
-import org.apache.maven.api.ProjectScope;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
@@ -63,13 +62,6 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Parameter(property = "maven.main.skip")
     protected boolean skipMain;
-
-    /**
-     * The source directories containing the sources to be compiled.
-     * If {@code null} or empty, the directory will be obtained from the project manager.
-     */
-    @Parameter
-    protected List<String> compileSourceRoots;
 
     /**
      * Specify where to place generated source files created by annotation processing.
@@ -148,7 +140,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * Creates a new compiler MOJO.
      */
     public CompilerMojo() {
-        super(false);
+        super(PathScope.MAIN_COMPILE);
     }
 
     /**
@@ -183,23 +175,6 @@ public class CompilerMojo extends AbstractCompilerMojo {
         compilerConfiguration.addUnchecked(compilerArgs);
         compilerConfiguration.addUnchecked(compilerArgument);
         return compilerConfiguration;
-    }
-
-    /**
-     * {@return the root directories of Java source files to compile}.
-     * It can be a parameter specified to the compiler plugin,
-     * or otherwise the value provided by the project manager.
-     */
-    @Nonnull
-    @Override
-    protected List<Path> getCompileSourceRoots() {
-        List<Path> sources;
-        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            sources = projectManager.getCompileSourceRoots(project, ProjectScope.MAIN);
-        } else {
-            sources = compileSourceRoots.stream().map(Paths::get).toList();
-        }
-        return sources;
     }
 
     /**
@@ -261,6 +236,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * If compiling a multi-release JAR in the old deprecated way, add the previous versions to the path.
      *
+     * @param sourceDirectories the source directories
      * @param addTo where to add dependencies
      * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
      * @throws IOException if this method needs to walk through directories and that operation failed
@@ -269,7 +245,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Override
     @Deprecated(since = "4.0.0")
-    protected void addImplicitDependencies(Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
+    protected void addImplicitDependencies(
+            List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
             throws IOException {
         if (SUPPORT_LEGACY && multiReleaseOutput) {
             var paths = new TreeMap<Integer, Path>();
@@ -309,8 +286,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
              * search in the source files for the Java release of the current compilation unit.
              */
             if (moduleName == null) {
-                for (Path path : getCompileSourceRoots()) {
-                    moduleName = parseModuleInfoName(path.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
+                for (SourceDirectory dir : sourceDirectories) {
+                    moduleName = parseModuleInfoName(dir.root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
                     if (moduleName != null) {
                         break;
                     }

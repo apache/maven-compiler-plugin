@@ -19,6 +19,6 @@
 
 buildLog = new File( basedir, 'build.log' ).text;
 
-assert buildLog.contains("[WARNING] Filename-based automodules detected on the module-path:")
+assert buildLog.contains("[WARNING] Filename-based automodules detected on the module path:")
 assert buildLog.contains("  - plexus-utils-3.0.24.jar")
 assert buildLog.contains("  - plexus-resources-1.1.0.jar")
