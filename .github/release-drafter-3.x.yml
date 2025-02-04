@@ -17,12 +17,5 @@
 # specific language governing permissions and limitations
 # under the License.
 
-_extends: maven-gh-actions-shared
+_extends: maven-gh-actions-shared:.github/release-drafter.yml
 tag-template: maven-compiler-plugin-$RESOLVED_VERSION
-
-include-pre-releases: true
-prerelease: true
-
-header: |  
-  > [!WARNING]
-  > This plugin is a Maven 4 plugin and requires Maven 4.x to run.
