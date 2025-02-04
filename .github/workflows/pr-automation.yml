@@ -14,17 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-   
-name: Release Drafter
+
+name: PR Automation
 on:
-  push:
-    branches:
-      - maven-compiler-plugin-3.x
-    workflow_dispatch:
+  pull_request_target:
+    types:
+      - closed
+      - unlabeled
+      - review_requested
 
 jobs:
-   update_release_draft:
-      uses: apache/maven-gh-actions-shared/.github/workflows/release-drafter.yml@v4
-      with:
-        config-name: 'release-drafter-3.x.yml'
-
+  pr-automation:
+    name: PR Automation
+    uses: apache/maven-gh-actions-shared/.github/workflows/pr-automation.yml@v4
