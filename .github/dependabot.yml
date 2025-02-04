@@ -21,10 +21,20 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    ignore:
-      # ignore Maven Core updates
-      - dependency-name: "org.apache.maven:*"
+
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "maven-compiler-plugin-3.x"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    target-branch: "maven-compiler-plugin-3.x"
