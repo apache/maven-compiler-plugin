@@ -703,6 +703,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private boolean targetOrReleaseSet;
 
     @Override
+    @SuppressWarnings("checkstyle:MethodLength")
     public void execute() throws MojoExecutionException, CompilationFailureException {
         // ----------------------------------------------------------------------
         // Look up the compiler. This is done before other code than can

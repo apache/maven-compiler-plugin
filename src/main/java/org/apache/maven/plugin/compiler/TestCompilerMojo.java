@@ -231,6 +231,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     @Override
+    @SuppressWarnings("checkstyle:MethodLength")
     protected void preparePaths(Set<File> sourceFiles) {
         File mainOutputDirectory = new File(getProject().getBuild().getOutputDirectory());
 
