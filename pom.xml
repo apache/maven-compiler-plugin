@@ -84,7 +84,7 @@ under the License.
     <javaVersion>17</javaVersion>
     <mavenVersion>4.0.0-beta-5</mavenVersion>
 
-    <asmVersion>9.7</asmVersion>
+    <asmVersion>9.7.1</asmVersion>
     <groovyVersion>2.4.21</groovyVersion>
     <groovyEclipseCompilerVersion>3.7.0</groovyEclipseCompilerVersion>
     <groovy-eclipse-batch>2.5.14-02</groovy-eclipse-batch>
