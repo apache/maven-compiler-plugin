@@ -34,4 +34,3 @@ jobs:
           { "jdk": "8", "distribution": "temurin", "os": "macos-latest" },
           { "jdk": "8", "distribution": "adopt-openj9", "os": "macos-latest" }
         ]'
-      maven-matrix: '[ "3.6.3", "3.8.8", "3.9.6" ]'  # Maven versions matrix for verify builds
