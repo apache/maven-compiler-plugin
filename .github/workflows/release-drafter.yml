@@ -20,7 +20,7 @@ on:
   push:
     branches:
       - maven-compiler-plugin-3.x
-    workflow_dispatch:
+  workflow_dispatch:
 
 jobs:
    update_release_draft:
