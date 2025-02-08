@@ -28,6 +28,9 @@
 
 Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
 
+  (If you're are using version <<<3.13.0>>> or newer of the Compiler Plugin, use the recommended
+  {{{../examples/set-compiler-release.html}<<<maven.compiler.release>>> property}}.)
+
   Sometimes when you may need to compile a certain project to a different
   version than what you are currently using.  The <<<javac>>> can accept
   such command using <<<-source>>> and <<<-target>>>.  The Compiler Plugin
@@ -85,4 +88,6 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
 
   <<Note:>> When you build your project using newer JDK (9+) you can also use "8" instead of "1.8" to set Java 8 as the
   desired source/target, but you should use the
-  {{{../examples/set-compiler-release.html}"maven.compiler.release" property}} instead.
+  {{{../examples/set-compiler-release.html}<<<maven.compiler.release>>> property}} instead.
+
+
