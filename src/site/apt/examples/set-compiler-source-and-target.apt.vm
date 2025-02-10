@@ -89,3 +89,4 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   In the same way, setting the <<<source>>> option does not guarantee that your code actually compiles on a JDK with
   the specified version. To compile your code with a specific JDK version, different than the one used to launch Maven,
   refer to the {{{../examples/compile-using-different-jdk.html}Compile Using A Different JDK}} example.
+
