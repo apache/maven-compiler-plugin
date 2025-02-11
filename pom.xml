@@ -97,6 +97,11 @@ under the License.
     <maven.it.failure.ignore>false</maven.it.failure.ignore>
 
     <project.build.outputTimestamp>2024-11-14T13:00:00Z</project.build.outputTimestamp>
+
+    <!-- TODO remove with next parent -->
+    <maven4x.site.path>plugins-archives/${project.artifactId}-LATEST-4.x</maven4x.site.path>
+    <!-- 4.x publish -->
+    <maven.site.path>${maven4x.site.path}</maven.site.path>
   </properties>
 
   <dependencies>
