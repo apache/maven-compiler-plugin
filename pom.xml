@@ -42,7 +42,7 @@ under the License.
   </contributors>
 
   <prerequisites>
-    <maven>${mavenVersion}</maven>
+    <maven>3.6.3</maven>
   </prerequisites>
 
   <scm>
@@ -67,7 +67,7 @@ under the License.
   </distributionManagement>
 
   <properties>
-    <mavenVersion>3.6.3</mavenVersion>
+    <mavenVersion>3.9.9</mavenVersion>
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
