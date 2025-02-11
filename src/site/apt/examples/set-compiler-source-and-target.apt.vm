@@ -28,21 +28,25 @@
 
 Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
 
+  (If you're are using version <<<3.13.0>>> or newer of the Compiler Plugin, use the recommended
+  {{{../examples/set-compiler-release.html}<<<maven.compiler.release>>> property}}.)
+
   Sometimes when you may need to compile a certain project to a different
   version than what you are currently using.  The <<<javac>>> can accept
   such command using <<<-source>>> and <<<-target>>>.  The Compiler Plugin
   can also be configured to provide these options during compilation.
+  You have to set the version following {{{https://openjdk.org/jeps/223}Java's new Version-String Scheme (JEP 223)}}}.
 
-  For example, if you want to use the Java 8 language features (<<<-source 1.8>>>)
-  and also want the compiled classes to be compatible with JVM 1.8 (<<<-target 1.8>>>),
-  you can either add the two following properties, which are the default property names for the plugin parameters:
+  For example, if you want to use the Java 8 language features and also want the compiled classes to be compatible
+  with JVM 8 (former 1.8) you can either add the two following properties, which are the default property names
+  for the plugin parameters:
 
 +-----
 <project>
   [...]
   <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>8</maven.compiler.source>
+    <maven.compiler.target>8</maven.compiler.target>
   </properties>
   [...]
 </project>
@@ -61,8 +65,8 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>8</source>
+          <target>8</target>
         </configuration>
       </plugin>
     </plugins>
@@ -79,6 +83,10 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   {{{http://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/}Animal Sniffer Maven Plugin}}
   to verify your code doesn't use unintended APIs, or better yet use the
   {{{../examples/set-compiler-release.html}<<<release>>> option supported since JDK 9}}.
+  Since plugin version <<<3.13.0>>> you can use the <<<release>>> property also on JDK 8.
+  The compiler plugin will convert it to <<<source>>> and <<<target>>> automatically.
+
   In the same way, setting the <<<source>>> option does not guarantee that your code actually compiles on a JDK with
   the specified version. To compile your code with a specific JDK version, different than the one used to launch Maven,
   refer to the {{{../examples/compile-using-different-jdk.html}Compile Using A Different JDK}} example.
+
