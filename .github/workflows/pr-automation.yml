@@ -20,8 +20,6 @@ on:
   pull_request_target:
     types:
       - closed
-      - unlabeled
-      - review_requested
 
 jobs:
   pr-automation:
