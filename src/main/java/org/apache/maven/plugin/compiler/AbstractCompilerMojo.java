@@ -122,7 +122,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-module-version">javac --module-version</a>
      * @since 4.0.0
      */
-    @Parameter(property = "moduleVersion", defaultValue = "${project.version}")
+    @Parameter(property = "maven.compiler.moduleVersion", defaultValue = "${project.version}")
     protected String moduleVersion;
 
     /**
