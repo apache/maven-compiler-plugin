@@ -162,6 +162,16 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Parameter(defaultValue = "javac")
     private String debugFileName;
 
+    /**
+     * The {@code --module-version} argument for the Java compiler.
+     * This is ignored if not applicable, e.g., in non-modular projects.
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-module-version">javac --module-version</a>
+     * @since 3.14.0
+     */
+    @Parameter(property = "maven.compiler.moduleVersion", defaultValue = "${project.version}")
+    private String moduleVersion;
+
     final LocationManager locationManager = new LocationManager();
 
     private List<String> classpathElements;
@@ -302,7 +312,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
                 }
 
                 compilerArgs.add("--module-version");
-                compilerArgs.add(getProject().getVersion());
+                compilerArgs.add(moduleVersion);
 
             } catch (IOException e) {
                 getLog().warn(e.getMessage());
