@@ -29,8 +29,13 @@
 ${project.name}
 
   The Compiler Plugin is used to compile the sources of your project. The
-  default compiler used to compile Java sources is javax.tools.JavaCompiler.
-  Other compilers than <<<javac>>> can be used.
+  default compiler used to compile Java sources is <<<javac>>>.
+  If you want to use another compiler, refer to the {{{./non-javac-compilers.html} guide: Using Non-Javac Compilers}}.
+
+  At present the default <<<source>>> and the default <<<target>>>
+  setting are both <<<8>>>, independently of the JDK you run Maven with.
+  You are highly encouraged to change these defaults by setting the <<<release>>> option as described in the
+  {{{./examples/set-compiler-release.html}guide: Compile Using The <<<--release>>> javac Option}}.
 
   <<NOTE:>> <To know more about the JDK javac, please see:
   {{https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html}}.>
@@ -70,11 +75,9 @@ ${project.name}
   To provide you with better understanding on some usages of the Compiler
   Plugin, you can take a look into the following examples:
 
-  * {{{./examples/compile-using-different-jdk.html}Compile Using A Different JDK}}
+  * {{{./examples/compile-using-different-jdk.html}Compile using A Different JDK}}
 
-  * {{{./examples/set-compiler-source-and-target.html}Compile Using -source and -target javac Options}}
-
-  * {{{./examples/set-compiler-release.html}Compile Using the --release javac Option (supported since JDK 9)}}
+  * {{{./examples/set-compiler-release.html}Compile Using The --release javac Option}}
 
   * {{{./examples/compile-with-memory-enhancements.html}Compile Using Memory Allocation Enhancement}}
 
