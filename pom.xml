@@ -52,8 +52,8 @@ under the License.
     <url>https://github.com/apache/maven-compiler-plugin/tree/${project.scm.tag}</url>
   </scm>
   <issueManagement>
-    <system>JIRA</system>
-    <url>https://issues.apache.org/jira/browse/MCOMPILER</url>
+    <system>GitHub</system>
+    <url>https://github.com/apache/maven-compiler-plugin/issues</url>
   </issueManagement>
   <ciManagement>
     <system>Jenkins</system>

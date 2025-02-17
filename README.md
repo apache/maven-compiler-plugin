@@ -17,10 +17,10 @@
 Contributing to [Apache Maven Compiler Plugin](https://maven.apache.org/plugins/maven-compiler-plugin/)
 ======================
 
-[![ASF Jira](https://img.shields.io/endpoint?url=https%3A%2F%2Fmaven.apache.org%2Fbadges%2Fasf_jira-MCOMPILER.json)][jira]
 [![Apache License, Version 2.0, January 2004](https://img.shields.io/github/license/apache/maven.svg?label=License)][license]
+[![Maven Central](https://img.shields.io/maven-central/v/org.apache.maven.plugins/maven-compiler-plugin.svg?label=Maven%20Central&versionPrefix=3.)](https://search.maven.org/artifact/org.apache.maven.plugins/maven-compiler-plugin)
 [![Maven Central](https://img.shields.io/maven-central/v/org.apache.maven.plugins/maven-compiler-plugin.svg?label=Maven%20Central)](https://search.maven.org/artifact/org.apache.maven.plugins/maven-compiler-plugin)
-[![Reproducible Builds](https://img.shields.io/badge/Reproducible_Builds-ok-green?labelColor=blue)](https://github.com/jvm-repo-rebuild/reproducible-central/blob/master/content/org/apache/maven/plugins/maven-compiler-plugin/README.md)
+[![Reproducible Builds](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jvm-repo-rebuild/reproducible-central/master/content/org/apache/maven/plugins/maven-compiler-plugin/badge.json)](https://github.com/jvm-repo-rebuild/reproducible-central/blob/master/content/org/apache/maven/plugins/maven-compiler-plugin/README.md)
 [![Jenkins Status](https://img.shields.io/jenkins/s/https/ci-maven.apache.org/job/Maven/job/maven-box/job/maven-compiler-plugin/job/master.svg?)][build]
 [![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-maven.apache.org/job/Maven/job/maven-box/job/maven-compiler-plugin/job/master.svg?)][test-results]
 
@@ -34,7 +34,6 @@ things.
 Getting Started
 ---------------
 
-+ Make sure you have a [JIRA account](https://issues.apache.org/jira/).
 + Make sure you have a [GitHub account](https://github.com/signup/free).
 + If you're planning to implement a new feature, it makes sense to discuss your changes 
   on the [dev list][ml-list] first. 
@@ -60,37 +59,22 @@ There are some guidelines which will make applying PRs easier for us:
   + Create minimal diffs - disable on save actions like reformat source code or organize imports. 
     If you feel the source code should be reformatted, create a separate PR for this change.
   + Check for unnecessary whitespace with `git diff --check` before committing.
-+ Make sure your commit messages are in the proper format. Your commit message should contain the key of the JIRA issue.
-```
-[MCOMPILER-XXX] - Subject of the JIRA Ticket
- Optional supplemental description.
-```
 + Make sure you have added the necessary tests (JUnit/IT) for your changes.
 + Run all the tests with `mvn -Prun-its verify` to assure nothing else was accidentally broken.
 + Submit a pull request to the repository in the Apache organization.
-+ Update your JIRA ticket and include a link to the pull request in the ticket.
 
 If you plan to contribute on a regular basis, please consider filing a [contributor license agreement][cla].
-
-Making Trivial Changes
-----------------------
-
-For changes of a trivial nature to comments and documentation, it is not always
-necessary to create a new ticket in JIRA.  In this case, it is appropriate to
-start the first line of a commit with '(doc)' instead of a ticket number.
 
 Additional Resources
 --------------------
 
 + [Contributing patches](https://maven.apache.org/guides/development/guide-maven-development.html#Creating_and_submitting_a_patch)
-+ [Apache Maven Compiler JIRA project page][jira]
 + [Contributor License Agreement][cla]
 + [General GitHub documentation](https://help.github.com/)
 + [GitHub pull request documentation](https://help.github.com/send-pull-requests/)
 + [Apache Maven Twitter Account](https://twitter.com/ASFMavenProject)
 + #Maven IRC channel on freenode.org
 
-[jira]: https://issues.apache.org/jira/projects/MCOMPILER/
 [license]: https://www.apache.org/licenses/LICENSE-2.0
 [ml-list]: http://maven.apache.org/mailing-lists.html
 [code-style]: https://maven.apache.org/developers/conventions/code.html
