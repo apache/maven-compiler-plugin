@@ -86,7 +86,7 @@ under the License.
 
     <asmVersion>9.7.1</asmVersion>
     <guiceVersion>6.0.0</guiceVersion>
-    <mockitoVersion>5.14.2</mockitoVersion>
+    <mockitoVersion>5.15.2</mockitoVersion>
     <mavenPluginTestingHarnessVersion>4.0.0-beta-3</mavenPluginTestingHarnessVersion>
     <plexusCompilerVersion>2.15.0</plexusCompilerVersion>
     <sisuPlexusVersion>0.9.0.M2</sisuPlexusVersion>
