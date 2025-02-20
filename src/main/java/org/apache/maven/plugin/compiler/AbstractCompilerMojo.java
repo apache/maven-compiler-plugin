@@ -822,28 +822,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             if (!generatedSourcesDirectory.exists()) {
                 generatedSourcesDirectory.mkdirs();
             }
-
-            String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
-
-            compileSourceRoots.add(generatedSourcesPath);
-
-            if (isTestCompile()) {
-                getLog().debug("Adding " + generatedSourcesPath + " to test-compile source roots:\n  "
-                        + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
-
-                project.addTestCompileSourceRoot(generatedSourcesPath);
-
-                getLog().debug("New test-compile source roots:\n  "
-                        + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
-            } else {
-                getLog().debug("Adding " + generatedSourcesPath + " to compile source roots:\n  "
-                        + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
-
-                project.addCompileSourceRoot(generatedSourcesPath);
-
-                getLog().debug("New compile source roots:\n  "
-                        + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
-            }
         }
 
         compilerConfiguration.setSourceLocations(compileSourceRoots);
