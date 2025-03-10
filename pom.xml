@@ -82,7 +82,7 @@ under the License.
 
   <properties>
     <javaVersion>17</javaVersion>
-    <mavenVersion>4.0.0-rc-2</mavenVersion>
+    <mavenVersion>4.0.0-rc-3</mavenVersion>
 
     <asmVersion>9.7.1</asmVersion>
     <guiceVersion>6.0.0</guiceVersion>
