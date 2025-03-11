@@ -703,8 +703,39 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private boolean targetOrReleaseSet;
 
     @Override
-    @SuppressWarnings("checkstyle:MethodLength")
     public void execute() throws MojoExecutionException, CompilationFailureException {
+        try {
+            executeReal();
+        } finally {
+            addGeneratedSourcesToProject();
+        }
+    }
+
+    private void addGeneratedSourcesToProject() {
+        File generatedSourcesDirectory = getGeneratedSourcesDirectory();
+        if (generatedSourcesDirectory == null) {
+            return;
+        }
+
+        String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
+
+        if (isTestCompile()) {
+            getLog().debug("Adding " + generatedSourcesPath
+                    + " to the project test-compile source roots but NOT the actual test-compile source roots:\n  "
+                    + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
+
+            project.addTestCompileSourceRoot(generatedSourcesPath);
+        } else {
+            getLog().debug("Adding " + generatedSourcesPath
+                    + " to the project compile source roots but NOT the actual compile source roots:\n  "
+                    + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
+
+            project.addCompileSourceRoot(generatedSourcesPath);
+        }
+    }
+
+    @SuppressWarnings("checkstyle:MethodLength")
+    private void executeReal() throws MojoExecutionException, CompilationFailureException {
         // ----------------------------------------------------------------------
         // Look up the compiler. This is done before other code than can
         // cause the mojo to return before the lookup is done possibly resulting
