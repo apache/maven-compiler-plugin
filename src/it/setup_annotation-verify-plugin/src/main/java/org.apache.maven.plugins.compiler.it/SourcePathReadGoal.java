@@ -47,17 +47,12 @@ public class SourcePathReadGoal extends AbstractMojo {
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (sourceClass != null) {
             getLog().info("Checking compile source roots for: '" + sourceClass + "'");
-            List<String> roots = project.getCompileSourceRoots();
-            roots.add(project.getModel().getBuild().getOutputDirectory() + "/../generated-sources/annotations");
-            assertGeneratedSourceFileFor(sourceClass, roots);
+            assertGeneratedSourceFileFor(sourceClass, project.getCompileSourceRoots());
         }
 
         if (testSourceClass != null) {
             getLog().info("Checking test-compile source roots for: '" + testSourceClass + "'");
-            List<String> roots = project.getTestCompileSourceRoots();
-            roots.add(
-                    project.getModel().getBuild().getOutputDirectory() + "/../generated-test-sources/test-annotations");
-            assertGeneratedSourceFileFor(testSourceClass, roots);
+            assertGeneratedSourceFileFor(testSourceClass, project.getTestCompileSourceRoots());
         }
     }
 

@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -182,7 +183,14 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     @Override
     protected List<String> getCompileSourceRoots() {
-        return compileSourceRoots;
+        if (generatedSourcesDirectory == null) {
+            return compileSourceRoots;
+        } else {
+            String generatedSourceRoot = generatedSourcesDirectory.getAbsolutePath();
+            return compileSourceRoots.stream()
+                    .filter(x -> !Objects.equals(x, generatedSourceRoot))
+                    .collect(Collectors.toList());
+        }
     }
 
     @Override

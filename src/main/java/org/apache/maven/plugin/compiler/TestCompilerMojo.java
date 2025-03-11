@@ -30,7 +30,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -209,7 +211,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     protected List<String> getCompileSourceRoots() {
-        return compileSourceRoots;
+        if (generatedTestSourcesDirectory == null) {
+            return compileSourceRoots;
+        } else {
+            String generatedSourceRoot = generatedTestSourcesDirectory.getAbsolutePath();
+            return compileSourceRoots.stream()
+                    .filter(x -> !Objects.equals(x, generatedSourceRoot))
+                    .collect(Collectors.toList());
+        }
     }
 
     @Override

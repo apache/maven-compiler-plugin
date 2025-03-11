@@ -824,6 +824,22 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
 
+        String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
+
+        if (isTestCompile()) {
+            getLog().debug("Adding " + generatedSourcesPath
+                    + " to the project test-compile source roots but NOT the actual test-compile source roots:\n  "
+                    + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
+
+            project.addTestCompileSourceRoot(generatedSourcesPath);
+        } else {
+            getLog().debug("Adding " + generatedSourcesPath
+                    + " to the project compile source roots but NOT the actual compile source roots:\n  "
+                    + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
+
+            project.addCompileSourceRoot(generatedSourcesPath);
+        }
+
         compilerConfiguration.setSourceLocations(compileSourceRoots);
 
         compilerConfiguration.setAnnotationProcessors(annotationProcessors);
@@ -1121,6 +1137,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                         patchModules.add("_"); // this jar
                     } else if (getOutputDirectory().toPath().startsWith(filePath)) {
                         // multirelease, can be ignored
+                        continue;
+                    } else if (generatedSourcesDirectory.toPath().startsWith(filePath)) {
+                        // ignore generated sources
                         continue;
                     } else if (sourceRoots.contains(filePath)) {
                         patchModules.add("_"); // this jar
