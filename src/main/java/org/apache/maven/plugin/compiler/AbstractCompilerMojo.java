@@ -1787,8 +1787,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
         try (BufferedWriter out = Files.newBufferedWriter(path)) {
             compilerConfiguration.format(commandLine, out);
             for (Map.Entry<PathType, List<Path>> entry : dependencies.entrySet()) {
+                List<Path> files = entry.getValue();
+                files = files.stream().map(this::relativize).toList();
                 String separator = "";
-                for (String element : entry.getKey().option(entry.getValue())) {
+                for (String element : entry.getKey().option(files)) {
                     out.write(separator);
                     out.write(element);
                     separator = " ";
@@ -1796,16 +1798,36 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 out.newLine();
             }
             out.write("-d \"");
-            out.write(getOutputDirectory().toString());
+            out.write(relativize(getOutputDirectory()).toString());
             out.write('"');
             out.newLine();
             for (SourceFile sf : sourceFiles) {
                 out.write('"');
-                out.write(sf.file.toString());
+                out.write(relativize(sf.file).toString());
                 out.write('"');
                 out.newLine();
             }
         }
         tipForCommandLineCompilation = commandLine.append(" @").append(path).toString();
+    }
+
+    /**
+     * Makes the given file relative to the base directory if the path is inside the project directory tree.
+     * The check for the project directory tree (starting from the root of all sub-projects) is for avoiding
+     * to relativize the paths to JAR files in the Maven local repository for example.
+     *
+     * @param  file  the path to make relative to the base directory
+     * @return the given path, potentially relative to the base directory
+     */
+    private Path relativize(Path file) {
+        Path root = project.getRootDirectory();
+        if (root != null && file.startsWith(root)) {
+            try {
+                file = basedir.relativize(file);
+            } catch (IllegalArgumentException e) {
+                // Ignore, keep the absolute path.
+            }
+        }
+        return file;
     }
 }
