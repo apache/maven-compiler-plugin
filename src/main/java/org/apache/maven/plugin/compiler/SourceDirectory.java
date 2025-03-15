@@ -59,7 +59,11 @@ final class SourceDirectory {
     static final String CLASS_FILE_SUFFIX = ".class";
 
     /**
-     * The root directory of all source files.
+     * The root directory of all source files. Whether the path is relative or absolute depends on the paths given to
+     * the {@link #fromProject fromProject(…)} or {@link #fromPluginConfiguration fromPluginConfiguration(…)} methods.
+     * This class preserves the relative/absolute characteristic of the user-specified directories in order to behave
+     * as intended by users in operations such as {@linkplain Path#relativize relativization}, especially in regard of
+     * symbolic links. In practice, this path is often an absolute path.
      */
     final Path root;
 
