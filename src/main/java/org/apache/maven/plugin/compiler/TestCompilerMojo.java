@@ -18,22 +18,18 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import javax.tools.JavaCompiler;
+import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 
-import org.apache.maven.api.Dependency;
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
@@ -42,7 +38,6 @@ import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.Mojo;
 import org.apache.maven.api.plugin.annotations.Parameter;
-import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MessageBuilder;
 
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
@@ -173,6 +168,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * See the {@link CompilerMojo#outputDirectory} for more information.
      *
      * @see CompilerMojo#outputDirectory
+     * @see #getOutputDirectory()
      */
     @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true)
     protected Path outputDirectory;
@@ -183,7 +179,6 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * Its value should be the same as {@link CompilerMojo#outputDirectory}.
      *
      * @see CompilerMojo#outputDirectory
-     * @see #addImplicitDependencies(List, Map, boolean)
      */
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
     protected Path mainOutputDirectory;
@@ -202,27 +197,22 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     protected boolean useModulePath = true;
 
     /**
-     * Name of the main module to compile, or {@code null} if not yet determined.
-     * If the project is not modular, an empty string.
-     *
-     * TODO: use "*" as a sentinel value for modular source hierarchy.
-     *
-     * @see #getMainModuleName()
-     */
-    private String moduleName;
-
-    /**
      * Whether a {@code module-info.java} file is defined in the test sources.
      * In such case, it has precedence over the {@code module-info.java} in main sources.
      * This is defined for compatibility with Maven 3, but not recommended.
+     *
+     * <p>This field exists in this class only for transferring this information
+     * to {@link ToolExecutorForTest#hasTestModuleInfo}, which is the class that
+     * needs this information.</p>
      */
-    private boolean hasTestModuleInfo;
+    transient boolean hasTestModuleInfo;
 
     /**
-     * Whether the {@code module-info} of the tests overwrites the main {@code module-info}.
-     * This is a deprecated practice, but is accepted if {@link #SUPPORT_LEGACY} is true.
+     * Path to the {@code module-info.class} file of the main code, or {@code null} if that file does not exist.
+     * This field exists only for transferring this information to {@link ToolExecutorForTest#hasTestModuleInfo},
+     * and should be {@code null} the rest of the time.
      */
-    private boolean overwriteMainModuleInfo;
+    transient Path mainModulePath;
 
     /**
      * The file where to dump the command-line when debug is activated or when the compilation failed.
@@ -237,7 +227,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     protected String debugFileName;
 
     /**
-     * Creates a new test compiler MOJO.
+     * Creates a new compiler <abbr>MOJO</abbr> for the tests.
      */
     public TestCompilerMojo() {
         super(PathScope.TEST_COMPILE);
@@ -245,6 +235,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * Runs the Java compiler on the test source code.
+     * If {@link #skip} is {@code true}, then this method logs a message and does nothing else.
+     * Otherwise, this method executes the steps described in the method of the parent class.
      *
      * @throws MojoException if the compiler cannot be run.
      */
@@ -258,24 +250,24 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * Parses the parameters declared in the MOJO.
+     * Parses the parameters declared in the <abbr>MOJO</abbr>.
      *
      * @param  compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     @Override
     @SuppressWarnings("deprecation")
-    protected Options acceptParameters(final OptionChecker compiler) {
-        Options compilerConfiguration = super.acceptParameters(compiler);
-        compilerConfiguration.addUnchecked(
+    public Options parseParameters(final OptionChecker compiler) {
+        Options configuration = super.parseParameters(compiler);
+        configuration.addUnchecked(
                 testCompilerArgs == null || testCompilerArgs.isEmpty() ? compilerArgs : testCompilerArgs);
         if (testCompilerArguments != null) {
             for (Map.Entry<String, String> entry : testCompilerArguments.entrySet()) {
-                compilerConfiguration.addUnchecked(List.of(entry.getKey(), entry.getValue()));
+                configuration.addUnchecked(List.of(entry.getKey(), entry.getValue()));
             }
         }
-        compilerConfiguration.addUnchecked(testCompilerArgument == null ? compilerArgument : testCompilerArgument);
-        return compilerConfiguration;
+        configuration.addUnchecked(testCompilerArgument == null ? compilerArgument : testCompilerArgument);
+        return configuration;
     }
 
     /**
@@ -366,32 +358,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the module name of the main code, or an empty string if none}.
-     * This method reads the module descriptor when first needed and caches the result.
-     *
-     * @throws IOException if the module descriptor cannot be read.
-     */
-    private String getMainModuleName() throws IOException {
-        if (moduleName == null) {
-            Path file = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
-            if (Files.isRegularFile(file)) {
-                try (InputStream in = Files.newInputStream(file)) {
-                    moduleName = ModuleDescriptor.read(in).name();
-                }
-            } else {
-                moduleName = "";
-            }
-        }
-        return moduleName;
-    }
-
-    /**
      * {@return the module name declared in the test sources}. We have to parse the source instead
      * of the {@code module-info.class} file because the classes may not have been compiled yet.
      * This is not very reliable, but putting a {@code module-info.java} file in the tests is
      * deprecated anyway.
      */
-    private String getTestModuleName(List<SourceDirectory> compileSourceRoots) throws IOException {
+    final String getTestModuleName(List<SourceDirectory> compileSourceRoots) throws IOException {
         for (SourceDirectory directory : compileSourceRoots) {
             if (directory.moduleName != null) {
                 return directory.moduleName;
@@ -406,14 +378,18 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * {@return whether the project has at least one {@code module-info.class} file}.
-     * This method opportunistically fetches the module name.
      *
      * @param roots root directories of the sources to compile
      * @throws IOException if this method needed to read a module descriptor and failed
      */
     @Override
     final boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
-        hasTestModuleInfo = super.hasModuleDeclaration(roots);
+        for (SourceDirectory root : roots) {
+            if (root.getModuleInfo().isPresent()) {
+                hasTestModuleInfo = true;
+                break;
+            }
+        }
         if (hasTestModuleInfo) {
             MessageBuilder message = messageBuilderFactory.builder();
             message.a("Overwriting the ")
@@ -428,7 +404,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 return useModulePath;
             }
         }
-        return useModulePath && !getMainModuleName().isEmpty();
+        return useModulePath && mainModulePath != null;
     }
 
     /**
@@ -439,7 +415,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
      */
     @Override
-    void addImplicitDependencies(
+    final void addImplicitDependencies(
             List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration) {
         var pathType = hasModuleDeclaration ? JavaPathType.MODULES : JavaPathType.CLASSES;
         if (Files.exists(mainOutputDirectory)) {
@@ -448,150 +424,25 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * Adds {@code --patch-module} options for the given source directories.
-     * In this case, the option values are directory of <em>source</em> files.
-     * Not to be confused with cases where a module is patched with compiled
-     * classes (it may happen in other parts of the compiler plugin).
+     * Creates a new task for compiling the test classes.
      *
-     * @param addTo the collection of source paths to augment
-     * @param sourceDirectories the source paths to eventually adds to the {@code toAdd} map
-     * @throws IOException if this method needs to read a module descriptor and this operation failed
+     * @param listener where to send compilation warnings, or {@code null} for the Maven logger
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
+     * @return the task to execute for compiling the tests using the configuration in this <abbr>MOJO</abbr>
+     * @throws IOException if an error occurred while creating the output directory or scanning the source directories
      */
     @Override
-    final void addSourceDirectories(Map<PathType, List<Path>> addTo, List<SourceDirectory> sourceDirectories)
-            throws IOException {
-        for (SourceDirectory dir : sourceDirectories) {
-            String moduleToPatch = dir.moduleName;
-            if (moduleToPatch == null) {
-                moduleToPatch = getMainModuleName();
-                if (moduleToPatch.isEmpty()) {
-                    continue; // No module-info found.
-                }
-                if (SUPPORT_LEGACY) {
-                    String testModuleName = getTestModuleName(sourceDirectories);
-                    if (testModuleName != null) {
-                        overwriteMainModuleInfo = testModuleName.equals(getMainModuleName());
-                        if (!overwriteMainModuleInfo) {
-                            continue; // The test classes are in their own module.
-                        }
-                    }
-                }
+    public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
+        try {
+            Path file = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
+            if (Files.isRegularFile(file)) {
+                mainModulePath = file;
             }
-            addTo.computeIfAbsent(JavaPathType.patchModule(moduleToPatch), (key) -> new ArrayList<>())
-                    .add(dir.root);
-        }
-    }
-
-    /**
-     * Generates the {@code --add-modules} and {@code --add-reads} options for the dependencies that are not
-     * in the main compilation. This method is invoked only if {@code hasModuleDeclaration} is {@code true}.
-     *
-     * @param dependencies the project dependencies
-     * @param addTo where to add the options
-     * @throws IOException if the module information of a dependency cannot be read
-     */
-    @Override
-    @SuppressWarnings({"checkstyle:MissingSwitchDefault", "fallthrough"})
-    protected void addModuleOptions(DependencyResolverResult dependencies, Options addTo) throws IOException {
-        if (SUPPORT_LEGACY && useModulePath && hasTestModuleInfo) {
-            /*
-             * Do not add any `--add-reads` parameters. The developers should put
-             * everything needed in the `module-info`, including test dependencies.
-             */
-            return;
-        }
-        final var done = new HashSet<String>(); // Added modules and their dependencies.
-        final var addModules = new StringJoiner(",");
-        StringJoiner addReads = null;
-        boolean hasUnnamed = false;
-        for (Map.Entry<Dependency, Path> entry : dependencies.getDependencies().entrySet()) {
-            boolean compile = false;
-            switch (entry.getKey().getScope()) {
-                case TEST:
-                case TEST_ONLY:
-                    compile = true;
-                    // Fall through
-                case TEST_RUNTIME:
-                    if (compile) {
-                        // Needs to be initialized even if `name` is null.
-                        if (addReads == null) {
-                            addReads = new StringJoiner(",", getMainModuleName() + "=", "");
-                        }
-                    }
-                    Path path = entry.getValue();
-                    String name = dependencies.getModuleName(path).orElse(null);
-                    if (name == null) {
-                        hasUnnamed = true;
-                    } else if (done.add(name)) {
-                        addModules.add(name);
-                        if (compile) {
-                            addReads.add(name);
-                        }
-                        /*
-                         * For making the options simpler, we do not add `--add-modules` or `--add-reads`
-                         * options for modules that are required by a module that we already added. This
-                         * simplification is not necessary, but makes the command-line easier to read.
-                         */
-                        dependencies.getModuleDescriptor(path).ifPresent((descriptor) -> {
-                            for (ModuleDescriptor.Requires r : descriptor.requires()) {
-                                done.add(r.name());
-                            }
-                        });
-                    }
-                    break;
-            }
-        }
-        if (!done.isEmpty()) {
-            addTo.addIfNonBlank("--add-modules", addModules.toString());
-        }
-        if (addReads != null) {
-            if (hasUnnamed) {
-                addReads.add("ALL-UNNAMED");
-            }
-            addTo.addIfNonBlank("--add-reads", addReads.toString());
-        }
-    }
-
-    /**
-     * Separates the compilation of {@code module-info} from other classes. This is needed when the
-     * {@code module-info} of the test classes overwrite the {@code module-info} of the main classes.
-     * In the latter case, we need to compile the test {@code module-info} first in order to substitute
-     * the main module-info by the test one before to compile the remaining test classes.
-     */
-    @Override
-    final CompilationTaskSources[] toCompilationTasks(final SourcesForRelease unit) {
-        if (!(SUPPORT_LEGACY && useModulePath && hasTestModuleInfo && overwriteMainModuleInfo)) {
-            return super.toCompilationTasks(unit);
-        }
-        CompilationTaskSources moduleInfo = null;
-        final List<Path> files = unit.files;
-        for (int i = files.size(); --i >= 0; ) {
-            if (SourceDirectory.isModuleInfoSource(files.get(i))) {
-                moduleInfo = new CompilationTaskSources(List.of(files.remove(i)));
-                if (files.isEmpty()) {
-                    return new CompilationTaskSources[] {moduleInfo};
-                }
-                break;
-            }
-        }
-        var task = new CompilationTaskSources(files) {
-            /**
-             * Substitutes the main {@code module-info.class} by the test's one, compiles test classes,
-             * then restores the original {@code module-info.class}. The test {@code module-info.class}
-             * must have been compiled separately before this method is invoked.
-             */
-            @Override
-            boolean compile(JavaCompiler.CompilationTask task) throws IOException {
-                try (unit) {
-                    unit.substituteModuleInfos(mainOutputDirectory, outputDirectory);
-                    return super.compile(task);
-                }
-            }
-        };
-        if (moduleInfo != null) {
-            return new CompilationTaskSources[] {moduleInfo, task};
-        } else {
-            return new CompilationTaskSources[] {task};
+            return new ToolExecutorForTest(this, listener);
+        } finally {
+            // Reset the fields that were used only for transfering information to `ToolExecutorForTest`.
+            hasTestModuleInfo = false;
+            mainModulePath = null;
         }
     }
 }

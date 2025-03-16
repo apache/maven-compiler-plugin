@@ -41,8 +41,7 @@ import java.util.Set;
  */
 final class SourcesForRelease implements Closeable {
     /**
-     * The release for this set of sources. For this class, the
-     * {@link SourceVersion#RELEASE_0} value means "no version".
+     * The release for this set of sources, or {@code null} if the user did not specified a release.
      *
      * @see SourceDirectory#release
      */
@@ -80,12 +79,12 @@ final class SourcesForRelease implements Closeable {
     /**
      * Creates an initially empty instance for the given Java release.
      *
-     * @param release the release for this set of sources, or {@link SourceVersion#RELEASE_0} for no version.
+     * @param release the release for this set of sources, or {@code null} if the user did not specified a release
      */
     private SourcesForRelease(SourceVersion release) {
         this.release = release;
-        roots = new LinkedHashMap<>();
         files = new ArrayList<>(256);
+        roots = new LinkedHashMap<>();
         moduleInfos = new LinkedHashMap<>();
     }
 
@@ -103,10 +102,23 @@ final class SourcesForRelease implements Closeable {
             if (moduleName == null) {
                 moduleName = "";
             }
-            roots.computeIfAbsent(moduleName, (key) -> new LinkedHashSet<>()).add(directory.root);
+            add(roots, moduleName, directory.root);
             directory.getModuleInfo().ifPresent((path) -> moduleInfos.put(directory, null));
         }
         files.add(source.file);
+    }
+
+    /**
+     * Adds the given directory in the given map.
+     *
+     * @param target the map where to add the specified directory
+     * @param moduleName name of the module, or an empty string if none
+     * @param directory the directory to add, or {@code null} if none
+     */
+    private static void add(Map<String, Set<Path>> target, String moduleName, Path directory) {
+        if (directory != null) {
+            target.computeIfAbsent(moduleName, (key) -> new LinkedHashSet<>()).add(directory);
+        }
     }
 
     /**
@@ -117,14 +129,14 @@ final class SourcesForRelease implements Closeable {
      * @param sources the sources to group.
      * @return the given sources grouped by Java release versions and module names.
      */
-    public static Collection<SourcesForRelease> groupByReleaseAndModule(List<SourceFile> sources) {
+    static Collection<SourcesForRelease> groupByReleaseAndModule(List<SourceFile> sources) {
         var result = new EnumMap<SourceVersion, SourcesForRelease>(SourceVersion.class);
         for (SourceFile source : sources) {
-            SourceVersion release = source.directory.release;
-            if (release == null) {
-                release = SourceVersion.RELEASE_0; // No release sub-directory for the compiled classes.
-            }
-            result.computeIfAbsent(release, SourcesForRelease::new).add(source);
+            final SourceVersion release = source.directory.release;
+            result.computeIfAbsent(
+                            (release != null) ? release : SourceVersion.latest(),
+                            (key) -> new SourcesForRelease(release))
+                    .add(source);
         }
         return result.values();
     }
@@ -190,6 +202,7 @@ final class SourcesForRelease implements Closeable {
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '[' + release + ": " + files.size() + " files]";
+        return getClass().getSimpleName() + '[' + (release != null ? release : "default") + ": " + files.size()
+                + " files]";
     }
 }
