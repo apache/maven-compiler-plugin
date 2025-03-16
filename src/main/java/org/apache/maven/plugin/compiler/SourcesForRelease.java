@@ -43,17 +43,24 @@ final class SourcesForRelease implements Closeable {
     /**
      * The release for this set of sources. For this class, the
      * {@link SourceVersion#RELEASE_0} value means "no version".
+     *
+     * @see SourceDirectory#release
      */
     final SourceVersion release;
 
     /**
-     * All source files.
+     * All source files. This is the union of all {@link SourceFile#file} for this {@linkplain #release}.
+     *
+     * @see SourceFile#file
      */
     final List<Path> files;
 
     /**
-     * The root directories for each module. Keys are module names.
-     * The empty string stands for no module.
+     * All source directories that are part of this compilation unit, grouped by module names.
+     * The keys in the map are the module names, with the empty string standing for no module.
+     * Values are the union of all {@link SourceDirectory#root} for this {@linkplain #release}.
+     *
+     * @see SourceDirectory#root
      */
     final Map<String, Set<Path>> roots;
 
@@ -84,7 +91,7 @@ final class SourcesForRelease implements Closeable {
 
     /**
      * Adds the given source file to this collection of source files.
-     * The value of {@code source.directory.release} must be {@link #release}.
+     * The value of {@code source.directory.release}, if not null, must be equal to {@link #release}.
      *
      * @param source the source file to add.
      */
@@ -119,7 +126,6 @@ final class SourcesForRelease implements Closeable {
             }
             result.computeIfAbsent(release, SourcesForRelease::new).add(source);
         }
-        // TODO: add empty set for all modules present in a release but not in the next release.
         return result.values();
     }
 
@@ -177,5 +183,13 @@ final class SourcesForRelease implements Closeable {
         if (error != null) {
             throw error;
         }
+    }
+
+    /**
+     * {@return a string representation for debugging purposes}.
+     */
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + '[' + release + ": " + files.size() + " files]";
     }
 }

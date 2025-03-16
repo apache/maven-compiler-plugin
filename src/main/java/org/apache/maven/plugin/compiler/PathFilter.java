@@ -18,8 +18,6 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import javax.tools.JavaFileObject;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileSystem;
@@ -61,17 +59,22 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
      * Whether to use the default include pattern.
      * The pattern depends on the type of source file.
      */
-    private final boolean defaultInclude;
+    private final boolean useDefaultInclude;
 
     /**
-     * All inclusion filters for the files in the directories to walk. The array shall contain at least one element.
-     * If {@link #defaultInclude} is {@code true}, then this array length shall be exactly 1 and the single element
-     * is overwritten for each directory to walk.
+     * Inclusion filters for the files in the directories to walk as specified in the plugin configuration.
+     * The array should contain at least one element, unless {@link SourceDirectory#includes} is non-empty.
+     * If {@link #useDefaultInclude} is {@code true}, then this array length shall be exactly 1 and the
+     * single element is overwritten for each directory to walk.
+     *
+     * @see SourceDirectory#includes
      */
     private final String[] includes;
 
     /**
-     * All exclusion filters for the files in the directories to walk, or an empty array if none.
+     * Exclusion filters for the files in the directories to walk as specified in the plugin configuration.
+     *
+     * @see SourceDirectory#excludes
      */
     private final String[] excludes;
 
@@ -83,24 +86,24 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
 
     /**
      * The matchers for inclusion filters (never empty).
-     * The array length shall be equal to the {@link #includes} array length.
-     * The values are initially null and overwritten when first needed, then when the file system changes.
+     * The array length shall be equal or greater than the {@link #includes} array length.
+     * The array is initially null and created when first needed, then when the file system changes.
      */
-    private final PathMatcher[] includeMatchers;
+    private PathMatcher[] includeMatchers;
 
     /**
      * The matchers for exclusion filters (potentially empty).
-     * The array length shall be equal to the {@link #excludes} array length.
-     * The values are initially null and overwritten when first needed, then when the file system changes.
+     * The array length shall be equal or greater than the {@link #excludes} array length.
+     * The array is initially null and created when first needed, then when the file system changes.
      */
-    private final PathMatcher[] excludeMatchers;
+    private PathMatcher[] excludeMatchers;
 
     /**
      * The matchers for exclusion filters for incremental build calculation.
      * The array length shall be equal to the {@link #incrementalExcludes} array length.
-     * The values are initially null and overwritten when first needed, then when the file system changes.
+     * The array is initially null and created when first needed, then when the file system changes.
      */
-    private final PathMatcher[] incrementalExcludeMatchers;
+    private PathMatcher[] incrementalExcludeMatchers;
 
     /**
      * Whether paths must be relativized before to be given to a matcher. If {@code true} (the default),
@@ -108,7 +111,7 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
      * {@code "foo/bar/*.java"} to work. As a slight optimization, we can skip this step if all patterns
      * start with {@code "**"}.
      */
-    private final boolean needRelativize;
+    private boolean needRelativize;
 
     /**
      * The file system of the path matchers, or {@code null} if not yet determined.
@@ -138,17 +141,13 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
      * @param incrementalExcludes exclusion filters for incremental build calculation
      */
     PathFilter(Collection<String> includes, Collection<String> excludes, Collection<String> incrementalExcludes) {
-        defaultInclude = includes.isEmpty();
-        if (defaultInclude) {
-            includes = List.of("**");
+        useDefaultInclude = includes.isEmpty();
+        if (useDefaultInclude) {
+            includes = List.of("**"); // Place-holder replaced by "**/*.java" in `test(…)`.
         }
         this.includes = includes.toArray(String[]::new);
         this.excludes = excludes.toArray(String[]::new);
         this.incrementalExcludes = incrementalExcludes.toArray(String[]::new);
-        includeMatchers = new PathMatcher[this.includes.length];
-        excludeMatchers = new PathMatcher[this.excludes.length];
-        incrementalExcludeMatchers = new PathMatcher[this.incrementalExcludes.length];
-        needRelativize = needRelativize(this.includes) || needRelativize(this.excludes);
     }
 
     /**
@@ -158,7 +157,7 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
      */
     private static boolean needRelativize(String[] patterns) {
         for (String pattern : patterns) {
-            if (!pattern.startsWith("**")) {
+            if (!pattern.startsWith("**", pattern.indexOf(':') + 1)) {
                 return true;
             }
         }
@@ -166,36 +165,32 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
     }
 
     /**
-     * If the default include patterns is used, updates it for the given kind of source files.
-     *
-     * @param sourceFileKind the kind of files to compile
-     */
-    private void updateDefaultInclude(JavaFileObject.Kind sourceFileKind) {
-        if (defaultInclude) {
-            String pattern = "glob:**" + sourceFileKind.extension;
-            if (!pattern.equals(includes[0])) {
-                includes[0] = pattern;
-                if (fs != null) {
-                    createMatchers(includes, includeMatchers, fs);
-                }
-            }
-        }
-    }
-
-    /**
-     * Fills the target array with path matchers created from the given patterns.
+     * Creates the matchers for the given patterns.
      * If a pattern does not specify a syntax, then the "glob" syntax is used by default.
+     * If the {@code forDirectory} list contains at least one element and {@code patterns}
+     * is the default pattern, then the latter is ignored in favor of the former.
      *
      * <p>This method should be invoked only once, unless different paths are on different file systems.</p>
+     *
+     * @param forDirectory the matchers declared in the {@code <source>} element for the current {@link #sourceRoot}
+     * @param patterns the matterns declared in the compiler plugin configuration
+     * @param hasDefault whether the first element of {@code patterns} is the default pattern
+     * @param fs the file system
+     * @return all matchers from the source, followed by matchers from the given patterns
      */
-    private static void createMatchers(String[] patterns, PathMatcher[] target, FileSystem fs) {
-        for (int i = 0; i < patterns.length; i++) {
+    private static PathMatcher[] createMatchers(
+            List<PathMatcher> forDirectory, String[] patterns, boolean hasDefault, FileSystem fs) {
+        final int base = forDirectory.size();
+        final int skip = (hasDefault && base != 0) ? 1 : 0;
+        final var target = forDirectory.toArray(new PathMatcher[base + patterns.length - skip]);
+        for (int i = skip; i < patterns.length; i++) {
             String pattern = patterns[i];
             if (pattern.indexOf(':') < 0) {
                 pattern = "glob:" + pattern;
             }
-            target[i] = fs.getPathMatcher(pattern);
+            target[base + i] = fs.getPathMatcher(pattern);
         }
+        return target;
     }
 
     /**
@@ -207,11 +202,19 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
      */
     @Override
     public boolean test(Path path) {
+        @SuppressWarnings("LocalVariableHidesMemberVariable")
+        final SourceDirectory sourceRoot = this.sourceRoot; // Protect from changes.
         FileSystem pfs = path.getFileSystem();
         if (pfs != fs) {
-            createMatchers(includes, includeMatchers, pfs);
-            createMatchers(excludes, excludeMatchers, pfs);
-            createMatchers(incrementalExcludes, incrementalExcludeMatchers, pfs);
+            if (useDefaultInclude) {
+                includes[0] = "glob:**" + sourceRoot.fileKind.extension;
+            }
+            includeMatchers = createMatchers(sourceRoot.includes, includes, useDefaultInclude, pfs);
+            excludeMatchers = createMatchers(sourceRoot.excludes, excludes, false, pfs);
+            incrementalExcludeMatchers = createMatchers(List.of(), incrementalExcludes, false, pfs);
+            needRelativize = !(sourceRoot.includes.isEmpty() && sourceRoot.excludes.isEmpty())
+                    || needRelativize(includes)
+                    || needRelativize(excludes);
             fs = pfs;
         }
         if (needRelativize) {
@@ -291,8 +294,8 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
             sourceFiles = result;
             for (SourceDirectory directory : rootDirectories) {
                 sourceRoot = directory;
-                updateDefaultInclude(directory.fileKind);
                 Files.walkFileTree(directory.root, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, this);
+                fs = null; // Will force a recalculation of matchers in next iteration.
             }
         } catch (UncheckedIOException e) {
             throw e.getCause();

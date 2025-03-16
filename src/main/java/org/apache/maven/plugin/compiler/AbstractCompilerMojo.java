@@ -1372,7 +1372,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 logger.warn(sb);
             }
             /*
-             * Configure all paths to source files. Each compilation unit has its own set of source.
+             * Configure all paths to source files. Each compilation unit has its own set of sources.
              * More than one compilation unit may exist in the case of a multi-releases project.
              * Units are compiled in the order of the release version, with base compiled first.
              */

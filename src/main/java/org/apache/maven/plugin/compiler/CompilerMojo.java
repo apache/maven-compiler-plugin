@@ -219,7 +219,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     protected Path getOutputDirectory() {
         if (SUPPORT_LEGACY && multiReleaseOutput && release != null) {
-            return outputDirectory.resolve(Path.of("META-INF", "versions", release));
+            return SourceDirectory.outputDirectoryForReleases(outputDirectory).resolve(release);
         }
         return outputDirectory;
     }
@@ -245,12 +245,12 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Override
     @Deprecated(since = "4.0.0")
-    protected void addImplicitDependencies(
+    void addImplicitDependencies(
             List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
             throws IOException {
         if (SUPPORT_LEGACY && multiReleaseOutput) {
             var paths = new TreeMap<Integer, Path>();
-            Path root = outputDirectory.resolve(Path.of("META-INF", "versions"));
+            Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
             Files.walk(root, 1).forEach((path) -> {
                 int version;
                 if (path.equals(root)) {
