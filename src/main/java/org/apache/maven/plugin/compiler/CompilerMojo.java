@@ -98,6 +98,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * The directory for compiled classes.
+     *
+     * @see #getOutputDirectory()
      */
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
     protected Path outputDirectory;
@@ -137,7 +139,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     protected String debugFileName;
 
     /**
-     * Creates a new compiler MOJO.
+     * Creates a new compiler <abbr>MOJO</abbr> for the main code.
      */
     public CompilerMojo() {
         super(PathScope.MAIN_COMPILE);
@@ -145,6 +147,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * Runs the Java compiler on the main source code.
+     * If {@link #skipMain} is {@code true}, then this method logs a message and does nothing else.
+     * Otherwise, this method executes the steps described in the method of the parent class.
      *
      * @throws MojoException if the compiler cannot be run.
      */
@@ -163,18 +167,18 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * Parses the parameters declared in the MOJO.
+     * Parses the parameters declared in the <abbr>MOJO</abbr>.
      *
      * @param  compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     @Override
     @SuppressWarnings("deprecation")
-    protected Options acceptParameters(final OptionChecker compiler) {
-        Options compilerConfiguration = super.acceptParameters(compiler);
-        compilerConfiguration.addUnchecked(compilerArgs);
-        compilerConfiguration.addUnchecked(compilerArgument);
-        return compilerConfiguration;
+    public Options parseParameters(final OptionChecker compiler) {
+        Options configuration = super.parseParameters(compiler);
+        configuration.addUnchecked(compilerArgs);
+        configuration.addUnchecked(compilerArgument);
+        return configuration;
     }
 
     /**
@@ -245,7 +249,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Override
     @Deprecated(since = "4.0.0")
-    void addImplicitDependencies(
+    final void addImplicitDependencies(
             List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
             throws IOException {
         if (SUPPORT_LEGACY && multiReleaseOutput) {

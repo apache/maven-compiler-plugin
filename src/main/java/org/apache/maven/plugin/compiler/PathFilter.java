@@ -136,18 +136,17 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
     /**
      * Creates a new filter.
      *
-     * @param includes inclusion filters for the compiler, or empty for all source files
-     * @param excludes exclusion filters for the compiler
-     * @param incrementalExcludes exclusion filters for incremental build calculation
+     * @param mojo the <abbr>MOJO</abbr> from which to take the includes/excludes configuration
      */
-    PathFilter(Collection<String> includes, Collection<String> excludes, Collection<String> incrementalExcludes) {
-        useDefaultInclude = includes.isEmpty();
+    PathFilter(AbstractCompilerMojo mojo) {
+        Collection<String> specified = mojo.getIncludes();
+        useDefaultInclude = specified.isEmpty();
         if (useDefaultInclude) {
-            includes = List.of("**"); // Place-holder replaced by "**/*.java" in `test(…)`.
+            specified = List.of("**"); // Place-holder replaced by "**/*.java" in `test(…)`.
         }
-        this.includes = includes.toArray(String[]::new);
-        this.excludes = excludes.toArray(String[]::new);
-        this.incrementalExcludes = incrementalExcludes.toArray(String[]::new);
+        includes = specified.toArray(String[]::new);
+        excludes = mojo.getExcludes().toArray(String[]::new);
+        incrementalExcludes = mojo.getIncrementalExcludes().toArray(String[]::new);
     }
 
     /**
