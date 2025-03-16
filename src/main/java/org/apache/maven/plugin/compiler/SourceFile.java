@@ -91,7 +91,7 @@ final class SourceFile {
     /**
      * Returns the file resulting from the compilation of this source file. If the output file has been
      * {@linkplain javax.tools.JavaFileManager#getFileForOutput obtained from the compiler}, that value
-     * if returned. Otherwise if {@code infer} is {@code true}, then the output file is inferred using
+     * if returned. Otherwise, if {@code infer} is {@code true}, then the output file is inferred using
      * {@linkplain #toOutputFile heuristic rules}.
      *
      * @param  infer whether to allow this method to infer a default path using heuristic rules

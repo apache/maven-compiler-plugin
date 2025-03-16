@@ -21,16 +21,18 @@ package org.apache.maven.plugin.compiler;
 import javax.lang.model.SourceVersion;
 import javax.tools.JavaFileObject;
 
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+import org.apache.maven.api.Language;
 import org.apache.maven.api.SourceRoot;
+import org.apache.maven.api.Version;
 
 /**
  * A single root directory of source files, associated with module name and release version.
@@ -66,6 +68,26 @@ final class SourceDirectory {
      * symbolic links. In practice, this path is often an absolute path.
      */
     final Path root;
+
+    /**
+     * Filter for selecting files below the {@linkplain #root} directory, or an empty list for the default filter.
+     * For the Java language, the default filter is {@code "*.java"}. The filters are used by {@link PathFilter}.
+     *
+     * <p>This field differs from {@link PathFilter#includes} in that it is specified in the {@code <source>} element,
+     * while the latter is specified in the plugin configuration. The filter specified here can be different for each
+     * source directory, while the plugin configuration applies to all source directories.</p>
+     *
+     * @see PathFilter#includes
+     */
+    final List<PathMatcher> includes;
+
+    /**
+     * Filter for excluding files below the {@linkplain #root} directory, or an empty list for no exclusion.
+     * See {@link #includes} for the difference between this field and {@link PathFilter#excludes}.
+     *
+     * @see PathFilter#excludes
+     */
+    final List<PathMatcher> excludes;
 
     /**
      * Kind of source files in this directory. This is usually {@link JavaFileObject.Kind#SOURCE}.
@@ -124,33 +146,57 @@ final class SourceDirectory {
      * @param outputDirectory the directory where to store the compilation results
      * @param outputFileKind Kind of output files in the output directory (usually {@ codeCLASS})
      */
+    @SuppressWarnings("checkstyle:ParameterNumber")
     private SourceDirectory(
             Path root,
+            List<PathMatcher> includes,
+            List<PathMatcher> excludes,
             JavaFileObject.Kind fileKind,
             String moduleName,
             SourceVersion release,
             Path outputDirectory,
             JavaFileObject.Kind outputFileKind) {
         this.root = Objects.requireNonNull(root);
+        this.includes = Objects.requireNonNull(includes);
+        this.excludes = Objects.requireNonNull(excludes);
         this.fileKind = Objects.requireNonNull(fileKind);
         this.moduleName = moduleName;
         this.release = release;
-        if (release != null) {
-            String version = release.name();
-            version = version.substring(version.lastIndexOf('_') + 1);
-            FileSystem fs = outputDirectory.getFileSystem();
-            Path subdir;
-            if (moduleName != null) {
-                subdir = fs.getPath(moduleName, "META-INF", "versions", version);
-            } else {
-                subdir = fs.getPath("META-INF", "versions", version);
-            }
-            outputDirectory = outputDirectory.resolve(subdir);
-        } else if (moduleName != null) {
+        if (moduleName != null) {
             outputDirectory = outputDirectory.resolve(moduleName);
+        }
+        if (release != null) {
+            String version = release.name(); // TODO: replace by runtimeVersion() in Java 18.
+            version = version.substring(version.lastIndexOf('_') + 1);
+            outputDirectory = outputDirectoryForReleases(outputDirectory).resolve(version);
         }
         this.outputDirectory = outputDirectory;
         this.outputFileKind = outputFileKind;
+    }
+
+    /**
+     * Returns the directory where to write the compilation for a specific Java release.
+     * The caller shall add the version number to the returned path.
+     */
+    static Path outputDirectoryForReleases(Path outputDirectory) {
+        // TODO: use Path.resolve(String, String...) with Java 22.
+        return outputDirectory.resolve("META-INF").resolve("versions");
+    }
+
+    /**
+     * Converts a version from Maven API to Java tools API.
+     * This method parses the version with {@link Runtime.Version#parse(String)}.
+     * Therefore, for Java 8, the version shall be "8", not "1.8".
+     */
+    private static SourceVersion parse(final Version version) {
+        String text = version.asString();
+        try {
+            var parsed = Runtime.Version.parse(text);
+            return SourceVersion.valueOf("RELEASE_" + parsed.feature());
+            // TODO: Replace by return SourceVersion.valueOf(v) after upgrade to Java 18.
+        } catch (IllegalArgumentException e) {
+            throw new CompilationFailureException("Illegal version number: \"" + text + '"', e);
+        }
     }
 
     /**
@@ -163,12 +209,24 @@ final class SourceDirectory {
      */
     static List<SourceDirectory> fromProject(Stream<SourceRoot> compileSourceRoots, Path outputDirectory) {
         var roots = new ArrayList<SourceDirectory>();
-        compileSourceRoots.forEach((SourceRoot r) -> {
-            Path p = r.directory();
-            if (Files.exists(p)) {
-                // TODO: specify file kind, module name and release version.
+        compileSourceRoots.forEach((SourceRoot source) -> {
+            Path directory = source.directory();
+            if (Files.exists(directory)) {
+                var fileKind = JavaFileObject.Kind.OTHER;
+                var outputFileKind = JavaFileObject.Kind.OTHER;
+                if (Language.JAVA_FAMILY.equals(source.language())) {
+                    fileKind = JavaFileObject.Kind.SOURCE;
+                    outputFileKind = JavaFileObject.Kind.CLASS;
+                }
                 roots.add(new SourceDirectory(
-                        p, JavaFileObject.Kind.SOURCE, null, null, outputDirectory, JavaFileObject.Kind.CLASS));
+                        directory,
+                        source.includes(),
+                        source.excludes(),
+                        fileKind,
+                        source.module().orElse(null),
+                        source.targetVersion().map(SourceDirectory::parse).orElse(null),
+                        outputDirectory,
+                        outputFileKind));
             }
         });
         return roots;
@@ -186,10 +244,17 @@ final class SourceDirectory {
     static List<SourceDirectory> fromPluginConfiguration(List<String> compileSourceRoots, Path outputDirectory) {
         var roots = new ArrayList<SourceDirectory>(compileSourceRoots.size());
         for (String file : compileSourceRoots) {
-            Path p = Path.of(file);
-            if (Files.exists(p)) {
+            Path directory = Path.of(file);
+            if (Files.exists(directory)) {
                 roots.add(new SourceDirectory(
-                        p, JavaFileObject.Kind.SOURCE, null, null, outputDirectory, JavaFileObject.Kind.CLASS));
+                        directory,
+                        List.of(),
+                        List.of(),
+                        JavaFileObject.Kind.SOURCE,
+                        null,
+                        null,
+                        outputDirectory,
+                        JavaFileObject.Kind.CLASS));
             }
         }
         return roots;
@@ -234,10 +299,14 @@ final class SourceDirectory {
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof SourceDirectory other) {
-            return release == other.release
+            return root.equals(other.root)
+                    && includes.equals(other.includes)
+                    && excludes.equals(other.excludes)
+                    && fileKind == other.fileKind
                     && Objects.equals(moduleName, other.moduleName)
-                    && root.equals(other.root)
-                    && outputDirectory.equals(other.outputDirectory);
+                    && release == other.release
+                    && outputDirectory.equals(other.outputDirectory)
+                    && outputFileKind == other.outputFileKind;
         }
         return false;
     }
@@ -247,7 +316,7 @@ final class SourceDirectory {
      */
     @Override
     public int hashCode() {
-        return root.hashCode() + 7 * Objects.hash(moduleName, release);
+        return Objects.hash(root, moduleName, release);
     }
 
     /**
