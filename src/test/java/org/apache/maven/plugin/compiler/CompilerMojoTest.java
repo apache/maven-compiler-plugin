@@ -37,7 +37,12 @@ import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMojoExecution;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getVariableValueFromObject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.setVariableValueToObject;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
