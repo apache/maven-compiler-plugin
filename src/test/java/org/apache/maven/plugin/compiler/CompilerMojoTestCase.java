@@ -48,7 +48,6 @@ import org.apache.maven.api.plugin.testing.stubs.ProjectStub;
 import org.apache.maven.api.plugin.testing.stubs.SessionMock;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
-import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.internal.impl.DefaultMessageBuilderFactory;
 import org.apache.maven.internal.impl.InternalSession;
@@ -425,7 +424,7 @@ public class CompilerMojoTestCase {
             throw new RuntimeException("Unable to setup junit jar path", e);
         }
 
-        ProjectManager projectManager = session.getService(ProjectManager.class);
+        // ProjectManager projectManager = session.getService(ProjectManager.class);
         doAnswer(iom -> List.of()).when(session).resolveDependencies(any(), eq(PathScope.MAIN_COMPILE));
         doAnswer(iom -> artifacts).when(session).resolveDependencies(any(), eq(PathScope.TEST_COMPILE));
 
