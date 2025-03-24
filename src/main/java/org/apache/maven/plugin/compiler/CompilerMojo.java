@@ -18,6 +18,8 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
 
 import java.io.IOException;
@@ -238,6 +240,21 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
+     * Creates a new task for compiling the main classes.
+     *
+     * @param listener where to send compilation warnings, or {@code null} for the Maven logger
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
+     * @return the task to execute for compiling the main code using the configuration in this <abbr>MOJO</abbr>
+     * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     */
+    @Override
+    public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
+        ToolExecutor executor = super.createExecutor(listener);
+        addImplicitDependencies(executor.sourceDirectories, executor.dependencies);
+        return executor;
+    }
+
+    /**
      * If compiling a multi-release JAR in the old deprecated way, add the previous versions to the path.
      *
      * @param sourceDirectories the source directories
@@ -247,10 +264,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
      *
      * @deprecated For compatibility with the previous way to build multi-releases JAR file.
      */
-    @Override
     @Deprecated(since = "4.0.0")
-    final void addImplicitDependencies(
-            List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
+    private void addImplicitDependencies(List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo)
             throws IOException {
         if (SUPPORT_LEGACY && multiReleaseOutput) {
             var paths = new TreeMap<Integer, Path>();

@@ -63,7 +63,7 @@ final class ForkedToolSources implements StandardJavaFileManager {
      * Option for source files. These options are not declared in
      * {@link JavaPathType} because they are not about dependencies.
      */
-    private enum SourcePathType implements PathType {
+    private enum OtherPathType implements PathType {
         /**
          * The option for the directory of source files.
          */
@@ -84,7 +84,7 @@ final class ForkedToolSources implements StandardJavaFileManager {
          */
         private final String option;
 
-        SourcePathType(String option) {
+        OtherPathType(String option) {
             this.option = option;
         }
 
@@ -411,11 +411,11 @@ final class ForkedToolSources implements StandardJavaFileManager {
         PathType type = JavaPathType.valueOf(location).orElse(null);
         if (type == null) {
             if (location == StandardLocation.SOURCE_OUTPUT) {
-                type = SourcePathType.GENERATED_SOURCES;
+                type = OtherPathType.GENERATED_SOURCES;
             } else if (location == StandardLocation.SOURCE_PATH) {
-                type = SourcePathType.SOURCES;
+                type = OtherPathType.SOURCES;
             } else if (location == StandardLocation.CLASS_OUTPUT) {
-                type = SourcePathType.OUTPUT;
+                type = OtherPathType.OUTPUT;
             } else {
                 throw new IllegalArgumentException("Unsupported location: " + location);
             }

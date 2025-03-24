@@ -46,6 +46,13 @@ public final class Options {
     final List<String> options;
 
     /**
+     * Index of the value of the {@code --release} parameter, or 0 if not present.
+     *
+     * @see #setRelease(String)
+     */
+    private int indexOfReleaseValue;
+
+    /**
      * The tools to use for checking whether an option is supported.
      * It can be the Java compiler or the Javadoc generator.
      */
@@ -88,6 +95,32 @@ public final class Options {
             }
         }
         return value;
+    }
+
+    /**
+     * Adds or sets the value of the {@code --release} option. If this option was not present, it is added.
+     * If this option has already been specified, then its value is changed to the given value if non-null
+     * and non-blank, or removed otherwise.
+     *
+     * @param value value of the {@code --release} option, or {@code null} or empty if none
+     * @return whether the option has been added or defined
+     */
+    public boolean setRelease(String value) {
+        if (indexOfReleaseValue == 0) {
+            boolean added = addIfNonBlank("--release", value);
+            if (added) {
+                indexOfReleaseValue = options.size() - 1;
+            }
+            return added;
+        }
+        value = strip(value);
+        if (value != null) {
+            options.set(indexOfReleaseValue, value);
+            return true;
+        }
+        options.subList(indexOfReleaseValue - 1, indexOfReleaseValue + 1).clear();
+        indexOfReleaseValue = 0;
+        return false;
     }
 
     /**

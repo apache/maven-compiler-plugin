@@ -25,14 +25,11 @@ import javax.tools.OptionChecker;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
-import org.apache.maven.api.PathType;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
@@ -208,8 +205,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     transient boolean hasTestModuleInfo;
 
     /**
+     * Whether a {@code module-info.java} file is defined in the main sources.
+     */
+    private transient boolean hasMainModuleInfo;
+
+    /**
      * Path to the {@code module-info.class} file of the main code, or {@code null} if that file does not exist.
-     * This field exists only for transferring this information to {@link ToolExecutorForTest#hasTestModuleInfo},
+     * This field exists only for transferring this information to {@link ToolExecutorForTest#mainModulePath},
      * and should be {@code null} the rest of the time.
      */
     transient Path mainModulePath;
@@ -385,8 +387,9 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     @Override
     final boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
         for (SourceDirectory root : roots) {
-            if (root.getModuleInfo().isPresent()) {
-                hasTestModuleInfo = true;
+            hasMainModuleInfo |= root.moduleName != null;
+            hasTestModuleInfo |= root.getModuleInfo().isPresent();
+            if (hasMainModuleInfo & hasTestModuleInfo) {
                 break;
             }
         }
@@ -404,23 +407,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 return useModulePath;
             }
         }
-        return useModulePath && mainModulePath != null;
-    }
-
-    /**
-     * Adds the main compilation output directories as test dependencies.
-     *
-     * @param sourceDirectories the source directories (ignored)
-     * @param addTo where to add dependencies
-     * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
-     */
-    @Override
-    final void addImplicitDependencies(
-            List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration) {
-        var pathType = hasModuleDeclaration ? JavaPathType.MODULES : JavaPathType.CLASSES;
-        if (Files.exists(mainOutputDirectory)) {
-            addTo.computeIfAbsent(pathType, (key) -> new ArrayList<>()).add(mainOutputDirectory);
-        }
+        return useModulePath && hasMainModuleInfo;
     }
 
     /**
@@ -437,11 +424,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             Path file = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
             if (Files.isRegularFile(file)) {
                 mainModulePath = file;
+                hasMainModuleInfo = true;
             }
             return new ToolExecutorForTest(this, listener);
         } finally {
             // Reset the fields that were used only for transfering information to `ToolExecutorForTest`.
             hasTestModuleInfo = false;
+            hasMainModuleInfo = false;
             mainModulePath = null;
         }
     }

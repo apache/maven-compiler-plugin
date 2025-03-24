@@ -68,7 +68,7 @@ final class SourceFile {
     /**
      * The path of the {@code .class} file, created when first requested.
      *
-     * @see #getOutputFile(boolean)
+     * @see #getOutputFile()
      */
     private Path outputFile;
 
@@ -89,29 +89,37 @@ final class SourceFile {
     }
 
     /**
+     * {@return whether the output file is the same as the one that we would infer from heuristic rules}.
+     *
+     * <p>TODO: this is not yet implemented. We need to clarify how to get the output file information
+     * from the compiler, maybe via the {@link javax.tools.JavaFileManager#getFileForOutput} method.
+     * Then, {@link #getOutputFile} should compare that value with the inferred one and set a flag.</p>
+     */
+    boolean isStandardOutputFile() {
+        // The constants below must match the ones in `IncrementalBuild.SourceInfo`.
+        return SourceDirectory.JAVA_FILE_SUFFIX.equals(directory.fileKind.extension)
+                && SourceDirectory.CLASS_FILE_SUFFIX.equals(directory.outputFileKind.extension);
+    }
+
+    /**
      * Returns the file resulting from the compilation of this source file. If the output file has been
      * {@linkplain javax.tools.JavaFileManager#getFileForOutput obtained from the compiler}, that value
-     * if returned. Otherwise, if {@code infer} is {@code true}, then the output file is inferred using
-     * {@linkplain #toOutputFile heuristic rules}.
+     * if returned. Otherwise, output file is inferred using {@linkplain #toOutputFile heuristic rules}.
      *
-     * @param  infer whether to allow this method to infer a default path using heuristic rules
-     * @return path to the output file, or {@code null} if unspecified and {@code infer} is {@code false}
+     * @return path to the output file
      */
-    Path getOutputFile(boolean infer) {
-        if (!infer) {
-            /*
-             * TODO: add a `setOutputFile(Path)` method after we clarified how to get this information from the compiler.
-             *       It may be from javax.tools.JavaFileManager.getFileForOutput(...).
-             */
-            return null;
-        }
+    Path getOutputFile() {
         if (outputFile == null) {
             outputFile = toOutputFile(
                     directory.root,
-                    directory.outputDirectory,
+                    directory.getOutputDirectory(),
                     file,
                     directory.fileKind.extension,
                     directory.outputFileKind.extension);
+            /*
+             * TODO: compare with the file given by the compiler (if we can get that information)
+             * and set a `isStandardOutputFile` flag with the comparison result.
+             */
         }
         return outputFile;
     }

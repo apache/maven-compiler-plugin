@@ -99,14 +99,6 @@ final class IncrementalBuild {
         CLASSES(Set.of()),
 
         /**
-         * Recompile all source files when the addition of a new file is detected.
-         * This aspect should be used together with {@link #SOURCES} or {@link #CLASSES}.
-         * When used with {@link #CLASSES}, it provides a way to detect class renaming
-         * (this is not needed with {@link #SOURCES}).
-         */
-        ADDITIONS(Set.of()),
-
-        /**
          * Recompile modules and let the compiler decides which individual files to recompile.
          * The compiler plugin does not enumerate the source files to recompile (actually, it does not scan at all the
          * source directories). Instead, it only specifies the module to recompile using the {@code --module} option.
@@ -116,17 +108,34 @@ final class IncrementalBuild {
          * <p>This option is available only at the following conditions:</p>
          * <ul>
          *   <li>All sources of the project to compile are modules in the Java sense.</li>
-         *   <li>{@link #SOURCES}, {@link #CLASSES} and {@link #ADDITIONS} aspects are not used.</li>
+         *   <li>{@link #SOURCES}, {@link #CLASSES}, {@link #REBUILD_ON_ADD} and  {@link #REBUILD_ON_CHANGE}
+         *       aspects are not used.</li>
          *   <li>There is no include/exclude filter.</li>
          * </ul>
          */
-        MODULES(Set.of(SOURCES, CLASSES, ADDITIONS)),
+        MODULES(Set.of(SOURCES, CLASSES)),
+
+        /**
+         * Modifier for recompiling all source files when the addition of a new file is detected.
+         * This flag is effective only when used together with {@link #SOURCES} or {@link #CLASSES}.
+         * When used with {@link #CLASSES}, it provides a way to detect class renaming
+         * (this is not needed with {@link #SOURCES} for detecting renaming).
+         */
+        REBUILD_ON_ADD(Set.of(MODULES)),
+
+        /**
+         * Modifier for recompiling all source files when a change is detected in at least one source file.
+         * This flag is effective only when used together with {@link #SOURCES} or {@link #CLASSES}.
+         * It does not rebuild when a new source file is added without change in other files,
+         * unless {@link #REBUILD_ON_ADD} is also specified.
+         */
+        REBUILD_ON_CHANGE(REBUILD_ON_ADD.excludes),
 
         /**
          * The compiler plugin unconditionally specifies all sources to the Java compiler.
          * This aspect is mutually exclusive with all other aspects.
          */
-        NONE(Set.of(OPTIONS, DEPENDENCIES, SOURCES, CLASSES, ADDITIONS, MODULES));
+        NONE(Set.of(OPTIONS, DEPENDENCIES, SOURCES, CLASSES, REBUILD_ON_ADD, REBUILD_ON_CHANGE, MODULES));
 
         /**
          * If this aspect is mutually exclusive with other aspects, the excluded aspects.
@@ -162,7 +171,7 @@ final class IncrementalBuild {
             for (String value : values.split(",")) {
                 value = value.trim();
                 try {
-                    aspects.add(valueOf(value.toUpperCase(Locale.US)));
+                    aspects.add(valueOf(value.toUpperCase(Locale.US).replace('-', '_')));
                 } catch (IllegalArgumentException e) {
                     var sb = new StringBuilder(256)
                             .append("Illegal incremental build setting: \"")
@@ -217,10 +226,21 @@ final class IncrementalBuild {
      * than the one inferred by heuristic rules. For performance reason, we store the output
      * files explicitly only when it cannot be inferred.
      *
-     * @see SourceInfo#toOutputFile(Path, Path, Path)
      * @see javax.tools.JavaFileManager#getFileForOutput
      */
     private static final byte EXPLICIT_OUTPUT_FILE = 4;
+
+    /**
+     * Flag in the binary output file telling that the output file has been omitted.
+     * This is the case of {@code package-info.class} files when the result is empty.
+     */
+    private static final byte OMITTED_OUTPUT_FILE = 8;
+
+    /**
+     * Bitmask of all flags that are allowed in a cache file.
+     */
+    private static final byte ALL_FLAGS =
+            NEW_SOURCE_DIRECTORY | NEW_TARGET_DIRECTORY | EXPLICIT_OUTPUT_FILE | OMITTED_OUTPUT_FILE;
 
     /**
      * Name of the file where to store the list of source files and the list of files created by the compiler.
@@ -258,10 +278,41 @@ final class IncrementalBuild {
     private long previousBuildTime;
 
     /**
+     * The granularity in milliseconds to use for comparing modification times.
+     *
+     * @see AbstractCompilerMojo#staleMillis
+     */
+    private final long staleMillis;
+
+    /**
      * Hash code value of the compiler options during the previous build.
      * This value is initialized by {@link #loadCache()}.
      */
     private int previousOptionsHash;
+
+    /**
+     * Hash code value of the current {@link Options#options} list.
+     */
+    private final int optionsHash;
+
+    /**
+     * Whether to save the list of source files.
+     */
+    private final boolean saveSourceList;
+
+    /**
+     * Whether to recompile all source files if a file addition is detected.
+     *
+     * @see Aspect#REBUILD_ON_ADD
+     */
+    private final boolean rebuildOnAdd;
+
+    /**
+     * Whether to recompile all source files if at least one source changed.
+     *
+     * @see Aspect#REBUILD_ON_CHANGE
+     */
+    private final boolean rebuildOnChange;
 
     /**
      * Whether to provide more details about why a module is rebuilt.
@@ -273,15 +324,38 @@ final class IncrementalBuild {
      *
      * @param mojo the MOJO which is compiling source code
      * @param sourceFiles all source files
+     * @param saveSourceList whether to save the list of source files in the cache
+     * @param options the compiler options
+     * @param aspects result of {@link Aspect#parse(String)}
      * @throws IOException if the parent directory cannot be created
      */
-    IncrementalBuild(AbstractCompilerMojo mojo, List<SourceFile> sourceFiles) throws IOException {
+    IncrementalBuild(
+            AbstractCompilerMojo mojo,
+            List<SourceFile> sourceFiles,
+            boolean saveSourceList,
+            Options configuration,
+            EnumSet<Aspect> aspects)
+            throws IOException {
         this.sourceFiles = sourceFiles;
+        this.saveSourceList = saveSourceList;
         Path file = mojo.mojoStatusPath;
         cacheFile = Files.createDirectories(file.getParent()).resolve(file.getFileName());
         showCompilationChanges = mojo.showCompilationChanges;
         buildTime = System.currentTimeMillis();
         previousBuildTime = buildTime;
+        staleMillis = mojo.staleMillis;
+        rebuildOnAdd = aspects.contains(Aspect.REBUILD_ON_ADD);
+        rebuildOnChange = aspects.contains(Aspect.REBUILD_ON_CHANGE);
+        optionsHash = configuration.options.hashCode();
+    }
+
+    /**
+     * Deletes the cache if it exists.
+     *
+     * @throws IOException if an error occurred while deleting the file
+     */
+    public void deleteCache() throws IOException {
+        Files.deleteIfExists(cacheFile);
     }
 
     /**
@@ -298,20 +372,20 @@ final class IncrementalBuild {
      *     <li>If {@link #NEW_SOURCE_DIRECTORY} is set, the new root directory of source files.</li>
      *     <li>If {@link #NEW_TARGET_DIRECTORY} is set, the new root directory of output files.</li>
      *     <li>If {@link #EXPLICIT_OUTPUT_FILE} is set, the output file.</li>
-     *     <li>The file path relative to the parent of the previous file.</li>
+     *     <li>The file path as a sibling of the previous file, unless a new root directory has been specified.</li>
      *     <li>Last modification time of the source file, in milliseconds since January 1st.</li>
      *   </ul></li>
      * </ul>
      *
-     * The "is sibling" Boolean is for avoiding to repeat the parent directory. If that flag is {@code true},
-     * then only the filename is stored and the parent is the same as the previous file.
+     * The "new source directory" flag is for avoiding to repeat the parent directory.
+     * If that flag is {@code false}, then only the filename is stored and the parent
+     * is the same as the previous file.
      *
-     * @param optionsHash hash code value of the {@link Options#options} list
      * @param sources whether to save also the list of source files
      * @throws IOException if an error occurred while writing the cache file
      */
     @SuppressWarnings({"checkstyle:InnerAssignment", "checkstyle:NeedBraces"})
-    public void writeCache(final int optionsHash, final boolean sources) throws IOException {
+    public void writeCache() throws IOException {
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(
                 cacheFile,
                 StandardOpenOption.WRITE,
@@ -320,22 +394,22 @@ final class IncrementalBuild {
             out.writeLong(MAGIC_NUMBER);
             out.writeLong(buildTime);
             out.writeInt(optionsHash);
-            out.writeInt(sources ? sourceFiles.size() : 0);
-            if (sources) {
+            out.writeInt(saveSourceList ? sourceFiles.size() : 0);
+            if (saveSourceList) {
                 Path srcDir = null;
                 Path tgtDir = null;
                 Path previousParent = null;
                 for (SourceFile source : sourceFiles) {
                     final Path sourceFile = source.file;
-                    final Path outputFile = source.getOutputFile(false);
+                    final Path outputFile = source.getOutputFile();
                     boolean sameSrcDir = Objects.equals(srcDir, srcDir = source.directory.root);
-                    boolean sameTgtDir = Objects.equals(tgtDir, tgtDir = source.directory.outputDirectory);
-                    boolean sameOutput = (outputFile == null)
-                            || outputFile.equals(SourceInfo.toOutputFile(srcDir, tgtDir, sourceFile));
-
+                    boolean sameTgtDir = Objects.equals(tgtDir, tgtDir = source.directory.getOutputDirectory());
+                    boolean sameOutput = source.isStandardOutputFile();
+                    boolean omitted = Files.notExists(outputFile);
                     out.writeByte((sameSrcDir ? 0 : NEW_SOURCE_DIRECTORY)
                             | (sameTgtDir ? 0 : NEW_TARGET_DIRECTORY)
-                            | (sameOutput ? 0 : EXPLICIT_OUTPUT_FILE));
+                            | (sameOutput ? 0 : EXPLICIT_OUTPUT_FILE)
+                            | (omitted ? OMITTED_OUTPUT_FILE : 0));
 
                     if (!sameSrcDir) out.writeUTF((previousParent = srcDir).toString());
                     if (!sameTgtDir) out.writeUTF(tgtDir.toString());
@@ -373,12 +447,13 @@ final class IncrementalBuild {
             Path srcFile = null;
             while (--remaining >= 0) {
                 final byte flags = in.readByte();
-                if ((flags & ~(NEW_SOURCE_DIRECTORY | NEW_TARGET_DIRECTORY | EXPLICIT_OUTPUT_FILE)) != 0) {
+                if ((flags & ~ALL_FLAGS) != 0) {
                     throw new IOException("Invalid cache file.");
                 }
                 boolean newSrcDir = (flags & NEW_SOURCE_DIRECTORY) != 0;
                 boolean newTgtDir = (flags & NEW_TARGET_DIRECTORY) != 0;
                 boolean newOutput = (flags & EXPLICIT_OUTPUT_FILE) != 0;
+                boolean omitted = (flags & OMITTED_OUTPUT_FILE) != 0;
                 Path output = null;
                 if (newSrcDir) srcDir = Path.of(in.readUTF());
                 if (newTgtDir) tgtDir = Path.of(in.readUTF());
@@ -386,7 +461,8 @@ final class IncrementalBuild {
                 String path = in.readUTF();
                 srcFile = newSrcDir ? srcDir.resolve(path) : srcFile.resolveSibling(path);
                 srcFile = srcFile.normalize();
-                if (previousBuild.put(srcFile, new SourceInfo(srcDir, tgtDir, output, in.readLong())) != null) {
+                var info = new SourceInfo(srcDir, tgtDir, output, omitted, in.readLong());
+                if (previousBuild.put(srcFile, info) != null) {
                     throw new IOException("Duplicated source file declared in the cache: " + srcFile);
                 }
             }
@@ -401,32 +477,13 @@ final class IncrementalBuild {
      * @param sourceDirectory root directory of the source file
      * @param outputDirectory output directory of the compiled file
      * @param outputFile the output file if it was explicitly specified, or {@code null} if it can be inferred
+     * @param omitted whether the output file has not be generated by the compiler (e.g. {@code package-info.class})
      * @param lastModified last modification times of the source file during the previous build
      */
-    private static record SourceInfo(Path sourceDirectory, Path outputDirectory, Path outputFile, long lastModified) {
+    private static record SourceInfo(
+            Path sourceDirectory, Path outputDirectory, Path outputFile, boolean omitted, long lastModified) {
         /**
-         * The default output extension used in heuristic rules. It is okay if the actual output file does not use
-         * this extension, because the heuristic rules should be applied only when we have detected that they apply.
-         */
-        private static final String OUTPUT_EXTENSION = SourceDirectory.CLASS_FILE_SUFFIX;
-
-        /**
-         * Infers the path to the output file using heuristic rules. This method is used for saving space in the
-         * common space where the heuristic rules work. If the heuristic rules do not work, the full output path
-         * will be stored in the {@link #cacheFile}.
-         *
-         * @param sourceDirectory root directory of the source file
-         * @param outputDirectory output directory of the compiled file
-         * @param sourceFile path to the source file
-         * @return path to the target file
-         */
-        static Path toOutputFile(Path sourceDirectory, Path outputDirectory, Path sourceFile) {
-            return SourceFile.toOutputFile(
-                    sourceDirectory, outputDirectory, sourceFile, SourceDirectory.JAVA_FILE_SUFFIX, OUTPUT_EXTENSION);
-        }
-
-        /**
-         * Delete all output files associated to the given source file. If the output file is a {@code .class} file,
+         * Deletes all output files associated to the given source file. If the output file is a {@code .class} file,
          * then this method deletes also the output files for all inner classes (e.g. {@code "Foo$0.class"}).
          *
          * @param sourceFile the source file for which to delete output files
@@ -435,17 +492,22 @@ final class IncrementalBuild {
         void deleteClassFiles(final Path sourceFile) throws IOException {
             Path output = outputFile;
             if (output == null) {
-                output = toOutputFile(sourceDirectory, outputDirectory, sourceFile);
+                output = SourceFile.toOutputFile(
+                        sourceDirectory,
+                        outputDirectory,
+                        sourceFile,
+                        SourceDirectory.JAVA_FILE_SUFFIX,
+                        SourceDirectory.CLASS_FILE_SUFFIX);
             }
             String filename = output.getFileName().toString();
-            if (filename.endsWith(OUTPUT_EXTENSION)) {
-                String prefix = filename.substring(0, filename.length() - OUTPUT_EXTENSION.length());
+            if (filename.endsWith(SourceDirectory.CLASS_FILE_SUFFIX)) {
+                String prefix = filename.substring(0, filename.length() - SourceDirectory.CLASS_FILE_SUFFIX.length());
                 List<Path> outputs;
                 try (Stream<Path> files = Files.walk(output.getParent(), 1)) {
                     outputs = files.filter((f) -> {
                                 String name = f.getFileName().toString();
                                 return name.startsWith(prefix)
-                                        && name.endsWith(OUTPUT_EXTENSION)
+                                        && name.endsWith(SourceDirectory.CLASS_FILE_SUFFIX)
                                         && (name.equals(filename) || name.charAt(prefix.length()) == '$');
                             })
                             .toList();
@@ -462,22 +524,20 @@ final class IncrementalBuild {
     /**
      * Detects whether the list of detected files has changed since the last build.
      * This method loads the list of files of the previous build from a status file
-     * and compare it with the new list. If the file cannot be read, then this method
-     * conservatively assumes that the file tree changed.
+     * and compares it with the new list file. If the list file cannot be read,
+     * then this method conservatively assumes that the file tree changed.
      *
      * <p>If this method returns {@code null}, the caller can check the {@link SourceFile#isNewOrModified} flag
      * for deciding which files to recompile. If this method returns non-null value, then the {@code isModified}
      * flag should be ignored and all files recompiled unconditionally. The returned non-null value is a message
      * saying why the project needs to be rebuilt.</p>
      *
-     * @param staleMillis the granularity in milliseconds to use for comparing modification times
-     * @param rebuildOnAdd whether to recompile all source files if a file addition is detected
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while deleting output files of the previous build
      *
      * @see Aspect#SOURCES
      */
-    String inputFileTreeChanges(final long staleMillis, final boolean rebuildOnAdd) throws IOException {
+    String inputFileTreeChanges() throws IOException {
         final Map<Path, SourceInfo> previousBuild;
         try {
             previousBuild = loadCache();
@@ -502,10 +562,16 @@ final class IncrementalBuild {
                      * of another class.
                      */
                     allChanged = false;
-                    Path output = source.getOutputFile(true);
+                    if (previous.omitted) {
+                        continue;
+                    }
+                    Path output = source.getOutputFile();
                     if (Files.exists(output, LINK_OPTIONS)) {
                         continue; // Source file has not been modified and output file exists.
                     }
+                } else if (rebuildOnChange) {
+                    return causeOfRebuild("at least one source file changed", false)
+                            .toString();
                 }
             } else if (!source.ignoreModification) {
                 if (showCompilationChanges) {
@@ -571,7 +637,7 @@ final class IncrementalBuild {
             loadCache();
         }
         final FileTime changeTime = FileTime.fromMillis(previousBuildTime);
-        List<Path> updated = new ArrayList<>();
+        final var updated = new ArrayList<Path>();
         for (List<Path> roots : dependencies) {
             for (Path root : roots) {
                 try (Stream<Path> files = Files.walk(root)) {
@@ -607,16 +673,15 @@ final class IncrementalBuild {
     }
 
     /**
-     * Returns whether the compilar options have changed.
+     * Returns whether the compiler options have changed.
      * This method should be invoked only after {@link #inputFileTreeChanges} returned {@code null}.
      *
-     * @param optionsHash hash code value of the {@link Options#options} list
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while loading the cache file
      *
      * @see Aspect#OPTIONS
      */
-    String optionChanges(int optionsHash) throws IOException {
+    String optionChanges() throws IOException {
         if (!cacheLoaded) {
             loadCache();
         }
@@ -646,22 +711,23 @@ final class IncrementalBuild {
      * The files identified as in need to be recompiled have their {@link SourceFile#isNewOrModified}
      * flag set to {@code true}. This method does not use the cache file.
      *
-     * @param staleMillis the granularity in milliseconds to use for comparing modification times
-     * @param rebuildOnAdd whether to recompile all source files if a file addition is detected
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while reading the time stamp of an output file
      *
      * @see Aspect#CLASSES
      */
-    String markNewOrModifiedSources(long staleMillis, boolean rebuildOnAdd) throws IOException {
+    String markNewOrModifiedSources() throws IOException {
         for (SourceFile source : sourceFiles) {
             if (!source.isNewOrModified) {
                 // Check even if `source.ignoreModification` is true.
-                Path output = source.getOutputFile(true);
+                Path output = source.getOutputFile();
                 if (Files.exists(output, LINK_OPTIONS)) {
                     FileTime t = Files.getLastModifiedTime(output, LINK_OPTIONS);
                     if (source.lastModified - t.toMillis() <= staleMillis) {
                         continue;
+                    } else if (rebuildOnChange) {
+                        return causeOfRebuild("at least one source file changed", false)
+                                .toString();
                     }
                 } else if (rebuildOnAdd) {
                     StringBuilder causeOfRebuild = causeOfRebuild("of added source files", showCompilationChanges);
