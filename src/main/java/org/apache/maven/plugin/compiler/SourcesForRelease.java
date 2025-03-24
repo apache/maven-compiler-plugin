@@ -25,10 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +40,7 @@ final class SourcesForRelease implements Closeable {
     /**
      * The release for this set of sources, or {@code null} if the user did not specified a release.
      *
+     * @see #getReleaseString()
      * @see SourceDirectory#release
      */
     final SourceVersion release;
@@ -81,11 +79,24 @@ final class SourcesForRelease implements Closeable {
      *
      * @param release the release for this set of sources, or {@code null} if the user did not specified a release
      */
-    private SourcesForRelease(SourceVersion release) {
+    SourcesForRelease(SourceVersion release) {
         this.release = release;
-        files = new ArrayList<>(256);
+        files = new ArrayList<>();
         roots = new LinkedHashMap<>();
         moduleInfos = new LinkedHashMap<>();
+    }
+
+    /**
+     * Returns the release as a string suitable for the {@code --release} compiler option.
+     *
+     * @return the release number as a string, or {@code null} if none
+     */
+    String getReleaseString() {
+        if (release == null) {
+            return null;
+        }
+        var version = release.name();
+        return version.substring(version.lastIndexOf('_') + 1);
     }
 
     /**
@@ -94,51 +105,18 @@ final class SourcesForRelease implements Closeable {
      *
      * @param source the source file to add.
      */
-    private void add(SourceFile source) {
+    void add(SourceFile source) {
         var directory = source.directory;
         if (lastDirectoryAdded != directory) {
             lastDirectoryAdded = directory;
             String moduleName = directory.moduleName;
-            if (moduleName == null) {
+            if (moduleName == null || moduleName.isBlank()) {
                 moduleName = "";
             }
-            add(roots, moduleName, directory.root);
+            roots.get(moduleName).add(directory.root);
             directory.getModuleInfo().ifPresent((path) -> moduleInfos.put(directory, null));
         }
         files.add(source.file);
-    }
-
-    /**
-     * Adds the given directory in the given map.
-     *
-     * @param target the map where to add the specified directory
-     * @param moduleName name of the module, or an empty string if none
-     * @param directory the directory to add, or {@code null} if none
-     */
-    private static void add(Map<String, Set<Path>> target, String moduleName, Path directory) {
-        if (directory != null) {
-            target.computeIfAbsent(moduleName, (key) -> new LinkedHashSet<>()).add(directory);
-        }
-    }
-
-    /**
-     * Groups all sources files first by Java release versions, then by module names.
-     * The elements in the returned collection are sorted in the order of {@link SourceVersion}
-     * enumeration values. It should match the increasing order of Java releases.
-     *
-     * @param sources the sources to group.
-     * @return the given sources grouped by Java release versions and module names.
-     */
-    static Collection<SourcesForRelease> groupByReleaseAndModule(List<SourceFile> sources) {
-        var result = new EnumMap<SourceVersion, SourcesForRelease>(SourceVersion.class);
-        for (SourceFile source : sources) {
-            final SourceVersion release = source.directory.release;
-            result.computeIfAbsent(
-                            (release != null) ? release : SourceVersion.latest(),
-                            (key) -> new SourcesForRelease(release))
-                    .add(source);
-        }
-        return result.values();
     }
 
     /**
@@ -202,7 +180,10 @@ final class SourcesForRelease implements Closeable {
      */
     @Override
     public String toString() {
-        return getClass().getSimpleName() + '[' + (release != null ? release : "default") + ": " + files.size()
-                + " files]";
+        var sb = new StringBuilder(getClass().getSimpleName()).append('[');
+        if (release != null) {
+            sb.append(release).append(": ");
+        }
+        return sb.append(files.size()).append(" files]").toString();
     }
 }

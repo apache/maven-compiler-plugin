@@ -89,8 +89,11 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      */
     @Override
     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
-        MessageBuilder record = messageBuilderFactory.builder();
         String message = diagnostic.getMessage(locale);
+        if (message == null || message.isBlank()) {
+            return;
+        }
+        MessageBuilder record = messageBuilderFactory.builder();
         record.a(message);
         Diagnostic.Kind kind = diagnostic.getKind();
         String style;
@@ -176,7 +179,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
             patternForCount = patternForCount(Math.max(numWarnings, numErrors));
         }
         if ((numWarnings | numErrors) != 0) {
-            message.strong("Total:").newline();
+            message.strong("Total:");
         }
         if (numWarnings != 0) {
             writeCount(message, patternForCount, numWarnings, "warning");
@@ -200,10 +203,10 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * Appends the count of warnings or errors, making them plural if needed.
      */
     private static void writeCount(MessageBuilder message, String patternForCount, int count, String name) {
+        message.newline();
         message.format(patternForCount, count, name);
         if (count > 1) {
             message.append('s');
         }
-        message.newline();
     }
 }

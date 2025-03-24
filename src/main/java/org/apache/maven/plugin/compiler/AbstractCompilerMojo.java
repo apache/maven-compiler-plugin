@@ -180,14 +180,35 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String target;
 
     /**
-     * The {@code --release} argument for the Java compiler.
-     * If omitted, then the compiler will generate bytecodes for the Java version running the compiler.
+     * The {@code --release} argument for the Java compiler when the sources do not declare this version.
+     * The suggested way to declare the target Java release is to specify it with the sources like below:
+     *
+     * <pre>{@code
+     * <build>
+     *   <sources>
+     *     <source>
+     *       <directory>src/main/java</directory>
+     *       <targetVersion>17</targetVersion>
+     *     </source>
+     *   </sources>
+     * </build>}</pre>
+     *
+     * If such {@code <targetVersion>} element is found, it has precedence over this {@code release} property.
+     * If a source does not declare a target Java version, then the value of this {@code release} property is
+     * used as a fallback.
+     * If omitted, the compiler will generate bytecodes for the Java version running the compiler.
      *
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-release">javac --release</a>
      * @since 3.6
      */
     @Parameter(property = "maven.compiler.release")
     protected String release;
+
+    /**
+     * Whether {@link #target} or {@link #release} has a non-blank value.
+     * Used for logging a warning if no target Java version was specified.
+     */
+    private boolean targetOrReleaseSet;
 
     /**
      * Whether to enable preview language features of the java compiler.
@@ -204,8 +225,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * the directories will be obtained from the {@code <Source>} elements declared in the project.
      * If non-empty, the project {@code <Source>} elements are ignored. This configuration option
      * should be used only when there is a need to override the project configuration.
+     *
+     * @deprecated Replaced by the project-wide {@code <sources>} element.
      */
     @Parameter
+    @Deprecated(since = "4.0.0")
     protected List<String> compileSourceRoots;
 
     /**
@@ -507,8 +531,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * The algorithm to use for selecting which files to compile.
-     * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code additions},
-     * {@code modules} or {@code none}.
+     * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
+     * {@code rebuild-on-add}, {@code modules} or {@code none}.
      *
      * <p><b>{@code options}:</b>
      * recompile all source files if the compiler options changed.
@@ -533,18 +557,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * <p>The {@code sources} and {@code classes} values are partially redundant,
      * doing the same work in different ways. It is usually not necessary to specify those two values.</p>
      *
-     * <p><b>{@code additions}:</b>
-     * recompile all source files when the addition of a new file is detected.
-     * This aspect should be used together with {@code sources} or {@code classes}.
-     * When used with {@code classes}, it provides a way to detect class renaming
-     * (this is not needed with {@code sources}).</p>
-     *
      * <p><b>{@code modules}:</b>
      * recompile modules and let the compiler decides which individual files to recompile.
      * The compiler plugin does not enumerate the source files to recompile (actually, it does not scan at all the
      * source directories). Instead, it only specifies the module to recompile using the {@code --module} option.
      * The Java compiler will scan the source directories itself and compile only those source files that are newer
      * than the corresponding files in the output directory.</p>
+     *
+     * <p><b>{@code rebuild-on-add}:</b>
+     * modifier for recompiling all source files when the addition of a new file is detected.
+     * This flag is effective only when used together with {@code sources} or {@code classes}.
+     * When used with {@code classes}, it provides a way to detect class renaming
+     * (this is not needed with {@code sources} for detecting renaming).</p>
+     *
+     * <p><b>{@code rebuild-on-change}:</b>
+     * modifier for recompiling all source files when a change is detected in at least one source file.
+     * This flag is effective only when used together with {@code sources} or {@code classes}.
+     * It does not rebuild when a new source file is added without change in other files,
+     * unless {@code rebuild-on-add} is also specified.</p>
      *
      * <p><b>{@code none}:</b>
      * the compiler plugin unconditionally specifies all sources to the Java compiler.
@@ -569,7 +599,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @since 3.1
      *
      * @deprecated Replaced by {@link #incrementalCompilation}.
-     * A value of {@code true} in this old property is equivalent to {@code "dependencies,sources,additions"}
+     * A value of {@code true} in this old property is equivalent to {@code "dependencies,sources,rebuild-on-add"}
      * in the new property, and a value of {@code false} is equivalent to {@code "classes"}.
      */
     @Deprecated(since = "4.0.0")
@@ -586,9 +616,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
         if (useIncrementalCompilation != null) {
             return useIncrementalCompilation
                     ? EnumSet.of(
+                            IncrementalBuild.Aspect.DEPENDENCIES,
                             IncrementalBuild.Aspect.SOURCES,
-                            IncrementalBuild.Aspect.ADDITIONS,
-                            IncrementalBuild.Aspect.DEPENDENCIES)
+                            IncrementalBuild.Aspect.REBUILD_ON_ADD)
                     : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
         } else {
             return IncrementalBuild.Aspect.parse(incrementalCompilation);
@@ -821,6 +851,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * The logger for reporting information or warnings to the user.
      * Currently, this is also used for console output.
+     *
+     * <h4>Thread safety</h4>
+     * This logger should be thread-safe if the {@link ToolExecutor} is executed in a background thread.
      */
     @Inject
     protected Log logger;
@@ -923,6 +956,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
+     * {@return the root directories of Java source code for the given scope}.
+     * This method ignores the deprecated {@link #compileSourceRoots} element.
+     *
+     * @param scope whether to get the directories for main code or for the test code
+     */
+    final Stream<SourceRoot> getSourceRoots(ProjectScope scope) {
+        return projectManager.getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY);
+    }
+
+    /**
      * {@return the root directories of the Java source files to compile, excluding empty directories}.
      * The list needs to be modifiable for allowing the addition of generated source directories.
      * This is determined from the {@link #compileSourceRoots} plugin configuration if non-empty,
@@ -932,11 +975,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) {
         if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            ProjectScope scope = compileScope.projectScope();
-            Stream<SourceRoot> roots = projectManager.getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY);
-            return SourceDirectory.fromProject(roots, outputDirectory);
+            Stream<SourceRoot> roots = getSourceRoots(compileScope.projectScope());
+            return SourceDirectory.fromProject(roots, getRelease(), outputDirectory);
         } else {
-            return SourceDirectory.fromPluginConfiguration(compileSourceRoots, outputDirectory);
+            return SourceDirectory.fromPluginConfiguration(compileSourceRoots, getRelease(), outputDirectory);
         }
     }
 
@@ -974,22 +1016,6 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 }
                 return false;
         }
-    }
-
-    /**
-     * Adds dependencies others than the ones declared in POM file.
-     * The typical case is the compilation of tests, which depends on the main compilation outputs.
-     * The default implementation does nothing.
-     *
-     * @param sourceDirectories the source directories
-     * @param addTo where to add dependencies
-     * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
-     * @throws IOException if this method needs to walk through directories and that operation failed
-     */
-    void addImplicitDependencies(
-            List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
-            throws IOException {
-        // Nothing to add in a standard build of main classes.
     }
 
     /**
@@ -1068,13 +1094,31 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Creates a new task by taking a snapshot of the current configuration of this <abbr>MOJO</abbr>.
      * This method creates the {@linkplain ToolExecutor#outputDirectory output directory} if it does not already exist.
      *
+     * <h4>Multi-threading</h4>
+     * This method and the returned objects are not thread-safe.
+     * However, this method takes a snapshot of the configuration of this <abbr>MOJO</abbr>.
+     * Changes in this <abbr>MOJO</abbr> after this method call will not affect the returned executor.
+     * Therefore, the executor can safely be executed in a background thread,
+     * provided that the {@link #logger} is thread-safe.
+     *
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
      * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @return the task to execute for compiling the project using the configuration in this <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
      */
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
-        return new ToolExecutor(this, listener);
+        var executor = new ToolExecutor(this, listener);
+        if (!(targetOrReleaseSet || executor.isReleaseSpecifiedForAll())) {
+            MessageBuilder mb = messageBuilderFactory
+                    .builder()
+                    .a("No explicit value set for --release or --target. "
+                            + "To ensure the same result in different environments, please add")
+                    .newline()
+                    .newline();
+            writePlugin(mb, "release", String.valueOf(Runtime.version().feature()));
+            logger.warn(mb.build());
+        }
+        return executor;
     }
 
     /**
@@ -1138,6 +1182,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Parses the parameters declared in the <abbr>MOJO</abbr>.
+     * The {@link #release} parameter is excluded because it is handled in a special way
+     * in order to support the compilation of multi-version projects.
      *
      * @param  compiler  the tools to use for verifying the validity of options
      * @return the options after validation
@@ -1150,21 +1196,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * For example, Maven will check for illegal values in the "-g" option only if the compiler rejected
          * the fully formatted option (e.g. "-g:vars,lines") that we provided to it.
          */
-        boolean targetOrReleaseSet;
         final var configuration = new Options(compiler, logger);
         configuration.addIfNonBlank("--source", getSource());
         targetOrReleaseSet = configuration.addIfNonBlank("--target", getTarget());
-        targetOrReleaseSet |= configuration.addIfNonBlank("--release", getRelease());
-        if (!targetOrReleaseSet && ProjectScope.MAIN.equals(compileScope.projectScope())) {
-            MessageBuilder mb = messageBuilderFactory
-                    .builder()
-                    .a("No explicit value set for --release or --target. "
-                            + "To ensure the same result in different environments, please add")
-                    .newline()
-                    .newline();
-            writePlugin(mb, "release", String.valueOf(Runtime.version().feature()));
-            logger.warn(mb.build());
-        }
+        targetOrReleaseSet |= configuration.setRelease(getRelease());
         configuration.addIfTrue("--enable-preview", enablePreview);
         configuration.addComaSeparated("-proc", proc, List.of("none", "only", "full"), null);
         if (annotationProcessors != null) {
@@ -1207,7 +1242,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws MojoException if the compilation failed
      */
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
-        final var executor = createExecutor(null);
+        final ToolExecutor executor = createExecutor(null);
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;
         }
@@ -1245,10 +1280,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * In case of failure, or if debugging is enabled, dump the options to a file.
          * By default, the file will have the ".args" extension.
          */
-        if (!success || logger.isDebugEnabled()) {
+        if (!success || verbose || logger.isDebugEnabled()) {
             IOException suppressed = null;
             try {
-                writeDebugFile(configuration, executor.dependencies, executor.getSourceFiles());
+                writeDebugFile(executor, configuration);
                 if (success && tipForCommandLineCompilation != null) {
                     logger.debug(tipForCommandLineCompilation);
                     tipForCommandLineCompilation = null;
@@ -1552,14 +1587,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * If a file name contains embedded spaces, then the whole file name must be between double quotation marks.
      * The -J options are not supported.
      *
-     * @param configuration options to provide to the compiler
-     * @param dependencies the dependencies
-     * @param sourceFiles all files to compile
+     * @param executor the executor that compiled the classes
+     * @param configuration options provided to the compiler
      * @throws IOException if an error occurred while writing the debug file
      */
-    private void writeDebugFile(Options configuration, Map<PathType, List<Path>> dependencies, Stream<Path> sourceFiles)
-            throws IOException {
-
+    private void writeDebugFile(final ToolExecutor executor, final Options configuration) throws IOException {
         final Path path = getDebugFilePath();
         if (path == null) {
             logger.warn("The <debugFileName> parameter should not be empty.");
@@ -1571,7 +1603,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 .append(executable != null ? executable : compilerId);
         try (BufferedWriter out = Files.newBufferedWriter(path)) {
             configuration.format(commandLine, out);
-            for (Map.Entry<PathType, List<Path>> entry : dependencies.entrySet()) {
+            for (Map.Entry<PathType, List<Path>> entry : executor.dependencies.entrySet()) {
                 List<Path> files = entry.getValue();
                 files = files.stream().map(this::relativize).toList();
                 String separator = "";
@@ -1587,7 +1619,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             out.write('"');
             out.newLine();
             try {
-                sourceFiles.forEach((file) -> {
+                executor.getSourceFiles().forEach((file) -> {
                     try {
                         out.write('"');
                         out.write(relativize(file).toString());
@@ -1601,7 +1633,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 throw e.getCause();
             }
         }
-        tipForCommandLineCompilation = commandLine.append(" @").append(path).toString();
+        tipForCommandLineCompilation =
+                commandLine.append(" @").append(relativize(path)).toString();
     }
 
     /**
