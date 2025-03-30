@@ -24,14 +24,10 @@ import javax.tools.JavaFileObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.module.ModuleDescriptor;
-import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -40,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.StringJoiner;
-import java.util.stream.Stream;
 
 import org.apache.maven.api.Dependency;
 import org.apache.maven.api.JavaPathType;
@@ -85,6 +80,13 @@ class ToolExecutorForTest extends ToolExecutor {
      * This is defined for compatibility with Maven 3, but not recommended.
      */
     private final boolean hasTestModuleInfo;
+
+    /**
+     * Whether the tests are declared in their own module. If {@code true},
+     * then the {@code module-info.java} file of the test declares a name
+     * different than the {@code module-info.java} file of the main code.
+     */
+    private boolean testInItsOwnModule;
 
     /**
      * Whether the {@code module-info} of the tests overwrites the main {@code module-info}.
@@ -154,6 +156,7 @@ class ToolExecutorForTest extends ToolExecutor {
                     if (testModuleName != null) {
                         overwriteMainModuleInfo = testModuleName.equals(getMainModuleName());
                         if (!overwriteMainModuleInfo) {
+                            testInItsOwnModule = true;
                             continue; // The test classes are in their own module.
                         }
                     }
@@ -191,10 +194,12 @@ class ToolExecutorForTest extends ToolExecutor {
             PathType pathType = JavaPathType.CLASSES;
             if (hasModuleDeclaration) {
                 pathType = JavaPathType.MODULES;
-                String moduleToPatch = getMainModuleName();
-                if (!moduleToPatch.isEmpty()) {
-                    pathType = JavaPathType.patchModule(moduleToPatch);
-                    directoryLevelToRemove = outputDirectory.resolve(moduleToPatch);
+                if (!testInItsOwnModule) {
+                    String moduleToPatch = getMainModuleName();
+                    if (!moduleToPatch.isEmpty()) {
+                        pathType = JavaPathType.patchModule(moduleToPatch);
+                        directoryLevelToRemove = outputDirectory.resolve(moduleToPatch);
+                    }
                 }
             }
             dependencies.computeIfAbsent(pathType, (key) -> new ArrayList<>()).add(0, mainOutputDirectory);
@@ -226,7 +231,7 @@ class ToolExecutorForTest extends ToolExecutor {
      */
     @Override
     final String inferModuleNameIfMissing(String moduleName) throws IOException {
-        return moduleName.isEmpty() ? getMainModuleName() : moduleName;
+        return (!testInItsOwnModule && moduleName.isEmpty()) ? getMainModuleName() : moduleName;
     }
 
     /**
@@ -334,51 +339,17 @@ class ToolExecutorForTest extends ToolExecutor {
     @Override
     public boolean compile(JavaCompiler compiler, Options configuration, Writer otherOutput) throws IOException {
         addModuleOptions(configuration); // Effective only once.
+        Path delete = null;
         try {
+            if (directoryLevelToRemove != null) {
+                delete = Files.createSymbolicLink(directoryLevelToRemove, directoryLevelToRemove.getParent());
+            }
             return super.compile(compiler, configuration, otherOutput);
         } finally {
-            if (directoryLevelToRemove != null && Files.exists(directoryLevelToRemove)) {
-                Path target = directoryLevelToRemove.getParent();
-                try (Stream<Path> files = Files.list(directoryLevelToRemove)) {
-                    files.forEach((path) -> {
-                        try {
-                            Files.move(path, deleteRecursively(target.resolve(path.getFileName())));
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    });
-                } catch (UncheckedIOException e) {
-                    throw e.getCause();
-                }
-                Files.delete(directoryLevelToRemove);
+            if (delete != null) {
+                Files.delete(delete);
             }
         }
-    }
-
-    /**
-     * Deletes the specified directory recursively.
-     *
-     * @param delete the directory to delete
-     * @return the given directory
-     */
-    private static Path deleteRecursively(Path delete) throws IOException {
-        if (Files.notExists(delete)) {
-            return delete;
-        }
-        return Files.walkFileTree(delete, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException error) throws IOException {
-                var result = super.postVisitDirectory(dir, error);
-                Files.delete(dir);
-                return result;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attributes) throws IOException {
-                Files.delete(file);
-                return super.visitFile(file, attributes);
-            }
-        });
     }
 
     /**

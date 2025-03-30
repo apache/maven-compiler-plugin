@@ -29,6 +29,6 @@ class FooTests {
     @Test
     void moduleNameIsFoo() {
         Assertions.assertTrue(Foo.class.getModule().isNamed(), "Foo resides in a named module");
-        Assertions.assertEquals("foo", Foo.class.getModule().getName());
+        Assertions.assertEquals("foo.bar", Foo.class.getModule().getName());
     }
 }
