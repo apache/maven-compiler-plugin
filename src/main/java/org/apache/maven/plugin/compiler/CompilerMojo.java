@@ -18,6 +18,8 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
 
 import java.io.IOException;
@@ -25,7 +27,6 @@ import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +34,9 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.maven.api.JavaPathType;
+import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProducedArtifact;
-import org.apache.maven.api.ProjectScope;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
@@ -63,13 +64,6 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Parameter(property = "maven.main.skip")
     protected boolean skipMain;
-
-    /**
-     * The source directories containing the sources to be compiled.
-     * If {@code null} or empty, the directory will be obtained from the project manager.
-     */
-    @Parameter
-    protected List<String> compileSourceRoots;
 
     /**
      * Specify where to place generated source files created by annotation processing.
@@ -106,6 +100,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * The directory for compiled classes.
+     *
+     * @see #getOutputDirectory()
      */
     @Parameter(defaultValue = "${project.build.outputDirectory}", required = true, readonly = true)
     protected Path outputDirectory;
@@ -145,14 +141,16 @@ public class CompilerMojo extends AbstractCompilerMojo {
     protected String debugFileName;
 
     /**
-     * Creates a new compiler MOJO.
+     * Creates a new compiler <abbr>MOJO</abbr> for the main code.
      */
     public CompilerMojo() {
-        super(false);
+        super(PathScope.MAIN_COMPILE);
     }
 
     /**
      * Runs the Java compiler on the main source code.
+     * If {@link #skipMain} is {@code true}, then this method logs a message and does nothing else.
+     * Otherwise, this method executes the steps described in the method of the parent class.
      *
      * @throws MojoException if the compiler cannot be run.
      */
@@ -171,35 +169,18 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * Parses the parameters declared in the MOJO.
+     * Parses the parameters declared in the <abbr>MOJO</abbr>.
      *
      * @param  compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     @Override
     @SuppressWarnings("deprecation")
-    protected Options acceptParameters(final OptionChecker compiler) {
-        Options compilerConfiguration = super.acceptParameters(compiler);
-        compilerConfiguration.addUnchecked(compilerArgs);
-        compilerConfiguration.addUnchecked(compilerArgument);
-        return compilerConfiguration;
-    }
-
-    /**
-     * {@return the root directories of Java source files to compile}.
-     * It can be a parameter specified to the compiler plugin,
-     * or otherwise the value provided by the project manager.
-     */
-    @Nonnull
-    @Override
-    protected List<Path> getCompileSourceRoots() {
-        List<Path> sources;
-        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
-            sources = projectManager.getCompileSourceRoots(project, ProjectScope.MAIN);
-        } else {
-            sources = compileSourceRoots.stream().map(Paths::get).toList();
-        }
-        return sources;
+    public Options parseParameters(final OptionChecker compiler) {
+        Options configuration = super.parseParameters(compiler);
+        configuration.addUnchecked(compilerArgs);
+        configuration.addUnchecked(compilerArgument);
+        return configuration;
     }
 
     /**
@@ -244,7 +225,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     protected Path getOutputDirectory() {
         if (SUPPORT_LEGACY && multiReleaseOutput && release != null) {
-            return outputDirectory.resolve(Path.of("META-INF", "versions", release));
+            return SourceDirectory.outputDirectoryForReleases(outputDirectory).resolve(release);
         }
         return outputDirectory;
     }
@@ -259,21 +240,36 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
+     * Creates a new task for compiling the main classes.
+     *
+     * @param listener where to send compilation warnings, or {@code null} for the Maven logger
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
+     * @return the task to execute for compiling the main code using the configuration in this <abbr>MOJO</abbr>
+     * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     */
+    @Override
+    public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
+        ToolExecutor executor = super.createExecutor(listener);
+        addImplicitDependencies(executor.sourceDirectories, executor.dependencies);
+        return executor;
+    }
+
+    /**
      * If compiling a multi-release JAR in the old deprecated way, add the previous versions to the path.
      *
+     * @param sourceDirectories the source directories
      * @param addTo where to add dependencies
      * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
      * @throws IOException if this method needs to walk through directories and that operation failed
      *
      * @deprecated For compatibility with the previous way to build multi-releases JAR file.
      */
-    @Override
     @Deprecated(since = "4.0.0")
-    protected void addImplicitDependencies(Map<PathType, List<Path>> addTo, boolean hasModuleDeclaration)
+    private void addImplicitDependencies(List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo)
             throws IOException {
         if (SUPPORT_LEGACY && multiReleaseOutput) {
             var paths = new TreeMap<Integer, Path>();
-            Path root = outputDirectory.resolve(Path.of("META-INF", "versions"));
+            Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
             Files.walk(root, 1).forEach((path) -> {
                 int version;
                 if (path.equals(root)) {
@@ -309,8 +305,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
              * search in the source files for the Java release of the current compilation unit.
              */
             if (moduleName == null) {
-                for (Path path : getCompileSourceRoots()) {
-                    moduleName = parseModuleInfoName(path.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
+                for (SourceDirectory dir : sourceDirectories) {
+                    moduleName = parseModuleInfoName(dir.root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
                     if (moduleName != null) {
                         break;
                     }

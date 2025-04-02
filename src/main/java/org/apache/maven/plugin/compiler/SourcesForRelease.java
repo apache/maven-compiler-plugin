@@ -25,10 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.EnumMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,19 +38,26 @@ import java.util.Set;
  */
 final class SourcesForRelease implements Closeable {
     /**
-     * The release for this set of sources. For this class, the
-     * {@link SourceVersion#RELEASE_0} value means "no version".
+     * The release for this set of sources, or {@code null} if the user did not specified a release.
+     *
+     * @see #getReleaseString()
+     * @see SourceDirectory#release
      */
     final SourceVersion release;
 
     /**
-     * All source files.
+     * All source files. This is the union of all {@link SourceFile#file} for this {@linkplain #release}.
+     *
+     * @see SourceFile#file
      */
     final List<Path> files;
 
     /**
-     * The root directories for each module. Keys are module names.
-     * The empty string stands for no module.
+     * All source directories that are part of this compilation unit, grouped by module names.
+     * The keys in the map are the module names, with the empty string standing for no module.
+     * Values are the union of all {@link SourceDirectory#root} for this {@linkplain #release}.
+     *
+     * @see SourceDirectory#root
      */
     final Map<String, Set<Path>> roots;
 
@@ -73,54 +77,46 @@ final class SourcesForRelease implements Closeable {
     /**
      * Creates an initially empty instance for the given Java release.
      *
-     * @param release the release for this set of sources, or {@link SourceVersion#RELEASE_0} for no version.
+     * @param release the release for this set of sources, or {@code null} if the user did not specified a release
      */
-    private SourcesForRelease(SourceVersion release) {
+    SourcesForRelease(SourceVersion release) {
         this.release = release;
+        files = new ArrayList<>();
         roots = new LinkedHashMap<>();
-        files = new ArrayList<>(256);
         moduleInfos = new LinkedHashMap<>();
     }
 
     /**
+     * Returns the release as a string suitable for the {@code --release} compiler option.
+     *
+     * @return the release number as a string, or {@code null} if none
+     */
+    String getReleaseString() {
+        if (release == null) {
+            return null;
+        }
+        var version = release.name();
+        return version.substring(version.lastIndexOf('_') + 1);
+    }
+
+    /**
      * Adds the given source file to this collection of source files.
-     * The value of {@code source.directory.release} must be {@link #release}.
+     * The value of {@code source.directory.release}, if not null, must be equal to {@link #release}.
      *
      * @param source the source file to add.
      */
-    private void add(SourceFile source) {
+    void add(SourceFile source) {
         var directory = source.directory;
         if (lastDirectoryAdded != directory) {
             lastDirectoryAdded = directory;
             String moduleName = directory.moduleName;
-            if (moduleName == null) {
+            if (moduleName == null || moduleName.isBlank()) {
                 moduleName = "";
             }
-            roots.computeIfAbsent(moduleName, (key) -> new LinkedHashSet<>()).add(directory.root);
+            roots.get(moduleName).add(directory.root);
             directory.getModuleInfo().ifPresent((path) -> moduleInfos.put(directory, null));
         }
         files.add(source.file);
-    }
-
-    /**
-     * Groups all sources files first by Java release versions, then by module names.
-     * The elements in the returned collection are sorted in the order of {@link SourceVersion}
-     * enumeration values. It should match the increasing order of Java releases.
-     *
-     * @param sources the sources to group.
-     * @return the given sources grouped by Java release versions and module names.
-     */
-    public static Collection<SourcesForRelease> groupByReleaseAndModule(List<SourceFile> sources) {
-        var result = new EnumMap<SourceVersion, SourcesForRelease>(SourceVersion.class);
-        for (SourceFile source : sources) {
-            SourceVersion release = source.directory.release;
-            if (release == null) {
-                release = SourceVersion.RELEASE_0; // No release sub-directory for the compiled classes.
-            }
-            result.computeIfAbsent(release, SourcesForRelease::new).add(source);
-        }
-        // TODO: add empty set for all modules present in a release but not in the next release.
-        return result.values();
     }
 
     /**
@@ -177,5 +173,17 @@ final class SourcesForRelease implements Closeable {
         if (error != null) {
             throw error;
         }
+    }
+
+    /**
+     * {@return a string representation for debugging purposes}.
+     */
+    @Override
+    public String toString() {
+        var sb = new StringBuilder(getClass().getSimpleName()).append('[');
+        if (release != null) {
+            sb.append(release).append(": ");
+        }
+        return sb.append(files.size()).append(" files]").toString();
     }
 }

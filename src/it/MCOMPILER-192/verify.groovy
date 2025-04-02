@@ -22,7 +22,7 @@ assert logFile.exists()
 def content = logFile.getText('UTF-8')
 
 def causedByExpected = content.contains ( 'Caused by: org.apache.maven.plugin.compiler.CompilationFailureException:' )
-def twoFilesBeingCompiled = content.contains ( 'Compiling 2 source files' )
+def twoFilesBeingCompiled = content.contains ( 'Compiling all files' )
 def checkResult = content.contains ( 'BUILD FAILURE' )
 def compilationFailure1 = content.contains( '[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:')
 def compilationFailure2 = content.contains( ':compile (default-compile) on project blah: Cannot compile')

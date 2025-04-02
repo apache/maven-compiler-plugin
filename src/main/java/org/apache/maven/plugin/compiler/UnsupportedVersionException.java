@@ -16,17 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package mr;
+package org.apache.maven.plugin.compiler;
 
-import base.Base;
-
-public class A implements I {
-    public static String getString() {
-        return Base.get() + " -> 8";
+/**
+ * Thrown when the source cannot be compiled because it required a Java version
+ * higher than the current runtime.
+ *
+ * @author Martin Desruisseaux
+ */
+@SuppressWarnings("serial")
+public class UnsupportedVersionException extends CompilationFailureException {
+    /**
+     * Creates a new exception with the given message.
+     *
+     * @param message the short message
+     */
+    public UnsupportedVersionException(String message) {
+        super(message);
     }
 
-    @Override
-    public Class<?> introducedClass() {
-        return java.time.LocalDateTime.class;
+    /**
+     * Creates a new exception with the given message and cause.
+     *
+     * @param message the short message
+     * @param cause the cause of the failure, or {@code null} if none
+     */
+    public UnsupportedVersionException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

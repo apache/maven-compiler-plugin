@@ -20,6 +20,8 @@ package org.apache.maven.plugin.compiler;
 
 import javax.tools.OptionChecker;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,6 +44,13 @@ public final class Options {
      * {@code --release} and {@code 17} shall be two consecutive elements in this list.
      */
     final List<String> options;
+
+    /**
+     * Index of the value of the {@code --release} parameter, or 0 if not present.
+     *
+     * @see #setRelease(String)
+     */
+    private int indexOfReleaseValue;
 
     /**
      * The tools to use for checking whether an option is supported.
@@ -86,6 +95,32 @@ public final class Options {
             }
         }
         return value;
+    }
+
+    /**
+     * Adds or sets the value of the {@code --release} option. If this option was not present, it is added.
+     * If this option has already been specified, then its value is changed to the given value if non-null
+     * and non-blank, or removed otherwise.
+     *
+     * @param value value of the {@code --release} option, or {@code null} or empty if none
+     * @return whether the option has been added or defined
+     */
+    public boolean setRelease(String value) {
+        if (indexOfReleaseValue == 0) {
+            boolean added = addIfNonBlank("--release", value);
+            if (added) {
+                indexOfReleaseValue = options.size() - 1;
+            }
+            return added;
+        }
+        value = strip(value);
+        if (value != null) {
+            options.set(indexOfReleaseValue, value);
+            return true;
+        }
+        options.subList(indexOfReleaseValue - 1, indexOfReleaseValue + 1).clear();
+        indexOfReleaseValue = 0;
+        return false;
     }
 
     /**
@@ -336,5 +371,61 @@ public final class Options {
         if (arguments != null) {
             addUnchecked(Arrays.asList(arguments.split(" ")));
         }
+    }
+
+    /**
+     * Formats the options for debugging purposes.
+     *
+     * @param commandLine the prefix where to put the {@code -J} options before all other options
+     * @param out where to put all options other than {@code -J}
+     * @throws IOException if an error occurred while writing an option
+     */
+    void format(final StringBuilder commandLine, final Appendable out) throws IOException {
+        boolean hasOptions = false;
+        for (String option : options) {
+            if (option.isBlank()) {
+                continue;
+            }
+            if (option.startsWith("-J")) {
+                if (commandLine.length() != 0) {
+                    commandLine.append(' ');
+                }
+                commandLine.append(option);
+                continue;
+            }
+            if (hasOptions) {
+                if (option.charAt(0) == '-') {
+                    out.append(System.lineSeparator());
+                } else {
+                    out.append(' ');
+                }
+            }
+            boolean needsQuote = option.indexOf(' ') >= 0;
+            if (needsQuote) {
+                out.append('"');
+            }
+            out.append(option);
+            if (needsQuote) {
+                out.append('"');
+            }
+            hasOptions = true;
+        }
+        if (hasOptions) {
+            out.append(System.lineSeparator());
+        }
+    }
+
+    /**
+     * {@return a string representatation of the options for debugging purposes}.
+     */
+    @Override
+    public String toString() {
+        var out = new StringBuilder(40);
+        try {
+            format(out, out);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return out.toString();
     }
 }

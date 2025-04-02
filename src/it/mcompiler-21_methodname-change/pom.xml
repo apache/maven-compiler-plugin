@@ -35,6 +35,9 @@ under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
+          <configuration>
+            <incrementalCompilation>sources,rebuild-on-change</incrementalCompilation>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
