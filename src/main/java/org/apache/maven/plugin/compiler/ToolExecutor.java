@@ -52,6 +52,7 @@ import org.apache.maven.api.PathType;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
+import org.apache.maven.api.services.MavenException;
 
 /**
  * A task which configures and executes a Java tool such as the Java compiler.
@@ -193,6 +194,7 @@ public class ToolExecutor {
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
      * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     * @throws MavenException if an error occurred while fetching dependencies
      *
      * @see AbstractCompilerMojo#createExecutor(DiagnosticListener)
      */

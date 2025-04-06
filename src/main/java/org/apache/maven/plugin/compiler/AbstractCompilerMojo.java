@@ -72,6 +72,7 @@ import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.DependencyResolver;
 import org.apache.maven.api.services.DependencyResolverRequest;
 import org.apache.maven.api.services.DependencyResolverResult;
+import org.apache.maven.api.services.MavenException;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
@@ -344,8 +345,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      * @since 3.5
      *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element
-     * set to {@code proc}, {@code classpath-proc} or {@code modular-proc}.
+     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -1075,8 +1076,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     .builder()
                     .strong("COMPILATION ERROR: ")
                     .a(message);
-            // Do not log stack trace for `CompilationFailureException` because they are not unexpected.
-            logger.error(mb.toString(), e instanceof CompilationFailureException ? null : e);
+            logger.error(mb.toString(), verbose ? e : null);
             if (tipForCommandLineCompilation != null) {
                 logger.info(tipForCommandLineCompilation);
                 tipForCommandLineCompilation = null;
@@ -1102,9 +1102,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * provided that the {@link #logger} is thread-safe.
      *
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
-     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @return the task to execute for compiling the project using the configuration in this <abbr>MOJO</abbr>
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     * @throws MavenException if an error occurred while fetching dependencies
      */
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
         var executor = new ToolExecutor(this, listener);
@@ -1398,6 +1399,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * any filename-based dependency and this MOJO is compiling the main code, then a warning will be logged.
      *
      * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path.
+     * @throws IOException if an I/O error occurred while fetching dependencies
+     * @throws MavenException if an error occurred while fetching dependencies for a reason other than I/O.
      */
     final DependencyResolverResult resolveDependencies(boolean hasModuleDeclaration) throws IOException {
         DependencyResolver resolver = session.getService(DependencyResolver.class);
@@ -1460,8 +1463,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @param addTo the modifiable map and lists where to append more paths to annotation processor dependencies
      * @throws MojoException if an error occurred while resolving the dependencies
      *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element
-     * set to {@code proc}, {@code classpath-proc} or {@code modular-proc}.
+     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Deprecated(since = "4.0.0")
     final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
