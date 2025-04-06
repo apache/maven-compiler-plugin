@@ -22,21 +22,20 @@ import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Writer;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 
-import org.apache.maven.api.Dependency;
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProjectScope;
@@ -69,15 +68,21 @@ class ToolExecutorForTest extends ToolExecutor {
      * in which case the main classes are placed on the class path, but this is deprecated.
      * This flag may be removed in a future version if we remove support of this practice.
      *
+     * @deprecated Use {@code "claspath-jar"} dependency type instead, and avoid {@code module-info.java} in tests.
+     *
      * @see TestCompilerMojo#useModulePath
      */
+    @Deprecated(since = "4.0.0")
     private final boolean useModulePath;
 
     /**
      * Whether a {@code module-info.java} file is defined in the test sources.
      * In such case, it has precedence over the {@code module-info.java} in main sources.
      * This is defined for compatibility with Maven 3, but not recommended.
+     *
+     * @deprecated Avoid {@code module-info.java} in tests.
      */
+    @Deprecated(since = "4.0.0")
     private final boolean hasTestModuleInfo;
 
     /**
@@ -232,12 +237,15 @@ class ToolExecutorForTest extends ToolExecutor {
     }
 
     /**
-     * Generates the {@code --add-modules} and {@code --add-reads} options for the dependencies that are not
-     * in the main compilation. This method is invoked only if {@code hasModuleDeclaration} is {@code true}.
+     * Completes the given configuration with module options the first time that this method is invoked.
+     * If at least one {@value ModuleInfoPatch#FILENAME} file is found in a root directory of test sources,
+     * then these files are parsed and the options that they declare are added to the given configuration.
+     * Otherwise, if {@link #hasModuleDeclaration} is {@code true}, then this method generates the
+     * {@code --add-modules} and {@code --add-reads} options for dependencies that are not in the main compilation.
+     * If this method is invoked more than once, all invocations after the first one have no effect.
      *
-     * @param dependencyResolution the project dependencies
      * @param configuration where to add the options
-     * @throws IOException if the module information of a dependency cannot be read
+     * @throws IOException if the module information of a dependency or the module-info patch cannot be read
      */
     @SuppressWarnings({"checkstyle:MissingSwitchDefault", "fallthrough"})
     private void addModuleOptions(final Options configuration) throws IOException {
@@ -245,79 +253,79 @@ class ToolExecutorForTest extends ToolExecutor {
             return;
         }
         addedModuleOptions = true;
-        if (!hasModuleDeclaration || dependencyResolution == null) {
-            return;
-        }
-        if (SUPPORT_LEGACY && useModulePath && hasTestModuleInfo) {
-            /*
-             * Do not add any `--add-reads` parameters. The developers should put
-             * everything needed in the `module-info`, including test dependencies.
-             */
-            return;
-        }
-        final var done = new HashSet<String>(); // Added modules and their dependencies.
-        final var addModules = new StringJoiner(",");
-        StringJoiner addReads = null;
-        boolean hasUnnamed = false;
-        for (Map.Entry<Dependency, Path> entry :
-                dependencyResolution.getDependencies().entrySet()) {
-            boolean compile = false;
-            switch (entry.getKey().getScope()) {
-                case TEST:
-                case TEST_ONLY:
-                    compile = true;
-                    // Fall through
-                case TEST_RUNTIME:
-                    if (compile) {
-                        // Needs to be initialized even if `name` is null.
-                        if (addReads == null) {
-                            addReads = new StringJoiner(",");
-                        }
+        ModuleInfoPatch info = null;
+        ModuleInfoPatch defaultInfo = null;
+        final var patches = new LinkedHashMap<String, ModuleInfoPatch>();
+        for (SourceDirectory source : sourceDirectories) {
+            Path file = source.root.resolve(ModuleInfoPatch.FILENAME);
+            String module;
+            if (Files.notExists(file)) {
+                if (SUPPORT_LEGACY && useModulePath && hasTestModuleInfo && hasModuleDeclaration) {
+                    /*
+                     * Do not add any `--add-reads` parameters. The developers should put
+                     * everything needed in the `module-info`, including test dependencies.
+                     */
+                    continue;
+                }
+                /*
+                 * No `patch-module-info` file. Generate a default module patch instance for the
+                 * `--add-modules TEST-MODULE-PATH` and `--add-reads TEST-MODULE-PATH` options.
+                 * We generate that patch only for the first module. If there is more modules
+                 * without `patch-module-info`, we will copy the `defaultInfo` instance.
+                 */
+                module = source.moduleName;
+                if (module == null) {
+                    module = getMainModuleName();
+                    if (module.isEmpty()) {
+                        continue;
                     }
-                    Path path = entry.getValue();
-                    String name = dependencyResolution.getModuleName(path).orElse(null);
-                    if (name == null) {
-                        hasUnnamed = true;
-                    } else if (done.add(name)) {
-                        addModules.add(name);
-                        if (compile) {
-                            addReads.add(name);
-                        }
-                        /*
-                         * For making the options simpler, we do not add `--add-modules` or `--add-reads`
-                         * options for modules that are required by a module that we already added. This
-                         * simplification is not necessary, but makes the command-line easier to read.
-                         */
-                        dependencyResolution.getModuleDescriptor(path).ifPresent((descriptor) -> {
-                            for (ModuleDescriptor.Requires r : descriptor.requires()) {
-                                done.add(r.name());
-                            }
-                        });
-                    }
-                    break;
+                }
+                if (defaultInfo != null) {
+                    patches.putIfAbsent(module, null); // Remember that we will need to compute a value later.
+                    continue;
+                }
+                defaultInfo = new ModuleInfoPatch(module, info);
+                defaultInfo.setToDefaults();
+                info = defaultInfo;
+            } else {
+                info = new ModuleInfoPatch(getMainModuleName(), info);
+                try (BufferedReader reader = Files.newBufferedReader(file)) {
+                    info.load(reader);
+                }
+                module = info.getModuleName();
+            }
+            if (patches.put(module, info) != null) {
+                throw new ModuleInfoPatchException("\"module-info-patch " + module + "\" is defined more than once.");
             }
         }
-        if (!done.isEmpty()) {
-            configuration.addIfNonBlank("--add-modules", addModules.toString());
-        }
-        if (addReads != null) {
-            if (hasUnnamed) {
-                addReads.add("ALL-UNNAMED");
+        /*
+         * Replace all occurrences of `TEST-MODULE-PATH` by the actual dependency paths.
+         * Add `--add-modules` and `--add-reads` options with default values equivalent to
+         * `TEST-MODULE-PATH` for every module that do not have a `module-info-patch` file.
+         */
+        for (Map.Entry<String, ModuleInfoPatch> entry : patches.entrySet()) {
+            info = entry.getValue();
+            if (info != null) {
+                info.replaceProjectModules(sourceDirectories);
+                info.replaceTestModulePath(dependencyResolution);
+            } else {
+                // `defaultInfo` cannot be null if this `info` value is null.
+                entry.setValue(defaultInfo.patchWithSameReads(entry.getKey()));
             }
-            String reads = addReads.toString();
-            addReads(configuration, getMainModuleName(), reads);
-            for (SourceDirectory root : sourceDirectories) {
-                addReads(configuration, root.moduleName, reads);
-            }
         }
-    }
-
-    /**
-     * Adds an {@code --add-reads} compiler option if the given module name is non-null and non-blank.
-     */
-    private static void addReads(Options configuration, String moduleName, String reads) {
-        if (moduleName != null && !moduleName.isBlank()) {
-            configuration.addIfNonBlank("--add-reads", moduleName + '=' + reads);
+        /*
+         * Write the runtime dependencies in the `META-INF/maven/module-info-patch.args` file.
+         * Note that we unconditionally write in the root output directory, not in the module directory,
+         * because a single option file applies to all modules.
+         */
+        if (!patches.isEmpty()) {
+            Path directory = // TODO: replace by Path.resolve(String, String...) with JDK22.
+                    Files.createDirectories(outputDirectory.resolve("META-INF").resolve("maven"));
+            try (BufferedWriter out = Files.newBufferedWriter(directory.resolve("module-info-patch.args"))) {
+                for (ModuleInfoPatch m : patches.values()) {
+                    m.writeTo(configuration, out);
+                }
+            }
         }
     }
 

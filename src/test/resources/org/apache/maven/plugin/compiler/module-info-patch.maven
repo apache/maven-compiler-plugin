@@ -1,0 +1,53 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
+ * Syntax: all keywords inside `patch-module` are Java compiler or Java launcher options without
+ * the leading `--` characters. Each option value ends at the `;` character, which is mandatory.
+ *
+ * Some options expect a value of the form `module/package=other-module(,other-module)*`.
+ * For these options, the `module` part will be the name immediately after `patch-module`
+ * and shall not be repeated inside the block. The `=` sign is replaced by the `to` keyword,
+ * as in `module-info.java` files.
+ *
+ * This block accepts only options that do not require a path to source or binary files.
+ * Options with path values should be handled as Maven dependencies or sources instead.
+ */
+patch-module org.mymodule {
+
+    add-modules ALL-MODULE-PATH;  // For testing purpose, but a valid value would rather be TEST-MODULE-PATH.
+
+    limit-modules org.junit.jupiter.api;
+
+    // Similar to `requires` in module-info.
+    // Accept also TEST-MODULE-PATH (Maven-specific).
+    add-reads org.junit.jupiter.api;
+
+    // Similar to `exports` in module-info.
+    add-exports org.mypackage
+             to org.someone,
+                org.another;
+
+    add-exports org.foo
+             to TEST-MODULE-PATH;   // Maven specific. Note: a standard alternative is ALL-UNNAMED.
+
+    // Not used by the compiler, but useful for test executions.
+    add-opens org.foo
+           to org.junit.jupiter.api;
+}
