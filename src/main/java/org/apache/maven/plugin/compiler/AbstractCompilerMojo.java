@@ -29,6 +29,7 @@ import javax.tools.ToolProvider;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StreamTokenizer;
@@ -1600,10 +1601,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
             logger.warn("The <debugFileName> parameter should not be empty.");
             return;
         }
-        final var commandLine = new StringBuilder("For trying to compile from the command-line, use:")
-                .append(System.lineSeparator())
-                .append("    ")
-                .append(executable != null ? executable : compilerId);
+        final var commandLine = new StringBuilder("For trying to compile from the command-line, use:");
+        final var chdir =
+                Path.of(System.getProperty("user.dir")).relativize(basedir).toString();
+        if (!chdir.isEmpty()) {
+            boolean isWindows = (File.separatorChar == '\\');
+            commandLine
+                    .append(System.lineSeparator())
+                    .append("    ")
+                    .append(isWindows ? "chdir " : "cd ")
+                    .append(chdir);
+        }
+        commandLine.append(System.lineSeparator()).append("    ").append(executable != null ? executable : compilerId);
         try (BufferedWriter out = Files.newBufferedWriter(path)) {
             configuration.format(commandLine, out);
             for (Map.Entry<PathType, List<Path>> entry : executor.dependencies.entrySet()) {

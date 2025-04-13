@@ -22,6 +22,7 @@ import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaFileObject;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -54,6 +55,11 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     private final Locale locale;
 
     /**
+     * The base directory with which to relativize the paths to source files.
+     */
+    private final Path directory;
+
+    /**
      * Number of errors or warnings.
      */
     private int numErrors, numWarnings;
@@ -74,12 +80,29 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * @param logger the logger where to send diagnostics
      * @param messageBuilderFactory the factory for creating message builders
      * @param locale the locale for compiler message
+     * @param directory the base directory with which to relativize the paths to source files
      */
-    DiagnosticLogger(Log logger, MessageBuilderFactory messageBuilderFactory, Locale locale) {
+    DiagnosticLogger(Log logger, MessageBuilderFactory messageBuilderFactory, Locale locale, Path directory) {
         this.logger = logger;
         this.messageBuilderFactory = messageBuilderFactory;
         this.locale = locale;
+        this.directory = directory;
         codeCount = new LinkedHashMap<>();
+    }
+
+    /**
+     * Makes the given file relative to the base directory.
+     *
+     * @param  file  the path to make relative to the base directory
+     * @return the given path, potentially relative to the base directory
+     */
+    private String relativize(String file) {
+        try {
+            return directory.relativize(Path.of(file)).toString();
+        } catch (IllegalArgumentException e) {
+            // Ignore, keep the absolute path.
+            return file;
+        }
     }
 
     /**
@@ -95,6 +118,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         }
         MessageBuilder record = messageBuilderFactory.builder();
         record.a(message);
+        JavaFileObject source = diagnostic.getSource();
         Diagnostic.Kind kind = diagnostic.getKind();
         String style;
         switch (kind) {
@@ -107,11 +131,13 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
                 break;
             default:
                 style = ".info:-bold,f:blue";
+                if (diagnostic.getLineNumber() == Diagnostic.NOPOS) {
+                    source = null; // Some messages are generic, e.g. "Recompile with -Xlint:deprecation".
+                }
                 break;
         }
-        JavaFileObject source = diagnostic.getSource();
         if (source != null) {
-            record.newline().a("    at ").a(source.getName());
+            record.newline().a("    at ").a(relativize(source.getName()));
             long line = diagnostic.getLineNumber();
             long column = diagnostic.getColumnNumber();
             if (line != Diagnostic.NOPOS || column != Diagnostic.NOPOS) {

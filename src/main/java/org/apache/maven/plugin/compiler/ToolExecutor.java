@@ -204,7 +204,8 @@ public class ToolExecutor {
 
         logger = mojo.logger;
         if (listener == null) {
-            listener = new DiagnosticLogger(logger, mojo.messageBuilderFactory, LOCALE);
+            listener =
+                    new DiagnosticLogger(logger, mojo.messageBuilderFactory, LOCALE, mojo.project.getRootDirectory());
         }
         this.listener = listener;
         encoding = mojo.charset();
