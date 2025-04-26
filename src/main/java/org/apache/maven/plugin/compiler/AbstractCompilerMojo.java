@@ -289,7 +289,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </ul>
      *
      * Prior Java 21, {@code full} was the default.
-     * Starting with JDK 21, this option must be set explicitly.
+     * Starting with Java 21, the default is {@code none} unless another processor option is used.
      *
      * @see #annotationProcessors
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
@@ -363,7 +363,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </p>
      *
      * @since 3.12.0
+     *
+     * @deprecated This flag is ignored.
+     * Replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
+    @Deprecated(since = "4.0.0")
     @Parameter(defaultValue = "false")
     protected boolean annotationProcessorPathsUseDepMgmt;
 
@@ -458,7 +463,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Whether to provide more details about why a module is rebuilt.
-     * This is used only if {@link #incrementalCompilation} is {@code "inputTreeChanges"}.
+     * This is used only if {@link #incrementalCompilation} is set to something else than {@code "none"}.
      *
      * @see #incrementalCompilation
      */
@@ -586,13 +591,23 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * In all cases, the current compiler-plugin does not detect structural changes other than file addition or removal.
      * For example, the plugin does not detect whether a method has been removed in a class.
      *
+     * <h4>Default value</h4>
+     * The default value depends on the context.
+     * If there is no annotation processor, then the default is {@code "options,dependencies,sources"}.
+     * It means that a full rebuild will be done if the compiler options or the dependencies changed,
+     * or if a source file has been deleted. Otherwise, only the modified source files will be recompiled.
+     *
+     * <p>If an annotation processor is present (e.g., {@link #proc} set to a value other than {@code "none"}),
+     * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
+     * It means that a full rebuild will be done if any kind of change is detected.</p>
+     *
      * @see #staleMillis
      * @see #fileExtensions
      * @see #showCompilationChanges
      * @see #createMissingPackageInfoClass
      * @since 4.0.0
      */
-    @Parameter(defaultValue = "options,dependencies,sources")
+    @Parameter // The default values are implemented in `incrementalCompilationConfiguration()`.
     protected String incrementalCompilation;
 
     /**
@@ -610,18 +625,30 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Returns the configuration of the incremental compilation.
-     * This method may be removed in a future version if the deprecated parameter is removed.
+     * If the argument is null or blank, then this method applies
+     * the default values documented in {@link #incrementalCompilation} javadoc.
      *
      * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
     final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
-        if (useIncrementalCompilation != null) {
-            return useIncrementalCompilation
-                    ? EnumSet.of(
-                            IncrementalBuild.Aspect.DEPENDENCIES,
-                            IncrementalBuild.Aspect.SOURCES,
-                            IncrementalBuild.Aspect.REBUILD_ON_ADD)
-                    : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
+        if (incrementalCompilation == null || incrementalCompilation.isBlank()) {
+            if (useIncrementalCompilation != null) {
+                return useIncrementalCompilation
+                        ? EnumSet.of(
+                                IncrementalBuild.Aspect.DEPENDENCIES,
+                                IncrementalBuild.Aspect.SOURCES,
+                                IncrementalBuild.Aspect.REBUILD_ON_ADD)
+                        : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
+            }
+            var aspects = EnumSet.of(
+                    IncrementalBuild.Aspect.OPTIONS,
+                    IncrementalBuild.Aspect.DEPENDENCIES,
+                    IncrementalBuild.Aspect.SOURCES);
+            if (hasAnnotationProcessor()) {
+                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
+                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+            }
+            return aspects;
         } else {
             return IncrementalBuild.Aspect.parse(incrementalCompilation);
         }
@@ -1500,6 +1527,44 @@ public abstract class AbstractCompilerMojo implements Mojo {
                         "Resolution of annotationProcessorPath dependencies failed: " + e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * {@return whether an annotation processor seems to be present}.
+     * This method is invoked if the user did not specified explicit incremental compilation options.
+     *
+     * @see #incrementalCompilation
+     */
+    private boolean hasAnnotationProcessor() {
+        if ("none".equalsIgnoreCase(proc)) {
+            return false;
+        }
+        if (proc == null || proc.isBlank()) {
+            /*
+             * If the `proc` parameter was not specified, its default value depends on the Java version.
+             * It was "full" prior Java 21 and become "none if no other processor option" since Java 21.
+             * Since even the full" case may do nothing, always check if a processor is declared.
+             */
+            if (annotationProcessors == null || annotationProcessors.length == 0) {
+                if (annotationProcessorPaths == null || annotationProcessorPaths.isEmpty()) {
+                    DependencyResolver resolver = session.getService(DependencyResolver.class);
+                    if (resolver == null) { // Null value happen during tests, depending on the mock used.
+                        return false;
+                    }
+                    var allowedTypes = EnumSet.of(JavaPathType.PROCESSOR_CLASSES, JavaPathType.PROCESSOR_MODULES);
+                    DependencyResolverResult dependencies = resolver.resolve(DependencyResolverRequest.builder()
+                            .session(session)
+                            .project(project)
+                            .requestType(DependencyResolverRequest.RequestType.COLLECT)
+                            .pathScope(compileScope)
+                            .pathTypeFilter(allowedTypes)
+                            .build());
+
+                    return !dependencies.getDependencies().isEmpty();
+                }
+            }
+        }
+        return true;
     }
 
     /**

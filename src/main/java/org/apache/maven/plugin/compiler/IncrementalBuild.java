@@ -163,7 +163,7 @@ final class IncrementalBuild {
          * Parses a comma-separated list of aspects.
          *
          * @param values the plugin parameter to parse as a comma-separated list
-         * @return the aspect
+         * @return the aspects which, when modified, should cause a partial or full rebuild
          * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
          */
         static EnumSet<Aspect> parse(final String values) {
