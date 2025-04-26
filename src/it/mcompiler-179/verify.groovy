@@ -21,6 +21,14 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( '[WARNING] unchecked call' )
+/*
+ * The message expected by this test was "[WARNING] unchecked call" (the full message
+ * is actually "unchecked call to add(E) as a member of the raw type java.util.List").
+ * But we cannot test that message because it is locale-dependent.
+ * Check only a few keywords instead.
+ */
+assert content.contains( '[WARNING]' )
+assert content.contains( 'add(E)' )
+assert content.contains( 'List' ) // May be `List` or `java.util.List`.
 assert content.contains( 'COMPILATION ERROR:' )
 assert content.contains( 'CompilationFailureException' ) // In debug level logs.

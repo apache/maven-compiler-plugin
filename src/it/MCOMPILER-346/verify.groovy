@@ -21,5 +21,14 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( 'package org.jenkinsci.test.acceptance.controller does not exist' )
-assert content.contains( 'package org.jenkinsci.test.acceptance.log does not exist' )
+/*
+ * The messages expected by this test were:
+ *
+ *   - package org.jenkinsci.test.acceptance.controller does not exist
+ *   - package org.jenkinsci.test.acceptance.log does not exist
+ *
+ * But we cannot test the full messages as shown above because they may be localized.
+ * Test only the package name on the assumption that they will be present in all locales.
+ */
+assert content.contains( 'org.jenkinsci.test.acceptance.controller' )
+assert content.contains( 'org.jenkinsci.test.acceptance.log' )

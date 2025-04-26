@@ -164,7 +164,13 @@ class ForkedTool implements Tool, OptionChecker {
             builder.redirectOutput(dest);
             return start(builder, out) == 0;
         } finally {
-            out.append(Files.readString(output.toPath()));
+            /*
+             * Need to use the native encoding because it is the encoding used by the native process.
+             * This is not necessarily the default encoding of the JVM, which is "file.encoding".
+             * This property is available since Java 17.
+             */
+            String cs = System.getProperty("native.encoding");
+            out.append(Files.readString(output.toPath(), Charset.forName(cs)));
             output.delete();
         }
     }

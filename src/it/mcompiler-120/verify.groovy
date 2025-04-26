@@ -20,7 +20,12 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 content = logFile.text
 
+/*
+ * The message expected by this test was "unchecked call to add(E) as a member of the raw type List".
+ * But we cannot test that message because it is locale-dependent. Check only a few keywords instead.
+ */
+assert content.contains( 'add(E)' )
+assert content.contains( 'List' ) // May be `List` or `java.util.List`.
 assert content.contains( 'COMPILATION ERROR:' )
 assert content.contains( 'CompilationFailureException' ) // In debug level logs.
 assert !content.contains( 'invalid flag' )
-assert content.contains( 'unchecked call to add(E) as a member of the raw type ' ) // List or java.util.List
