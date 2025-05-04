@@ -85,7 +85,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
      *
      * @see #getOptions()
      */
-    private static final ThreadLocal<Iterable<String>> arguments = new ThreadLocal<>();
+    private static final ThreadLocal<Iterable<String>> ARGUMENTS = new ThreadLocal<>();
 
     /**
      * Invoked by reflection by {@link java.util.ServiceLoader}.
@@ -309,7 +309,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
             Iterable<String> classes,
             Iterable<? extends JavaFileObject> compilationUnits) {
 
-        arguments.set(options);
+        ARGUMENTS.set(options);
         return new CompilationTask() {
             @Override
             public void addModules(Iterable<String> moduleNames) {}
@@ -354,7 +354,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
      */
     public static List<String> getOptions() {
         var options = new ArrayList<String>();
-        Iterable<String> args = arguments.get();
+        Iterable<String> args = ARGUMENTS.get();
         if (args != null) {
             args.forEach(options::add);
         }
