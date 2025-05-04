@@ -21,9 +21,9 @@ Contributing to [Apache Maven Compiler Plugin](https://maven.apache.org/plugins/
 [![Maven Central](https://img.shields.io/maven-central/v/org.apache.maven.plugins/maven-compiler-plugin.svg?label=Maven%20Central&versionPrefix=3.)](https://search.maven.org/artifact/org.apache.maven.plugins/maven-compiler-plugin)
 [![Maven Central](https://img.shields.io/maven-central/v/org.apache.maven.plugins/maven-compiler-plugin.svg?label=Maven%20Central)](https://search.maven.org/artifact/org.apache.maven.plugins/maven-compiler-plugin)
 [![Reproducible Builds](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/jvm-repo-rebuild/reproducible-central/master/content/org/apache/maven/plugins/maven-compiler-plugin/badge.json)](https://github.com/jvm-repo-rebuild/reproducible-central/blob/master/content/org/apache/maven/plugins/maven-compiler-plugin/README.md)
-<!-- 
+<!--
 [![Jenkins Status](https://img.shields.io/jenkins/s/https/ci-maven.apache.org/job/Maven/job/maven-box/job/maven-compiler-plugin/job/master.svg?)][build]
-[![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-maven.apache.org/job/Maven/job/maven-box/job/maven-compiler-plugin/job/master.svg?)][test-results] 
+[![Jenkins tests](https://img.shields.io/jenkins/t/https/ci-maven.apache.org/job/Maven/job/maven-box/job/maven-compiler-plugin/job/master.svg?)][test-results]
 -->
 
 
@@ -37,20 +37,26 @@ Getting Started
 ---------------
 
 + Make sure you have a [GitHub account](https://github.com/signup/free).
-+ If you're planning to implement a new feature, it makes sense to discuss your changes 
-  on the [dev list][ml-list] first. 
-  This way you can make sure you're not wasting your time on something that isn't 
++ If you're planning to implement a new feature, it makes sense to discuss your changes
+  on the [dev list][ml-list] first.
+  This way you can make sure you're not wasting your time on something that isn't
   considered to be in Apache Maven's scope.
 + Submit a ticket for your issue, assuming one does not already exist.
   + Clearly describe the issue, including steps to reproduce when it is a bug.
   + Make sure you fill in the earliest version that you know has the issue.
 + Fork the repository on GitHub.
 
+Build requirements
+--------------
+
+Building requires Maven 4. Executing the tests on Windows requires the developer mode.
+This is enabled with _Settings_ > _Update & Security_ > _For Developers_.
+
 Making and Submitting Changes
 --------------
 
 We accept Pull Requests via GitHub. The [developer mailing list][ml-list] is the
-main channel of communication for contributors.  
+main channel of communication for contributors.
 There are some guidelines which will make applying PRs easier for us:
 + Create a topic branch from where you want to base your work (this is usually the master branch).
   Push your changes to a topic branch in your fork of the repository.
@@ -58,7 +64,7 @@ There are some guidelines which will make applying PRs easier for us:
 + Respect the original code style: by using the same [codestyle][code-style],
   patches should only highlight the actual difference, not being disturbed by any formatting issues:
   + Only use spaces for indentation.
-  + Create minimal diffs - disable on save actions like reformat source code or organize imports. 
+  + Create minimal diffs - disable on save actions like reformat source code or organize imports.
     If you feel the source code should be reformatted, create a separate PR for this change.
   + Check for unnecessary whitespace with `git diff --check` before committing.
 + Make sure you have added the necessary tests (JUnit/IT) for your changes.

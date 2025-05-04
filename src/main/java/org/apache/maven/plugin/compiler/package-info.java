@@ -21,7 +21,7 @@
  * Maven Compiler Plugin <abbr>MOJO</abbr>.
  * The {@link org.apache.maven.plugin.compiler.CompilerMojo}
  * and {@link org.apache.maven.plugin.compiler.TestCompilerMojo}
- * classes contains the configuration for compiling the main source code and the tests respectively.
+ * classes contain the configuration for compiling the main source code and the tests respectively.
  * These classes are mutable as they can be extended and have their properties modified in subclasses.
  * However, the actual compilation is performed by {@link org.apache.maven.plugin.compiler.ToolExecutor},
  * which takes a snapshot of the <abbr>MOJO</abbr> at construction time. After the test executor has been

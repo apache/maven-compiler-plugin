@@ -291,6 +291,10 @@ public class CompilerMojoTestCase {
     /**
      * Tests the compilation of a project having a {@code module-info.java} file, together with its tests.
      * The compilation of tests requires a {@code --patch-module} option, otherwise compilation will fail.
+     *
+     * <h4>Requirements on Windows</h4>
+     * Executing the tests on Windows requires the developer mode.
+     * This is enabled with {@literal Settings > Update & Security > For Developers}.
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-modular-project")
