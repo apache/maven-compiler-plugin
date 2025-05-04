@@ -19,6 +19,8 @@
 package org.apache.maven.plugin.compiler;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,7 +50,6 @@ import org.apache.maven.api.plugin.testing.stubs.ProjectStub;
 import org.apache.maven.api.plugin.testing.stubs.SessionMock;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
-import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
 import org.apache.maven.impl.InternalSession;
@@ -80,15 +81,32 @@ public class CompilerMojoTestCase {
     private Session session;
 
     /**
+     * Verifies that the {@value CompilerStub#OUTPUT_FILE} file exists, then deletes it.
+     * The deletion is necessary for preventing an {@link IndexOutOfBoundsException} in
+     * {@code maven-dependency-plugin} version 3.8.1, because the output file is empty.
+     *
+     * @param mojo the tested mojo
+     */
+    private static void assertCompilerStubOutputFileExists(AbstractCompilerMojo mojo) {
+        try {
+            Files.delete(assertOutputFileExists(mojo, CompilerStub.OUTPUT_FILE));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
      * Verifies that the given output file exists.
      *
      * @param mojo the tested mojo
      * @param first the first path element
      * @param more the other path elements, if any
+     * @return the file
      */
-    private static void assertOutputFileExists(AbstractCompilerMojo mojo, String first, String... more) {
+    private static Path assertOutputFileExists(AbstractCompilerMojo mojo, String first, String... more) {
         Path file = mojo.getOutputDirectory().resolve(Path.of(first, more));
         assertTrue(Files.isRegularFile(file), () -> "File not found: " + file);
+        return file;
     }
 
     /**
@@ -228,11 +246,11 @@ public class CompilerMojoTestCase {
 
         assertEquals(CompilerStub.COMPILER_ID, compileMojo.compilerId);
         compileMojo.execute();
-        assertOutputFileExists(compileMojo, CompilerStub.OUTPUT_FILE);
+        assertCompilerStubOutputFileExists(compileMojo);
 
         assertEquals(CompilerStub.COMPILER_ID, testCompileMojo.compilerId);
         testCompileMojo.execute();
-        assertOutputFileExists(testCompileMojo, CompilerStub.OUTPUT_FILE);
+        assertCompilerStubOutputFileExists(testCompileMojo);
     }
 
     /**
@@ -245,7 +263,7 @@ public class CompilerMojoTestCase {
         assertEquals(CompilerStub.COMPILER_ID, compileMojo.compilerId);
         compileMojo.execute();
 
-        assertOutputFileExists(compileMojo, CompilerStub.OUTPUT_FILE);
+        assertCompilerStubOutputFileExists(compileMojo);
         assertArrayEquals(
                 new String[] {"key1=value1", "-Xlint", "-my&special:param-with+chars/not>allowed_in_XML_element_names"},
                 compileMojo.compilerArgs.toArray(String[]::new));
@@ -429,7 +447,6 @@ public class CompilerMojoTestCase {
             throw new RuntimeException("Unable to setup junit jar path", e);
         }
 
-        ProjectManager projectManager = session.getService(ProjectManager.class);
         doAnswer(iom -> List.of()).when(session).resolveDependencies(any(), eq(PathScope.MAIN_COMPILE));
         doAnswer(iom -> artifacts).when(session).resolveDependencies(any(), eq(PathScope.TEST_COMPILE));
 
