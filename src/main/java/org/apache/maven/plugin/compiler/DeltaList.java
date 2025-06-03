@@ -33,9 +33,8 @@ final class DeltaList<E> {
     private final boolean hasChanged;
 
     DeltaList(Collection<E> oldList, Collection<E> newList) {
-        this.added = newList.stream().filter(i -> !oldList.contains(i)).sorted().collect(Collectors.toList());
-        this.removed =
-                oldList.stream().filter(i -> !newList.contains(i)).sorted().collect(Collectors.toList());
+        this.added = newList.stream().filter(i -> !oldList.contains(i)).collect(Collectors.toList());
+        this.removed = oldList.stream().filter(i -> !newList.contains(i)).collect(Collectors.toList());
         this.hasChanged = !added.isEmpty() || !removed.isEmpty();
     }
 

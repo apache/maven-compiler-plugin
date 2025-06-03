@@ -1851,10 +1851,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
 
-        Set<String> newInputFiles = inputFiles.stream()
-                .sorted()
-                .map(File::getAbsolutePath)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
+        Set<String> newInputFiles =
+                inputFiles.stream().map(File::getAbsolutePath).collect(Collectors.toCollection(HashSet::new));
 
         try {
             Files.write(mojoConfigFile, newInputFiles);
@@ -1866,10 +1864,13 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         DeltaList<String> inputTreeChanges = new DeltaList<>(oldInputFiles, newInputFiles);
         if (getLog().isDebugEnabled() || showCompilationChanges) {
-            for (String fileAdded : inputTreeChanges.getAdded()) {
+            // we only sort the output when pushed to the user
+            for (String fileAdded :
+                    inputTreeChanges.getAdded().stream().sorted().collect(Collectors.toList())) {
                 getLog().info("\tInput tree files (+): " + fileAdded);
             }
-            for (String fileRemoved : inputTreeChanges.getRemoved()) {
+            for (String fileRemoved :
+                    inputTreeChanges.getRemoved().stream().sorted().collect(Collectors.toList())) {
                 getLog().info("\tInput tree files (-): " + fileRemoved);
             }
         }
