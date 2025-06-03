@@ -18,10 +18,10 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Show the modifications between two lists.
@@ -33,10 +33,9 @@ final class DeltaList<E> {
     private final boolean hasChanged;
 
     DeltaList(Collection<E> oldList, Collection<E> newList) {
-        this.added = new ArrayList<>(newList);
-        this.removed = new ArrayList<>(oldList);
-        added.removeAll(oldList);
-        removed.removeAll(newList);
+        this.added = newList.stream().filter(i -> !oldList.contains(i)).sorted().collect(Collectors.toList());
+        this.removed =
+                oldList.stream().filter(i -> !newList.contains(i)).sorted().collect(Collectors.toList());
         this.hasChanged = !added.isEmpty() || !removed.isEmpty();
     }
 
