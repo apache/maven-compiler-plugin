@@ -1840,10 +1840,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
         Path mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
 
-        List<String> oldInputFiles = Collections.emptyList();
+        Set<String> oldInputFiles = Collections.emptySet();
         if (Files.isRegularFile(mojoConfigFile)) {
             try {
-                oldInputFiles = Files.readAllLines(mojoConfigFile);
+                oldInputFiles = new HashSet<>(Files.readAllLines(mojoConfigFile));
             } catch (IOException e) {
                 // we cannot read the mojo config file, so don't do anything beside logging
                 getLog().warn("Error while reading old mojo status: " + mojoConfigFile);
@@ -1851,8 +1851,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
 
-        List<String> newInputFiles =
-                inputFiles.stream().sorted().map(File::getAbsolutePath).collect(Collectors.toList());
+        Set<String> newInputFiles =
+                inputFiles.stream().map(File::getAbsolutePath).collect(Collectors.toCollection(HashSet::new));
 
         try {
             Files.write(mojoConfigFile, newInputFiles);
@@ -1864,10 +1864,13 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         DeltaList<String> inputTreeChanges = new DeltaList<>(oldInputFiles, newInputFiles);
         if (getLog().isDebugEnabled() || showCompilationChanges) {
-            for (String fileAdded : inputTreeChanges.getAdded()) {
+            // we only sort the output when pushed to the user
+            for (String fileAdded :
+                    inputTreeChanges.getAdded().stream().sorted().collect(Collectors.toList())) {
                 getLog().info("\tInput tree files (+): " + fileAdded);
             }
-            for (String fileRemoved : inputTreeChanges.getRemoved()) {
+            for (String fileRemoved :
+                    inputTreeChanges.getRemoved().stream().sorted().collect(Collectors.toList())) {
                 getLog().info("\tInput tree files (-): " + fileRemoved);
             }
         }
