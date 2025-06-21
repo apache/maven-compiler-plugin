@@ -16,10 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.example.pce.sample;
-
-public class Dummy {
-    public static void main(final String[] args) {
-        String dummy = new Integer(1);
-    }
-}
+assert new File( basedir, 'target/classes/myproject/HelloWorld.class' ).isFile()
