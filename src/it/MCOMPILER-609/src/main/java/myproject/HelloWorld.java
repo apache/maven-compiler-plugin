@@ -20,6 +20,6 @@ package myproject;
 
 public class HelloWorld {
     public static void main(final String[] args) {
-        System.out.println("Hi!");
+        System.out.println("Hello world");
     }
 }
