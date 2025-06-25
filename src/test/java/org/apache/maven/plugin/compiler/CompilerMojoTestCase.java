@@ -463,7 +463,7 @@ public class CompilerMojoTestCase {
         stub.setModel(Model.newBuilder()
                 .groupId(artifact.getGroupId())
                 .artifactId(artifact.getArtifactId())
-                .version(artifact.getVersion().asString())
+                .version(artifact.getVersion().toString())
                 .build(Build.newBuilder()
                         .directory(MojoExtension.getBasedir() + "/target")
                         .outputDirectory(MojoExtension.getBasedir() + "/target/classes")

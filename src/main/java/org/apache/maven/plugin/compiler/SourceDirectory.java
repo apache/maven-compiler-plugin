@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 import javax.lang.model.SourceVersion;
 import javax.tools.JavaFileObject;
 
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
@@ -238,7 +239,7 @@ final class SourceDirectory {
      * @throws UnsupportedVersionException if the version string cannot be parsed
      */
     static Optional<SourceVersion> targetVersion(final SourceRoot root) {
-        return root.targetVersion().map(Version::asString).map(SourceDirectory::parse);
+        return root.targetVersion().map(Version::toString).map(SourceDirectory::parse);
     }
 
     /**
@@ -285,10 +286,11 @@ final class SourceDirectory {
                     fileKind = JavaFileObject.Kind.SOURCE;
                     outputFileKind = JavaFileObject.Kind.CLASS;
                 }
+                FileSystem fs = directory.getFileSystem();
                 roots.add(new SourceDirectory(
                         directory,
-                        source.includes(),
-                        source.excludes(),
+                        source.includes().stream().map(fs::getPathMatcher).toList(),
+                        source.excludes().stream().map(fs::getPathMatcher).toList(),
                         fileKind,
                         source.module().orElse(null),
                         targetVersion(source).orElse(release),

@@ -122,7 +122,7 @@ public final class DependencyCoordinate {
                         && Objects.equals(dep.getClassifier(), classifier)
                         && Objects.equals(dep.getType().id(), type))
                 .findAny()
-                .map(d -> d.getVersionConstraint().asString());
+                .map(d -> d.getVersionConstraint().toString());
     }
 
     private static Collection<Exclusion> toExclusions(Set<DependencyExclusion> exclusions) {
