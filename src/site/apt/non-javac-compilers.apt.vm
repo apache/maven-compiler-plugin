@@ -35,29 +35,21 @@ Using Non-Javac Compilers
 
   The parameter <<<compilerId>>> determines which class will be used.
 
-  Currently, the Compiler Plugin is bundled with the <<<javac>>> compiler
-  with artifactId <<<plexus-compiler-javac>>> version <<${plexusCompilerVersion}>>,
-  which can be seen as one of the dependencies declared inside the Compiler Plugin's POM.
+  By default, the Maven Compiler Plugin uses the <<<javac>>> compiler
+  bundled in the <<<javax.tools>>> package of the standard Java library.
+  But it is possible to use any other compiler, as long the
+  implementation declares itself as a <<<javax.tools.JavaCompiler>>> service.
+  To use such an implementation:
 
-  {{{https://codehaus-plexus.github.io/plexus-compiler/}Plexus Compiler}} component
-  has some other compiler Ids available under the groupId <<<org.codehaus.plexus>>>:
+  * Add the compiler implementation in the Maven compiler plugin dependencies.
 
-  * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>> - <<requires>>: <<<JDK 17+>>> and <<<Maven 3.9.6 +>>>
-
-  * <<<csharp>>> with artifactId <<<plexus-compiler-csharp>>> - <<requires>>: <<<JDK 8+>>>
-
-  * <<<eclipse>>> with artifactId <<<plexus-compiler-eclipse>>> - <<requires>>: <<<JDK 17+>>> and <<<Maven 3.9.6 +>>>
-
-  * <<<javac-with-errorprone>>>  with artifactId <<<plexus-compiler-javac-errorprone>>> - <<requires>>: <<<JDK 11+>>>
+  * Declare the compiler's identifier in the <<<compilerId>>> element of the Maven plugin configuration.
+    The identifier value shall be the value returned by the <<<JavaCompiler.name()>>> method of the implementation.
 
   []
 
-* Using The Other Plexus Compilers
-
-  To use any of the non-javac compilers, you need to make the artifact available
-  in the classpath when the Compiler Plugin runs. This is possible by adding the
-  dependency when declaring the plugin in your project's <<<pom.xml>>>. The example
-  below shows how to use the <<<csharp>>> compiler:
+  The example below shows how to use the Eclipse compiler <<<ecj>>>.
+  Note: this configuration requires Maven 4 with Maven Compiler Plugin 4.
 
 +-----
 <project>
@@ -70,13 +62,13 @@ Using Non-Javac Compilers
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${project.version}</version>
         <configuration>
-          <compilerId>csharp</compilerId>
+          <compilerId>ecj</compilerId>
         </configuration>
         <dependencies>
           <dependency>
-            <groupId>org.codehaus.plexus</groupId>
-            <artifactId>plexus-compiler-csharp</artifactId>
-            <version>${plexusCompilerVersion}</version>
+            <groupId>org.eclipse.jdt</groupId>
+            <artifactId>ecj</artifactId>
+            <version>${eclipseCompilerVersion}</version>
           </dependency>
         </dependencies>
       </plugin>

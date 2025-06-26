@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.example.pce.sample;
+package myproject;
 
-public class Dummy {
+public class HelloWorld {
     public static void main(final String[] args) {
-        String dummy = new Integer(1);
+        System.out.println("Hello world");
     }
 }
