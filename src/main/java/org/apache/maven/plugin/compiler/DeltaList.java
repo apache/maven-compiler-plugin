@@ -18,25 +18,31 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Show the modifications between two lists.
  */
-final class DeltaList<E> {
+final class DeltaList<E extends Comparable<E>> {
 
-    private final List<E> added;
-    private final List<E> removed;
+    private final Set<E> added = new TreeSet<>();
+    private final Set<E> removed = new TreeSet<>();
     private final boolean hasChanged;
 
     DeltaList(Collection<E> oldList, Collection<E> newList) {
-        this.added = new ArrayList<>(newList);
-        this.removed = new ArrayList<>(oldList);
-        added.removeAll(oldList);
-        removed.removeAll(newList);
+        for (E newListItem : newList) {
+            if (!oldList.contains(newListItem)) {
+                added.add(newListItem);
+            }
+        }
+        for (E oldListItem : oldList) {
+            if (!newList.contains(oldListItem)) {
+                removed.add(oldListItem);
+            }
+        }
         this.hasChanged = !added.isEmpty() || !removed.isEmpty();
     }
 
