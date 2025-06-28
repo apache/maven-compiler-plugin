@@ -286,7 +286,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </ul>
      *
      * The default value depends on the JDK used for the build.
-     * Prior to Java 22, the default was {@code full}, rso annotation processing and compilation were executed without explicit configuration.
+     * Prior to Java 22, the default was {@code full}, so annotation processing and compilation were executed without explicit configuration.
      *
      * For security reasons, starting with Java 23 no annotation processing is done if neither
      * any {@code -processor}, {@code -processor path} or {@code -processor module} are set, or either {@code only} or {@code full} is set.
