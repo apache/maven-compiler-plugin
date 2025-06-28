@@ -18,15 +18,6 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import javax.lang.model.SourceVersion;
-import javax.tools.DiagnosticListener;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.OptionChecker;
-import javax.tools.Tool;
-import javax.tools.ToolProvider;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -51,7 +42,14 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Stream;
-
+import javax.lang.model.SourceVersion;
+import javax.tools.DiagnosticListener;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileManager;
+import javax.tools.JavaFileObject;
+import javax.tools.OptionChecker;
+import javax.tools.Tool;
+import javax.tools.ToolProvider;
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.Language;
 import org.apache.maven.api.PathScope;
@@ -78,7 +76,6 @@ import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
-
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
 
@@ -278,20 +275,26 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String compilerArgument;
 
     /**
-     * Whether annotation processing is performed or not.
-     * If not set, both compilation and annotation processing are performed at the same time.
+     * Configures if annotation processing and/or compilation are performed by the compiler.
      * If set, the value will be appended to the {@code -proc:} compiler option.
-     * Standard values are:
+     *
+     * Possible values are:
      * <ul>
-     *   <li>{@code none} – no annotation processing is performed.</li>
+     *   <li>{@code none} – no annotation processing is performed, only compilation is done.</li>
      *   <li>{@code only} – only annotation processing is done, no compilation.</li>
-     *   <li>{@code full} – annotation processing and compilation are done.</li>
+     *   <li>{@code full} – annotation processing followed by compilation is done.</li>
      * </ul>
      *
-     * Prior Java 21, {@code full} was the default.
-     * Starting with Java 21, the default is {@code none} unless another processor option is used.
+     * The default value depends on the JDK used for the build.
+     * Prior to Java 22, the default was {@code full}, so annotation processing and compilation were executed without explicit configuration.
+     *
+     * For security reasons, starting with Java 23 no annotation processing is done if neither
+     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set, or either {@code only} or {@code full} is set.
+     * So literally the default is {@code none}.
+     * It is recommended to always list the annotation processors you want to execute instead of using the {@code proc} configuration, to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
      *
      * @see #annotationProcessors
+     * @see <a href="https://inside.java/2024/06/18/quality-heads-up/">Inside Java 2024-06-18 Quality Heads up</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      * @since 2.2
@@ -313,8 +316,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Classpath elements to supply as annotation processor path. If specified, the compiler will detect annotation
-     * processors only in those classpath elements. If omitted, the default classpath is used to detect annotation
+     * processors only in those classpath elements. If omitted (and {@code proc} is set to {@code only} or {@code full}), the default classpath is used to detect annotation
      * processors. The detection itself depends on the configuration of {@link #annotationProcessors}.
+     * Since JDK 23 by default no annotation processing is performed as long as no processors is listed for security reasons.
+     * Therefore, you should always list the desired processors using this configuration element or {@code annotationProcessorPaths}.
+     *
      * <p>
      * Each classpath element is specified using their Maven coordinates (groupId, artifactId, version, classifier,
      * type). Transitive dependencies are added automatically. Exclusions are supported as well. Example:
