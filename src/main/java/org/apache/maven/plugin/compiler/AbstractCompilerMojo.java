@@ -18,6 +18,15 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.lang.model.SourceVersion;
+import javax.tools.DiagnosticListener;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileManager;
+import javax.tools.JavaFileObject;
+import javax.tools.OptionChecker;
+import javax.tools.Tool;
+import javax.tools.ToolProvider;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -42,14 +51,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.stream.Stream;
-import javax.lang.model.SourceVersion;
-import javax.tools.DiagnosticListener;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.OptionChecker;
-import javax.tools.Tool;
-import javax.tools.ToolProvider;
+
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.Language;
 import org.apache.maven.api.PathScope;
@@ -76,6 +78,7 @@ import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
+
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
 
