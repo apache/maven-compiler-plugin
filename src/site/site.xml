@@ -40,7 +40,7 @@ under the License.
       <item name="Non-javac compilerIds" href="non-javac-compilers.html"/>
       <item name="Older projects with module-info" href="examples/module-info.html"/>
       <item name="MultiRelease" href="multirelease.html"/>
-      <item name="Perform annotation processing" href="examples/annotationprocessor.html"/>
+      <item name="Perform annotation processing" href="examples/annotation-processor.html"/>
     </menu>
   </body>
 </project>
