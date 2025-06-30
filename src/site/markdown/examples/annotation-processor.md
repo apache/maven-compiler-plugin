@@ -26,11 +26,41 @@ For example, the [Hibernate Processor](https://hibernate.org/orm/processor/) pro
 Up to JDK 23, the compiler automatically scanned the classpath for annotation processors and executed all found by default.
 For security reasons, this got disabled by default since JDK 23 and annotation processing needs to be activated explicitly.
 The recommended way for this is to list all desired processors using either the `<annotationProcessors>` plugin configuration
-or by declaring the processors as dependencies of type `processor`. `classpath-processor` or `modular-processor`.
+or, when using Maven 4 and Maven Compiler Plugin version 4.x, by declaring the processors as dependencies of type `processor`. `classpath-processor` or `modular-processor`.
 Only those processors will get executed by the compiler.
 
 The following example shows how to activate the Hibernate Processor.
-Note: this configuration requires Maven 4 with Maven Compiler Plugin 4.
+
+### Maven 3
+When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the following configuration.
+
+```xml
+<build>
+    <plugins>
+        [...]
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>...</version>
+            <configuration>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>org.hibernate.orm</groupId>
+                        <artifactId>hibernate-processor</artifactId>
+                        <version>${version.hibernate}</version>
+                    </path>
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
+        [...]
+    </plugins>
+</build>
+```
+
+### Maven 4
+Using Maven 4 and Maven Compiler Plugin 4.x, you can still use the same config as for Maven 3 and plugin version 3.x.
+However, you can also make use of the new `processor` dependency type to shorten the configuration.
+The following example shows this.
 
 ```xml
 <project>
@@ -39,7 +69,7 @@ Note: this configuration requires Maven 4 with Maven Compiler Plugin 4.
     <dependency>
       <groupId>org.hibernate.orm</groupId>
       <artifactId>hibernate-processor</artifactId>
-      <version>{version.hibernate}</version>
+      <version>${version.hibernate}</version>
       <type>processor</type>
     </dependency>
     [...]
@@ -52,16 +82,18 @@ Each processor can be placed explicitly on one of those two kinds of path by spe
 `classpath-processor` or `modular-processor` dependency type respectively.
 If the specified type is only `processor`, then the Maven compiler plugin will try to guess on which path to place the processor.
 Note that this guess is not guaranteed to be correct.
-Developers are encouraged to declare a more explicit type when they know how the processor is intended to be used.
+Developers are encouraged to declare a more explicit type (for example `<type>classpath-processor</type>`) when they know how the processor is intended to be used.
 
 
 ## Not recommended: Using the `proc` configuration
+
+This section applies to Maven 3 and Maven 4.
 
 If you don't want to provide a list of processors, you have to set the value of the `<proc>` configuration to either `only` or `full`.
 The first will only scan the classpath for annotation processors and will execute them, while the later will also compile the code afterward.
 Keep in mind that if no list of desired annotation processors is provided, using the `<proc>` configuration will execute found processors on the classpath.
 **This might result in the execution of hidden and possible malicious processors.**
-Therefor, using only the `proc` configuration is not recommended.
+Therefore, using only the `proc` configuration is not recommended.
 
 You set the value of the `<proc>` configuration like every other [configuration](/usage.html) of the Maven Compiler Plugin:
 
@@ -73,7 +105,7 @@ You set the value of the `<proc>` configuration like every other [configuration]
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${project.version}</version>
+        <version>${version.maven-compiler-plugin}</version>
         <configuration>
           <proc>full</proc>
         </configuration>
@@ -94,5 +126,5 @@ You can also just overwrite the default value of the property:
     <maven.compiler.proc>full</maven.compiler.proc>
   </properties>
   [...]
-<project>
+</project>
 ```
