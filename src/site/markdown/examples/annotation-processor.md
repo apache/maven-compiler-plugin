@@ -35,31 +35,33 @@ The following example shows how to activate the Hibernate Processor.
 When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the following configuration.
 
 ```xml
-<build>
+<project>
+  <build>
     <plugins>
-        [...]
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>...</version>
-            <configuration>
-                <annotationProcessorPaths>
-                    <path>
-                        <groupId>org.hibernate.orm</groupId>
-                        <artifactId>hibernate-processor</artifactId>
-                        <version>${version.hibernate}</version>
-                    </path>
-                </annotationProcessorPaths>
-            </configuration>
-        </plugin>
-        [...]
+      [...]
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>...</version>
+        <configuration>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.hibernate.orm</groupId>
+              <artifactId>hibernate-processor</artifactId>
+              <version>${version.hibernate}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+      [...]
     </plugins>
-</build>
+  </build>
+</project>
 ```
 
 ### Maven 4
-Using Maven 4 and Maven Compiler Plugin 4.x, you can still use the same config as for Maven 3 and plugin version 3.x.
-However, you can also make use of the new `processor` dependency type to shorten the configuration.
+With Maven 4 and Maven Compiler Plugin 4.x the way described above got deprecated and will be removed in a future version of the plugin.
+Configuration now makes use of the new `processor` dependency type to shorten the configuration.
 The following example shows this.
 
 ```xml
