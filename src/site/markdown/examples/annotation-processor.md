@@ -23,34 +23,37 @@ under the License.
 For example, the [Hibernate Processor](https://hibernate.org/orm/processor/) provides an annotation processor to generate the JPA metamodel.
 
 ## Recommended way to activate annotation processing
-Up to JDK 23 the compiler automatically scanned the classpath for annotation processors and executed all found by default. 
-For security reasons this got disabled by default and annotation processing needs to be activated explicitly.
-The recommended way for this is to list all desired processors using either the `<annotationProcessors>` or the `<annotationProcessorPaths>` configuration.
+Up to JDK 23, the compiler automatically scanned the classpath for annotation processors and executed all found by default.
+For security reasons, this got disabled by default since JDK 23 and annotation processing needs to be activated explicitly.
+The recommended way for this is to list all desired processors using either the `<annotationProcessors>` plugin configuration
+or by declaring the processors as dependencies of type `processor`. `classpath-processor` or `modular-processor`.
 Only those processors will get executed by the compiler.
 
-The following example shows, how to activate the Hibernate Processor.
+The following example shows how to activate the Hibernate Processor.
+Note: this configuration requires Maven 4 with Maven Compiler Plugin 4.
+
 ```xml
-<build>
-    <plugins>
-        [...]
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>...</version>
-            <configuration>
-                <annotationProcessorPaths>
-                    <path>
-                        <groupId>org.hibernate.orm</groupId>
-                        <artifactId>hibernate-processor</artifactId>
-                        <version>{version.hibernate}</version>
-                    </path>
-                </annotationProcessorPaths>
-            </configuration>
-        </plugin>
-        [...]
-    </plugins>
-</build>
+<project>
+  <dependencies>
+    [...]
+    <dependency>
+      <groupId>org.hibernate.orm</groupId>
+      <artifactId>hibernate-processor</artifactId>
+      <version>{version.hibernate}</version>
+      <type>processor</type>
+    </dependency>
+    [...]
+  </dependencies>
+</project>
 ```
+
+Like ordinary dependencies, processors can be placed on the processor class-path or processor module-path.
+Each processor can be placed explicitly on one of those two kinds of path by specifying the
+`classpath-processor` or `modular-processor` dependency type respectively.
+If the specified type is only `processor`, then the Maven compiler plugin will try to guess on which path to place the processor.
+Note that this guess is not guaranteed to be correct.
+Developers are encouraged to declare a more explicit type when they know how the processor is intended to be used.
+
 
 ## Not recommended: Using the `proc` configuration
 
@@ -63,28 +66,33 @@ Therefor, using only the `proc` configuration is not recommended.
 You set the value of the `<proc>` configuration like every other [configuration](/usage.html) of the Maven Compiler Plugin:
 
 ```xml
-<build>
+<project>
+  [...]
+  <build>
     <plugins>
-        [...]
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-compiler-plugin</artifactId>
-            <version>...</version>
-            <configuration>
-                <proc>full</proc>
-            </configuration>
-        </plugin>
-        [...]
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <proc>full</proc>
+        </configuration>
+      </plugin>
+      [...]
     </plugins>
-</build>
+    [...]
+  </build>
+</project>
 ```
 
 You can also just overwrite the default value of the property:
 
 ```xml
-<build>
-    <properties>
-        <maven.compiler.proc>full</maven.compiler.proc>
-    </properties>
-</build>
+<project>
+  [...]
+  <properties>
+    <maven.compiler.proc>full</maven.compiler.proc>
+  </properties>
+  [...]
+<project>
 ```
