@@ -61,7 +61,8 @@ When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the f
 
 ### Maven 4
 With Maven 4 and Maven Compiler Plugin 4.x the way described above got deprecated and will be removed in a future version of the plugin.
-Configuration now makes use of the new `processor` dependency type to shorten the configuration.
+Configuration now makes use of the new `processor` dependency type to shorten the configuration,
+give control over the placement on class-path or module-path, and make the information available to other plugins.
 The following example shows this.
 
 ```xml
@@ -107,7 +108,7 @@ You set the value of the `<proc>` configuration like every other [configuration]
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${version.maven-compiler-plugin}</version>
+        <version>...</version>
         <configuration>
           <proc>full</proc>
         </configuration>
