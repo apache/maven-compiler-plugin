@@ -930,14 +930,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * {@return the inclusion filters for the compiler, or an empty list for all Java source files}.
      * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
-     * If no syntax is specified, the default syntax is "glob".
+     * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
+     * behavior of Maven 3.
      */
     protected abstract Set<String> getIncludes();
 
     /**
      * {@return the exclusion filters for the compiler, or an empty list if none}.
      * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
-     * If no syntax is specified, the default syntax is "glob".
+     * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
+     * behavior of Maven 3.
      */
     protected abstract Set<String> getExcludes();
 
