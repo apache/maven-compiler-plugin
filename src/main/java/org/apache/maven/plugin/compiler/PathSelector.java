@@ -140,6 +140,13 @@ final class PathSelector implements PathMatcher {
     private final Path baseDirectory;
 
     /**
+     * Whether paths must be relativized before to be given to a matcher. If {@code true}, then every paths
+     * will be made relative to {@link #baseDirectory} for allowing patterns like {@code "foo/bar/*.java"}
+     * to work. As a slight optimization, we can skip this step if all patterns start with {@code "**"}.
+     */
+    private final boolean needRelativize;
+
+    /**
      * Creates a new selector from the given includes and excludes.
      *
      * @param directory the base directory of the files to filter
@@ -155,6 +162,7 @@ final class PathSelector implements PathMatcher {
         this.excludes = matchers(fs, excludePatterns);
         dirIncludes = matchers(fs, directoryPatterns(includePatterns, false));
         dirExcludes = matchers(fs, directoryPatterns(excludePatterns, true));
+        needRelativize = needRelativize(includePatterns) || needRelativize(excludePatterns);
     }
 
     /**
@@ -438,6 +446,21 @@ final class PathSelector implements PathMatcher {
     }
 
     /**
+     * Returns {@code true} if at least one pattern requires path to be relativized before to be matched.
+     *
+     * @param patterns include or exclude patterns
+     * @return whether at least one pattern require relativization
+     */
+    private static boolean needRelativize(String[] patterns) {
+        for (String pattern : patterns) {
+            if (!pattern.startsWith(DEFAULT_SYNTAX + "**/")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Creates the path matchers for the given patterns.
      * The syntax (usually {@value #DEFAULT_SYNTAX}) must be specified for each pattern.
      */
@@ -454,7 +477,7 @@ final class PathSelector implements PathMatcher {
      */
     @SuppressWarnings("checkstyle:MissingSwitchDefault")
     public PathMatcher simplify() {
-        if (excludes.length == 0) {
+        if (!needRelativize && excludes.length == 0) {
             switch (includes.length) {
                 case 0:
                     return INCLUDES_ALL;
@@ -474,7 +497,9 @@ final class PathSelector implements PathMatcher {
      */
     @Override
     public boolean matches(Path path) {
-        path = baseDirectory.relativize(path);
+        if (needRelativize) {
+            path = baseDirectory.relativize(path);
+        }
         return (includes.length == 0 || isMatched(path, includes))
                 && (excludes.length == 0 || !isMatched(path, excludes));
     }

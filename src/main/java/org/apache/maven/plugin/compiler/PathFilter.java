@@ -170,7 +170,7 @@ final class PathFilter extends SimpleFileVisitor<Path> {
             sourceFiles = result;
             for (SourceDirectory directory : rootDirectories) {
                 if (!incrementalExcludes.isEmpty()) {
-                    incrementalExcludeMatchers = new PathSelector(directory.root, incrementalExcludes, null);
+                    incrementalExcludeMatchers = new PathSelector(directory.root, incrementalExcludes, null).simplify();
                 }
                 String[] includesOrDefault = includes;
                 if (useDefaultInclude) {
