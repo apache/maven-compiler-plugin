@@ -21,10 +21,8 @@ package org.apache.maven.plugin.compiler;
 import javax.lang.model.SourceVersion;
 import javax.tools.JavaFileObject;
 
-import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -80,7 +78,7 @@ final class SourceDirectory {
      *
      * @see PathFilter#includes
      */
-    final List<PathMatcher> includes;
+    final List<String> includes;
 
     /**
      * Filter for excluding files below the {@linkplain #root} directory, or an empty list for no exclusion.
@@ -88,7 +86,7 @@ final class SourceDirectory {
      *
      * @see PathFilter#excludes
      */
-    final List<PathMatcher> excludes;
+    final List<String> excludes;
 
     /**
      * Kind of source files in this directory. This is usually {@link JavaFileObject.Kind#SOURCE}.
@@ -161,6 +159,8 @@ final class SourceDirectory {
      * Creates a new source directory.
      *
      * @param root the root directory of all source files
+     * @param includes patterns for selecting files below the root directory, or an empty list for the default filter
+     * @param excludes patterns for excluding files below the root directory, or an empty list for no exclusion
      * @param fileKind kind of source files in this directory (usually {@code SOURCE})
      * @param moduleName name of the module for which source directories are provided, or {@code null} if none
      * @param release Java release for which source directories are provided, or {@code null} for the default release
@@ -170,8 +170,8 @@ final class SourceDirectory {
     @SuppressWarnings("checkstyle:ParameterNumber")
     private SourceDirectory(
             Path root,
-            List<PathMatcher> includes,
-            List<PathMatcher> excludes,
+            List<String> includes,
+            List<String> excludes,
             JavaFileObject.Kind fileKind,
             String moduleName,
             SourceVersion release,
@@ -286,11 +286,10 @@ final class SourceDirectory {
                     fileKind = JavaFileObject.Kind.SOURCE;
                     outputFileKind = JavaFileObject.Kind.CLASS;
                 }
-                FileSystem fs = directory.getFileSystem();
                 roots.add(new SourceDirectory(
                         directory,
-                        source.includes().stream().map(fs::getPathMatcher).toList(),
-                        source.excludes().stream().map(fs::getPathMatcher).toList(),
+                        source.includes(),
+                        source.excludes(),
                         fileKind,
                         source.module().orElse(null),
                         targetVersion(source).orElse(release),

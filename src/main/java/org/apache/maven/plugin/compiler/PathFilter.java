@@ -28,18 +28,18 @@ import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.DosFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.function.Predicate;
 
 /**
  * Applies inclusion and exclusion filters on paths, and builds a list of files in a directory tree.
  * The set of allowed syntax contains at least "glob" and "regex".
  * See {@link FileSystem#getPathMatcher(String)} Javadoc for a description of the "glob" syntax.
- * If no syntax is specified, then the default syntax is "glob".
+ * If no syntax is specified, then the default syntax is a derivative of the "glob" syntax which
+ * reproduces the behavior of Maven 3.
  *
  * <p>The list of files to process is built by applying the path matcher on each regular (non directory) files.
  * The walk in file trees has the following characteristics:</p>
@@ -54,18 +54,19 @@ import java.util.function.Predicate;
  *
  * @author Martin Desruisseaux
  */
-final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path> {
+final class PathFilter extends SimpleFileVisitor<Path> {
     /**
      * Whether to use the default include pattern.
      * The pattern depends on the type of source file.
+     *
+     * @see javax.tools.JavaFileObject.Kind#extension
      */
     private final boolean useDefaultInclude;
 
     /**
      * Inclusion filters for the files in the directories to walk as specified in the plugin configuration.
-     * The array should contain at least one element, unless {@link SourceDirectory#includes} is non-empty.
-     * If {@link #useDefaultInclude} is {@code true}, then this array length shall be exactly 1 and the
-     * single element is overwritten for each directory to walk.
+     * The array should contain at least one element. If {@link #useDefaultInclude} is {@code true}, then
+     * this array length shall be exactly 1 and the single element is overwritten for each directory to walk.
      *
      * @see SourceDirectory#includes
      */
@@ -79,45 +80,22 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
     private final String[] excludes;
 
     /**
-     * All exclusion filters for incremental build calculation, or an empty array if none.
-     * Updated files, if excluded by this filter, will not cause the project to be rebuilt.
+     * Combination of include and exclude filters. This is an instance of {@link PathSelector},
+     * unless the includes/excludes can be simplified to a single standard matcher instance.
      */
-    private final String[] incrementalExcludes;
+    private PathMatcher matchers;
 
     /**
-     * The matchers for inclusion filters (never empty).
-     * The array length shall be equal or greater than the {@link #includes} array length.
-     * The array is initially null and created when first needed, then when the file system changes.
+     * All exclusion filters for incremental build calculation, or an empty list if none.
+     * Updated files, if excluded by a pattern, will not cause the project to be rebuilt.
      */
-    private PathMatcher[] includeMatchers;
-
-    /**
-     * The matchers for exclusion filters (potentially empty).
-     * The array length shall be equal or greater than the {@link #excludes} array length.
-     * The array is initially null and created when first needed, then when the file system changes.
-     */
-    private PathMatcher[] excludeMatchers;
+    private final Collection<String> incrementalExcludes;
 
     /**
      * The matchers for exclusion filters for incremental build calculation.
-     * The array length shall be equal to the {@link #incrementalExcludes} array length.
-     * The array is initially null and created when first needed, then when the file system changes.
+     * May be an instance of {@link PathSelector}, or {@code null} if none.
      */
-    private PathMatcher[] incrementalExcludeMatchers;
-
-    /**
-     * Whether paths must be relativized before to be given to a matcher. If {@code true} (the default),
-     * then every paths will be made relative to the source root directory for allowing patterns like
-     * {@code "foo/bar/*.java"} to work. As a slight optimization, we can skip this step if all patterns
-     * start with {@code "**"}.
-     */
-    private boolean needRelativize;
-
-    /**
-     * The file system of the path matchers, or {@code null} if not yet determined.
-     * This is used in case not all paths are on the same file system.
-     */
-    private FileSystem fs;
+    private PathMatcher incrementalExcludeMatchers;
 
     /**
      * The result of listing all files, or {@code null} if no walking is in progress.
@@ -146,114 +124,25 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
         }
         includes = specified.toArray(String[]::new);
         excludes = mojo.getExcludes().toArray(String[]::new);
-        incrementalExcludes = mojo.getIncrementalExcludes().toArray(String[]::new);
+        incrementalExcludes = mojo.getIncrementalExcludes();
     }
 
     /**
-     * Returns {@code true} if at least one pattern does not start with {@code "**"}.
-     * This is a slight optimization for avoiding the need to relativize each path
-     * before to give it to a matcher.
-     */
-    private static boolean needRelativize(String[] patterns) {
-        for (String pattern : patterns) {
-            if (!pattern.startsWith("**", pattern.indexOf(':') + 1)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Creates the matchers for the given patterns.
-     * If a pattern does not specify a syntax, then the "glob" syntax is used by default.
-     * If the {@code forDirectory} list contains at least one element and {@code patterns}
-     * is the default pattern, then the latter is ignored in favor of the former.
-     *
-     * <p>This method should be invoked only once, unless different paths are on different file systems.</p>
-     *
-     * @param forDirectory the matchers declared in the {@code <source>} element for the current {@link #sourceRoot}
-     * @param patterns the matterns declared in the compiler plugin configuration
-     * @param hasDefault whether the first element of {@code patterns} is the default pattern
-     * @param fs the file system
-     * @return all matchers from the source, followed by matchers from the given patterns
-     */
-    private static PathMatcher[] createMatchers(
-            List<PathMatcher> forDirectory, String[] patterns, boolean hasDefault, FileSystem fs) {
-        final int base = forDirectory.size();
-        final int skip = (hasDefault && base != 0) ? 1 : 0;
-        final var target = forDirectory.toArray(new PathMatcher[base + patterns.length - skip]);
-        for (int i = skip; i < patterns.length; i++) {
-            String pattern = patterns[i];
-            if (pattern.indexOf(':') < 0) {
-                pattern = "glob:" + pattern;
-            }
-            target[base + i] = fs.getPathMatcher(pattern);
-        }
-        return target;
-    }
-
-    /**
-     * Tests whether the given path should be included according the include/exclude patterns.
-     * This method does not perform any I/O operation. For example, it does not check if the file is hidden.
-     *
-     * @param  path  the source file to test
-     * @return whether the given source file should be included
-     */
-    @Override
-    public boolean test(Path path) {
-        @SuppressWarnings("LocalVariableHidesMemberVariable")
-        final SourceDirectory sourceRoot = this.sourceRoot; // Protect from changes.
-        FileSystem pfs = path.getFileSystem();
-        if (pfs != fs) {
-            if (useDefaultInclude) {
-                includes[0] = "glob:**" + sourceRoot.fileKind.extension;
-            }
-            includeMatchers = createMatchers(sourceRoot.includes, includes, useDefaultInclude, pfs);
-            excludeMatchers = createMatchers(sourceRoot.excludes, excludes, false, pfs);
-            incrementalExcludeMatchers = createMatchers(List.of(), incrementalExcludes, false, pfs);
-            needRelativize = !(sourceRoot.includes.isEmpty() && sourceRoot.excludes.isEmpty())
-                    || needRelativize(includes)
-                    || needRelativize(excludes);
-            fs = pfs;
-        }
-        if (needRelativize) {
-            path = sourceRoot.root.relativize(path);
-        }
-        for (PathMatcher include : includeMatchers) {
-            if (include.matches(path)) {
-                for (PathMatcher exclude : excludeMatchers) {
-                    if (exclude.matches(path)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * {@return whether to ignore the given file for incremental build calculation}.
-     * This method shall be invoked only after {@link #test(Path)} for the same file,
-     * because it depends on matcher updates performed by the {@code test} method.
-     */
-    private boolean ignoreModification(Path path) {
-        for (PathMatcher exclude : incrementalExcludeMatchers) {
-            if (exclude.matches(path)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Invoked for a file in a directory. If the given file is not hidden and pass the include/exclude filters,
+     * Invoked for a file in a directory. If the given file passes the include/exclude filters,
      * then it is added to the list of source files.
+     *
+     * @param  file  the source file to test
+     * @param  attrs the file basic attributes
+     * @return {@link FileVisitResult#CONTINUE}
      */
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        if (!isHidden(file, attrs) && test(file)) {
-            sourceFiles.add(new SourceFile(sourceRoot, file, attrs, ignoreModification(file)));
+        if (matchers.matches(file)) {
+            sourceFiles.add(new SourceFile(
+                    sourceRoot,
+                    file,
+                    attrs,
+                    (incrementalExcludeMatchers != null) && incrementalExcludeMatchers.matches(file)));
         }
         return FileVisitResult.CONTINUE;
     }
@@ -264,25 +153,13 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-        return isHidden(dir, attrs) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
-    }
-
-    /**
-     * {@return whether the given file is hidden}. This method is used instead of {@link Files#isHidden(Path)}
-     * because it opportunistically uses the available attributes instead of making another access to the file system.
-     */
-    private static boolean isHidden(Path file, BasicFileAttributes attrs) {
-        if (attrs instanceof DosFileAttributes dos) {
-            return dos.isHidden();
-        } else {
-            return file.getFileName().toString().startsWith(".");
-        }
+        return Files.isHidden(dir) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
     }
 
     /**
      * {@return all source files found in the given root directories}.
      * The include and exclude filters specified at construction time are applied.
-     * Hidden files and directories are ignored, and symbolic links are followed.
+     * Hidden directories are ignored, and symbolic links are followed.
      *
      * @param rootDirectories the root directories to scan
      * @throws IOException if a root directory cannot be walked
@@ -292,16 +169,50 @@ final class PathFilter extends SimpleFileVisitor<Path> implements Predicate<Path
         try {
             sourceFiles = result;
             for (SourceDirectory directory : rootDirectories) {
+                if (!incrementalExcludes.isEmpty()) {
+                    incrementalExcludeMatchers = new PathSelector(directory.root, incrementalExcludes, null).simplify();
+                }
+                String[] includesOrDefault = includes;
+                if (useDefaultInclude) {
+                    if (directory.includes.isEmpty()) {
+                        includesOrDefault[0] = "glob:**" + directory.fileKind.extension;
+                    } else {
+                        includesOrDefault = null;
+                    }
+                }
                 sourceRoot = directory;
+                matchers = new PathSelector(
+                                directory.root,
+                                concat(directory.includes, includesOrDefault),
+                                concat(directory.excludes, excludes))
+                        .simplify();
                 Files.walkFileTree(directory.root, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, this);
-                fs = null; // Will force a recalculation of matchers in next iteration.
             }
         } catch (UncheckedIOException e) {
             throw e.getCause();
         } finally {
             sourceRoot = null;
             sourceFiles = null;
+            matchers = null;
         }
         return result;
+    }
+
+    /**
+     * Returns the concatenation of patterns specified in the source with the patterns specified in the plugin.
+     * As a side-effect, this method set the {@link #needRelativize} flag to {@code true} if at least one pattern
+     * does not start with {@code "**"}. The latter is a slight optimization for avoiding the need to relativize
+     * each path before to give it to a matcher when this relativization is not necessary.
+     *
+     * @param source  the patterns specified in the {@code <source>} element
+     * @param plugin  the patterns specified in the {@code <plugin>} element, or null if none
+     */
+    private static List<String> concat(List<String> source, String[] plugin) {
+        if (plugin == null || plugin.length == 0) {
+            return source;
+        }
+        var patterns = new ArrayList<String>(source);
+        patterns.addAll(Arrays.asList(plugin));
+        return patterns;
     }
 }
