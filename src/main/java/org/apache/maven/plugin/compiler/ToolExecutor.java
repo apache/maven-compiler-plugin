@@ -129,6 +129,8 @@ public class ToolExecutor {
      * All dependencies grouped by the path types where to place them, together with the modules to patch.
      * The path type can be the class-path, module-path, annotation processor path, patched path, <i>etc.</i>
      * Some path types include a module name.
+     *
+     * @see #dependencies(PathType)
      */
     protected final Map<PathType, List<Path>> dependencies;
 
@@ -235,7 +237,11 @@ public class ToolExecutor {
             hasModuleDeclaration = true;
             sourceFiles = List.of();
         } else {
-            // The order of the two next lines matter for initialization of `SourceDirectory.moduleInfo`.
+            /*
+             * The order of the two next lines matter for initialization of `SourceDirectory.moduleInfo`.
+             * This initialization is done indirectly when the walk invokes the `SourceFile` constructor,
+             * which in turn invokes `SourceDirectory.visit(Path)`.
+             */
             sourceFiles = new PathFilter(mojo).walkSourceFiles(sourceDirectories);
             hasModuleDeclaration = mojo.hasModuleDeclaration(sourceDirectories);
             if (sourceFiles.isEmpty()) {
@@ -353,6 +359,17 @@ public class ToolExecutor {
         }
         incrementalBuildConfig.clear(); // Prevent this method to be executed twice.
         return true;
+    }
+
+    /**
+     * {@return a modifiable list of paths to all dependencies of the given type}.
+     * The returned list is intentionally live: elements can be added or removed
+     * from the list for changing the state of this executor.
+     *
+     * @param  pathType  type of path for which to get the dependencies
+     */
+    protected List<Path> dependencies(PathType pathType) {
+        return dependencies.computeIfAbsent(pathType, (key) -> new ArrayList<>());
     }
 
     /**

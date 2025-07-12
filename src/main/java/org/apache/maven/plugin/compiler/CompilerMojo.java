@@ -18,6 +18,7 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.lang.model.SourceVersion;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
@@ -27,15 +28,13 @@ import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
-import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProducedArtifact;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
@@ -123,7 +122,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      *
      * @since 3.7.1
      *
-     * @deprecated Replaced by specifying the release version together with the source directory.
+     * @deprecated Replaced by specifying the {@code <targetVersion>} value inside a {@code <source>} element.
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -250,71 +249,90 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
         ToolExecutor executor = super.createExecutor(listener);
-        addImplicitDependencies(executor.sourceDirectories, executor.dependencies);
+        if (SUPPORT_LEGACY && multiReleaseOutput) {
+            addImplicitDependencies(executor);
+        }
         return executor;
     }
 
     /**
-     * If compiling a multi-release JAR in the old deprecated way, add the previous versions to the path.
+     * Adds the compilation outputs of previous Java releases to the class-path ot module-path.
+     * This method should be invoked only when compiling a multi-release <abbr>JAR</abbr> in the
+     * old deprecated way.
      *
-     * @param sourceDirectories the source directories
-     * @param addTo where to add dependencies
-     * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
+     * @param  executor  the executor where to add implicit dependencies.
      * @throws IOException if this method needs to walk through directories and that operation failed
      *
      * @deprecated For compatibility with the previous way to build multi-releases JAR file.
      */
     @Deprecated(since = "4.0.0")
-    private void addImplicitDependencies(List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo)
-            throws IOException {
-        if (SUPPORT_LEGACY && multiReleaseOutput) {
-            var paths = new TreeMap<Integer, Path>();
-            Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
-            Files.walk(root, 1).forEach((path) -> {
-                int version;
-                if (path.equals(root)) {
-                    path = outputDirectory;
-                    version = 0;
-                } else {
-                    try {
-                        version = Integer.parseInt(path.getFileName().toString());
-                    } catch (NumberFormatException e) {
-                        throw new CompilationFailureException("Invalid version number for " + path, e);
-                    }
+    private void addImplicitDependencies(final ToolExecutor executor) throws IOException {
+        final var paths = new TreeMap<SourceVersion, Path>();
+        final Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
+        Files.walk(root, 1).forEach((path) -> {
+            SourceVersion version;
+            if (path.equals(root)) {
+                path = outputDirectory;
+                version = SourceVersion.RELEASE_0;
+            } else {
+                try {
+                    version = SourceVersion.valueOf("RELEASE_" + path.getFileName());
+                } catch (IllegalArgumentException e) {
+                    throw new CompilationFailureException("Invalid version number for " + path, e);
                 }
-                if (paths.put(version, path) != null) {
-                    throw new CompilationFailureException("Duplicated version number for " + path);
+            }
+            if (paths.put(version, path) != null) {
+                throw new CompilationFailureException("Duplicated version number for " + path);
+            }
+        });
+        /*
+         * Find the module name. If many module-info classes are found,
+         * the most basic one (with lowest Java release number) is taken.
+         * We need to remember the release where the module has been found.
+         */
+        String moduleName = null;
+        SourceVersion moduleAt = null;
+        for (Map.Entry<SourceVersion, Path> entry : paths.entrySet()) {
+            Path path = entry.getValue().resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
+            if (Files.exists(path)) {
+                try (InputStream in = Files.newInputStream(path)) {
+                    moduleName = ModuleDescriptor.read(in).name();
                 }
-            });
-            /*
-             * Find the module name. If many module-info classes are found,
-             * the most basic one (with lowest Java release number) is taken.
-             */
-            String moduleName = null;
-            for (Path path : paths.values()) {
-                path = path.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
-                if (Files.exists(path)) {
-                    try (InputStream in = Files.newInputStream(path)) {
-                        moduleName = ModuleDescriptor.read(in).name();
+                moduleAt = entry.getKey();
+                break;
+            }
+        }
+        /*
+         * If no module name was found in the classes compiled for previous Java releases,
+         * search in the source files for the Java release of the current compilation unit.
+         */
+        if (moduleName == null) {
+            for (SourceDirectory dir : executor.sourceDirectories) {
+                moduleName = parseModuleInfoName(dir.root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
+                if (moduleName != null) {
+                    moduleAt = dir.release;
+                    if (moduleAt == null) {
+                        moduleAt = SourceVersion.RELEASE_0;
                     }
                     break;
                 }
             }
-            /*
-             * If no module name was found in the classes compiled for previous Java releases,
-             * search in the source files for the Java release of the current compilation unit.
-             */
-            if (moduleName == null) {
-                for (SourceDirectory dir : sourceDirectories) {
-                    moduleName = parseModuleInfoName(dir.root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
-                    if (moduleName != null) {
-                        break;
-                    }
-                }
-            }
-            var pathType = (moduleName != null) ? JavaPathType.patchModule(moduleName) : JavaPathType.CLASSES;
-            addTo.computeIfAbsent(pathType, (key) -> new ArrayList<>())
+        }
+        /*
+         * Add previous versions as dependencies on the class-path or module-path, depending on whether
+         * the project is modular. If `module-info.java` is defined in some version higher than the base
+         * version, then we need to add the same paths on both the class-oath and module-path. Note that
+         * we stop this duplication after we reach a version where the `module-info` is available.
+         */
+        NavigableMap<SourceVersion, Path> classpath = paths;
+        if (moduleName != null) {
+            classpath = paths.headMap(moduleAt, false); // All versions before `module-info` was introduced.
+            executor.dependencies(JavaPathType.patchModule(moduleName))
                     .addAll(paths.descendingMap().values());
+        }
+        if (!classpath.isEmpty()) {
+            executor.dependencies(JavaPathType.CLASSES)
+                    .addAll(classpath.descendingMap().values());
         }
     }
 }

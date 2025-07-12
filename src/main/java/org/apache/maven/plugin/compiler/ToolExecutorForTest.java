@@ -28,7 +28,6 @@ import java.io.Writer;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -181,9 +180,7 @@ class ToolExecutorForTest extends ToolExecutor {
         });
         patchedModules.values().removeIf(Set::isEmpty);
         patchedModules.forEach((moduleToPatch, paths) -> {
-            dependencies
-                    .computeIfAbsent(JavaPathType.patchModule(moduleToPatch), (key) -> new ArrayList<>())
-                    .addAll(paths);
+            dependencies(JavaPathType.patchModule(moduleToPatch)).addAll(paths);
         });
         /*
          * If there is no module to patch, we probably have a non-modular project.
@@ -202,7 +199,7 @@ class ToolExecutorForTest extends ToolExecutor {
                     }
                 }
             }
-            dependencies.computeIfAbsent(pathType, (key) -> new ArrayList<>()).add(0, mainOutputDirectory);
+            dependencies(pathType).add(0, mainOutputDirectory);
         }
     }
 
