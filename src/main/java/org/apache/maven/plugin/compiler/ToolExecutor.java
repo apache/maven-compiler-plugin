@@ -442,15 +442,8 @@ public class ToolExecutor {
     /**
      * Ensures that the given value is non-null, replacing null values by the latest version.
      */
-    private static SourceVersion nonNull(SourceVersion release) {
+    private static SourceVersion nonNullOrLatest(SourceVersion release) {
         return (release != null) ? release : SourceVersion.latest();
-    }
-
-    /**
-     * Ensures that the given value is non-null, replacing null or blank values by an empty string.
-     */
-    private static String nonNull(String moduleName) {
-        return (moduleName == null || moduleName.isBlank()) ? "" : moduleName;
     }
 
     /**
@@ -483,12 +476,16 @@ public class ToolExecutor {
              * output directory of previous version even if we skipped the compilation of that version.
              */
             SourcesForRelease unit = result.computeIfAbsent(
-                    nonNull(directory.release),
+                    nonNullOrLatest(directory.release),
                     (release) -> new SourcesForRelease(directory.release)); // Intentionally ignore the key.
-            unit.roots.computeIfAbsent(nonNull(directory.moduleName), (moduleName) -> new LinkedHashSet<Path>());
+            String moduleName = directory.moduleName;
+            if (moduleName == null || moduleName.isBlank()) {
+                moduleName = "";
+            }
+            unit.roots.computeIfAbsent(moduleName, (key) -> new LinkedHashSet<Path>());
         }
         for (SourceFile source : sourceFiles) {
-            result.get(nonNull(source.directory.release)).add(source);
+            result.get(nonNullOrLatest(source.directory.release)).add(source);
         }
         return result.values();
     }

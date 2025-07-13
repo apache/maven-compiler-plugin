@@ -311,12 +311,13 @@ final class SourceDirectory {
      * Used only when the compiler plugin is configured with the {@code compileSourceRoots} option.
      *
      * @param compileSourceRoots the root paths to source files
+     * @param moduleName name of the module for which source directories are provided, or {@code null} if none
      * @param defaultRelease the release to use, or {@code null} of unspecified
      * @param outputDirectory the directory where to store the compilation results
      * @return the given list of paths wrapped as source directory objects
      */
     static List<SourceDirectory> fromPluginConfiguration(
-            List<String> compileSourceRoots, String defaultRelease, Path outputDirectory) {
+            List<String> compileSourceRoots, String moduleName, String defaultRelease, Path outputDirectory) {
         var release = parse(defaultRelease); // May be null.
         var roots = new ArrayList<SourceDirectory>(compileSourceRoots.size());
         for (String file : compileSourceRoots) {
@@ -327,7 +328,7 @@ final class SourceDirectory {
                         List.of(),
                         List.of(),
                         JavaFileObject.Kind.SOURCE,
-                        null,
+                        moduleName,
                         release,
                         outputDirectory,
                         JavaFileObject.Kind.CLASS));
