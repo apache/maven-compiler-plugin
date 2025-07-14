@@ -22,7 +22,7 @@ under the License.
 With [JEP-238](http://openjdk.java.net/jeps/238) the support of multirelease JARs was introduced.
 This means that you can have Java version dependent classes inside one JAR.
 Based on the runtime, it will pick up the best matching version of a class.
-The files of a multi-releases project are organized like below:
+The files of a multi-release project are organized like below:
 
 ```
 .
@@ -68,7 +68,7 @@ There are a couple of important facts one should know when creating Multi Releas
 
 ## Maven 3
 
-Maven 3 proposed many different patterns for building multi-releases project.
+Maven 3 proposed many different patterns for building multi-release project.
 One pattern is to create a sub-project for each version.
 The project needs to be build with the highest required version of the JDK,
 and a `--release` option is specified in each sub-project.
@@ -93,7 +93,7 @@ for examples of small projects using the following patterns:
 
 ## Maven 4
 
-Building a multi-releases project is much easier with version 4 of the Maven Compiler Plugin.
+Building a multi-release project is much easier with version 4 of the Maven Compiler Plugin.
 The source code for all versions are placed in different directories of the same Maven project.
 These directories are declared together with the Java release like below:
 

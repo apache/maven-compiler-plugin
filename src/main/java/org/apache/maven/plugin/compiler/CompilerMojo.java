@@ -158,12 +158,12 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * <blockquote>{@code target/classes/META-INF/versions/17/my.app}</blockquote>
      *
      * We workaround this problem with a symbolic link which redirects {@code 17/my.app} to {@code 17}.
-     * We need to do this only when compiling multi-releases project in the old deprecated way.
+     * We need to do this only when compiling multi-release project in the old deprecated way.
      * When using the recommended {@code <sources>} approach, the plugins are designed to work
      * with the directory layout produced by {@code javac} instead of fighting against it.
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
-     *             May be removed after we drop support of the old way to do multi-releases.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
     private Path directoryLevelToRemove;
@@ -295,13 +295,15 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return whether the project has at least one {@code module-info.class} file}.
+     * {@return whether the project has at least one module-info file}.
+     * If no such file is found in the code to be compiled by this <abbr>MOJO</abbr> execution,
+     * then this method searches in the multi-release codes compiled by previous executions.
      *
      * @param roots root directories of the sources to compile
      * @throws IOException if this method needed to read a module descriptor and failed
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
-     *             May be removed after we drop support of the old way to do multi-releases.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Override
     @Deprecated(since = "4.0.0")
@@ -322,13 +324,13 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the output directories of each target Java version}.
+     * {@return the output directory of each target Java version}.
      * By convention, {@link SourceVersion#RELEASE_0} stands for the base version.
      *
      * @throws IOException if this method needs to walk through directories and that operation failed
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
-     *             May be removed after we drop support of the old way to do multi-releases.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
     private TreeMap<SourceVersion, Path> getOutputDirectoryPerVersion() throws IOException {
@@ -369,8 +371,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * @return the module name, or {@code null} if none
      * @throws IOException if this method needs to walk through directories and that operation failed
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
-     *             May be removed after we drop support of the old way to do multi-releases.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
     private String addImplicitDependencies(final ToolExecutor executor) throws IOException {
@@ -424,8 +426,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}.
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
-     *             May be removed after we drop support of the old way to do multi-releases.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Override
     @Deprecated(since = "4.0.0")

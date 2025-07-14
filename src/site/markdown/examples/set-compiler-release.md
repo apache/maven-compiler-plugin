@@ -71,7 +71,7 @@ or by configuring the plugin directly:
 Since version 4 of the compiler plugin, which requires Maven 4,
 the preferred way to specify the release is together with the source declaration.
 This is the recommended way because it makes the creation of
-[multi-releases](../multirelease.html) projects easier.
+[multi-release](../multirelease.html) projects easier.
 
 ```xml
 <project>

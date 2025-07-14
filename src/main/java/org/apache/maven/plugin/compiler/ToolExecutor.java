@@ -529,7 +529,7 @@ public class ToolExecutor {
         /*
          * Create a `JavaFileManager`, configure all paths (dependencies and sources), then run the compiler.
          * The Java file manager has a cache, so it needs to be disposed after the compilation is completed.
-         * The same `JavaFileManager` may be reused for many compilation units (e.g. multi-releases) before
+         * The same `JavaFileManager` may be reused for many compilation units (e.g. multi-release) before
          * disposal in order to reuse its cache.
          */
         boolean success = true;
@@ -541,7 +541,7 @@ public class ToolExecutor {
             boolean isVersioned = false;
             Path latestOutputDirectory = null;
             /*
-             * More than one compilation unit may exist in the case of a multi-releases project.
+             * More than one compilation unit may exist in the case of a multi-release project.
              * Units are compiled in the order of the release version, with base compiled first.
              * At the beginning of each new iteration, `latestOutputDirectory` is the path to
              * the compiled classes of the previous version.

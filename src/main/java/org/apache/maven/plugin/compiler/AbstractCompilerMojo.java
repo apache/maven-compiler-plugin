@@ -1031,7 +1031,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Path getGeneratedSourcesDirectory();
 
     /**
-     * Returns the module which is being patched in a multi-releases project, or {@code null} if none.
+     * Returns the module which is being patched in a multi-release project, or {@code null} if none.
      * This is used when the {@link CompilerMojo#multiReleaseOutput} deprecated flag is {@code true}.
      * This module name is handled in a special way because, contrarily to the case where the project
      * uses the recommended {@code <sources>} elements (in which case all target releases are compiled
@@ -1044,8 +1044,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @see CompilerMojo#addImplicitDependencies(ToolExecutor)
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
-     *             May be removed after we drop support of the old way to do multi-releases.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
     String moduleOfPreviousExecution() throws IOException {
