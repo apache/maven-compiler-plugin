@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -35,6 +36,7 @@ import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProducedArtifact;
+import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
@@ -293,23 +295,43 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * Adds the compilation outputs of previous Java releases to the class-path ot module-path.
-     * This method should be invoked only when compiling a multi-release <abbr>JAR</abbr> in the
-     * old deprecated way.
+     * {@return whether the project has at least one {@code module-info.class} file}.
      *
-     * <p>The {@code executor} argument may be {@code null} if the caller is only interested in the
-     * module name, with no executor to modify. The module name found by this method is specific to
-     * the way that projects are organized when {@link #multiReleaseOutput} is {@code true}.</p>
+     * @param roots root directories of the sources to compile
+     * @throws IOException if this method needed to read a module descriptor and failed
      *
-     * @param  executor  the executor where to add implicit dependencies, or {@code null} if none
-     * @return the module name, or {@code null} if none
+     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
+     *             May be removed after we drop support of the old way to do multi-releases.
+     */
+    @Override
+    @Deprecated(since = "4.0.0")
+    final boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
+        boolean hasModuleDeclaration = super.hasModuleDeclaration(roots);
+        if (SUPPORT_LEGACY && !hasModuleDeclaration && multiReleaseOutput) {
+            String type = project.getPackaging().type().id();
+            if (!Type.CLASSPATH_JAR.equals(type)) {
+                for (Path p : getOutputDirectoryPerVersion().values()) {
+                    p = p.resolve(SourceDirectory.MODULE_INFO + SourceDirectory.CLASS_FILE_SUFFIX);
+                    if (Files.exists(p)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return hasModuleDeclaration;
+    }
+
+    /**
+     * {@return the output directories of each target Java version}.
+     * By convention, {@link SourceVersion#RELEASE_0} stands for the base version.
+     *
      * @throws IOException if this method needs to walk through directories and that operation failed
      *
      * @deprecated For compatibility with the previous way to build multi-releases JAR file.
      *             May be removed after we drop support of the old way to do multi-releases.
      */
     @Deprecated(since = "4.0.0")
-    private String addImplicitDependencies(final ToolExecutor executor) throws IOException {
+    private TreeMap<SourceVersion, Path> getOutputDirectoryPerVersion() throws IOException {
         final Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
         if (Files.notExists(root)) {
             return null;
@@ -331,6 +353,28 @@ public class CompilerMojo extends AbstractCompilerMojo {
                 throw new CompilationFailureException("Duplicated version number for " + path);
             }
         });
+        return paths;
+    }
+
+    /**
+     * Adds the compilation outputs of previous Java releases to the class-path ot module-path.
+     * This method should be invoked only when compiling a multi-release <abbr>JAR</abbr> in the
+     * old deprecated way.
+     *
+     * <p>The {@code executor} argument may be {@code null} if the caller is only interested in the
+     * module name, with no executor to modify. The module name found by this method is specific to
+     * the way that projects are organized when {@link #multiReleaseOutput} is {@code true}.</p>
+     *
+     * @param  executor  the executor where to add implicit dependencies, or {@code null} if none
+     * @return the module name, or {@code null} if none
+     * @throws IOException if this method needs to walk through directories and that operation failed
+     *
+     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
+     *             May be removed after we drop support of the old way to do multi-releases.
+     */
+    @Deprecated(since = "4.0.0")
+    private String addImplicitDependencies(final ToolExecutor executor) throws IOException {
+        final TreeMap<SourceVersion, Path> paths = getOutputDirectoryPerVersion();
         /*
          * Search for the module name. If many module-info classes are found,
          * the most basic one (with lowest Java release number) is selected.
