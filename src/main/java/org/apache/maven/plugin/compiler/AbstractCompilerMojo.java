@@ -432,7 +432,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @see #debuglevel
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac -g</a>
+     *
+     * @deprecated Setting this flag to {@code false} is replaced by {@code <debuglevel>none</debuglevel>}.
      */
+    @Deprecated(since = "4.0.0")
     @Parameter(property = "maven.compiler.debug", defaultValue = "true")
     protected boolean debug = true;
 
