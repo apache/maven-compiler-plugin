@@ -18,6 +18,7 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.lang.model.SourceVersion;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
@@ -27,16 +28,17 @@ import java.io.InputStream;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProducedArtifact;
+import org.apache.maven.api.SourceRoot;
+import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.plugin.MojoException;
@@ -123,7 +125,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      *
      * @since 3.7.1
      *
-     * @deprecated Replaced by specifying the release version together with the source directory.
+     * @deprecated Replaced by specifying the {@code <targetVersion>} value inside a {@code <source>} element.
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -139,6 +141,34 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Parameter(defaultValue = "javac.args")
     protected String debugFileName;
+
+    /**
+     * Target directory that have been temporarily created as symbolic link before compilation.
+     * This is used as a workaround for the fact that, when compiling a modular project with
+     * all the module-related compiler options, the classes are written in a directory with
+     * the module name. It does not fit in the {@code META-INF/versions/<release>} pattern.
+     * Temporary symbolic link is a workaround for this problem.
+     *
+     * <h4>Example</h4>
+     * When compiling the {@code my.app} module for Java 17, the desired output directory is:
+     *
+     * <blockquote>{@code target/classes/META-INF/versions/17}</blockquote>
+     *
+     * But {@code javac}, when used with the {@code --module-source-path} option,
+     * will write the classes in the following directory:
+     *
+     * <blockquote>{@code target/classes/META-INF/versions/17/my.app}</blockquote>
+     *
+     * We workaround this problem with a symbolic link which redirects {@code 17/my.app} to {@code 17}.
+     * We need to do this only when compiling multi-release project in the old deprecated way.
+     * When using the recommended {@code <sources>} approach, the plugins are designed to work
+     * with the directory layout produced by {@code javac} instead of fighting against it.
+     *
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
+     */
+    @Deprecated(since = "4.0.0")
+    private ModuleDirectoryRemover directoryLevelToRemove;
 
     /**
      * Creates a new compiler <abbr>MOJO</abbr> for the main code.
@@ -160,7 +190,15 @@ public class CompilerMojo extends AbstractCompilerMojo {
             logger.info("Not compiling main sources");
             return;
         }
-        super.execute();
+        try {
+            super.execute();
+        } finally {
+            try (ModuleDirectoryRemover r = directoryLevelToRemove) {
+                // Implicit call to directoryLevelToRemove.close().
+            } catch (IOException e) {
+                throw new CompilationFailureException("I/O error while organizing multi-release classes.", e);
+            }
+        }
         @SuppressWarnings("LocalVariableHidesMemberVariable")
         Path outputDirectory = getOutputDirectory();
         if (Files.isDirectory(outputDirectory) && projectArtifact != null) {
@@ -250,71 +288,160 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
         ToolExecutor executor = super.createExecutor(listener);
-        addImplicitDependencies(executor.sourceDirectories, executor.dependencies);
+        if (SUPPORT_LEGACY && multiReleaseOutput) {
+            addImplicitDependencies(executor);
+        }
         return executor;
     }
 
     /**
-     * If compiling a multi-release JAR in the old deprecated way, add the previous versions to the path.
+     * {@return whether the project has at least one module-info file}.
+     * If no such file is found in the code to be compiled by this <abbr>MOJO</abbr> execution,
+     * then this method searches in the multi-release codes compiled by previous executions.
      *
-     * @param sourceDirectories the source directories
-     * @param addTo where to add dependencies
-     * @param hasModuleDeclaration whether the main sources have or should have a {@code module-info} file
+     * @param roots root directories of the sources to compile
+     * @throws IOException if this method needed to read a module descriptor and failed
+     *
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
+     */
+    @Override
+    @Deprecated(since = "4.0.0")
+    final boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
+        boolean hasModuleDeclaration = super.hasModuleDeclaration(roots);
+        if (SUPPORT_LEGACY && !hasModuleDeclaration && multiReleaseOutput) {
+            String type = project.getPackaging().type().id();
+            if (!Type.CLASSPATH_JAR.equals(type)) {
+                for (Path p : getOutputDirectoryPerVersion().values()) {
+                    p = p.resolve(SourceDirectory.MODULE_INFO + SourceDirectory.CLASS_FILE_SUFFIX);
+                    if (Files.exists(p)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return hasModuleDeclaration;
+    }
+
+    /**
+     * {@return the output directory of each target Java version}.
+     * By convention, {@link SourceVersion#RELEASE_0} stands for the base version.
+     *
      * @throws IOException if this method needs to walk through directories and that operation failed
      *
-     * @deprecated For compatibility with the previous way to build multi-releases JAR file.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
-    private void addImplicitDependencies(List<SourceDirectory> sourceDirectories, Map<PathType, List<Path>> addTo)
-            throws IOException {
-        if (SUPPORT_LEGACY && multiReleaseOutput) {
-            var paths = new TreeMap<Integer, Path>();
-            Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
-            Files.walk(root, 1).forEach((path) -> {
-                int version;
-                if (path.equals(root)) {
-                    path = outputDirectory;
-                    version = 0;
-                } else {
-                    try {
-                        version = Integer.parseInt(path.getFileName().toString());
-                    } catch (NumberFormatException e) {
-                        throw new CompilationFailureException("Invalid version number for " + path, e);
-                    }
+    private TreeMap<SourceVersion, Path> getOutputDirectoryPerVersion() throws IOException {
+        final Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
+        if (Files.notExists(root)) {
+            return null;
+        }
+        final var paths = new TreeMap<SourceVersion, Path>();
+        Files.walk(root, 1).forEach((path) -> {
+            SourceVersion version;
+            if (path.equals(root)) {
+                path = outputDirectory;
+                version = SourceVersion.RELEASE_0;
+            } else {
+                try {
+                    version = SourceVersion.valueOf("RELEASE_" + path.getFileName());
+                } catch (IllegalArgumentException e) {
+                    throw new CompilationFailureException("Invalid version number for " + path, e);
                 }
-                if (paths.put(version, path) != null) {
-                    throw new CompilationFailureException("Duplicated version number for " + path);
+            }
+            if (paths.put(version, path) != null) {
+                throw new CompilationFailureException("Duplicated version number for " + path);
+            }
+        });
+        return paths;
+    }
+
+    /**
+     * Adds the compilation outputs of previous Java releases to the class-path ot module-path.
+     * This method should be invoked only when compiling a multi-release <abbr>JAR</abbr> in the
+     * old deprecated way.
+     *
+     * <p>The {@code executor} argument may be {@code null} if the caller is only interested in the
+     * module name, with no executor to modify. The module name found by this method is specific to
+     * the way that projects are organized when {@link #multiReleaseOutput} is {@code true}.</p>
+     *
+     * @param  executor  the executor where to add implicit dependencies, or {@code null} if none
+     * @return the module name, or {@code null} if none
+     * @throws IOException if this method needs to walk through directories and that operation failed
+     *
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
+     */
+    @Deprecated(since = "4.0.0")
+    private String addImplicitDependencies(final ToolExecutor executor) throws IOException {
+        final TreeMap<SourceVersion, Path> paths = getOutputDirectoryPerVersion();
+        /*
+         * Search for the module name. If many module-info classes are found,
+         * the most basic one (with lowest Java release number) is selected.
+         */
+        String moduleName = null;
+        for (Path path : paths.values()) {
+            path = path.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
+            if (Files.exists(path)) {
+                try (InputStream in = Files.newInputStream(path)) {
+                    moduleName = ModuleDescriptor.read(in).name();
                 }
-            });
-            /*
-             * Find the module name. If many module-info classes are found,
-             * the most basic one (with lowest Java release number) is taken.
-             */
-            String moduleName = null;
-            for (Path path : paths.values()) {
-                path = path.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
-                if (Files.exists(path)) {
-                    try (InputStream in = Files.newInputStream(path)) {
-                        moduleName = ModuleDescriptor.read(in).name();
-                    }
+                break;
+            }
+        }
+        /*
+         * If no module name was found in the classes compiled for previous Java releases,
+         * search in the source files for the Java release of the current compilation unit.
+         */
+        if (moduleName == null) {
+            final Stream<Path> sourceDirectories;
+            if (executor != null) {
+                sourceDirectories = executor.sourceDirectories.stream().map(dir -> dir.root);
+            } else if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+                sourceDirectories = getSourceRoots(compileScope.projectScope()).map(SourceRoot::directory);
+            } else {
+                sourceDirectories = compileSourceRoots.stream().map(Path::of);
+            }
+            for (Path root : sourceDirectories.toList()) {
+                moduleName = parseModuleInfoName(root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
+                if (moduleName != null) {
                     break;
                 }
             }
-            /*
-             * If no module name was found in the classes compiled for previous Java releases,
-             * search in the source files for the Java release of the current compilation unit.
-             */
-            if (moduleName == null) {
-                for (SourceDirectory dir : sourceDirectories) {
-                    moduleName = parseModuleInfoName(dir.root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
-                    if (moduleName != null) {
-                        break;
-                    }
-                }
-            }
-            var pathType = (moduleName != null) ? JavaPathType.patchModule(moduleName) : JavaPathType.CLASSES;
-            addTo.computeIfAbsent(pathType, (key) -> new ArrayList<>())
-                    .addAll(paths.descendingMap().values());
         }
+        if (executor != null) {
+            /*
+             * Add previous versions as dependencies on the class-path or module-path, depending on whether
+             * the project is modular. Each path should be on either the class-path or module-path, but not
+             * both. If a path for a modular project seems needed on the class-path, it may be a sign that
+             * other options are not used correctly (e.g., `--source-path` versus `--module-source-path`).
+             */
+            PathType type = JavaPathType.CLASSES;
+            if (moduleName != null) {
+                type = JavaPathType.patchModule(moduleName);
+                directoryLevelToRemove = ModuleDirectoryRemover.create(executor.outputDirectory, moduleName);
+            }
+            if (!paths.isEmpty()) {
+                executor.dependencies(type).addAll(paths.descendingMap().values());
+            }
+        }
+        return moduleName;
+    }
+
+    /**
+     * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}.
+     *
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
+     */
+    @Override
+    @Deprecated(since = "4.0.0")
+    final String moduleOfPreviousExecution() throws IOException {
+        if (SUPPORT_LEGACY && multiReleaseOutput) {
+            return addImplicitDependencies(null);
+        }
+        return super.moduleOfPreviousExecution();
     }
 }

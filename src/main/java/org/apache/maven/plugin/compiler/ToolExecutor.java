@@ -129,6 +129,8 @@ public class ToolExecutor {
      * All dependencies grouped by the path types where to place them, together with the modules to patch.
      * The path type can be the class-path, module-path, annotation processor path, patched path, <i>etc.</i>
      * Some path types include a module name.
+     *
+     * @see #dependencies(PathType)
      */
     protected final Map<PathType, List<Path>> dependencies;
 
@@ -235,7 +237,11 @@ public class ToolExecutor {
             hasModuleDeclaration = true;
             sourceFiles = List.of();
         } else {
-            // The order of the two next lines matter for initialization of `SourceDirectory.moduleInfo`.
+            /*
+             * The order of the two next lines matter for initialization of `SourceDirectory.moduleInfo`.
+             * This initialization is done indirectly when the walk invokes the `SourceFile` constructor,
+             * which in turn invokes `SourceDirectory.visit(Path)`.
+             */
             sourceFiles = new PathFilter(mojo).walkSourceFiles(sourceDirectories);
             hasModuleDeclaration = mojo.hasModuleDeclaration(sourceDirectories);
             if (sourceFiles.isEmpty()) {
@@ -356,6 +362,17 @@ public class ToolExecutor {
     }
 
     /**
+     * {@return a modifiable list of paths to all dependencies of the given type}.
+     * The returned list is intentionally live: elements can be added or removed
+     * from the list for changing the state of this executor.
+     *
+     * @param  pathType  type of path for which to get the dependencies
+     */
+    protected List<Path> dependencies(PathType pathType) {
+        return dependencies.computeIfAbsent(pathType, (key) -> new ArrayList<>());
+    }
+
+    /**
      * Dispatches sources and dependencies on the kind of paths determined by {@code DependencyResolver}.
      * The targets may be class-path, module-path, annotation processor class-path/module-path, <i>etc</i>.
      *
@@ -425,15 +442,8 @@ public class ToolExecutor {
     /**
      * Ensures that the given value is non-null, replacing null values by the latest version.
      */
-    private static SourceVersion nonNull(SourceVersion release) {
+    private static SourceVersion nonNullOrLatest(SourceVersion release) {
         return (release != null) ? release : SourceVersion.latest();
-    }
-
-    /**
-     * Ensures that the given value is non-null, replacing null or blank values by an empty string.
-     */
-    private static String nonNull(String moduleName) {
-        return (moduleName == null || moduleName.isBlank()) ? "" : moduleName;
     }
 
     /**
@@ -466,12 +476,16 @@ public class ToolExecutor {
              * output directory of previous version even if we skipped the compilation of that version.
              */
             SourcesForRelease unit = result.computeIfAbsent(
-                    nonNull(directory.release),
+                    nonNullOrLatest(directory.release),
                     (release) -> new SourcesForRelease(directory.release)); // Intentionally ignore the key.
-            unit.roots.computeIfAbsent(nonNull(directory.moduleName), (moduleName) -> new LinkedHashSet<Path>());
+            String moduleName = directory.moduleName;
+            if (moduleName == null || moduleName.isBlank()) {
+                moduleName = "";
+            }
+            unit.roots.computeIfAbsent(moduleName, (key) -> new LinkedHashSet<Path>());
         }
         for (SourceFile source : sourceFiles) {
-            result.get(nonNull(source.directory.release)).add(source);
+            result.get(nonNullOrLatest(source.directory.release)).add(source);
         }
         return result.values();
     }
@@ -515,7 +529,7 @@ public class ToolExecutor {
         /*
          * Create a `JavaFileManager`, configure all paths (dependencies and sources), then run the compiler.
          * The Java file manager has a cache, so it needs to be disposed after the compilation is completed.
-         * The same `JavaFileManager` may be reused for many compilation units (e.g. multi-releases) before
+         * The same `JavaFileManager` may be reused for many compilation units (e.g. multi-release) before
          * disposal in order to reuse its cache.
          */
         boolean success = true;
@@ -527,7 +541,7 @@ public class ToolExecutor {
             boolean isVersioned = false;
             Path latestOutputDirectory = null;
             /*
-             * More than one compilation unit may exist in the case of a multi-releases project.
+             * More than one compilation unit may exist in the case of a multi-release project.
              * Units are compiled in the order of the release version, with base compiled first.
              * At the beginning of each new iteration, `latestOutputDirectory` is the path to
              * the compiled classes of the previous version.

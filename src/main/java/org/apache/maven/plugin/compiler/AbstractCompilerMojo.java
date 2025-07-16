@@ -1012,13 +1012,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * or from {@code <source>} elements otherwise.
      *
      * @param outputDirectory the directory where to store the compilation results
+     * @throws IOException if this method needs to walk through directories and that operation failed
      */
-    final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) {
+    final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) throws IOException {
         if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
             Stream<SourceRoot> roots = getSourceRoots(compileScope.projectScope());
             return SourceDirectory.fromProject(roots, getRelease(), outputDirectory);
         } else {
-            return SourceDirectory.fromPluginConfiguration(compileSourceRoots, getRelease(), outputDirectory);
+            return SourceDirectory.fromPluginConfiguration(
+                    compileSourceRoots, moduleOfPreviousExecution(), getRelease(), outputDirectory);
         }
     }
 
@@ -1027,6 +1029,28 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     @Nullable
     protected abstract Path getGeneratedSourcesDirectory();
+
+    /**
+     * Returns the module which is being patched in a multi-release project, or {@code null} if none.
+     * This is used when the {@link CompilerMojo#multiReleaseOutput} deprecated flag is {@code true}.
+     * This module name is handled in a special way because, contrarily to the case where the project
+     * uses the recommended {@code <sources>} elements (in which case all target releases are compiled
+     * in a single Maven Compiler Plugin execution), the Maven Compiler Plugin does not know what have
+     * been compiled for the other releases, because each target release is compiled with an execution
+     * of {@link CompilerMojo} separated from other executions.
+     *
+     * @return the module name in a previous execution of the compiler plugin, or {@code null} if none
+     * @throws IOException if this method needs to walk through directories and that operation failed
+     *
+     * @see CompilerMojo#addImplicitDependencies(ToolExecutor)
+     *
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
+     */
+    @Deprecated(since = "4.0.0")
+    String moduleOfPreviousExecution() throws IOException {
+        return null;
+    }
 
     /**
      * {@return whether the sources contain at least one {@code module-info.java} file}.
