@@ -31,11 +31,13 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.ProducedArtifact;
+import org.apache.maven.api.SourceRoot;
 import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
@@ -166,7 +168,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
-    private Path directoryLevelToRemove;
+    private ModuleDirectoryRemover directoryLevelToRemove;
 
     /**
      * Creates a new compiler <abbr>MOJO</abbr> for the main code.
@@ -191,12 +193,10 @@ public class CompilerMojo extends AbstractCompilerMojo {
         try {
             super.execute();
         } finally {
-            if (directoryLevelToRemove != null) {
-                try {
-                    Files.delete(directoryLevelToRemove);
-                } catch (IOException e) {
-                    throw new CompilationFailureException("I/O error while organizing multi-release classes.", e);
-                }
+            try (ModuleDirectoryRemover r = directoryLevelToRemove) {
+                // Implicit call to directoryLevelToRemove.close().
+            } catch (IOException e) {
+                throw new CompilationFailureException("I/O error while organizing multi-release classes.", e);
             }
         }
         @SuppressWarnings("LocalVariableHidesMemberVariable")
@@ -391,19 +391,27 @@ public class CompilerMojo extends AbstractCompilerMojo {
                 break;
             }
         }
-        if (executor != null) {
-            /*
-             * If no module name was found in the classes compiled for previous Java releases,
-             * search in the source files for the Java release of the current compilation unit.
-             */
-            if (moduleName == null) {
-                for (SourceDirectory dir : executor.sourceDirectories) {
-                    moduleName = parseModuleInfoName(dir.root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
-                    if (moduleName != null) {
-                        break;
-                    }
+        /*
+         * If no module name was found in the classes compiled for previous Java releases,
+         * search in the source files for the Java release of the current compilation unit.
+         */
+        if (moduleName == null) {
+            final Stream<Path> sourceDirectories;
+            if (executor != null) {
+                sourceDirectories = executor.sourceDirectories.stream().map(dir -> dir.root);
+            } else if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+                sourceDirectories = getSourceRoots(compileScope.projectScope()).map(SourceRoot::directory);
+            } else {
+                sourceDirectories = compileSourceRoots.stream().map(Path::of);
+            }
+            for (Path root : sourceDirectories.toList()) {
+                moduleName = parseModuleInfoName(root.resolve(MODULE_INFO + JAVA_FILE_SUFFIX));
+                if (moduleName != null) {
+                    break;
                 }
             }
+        }
+        if (executor != null) {
             /*
              * Add previous versions as dependencies on the class-path or module-path, depending on whether
              * the project is modular. Each path should be on either the class-path or module-path, but not
@@ -413,8 +421,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             PathType type = JavaPathType.CLASSES;
             if (moduleName != null) {
                 type = JavaPathType.patchModule(moduleName);
-                Path javacTarget = executor.outputDirectory.resolve(moduleName);
-                directoryLevelToRemove = Files.createSymbolicLink(javacTarget, javacTarget.getParent());
+                directoryLevelToRemove = ModuleDirectoryRemover.create(executor.outputDirectory, moduleName);
             }
             if (!paths.isEmpty()) {
                 executor.dependencies(type).addAll(paths.descendingMap().values());
