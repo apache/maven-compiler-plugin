@@ -440,16 +440,20 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean debug = true;
 
     /**
-     * Keyword list to be appended to the {@code -g} command-line switch.
-     * Legal values are a comma-separated list of the following keywords:
-     * {@code lines}, {@code vars}, {@code source} and {@code all}.
-     * If debug level is not specified, then the {@code -g} option will <em>not</em> by added,
-     * which means that the default debugging information will be generated
-     * (typically {@code lines} and {@code source} but not {@code vars}).
-     * If {@link #debug} is turned off, this attribute will be ignored.
+     * Kinds of debugging information to include in the compiled class files.
+     * Legal values are {@code lines}, {@code vars}, {@code source}, {@code all} and {@code none}.
+     * Values other than {@code all} and {@code none} can be combined in a comma-separated list.
      *
-     * @see #debug
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac -G:[lines,vars,source]</a>
+     * <p>If debug level is not specified, then the {@code -g} option will <em>not</em> be added,
+     * which means that the default debugging information will be generated
+     * (typically {@code lines} and {@code source} but not {@code vars}).</p>
+     *
+     * <p>If debug level is {@code all}, then only the {@code -g} option is added,
+     * which means that all debugging information will be generated.
+     * If debug level is anything else, then the comma-separated list of keywords
+     * is appended to the {@code -g} command-line switch.</p>
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac -g:[lines,vars,source]</a>
      * @since 2.1
      */
     @Parameter(property = "maven.compiler.debuglevel")
