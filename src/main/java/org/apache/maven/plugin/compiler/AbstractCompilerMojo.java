@@ -546,7 +546,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String outputTimestamp;
 
     /**
-     * The algorithm to use for selecting which files to compile.
+     * The algorithm to use for selecting which files to compile. The default values are implemented in `incrementalCompilationConfiguration()`
      * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
      * {@code rebuild-on-add}, {@code modules} or {@code none}.
      *
@@ -616,7 +616,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see #createMissingPackageInfoClass
      * @since 4.0.0
      */
-    @Parameter // The default values are implemented in `incrementalCompilationConfiguration()`.
+    @Parameter(property = "maven.compiler.incrementalCompilation")
     protected String incrementalCompilation;
 
     /**
@@ -672,7 +672,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see #incrementalCompilation
      * @since 3.1
      */
-    @Parameter
+    @Parameter(defaultValue = "class,jar")
     protected List<String> fileExtensions;
 
     /**
@@ -1067,19 +1067,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws IOException if this method needed to read a module descriptor and failed
      */
     boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
-        switch (project.getPackaging().type().id()) {
-            case Type.CLASSPATH_JAR:
-                return false;
-            case Type.MODULAR_JAR:
-                return true;
-            default:
+        return switch (project.getPackaging().type().id()) {
+            case Type.CLASSPATH_JAR -> false;
+            case Type.MODULAR_JAR -> true;
+            default -> {
                 for (SourceDirectory root : roots) {
                     if (root.getModuleInfo().isPresent()) {
-                        return true;
+                        yield true;
                     }
                 }
-                return false;
-        }
+                yield false;
+            }
+        };
     }
 
     /**
