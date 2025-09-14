@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.maven.api.PathType;
+
 /**
  * Source files for a specific Java release. Instances of {@code SourcesForRelease} are created from
  * a list of {@link SourceFile} after the sources have been filtered according include and exclude filters.
@@ -73,6 +75,19 @@ final class SourcesForRelease implements Closeable {
      * the number of accesses to the map. In most cases, only one element will be written there.
      */
     private SourceDirectory lastDirectoryAdded;
+
+    /**
+     * Snapshot of {@link ToolExecutor#dependencies}.
+     * This information is saved in case a {@code target/javac.args} debug file needs to be written.
+     */
+    Map<PathType, List<Path>> dependencySnapshot;
+
+    /**
+     * The output directory for the release. This is either base base output directory or a sub-directory
+     * in {@code META-INF/versions/}. This field is not used by this class, but made available for making
+     * easier to write the {@code target/javac.args} debug file.
+     */
+    Path outputForRelease;
 
     /**
      * Creates an initially empty instance for the given Java release.
