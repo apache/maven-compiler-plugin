@@ -624,9 +624,8 @@ final class IncrementalBuild {
      * Each given root can be either a regular file (typically a JAR file) or a directory.
      * Directories are scanned recursively.
      *
-     * @param directories files or directories to scan
+     * @param dependencies files or directories to scan
      * @param fileExtensions extensions of the file to check (usually "jar" and "class")
-     * @param changeTime the time at which a file is considered as changed
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while scanning the directories
      *
