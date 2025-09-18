@@ -106,6 +106,12 @@ under the License.
       <version>${mavenVersion}</version>
       <scope>provided</scope>
     </dependency>
+    <!-- not used directly but really needed at runtime and we cannot depend on transitive dependency -->
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>9.8</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-shared-utils</artifactId>
@@ -239,6 +245,7 @@ under the License.
             <plugin>
               <groupId>org.apache.maven.plugins</groupId>
               <artifactId>maven-invoker-plugin</artifactId>
+              <version>3.9.1</version>
               <executions>
                 <execution>
                   <id>integration-test</id>
