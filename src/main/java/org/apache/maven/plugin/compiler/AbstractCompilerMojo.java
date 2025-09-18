@@ -546,7 +546,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String outputTimestamp;
 
     /**
-     * The algorithm to use for selecting which files to compile,The default values are implemented in {@link #incrementalCompilationConfiguration()}
+     * The algorithm to use for selecting which files to compile.
      * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
      * {@code rebuild-on-add}, {@code modules} or {@code none}.
      *
