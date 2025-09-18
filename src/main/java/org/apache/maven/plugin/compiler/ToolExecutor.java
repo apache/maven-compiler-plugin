@@ -323,9 +323,6 @@ public class ToolExecutor {
             }
             if (checkDepends && causeOfRebuild == null) {
                 List<String> fileExtensions = mojo.fileExtensions;
-                if (fileExtensions == null || fileExtensions.isEmpty()) {
-                    fileExtensions = List.of("class", "jar");
-                }
                 causeOfRebuild = incrementalBuild.dependencyChanges(dependencies.values(), fileExtensions);
             }
             if (checkOptions && causeOfRebuild == null) {
