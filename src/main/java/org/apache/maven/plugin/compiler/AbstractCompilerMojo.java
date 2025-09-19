@@ -228,7 +228,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * If non-empty, the project {@code <Source>} elements are ignored. This configuration option
      * should be used only when there is a need to override the project configuration.
      *
-     * @deprecated Replaced by the project-wide {@code <sources>} element.
+     * @deprecated replaced by the project-wide {@code <sources>} element
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -270,8 +270,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * <p>Note that {@code -J} options should be specified only if {@link #fork} is set to {@code true}.</p>
      *
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
-     *
-     * @deprecated Use {@link #compilerArgs} instead.
+     * @deprecated use {@link #compilerArgs} instead
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -354,9 +353,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor-path">javac -processorpath</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      * @since 3.5
-     *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
-     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
+     * @deprecated replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -372,8 +370,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </p>
      *
      * @since 3.12.0
-     *
-     * @deprecated This flag is ignored.
+     * @deprecated this flag is ignored.
      * Replaced by ordinary dependencies with {@code <type>} element set to
      * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
@@ -432,8 +429,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @see #debuglevel
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac -g</a>
-     *
-     * @deprecated Setting this flag to {@code false} is replaced by {@code <debuglevel>none</debuglevel>}.
+     * @deprecated setting this flag to {@code false} is replaced by {@code <debuglevel>none</debuglevel>}
      */
     @Deprecated(since = "4.0.0")
     @Parameter(property = "maven.compiler.debug", defaultValue = "true")
@@ -462,7 +458,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Whether to optimize the compiled code using the compiler's optimization methods.
-     * @deprecated This property is ignored.
+     *
+     * @deprecated this property is ignored
      */
     @Deprecated(forRemoval = true)
     @Parameter(property = "maven.compiler.optimize")
@@ -533,7 +530,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * <p>expression="${project.build.finalName}"</p>
      *
-     * @deprecated Bundling many class files into a single file should be done by other plugins.
+     * @deprecated bundling many class files into a single file should be done by other plugins
      */
     @Parameter
     @Deprecated(since = "4.0.0", forRemoval = true)
@@ -545,8 +542,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
      *
      * @since 3.12.0
-     *
-     * @deprecated Not used by the compiler plugin since it does not generate archive.
+     * @deprecated not used by the compiler plugin since it does not generate archive
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(defaultValue = "${project.build.outputTimestamp}")
@@ -630,8 +626,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Whether to enable/disable incremental compilation feature.
      *
      * @since 3.1
-     *
-     * @deprecated Replaced by {@link #incrementalCompilation}.
+     * @deprecated replaced by {@link #incrementalCompilation}.
      * A value of {@code true} in this old property is equivalent to {@code "dependencies,sources,rebuild-on-add"}
      * in the new property, and a value of {@code false} is equivalent to {@code "classes"}.
      */
@@ -753,9 +748,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Version of the compiler to use if {@link #fork} is set to {@code true}.
      * Examples! "1.3", "1.5".
      *
-     * @deprecated This parameter is no longer used by the underlying compilers.
-     *
      * @see #fork
+     * @deprecated this parameter is no longer used by the underlying compilers
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.compilerVersion")
@@ -767,8 +761,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">New API</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">Legacy API</a>
      * @since 3.13
-     *
-     * @deprecated Ignored because the compiler plugin now always use the {@code javax.tools} API.
+     * @deprecated ignored because the compiler plugin now always use the {@code javax.tools} API
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.forceLegacyJavacApi")
@@ -778,8 +771,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Whether to use legacy compiler API.
      *
      * @since 3.0
-     *
-     * @deprecated Ignored because {@code java.lang.Compiler} has been deprecated and removed from the JDK.
+     * @deprecated ignored because {@code java.lang.Compiler} has been deprecated and removed from the JDK
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.forceJavacCompilerUse")
@@ -797,8 +789,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Note this parameter value depends on the OS/JDK you are using, but the default value should work on most of env.
      *
      * @since 2.5
-     *
-     * @deprecated Not supported anymore. The reuse of {@link JavaFileManager} instance is plugin implementation details.
+     * @deprecated not supported anymore. The reuse of {@link JavaFileManager} instance is plugin implementation details.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.compilerReuseStrategy")
@@ -806,8 +797,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * @since 2.5
-     *
-     * @deprecated Deprecated as a consequence of {@link #compilerReuseStrategy} deprecation.
+     * @deprecated deprecated as a consequence of {@link #compilerReuseStrategy} deprecation
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.skipMultiThreadWarning")
@@ -860,7 +850,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Path to a file where to cache information about the last incremental build.
      * This is used when "incremental" builds are enabled for detecting additions
      * or removals of source files, or changes in plugin configuration.
-     * This file should be in the output directory and can be deleted at any time
+     * This file should be in the output directory and can be deleted at any time.
      */
     @Parameter(
             defaultValue =
@@ -1048,10 +1038,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @return the module name in a previous execution of the compiler plugin, or {@code null} if none
      * @throws IOException if this method needs to walk through directories and that operation failed
-     *
      * @see CompilerMojo#addImplicitDependencies(ToolExecutor)
-     *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
@@ -1172,9 +1160,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
      * @return the task to execute for compiling the project using the configuration in this <abbr>MOJO</abbr>
-     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
      * @throws MavenException if an error occurred while fetching dependencies
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      */
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
         var executor = new ToolExecutor(this, listener);
@@ -1255,7 +1243,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * The {@link #release} parameter is excluded because it is handled in a special way
      * in order to support the compilation of multi-version projects.
      *
-     * @param  compiler  the tools to use for verifying the validity of options
+     * @param compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     public Options parseParameters(final OptionChecker compiler) {
@@ -1467,9 +1455,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * {@return all dependencies grouped by the path types where to place them}. If the module-path contains
      * any filename-based dependency and this MOJO is compiling the main code, then a warning will be logged.
      *
-     * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path.
+     * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path
      * @throws IOException if an I/O error occurred while fetching dependencies
-     * @throws MavenException if an error occurred while fetching dependencies for a reason other than I/O.
+     * @throws MavenException if an error occurred while fetching dependencies for a reason other than I/O
      */
     final DependencyResolverResult resolveDependencies(boolean hasModuleDeclaration) throws IOException {
         DependencyResolver resolver = session.getService(DependencyResolver.class);
@@ -1531,9 +1519,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param addTo the modifiable map and lists where to append more paths to annotation processor dependencies
      * @throws MojoException if an error occurred while resolving the dependencies
-     *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
-     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
+     * @deprecated replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}
      */
     @Deprecated(since = "4.0.0")
     final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
@@ -1760,7 +1747,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * The check for the project directory tree (starting from the root of all sub-projects) is for avoiding
      * to relativize the paths to JAR files in the Maven local repository for example.
      *
-     * @param  file  the path to make relative to the base directory
+     * @param file  the path to make relative to the base directory
      * @return the given path, potentially relative to the base directory
      */
     private Path relativize(Path file) {

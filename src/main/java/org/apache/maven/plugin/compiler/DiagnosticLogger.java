@@ -93,7 +93,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     /**
      * Makes the given file relative to the base directory.
      *
-     * @param  file  the path to make relative to the base directory
+     * @param file  the path to make relative to the base directory
      * @return the given path, potentially relative to the base directory
      */
     private String relativize(String file) {

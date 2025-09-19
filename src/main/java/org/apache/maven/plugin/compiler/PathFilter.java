@@ -131,8 +131,8 @@ final class PathFilter extends SimpleFileVisitor<Path> {
      * Invoked for a file in a directory. If the given file passes the include/exclude filters,
      * then it is added to the list of source files.
      *
-     * @param  file  the source file to test
-     * @param  attrs the file basic attributes
+     * @param file  the source file to test
+     * @param attrs the file basic attributes
      * @return {@link FileVisitResult#CONTINUE}
      */
     @Override

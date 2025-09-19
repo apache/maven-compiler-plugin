@@ -38,7 +38,7 @@ final class ForkedCompiler extends ForkedTool implements JavaCompiler {
     /**
      * Creates a new forked compiler.
      *
-     * @param  mojo  the MOJO from which to get the configuration
+     * @param mojo  the MOJO from which to get the configuration
      */
     ForkedCompiler(final AbstractCompilerMojo mojo) {
         super(mojo);

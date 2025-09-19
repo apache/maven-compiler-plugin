@@ -65,7 +65,7 @@ class ForkedTool implements Tool, OptionChecker {
     /**
      * Creates a new forked compiler.
      *
-     * @param  mojo  the MOJO from which to get the configuration
+     * @param mojo  the MOJO from which to get the configuration
      */
     ForkedTool(final AbstractCompilerMojo mojo) {
         basedir = mojo.basedir;

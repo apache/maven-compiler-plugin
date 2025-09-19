@@ -534,7 +534,6 @@ final class IncrementalBuild {
      *
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while deleting output files of the previous build
-     *
      * @see Aspect#SOURCES
      */
     String inputFileTreeChanges() throws IOException {
@@ -629,7 +628,6 @@ final class IncrementalBuild {
      * @param changeTime the time at which a file is considered as changed
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while scanning the directories
-     *
      * @see Aspect#DEPENDENCIES
      */
     String dependencyChanges(Iterable<List<Path>> dependencies, Collection<String> fileExtensions) throws IOException {
@@ -678,7 +676,6 @@ final class IncrementalBuild {
      *
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while loading the cache file
-     *
      * @see Aspect#OPTIONS
      */
     String optionChanges() throws IOException {
@@ -713,7 +710,6 @@ final class IncrementalBuild {
      *
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while reading the time stamp of an output file
-     *
      * @see Aspect#CLASSES
      */
     String markNewOrModifiedSources() throws IOException {
@@ -762,7 +758,7 @@ final class IncrementalBuild {
      * This method returns {@code true} if the given list is empty or contains only files
      * with the {@link SourceFile#ignoreModification} set to {@code true}.
      *
-     * @param sourceFiles return value of {@link #getModifiedSources()}.
+     * @param sourceFiles return value of {@link #getModifiedSources()}
      */
     static boolean isEmptyOrIgnorable(List<SourceFile> sourceFiles) {
         return !sourceFiles.stream().anyMatch((s) -> !s.ignoreModification);

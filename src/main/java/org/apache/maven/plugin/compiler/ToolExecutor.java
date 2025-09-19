@@ -194,10 +194,9 @@ public class ToolExecutor {
      *
      * @param mojo the <abbr>MOJO</abbr> from which to take a snapshot
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
-     * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
      * @throws MavenException if an error occurred while fetching dependencies
-     *
+     * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      * @see AbstractCompilerMojo#createExecutor(DiagnosticListener)
      */
     @SuppressWarnings("deprecation")
@@ -301,8 +300,8 @@ public class ToolExecutor {
      *
      * @param mojo the <abbr>MOJO</abbr> from which to take the incremental build configuration
      * @param configuration the options which should match the options used during the last build
-     * @throws IOException if an error occurred while accessing the cache file or walking through the directory tree
      * @return whether there is at least one file to recompile
+     * @throws IOException if an error occurred while accessing the cache file or walking through the directory tree
      */
     public boolean applyIncrementalBuild(final AbstractCompilerMojo mojo, final Options configuration)
             throws IOException {
@@ -363,7 +362,7 @@ public class ToolExecutor {
      * The returned list is intentionally live: elements can be added or removed
      * from the list for changing the state of this executor.
      *
-     * @param  pathType  type of path for which to get the dependencies
+     * @param pathType  type of path for which to get the dependencies
      */
     protected List<Path> dependencies(PathType pathType) {
         return dependencies.computeIfAbsent(pathType, (key) -> new ArrayList<>());
@@ -450,7 +449,7 @@ public class ToolExecutor {
      *
      * @param moduleName the module name, or an empty string if not explicitly specified
      * @return the specified module name, or an inferred module name if available, or an empty string
-     * @throws IOException if the module descriptor cannot be read.
+     * @throws IOException if the module descriptor cannot be read
      */
     String inferModuleNameIfMissing(String moduleName) throws IOException {
         return moduleName;

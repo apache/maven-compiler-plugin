@@ -363,8 +363,7 @@ public final class Options {
      * This is used for user-specified arguments.
      *
      * @param arguments the arguments to add, or {@code null} if none
-     *
-     * @deprecated Use {@link #addUnchecked(List)} instead. This method does not check for quoted strings.
+     * @deprecated use {@link #addUnchecked(List)} instead. This method does not check for quoted strings.
      */
     @Deprecated(since = "4.0.0")
     void addUnchecked(String arguments) {

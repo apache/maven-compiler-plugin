@@ -124,8 +124,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * </p>
      *
      * @since 3.7.1
-     *
-     * @deprecated Replaced by specifying the {@code <targetVersion>} value inside a {@code <source>} element.
+     * @deprecated replaced by specifying the {@code <targetVersion>} value inside a {@code <source>} element
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -164,7 +163,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * When using the recommended {@code <sources>} approach, the plugins are designed to work
      * with the directory layout produced by {@code javac} instead of fighting against it.
      *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
@@ -182,7 +181,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * If {@link #skipMain} is {@code true}, then this method logs a message and does nothing else.
      * Otherwise, this method executes the steps described in the method of the parent class.
      *
-     * @throws MojoException if the compiler cannot be run.
+     * @throws MojoException if the compiler cannot be run
      */
     @Override
     public void execute() throws MojoException {
@@ -209,7 +208,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * Parses the parameters declared in the <abbr>MOJO</abbr>.
      *
-     * @param  compiler  the tools to use for verifying the validity of options
+     * @param compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     @Override
@@ -281,9 +280,9 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * Creates a new task for compiling the main classes.
      *
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
-     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @return the task to execute for compiling the main code using the configuration in this <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      */
     @Override
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
@@ -301,8 +300,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      *
      * @param roots root directories of the sources to compile
      * @throws IOException if this method needed to read a module descriptor and failed
-     *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Override
@@ -328,8 +326,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * By convention, {@link SourceVersion#RELEASE_0} stands for the base version.
      *
      * @throws IOException if this method needs to walk through directories and that operation failed
-     *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
@@ -367,11 +364,10 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * module name, with no executor to modify. The module name found by this method is specific to
      * the way that projects are organized when {@link #multiReleaseOutput} is {@code true}.</p>
      *
-     * @param  executor  the executor where to add implicit dependencies, or {@code null} if none
+     * @param executor  the executor where to add implicit dependencies, or {@code null} if none
      * @return the module name, or {@code null} if none
      * @throws IOException if this method needs to walk through directories and that operation failed
-     *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
@@ -433,7 +429,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}.
      *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.
      */
     @Override
