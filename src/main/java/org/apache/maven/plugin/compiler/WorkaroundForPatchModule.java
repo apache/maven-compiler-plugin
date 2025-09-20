@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -126,7 +127,7 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
      * @param type the type of path together with the module name
      * @param paths the paths to set
      * @param cause the exception that occurred when invoking the standard API
-     * @throws CompilationFailureException if this workaround doesn't work neither
+     * @throws IllegalArgumentException if this workaround doesn't work neither
      */
     private static void specifyAsOption(
             StandardJavaFileManager fileManager,
@@ -135,10 +136,18 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
             UnsupportedOperationException cause)
             throws IOException {
 
-        var it = Arrays.asList(type.option(paths)).iterator();
-        if (!fileManager.handleOption(it.next(), it) || it.hasNext()) {
-            throw new CompilationFailureException("Cannot handle " + type, cause);
+        String message;
+        Iterator<String> it = Arrays.asList(type.option(paths)).iterator();
+        if (!fileManager.handleOption(it.next(), it)) {
+            message = "Failed to set the %s option for module %s";
+        } else if (it.hasNext()) {
+            message = "Unexpected number of arguments after the %s option for module %s";
+        } else {
+            return;
         }
+        JavaPathType rawType = type.rawType();
+        throw new IllegalArgumentException(
+                String.format(message, rawType.option().orElse(rawType.name()), type.moduleName()), cause);
     }
 
     /**
