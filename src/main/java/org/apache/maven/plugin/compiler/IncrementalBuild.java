@@ -32,6 +32,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -338,8 +339,11 @@ final class IncrementalBuild {
             throws IOException {
         this.sourceFiles = sourceFiles;
         this.saveSourceList = saveSourceList;
-        Path file = mojo.mojoStatusPath;
-        cacheFile = Files.createDirectories(file.getParent()).resolve(file.getFileName());
+        cacheFile = mojo.mojoStatusPath;
+        if (cacheFile != null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            Files.createDirectories(cacheFile.getParent());
+        }
         showCompilationChanges = mojo.showCompilationChanges;
         buildTime = System.currentTimeMillis();
         previousBuildTime = buildTime;
@@ -355,7 +359,10 @@ final class IncrementalBuild {
      * @throws IOException if an error occurred while deleting the file
      */
     public void deleteCache() throws IOException {
-        Files.deleteIfExists(cacheFile);
+        if (cacheFile != null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            Files.deleteIfExists(cacheFile);
+        }
     }
 
     /**
@@ -386,6 +393,10 @@ final class IncrementalBuild {
      */
     @SuppressWarnings({"checkstyle:InnerAssignment", "checkstyle:NeedBraces"})
     public void writeCache() throws IOException {
+        if (cacheFile == null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            return;
+        }
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(
                 cacheFile,
                 StandardOpenOption.WRITE,
@@ -432,6 +443,10 @@ final class IncrementalBuild {
      */
     @SuppressWarnings("checkstyle:NeedBraces")
     private Map<Path, SourceInfo> loadCache() throws IOException {
+        if (cacheFile == null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            return Collections.emptyMap(); // Not `Map.of()` because we need to allow `Map.remove(…)`.
+        }
         final Map<Path, SourceInfo> previousBuild;
         try (DataInputStream in = new DataInputStream(
                 new BufferedInputStream(Files.newInputStream(cacheFile, StandardOpenOption.READ)))) {

@@ -1713,15 +1713,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
             return;
         }
         final var commandLine = new StringBuilder("For trying to compile from the command-line, use:");
-        final var chdir =
-                Path.of(System.getProperty("user.dir")).relativize(basedir).toString();
-        if (!chdir.isEmpty()) {
-            boolean isWindows = (File.separatorChar == '\\');
-            commandLine
-                    .append(System.lineSeparator())
-                    .append("    ")
-                    .append(isWindows ? "chdir " : "cd ")
-                    .append(chdir);
+        Path dir = basedir;
+        if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
+            dir = Path.of(System.getProperty("user.dir")).relativize(dir);
+            String chdir = dir.toString();
+            if (!chdir.isEmpty()) {
+                boolean isWindows = (File.separatorChar == '\\');
+                commandLine
+                        .append(System.lineSeparator())
+                        .append("    ")
+                        .append(isWindows ? "chdir " : "cd ")
+                        .append(chdir);
+            }
         }
         commandLine.append(System.lineSeparator()).append("    ").append(executable != null ? executable : compilerId);
         Path pathForRelease = debugFilePath;
@@ -1806,12 +1809,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @return the given path, potentially relative to the base directory
      */
     private Path relativize(Path file) {
-        Path root = project.getRootDirectory();
-        if (root != null && file.startsWith(root)) {
-            try {
-                file = basedir.relativize(file);
-            } catch (IllegalArgumentException e) {
-                // Ignore, keep the absolute path.
+        final Path dir = basedir;
+        if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
+            Path root = project.getRootDirectory();
+            if (root != null && file.startsWith(root)) {
+                try {
+                    file = dir.relativize(file);
+                } catch (IllegalArgumentException e) {
+                    // Ignore, keep the absolute path.
+                }
             }
         }
         return file;
