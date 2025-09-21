@@ -24,7 +24,6 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
-import javax.tools.Tool;
 import javax.tools.ToolProvider;
 
 import java.io.BufferedReader;
@@ -214,6 +213,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private boolean targetOrReleaseSet;
 
     /**
+     * The highest version supported by the compiler, or {@code null} if not yet determined.
+     *
+     * @see #isVersionEqualOrNewer(String)
+     */
+    private SourceVersion supportedVersion;
+
+    /**
      * Whether to enable preview language features of the java compiler.
      * If {@code true}, then the {@code --enable-preview} option will be added to compiler arguments.
      *
@@ -290,12 +296,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </ul>
      *
      * The default value depends on the JDK used for the build.
-     * Prior to Java 22, the default was {@code full}, so annotation processing and compilation were executed without explicit configuration.
+     * Prior to Java 23, the default was {@code full},
+     * so annotation processing and compilation were executed without explicit configuration.
      *
      * For security reasons, starting with Java 23 no annotation processing is done if neither
-     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set, or either {@code only} or {@code full} is set.
+     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set,
+     * or either {@code only} or {@code full} is set.
      * So literally the default is {@code none}.
-     * It is recommended to always list the annotation processors you want to execute instead of using the {@code proc} configuration, to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
+     * It is recommended to always list the annotation processors you want to execute
+     * instead of using the {@code proc} configuration,
+     * to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
      *
      * @see #annotationProcessors
      * @see <a href="https://inside.java/2024/06/18/quality-heads-up/">Inside Java 2024-06-18 Quality Heads up</a>
@@ -662,7 +672,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     IncrementalBuild.Aspect.OPTIONS,
                     IncrementalBuild.Aspect.DEPENDENCIES,
                     IncrementalBuild.Aspect.SOURCES);
-            if (hasAnnotationProcessor()) {
+            if (hasAnnotationProcessor(false)) {
                 aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
                 aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
             }
@@ -1143,6 +1153,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @Override
     public void execute() throws MojoException {
         JavaCompiler compiler = compiler();
+        for (SourceVersion version : compiler.getSourceVersions()) {
+            if (supportedVersion == null || version.compareTo(supportedVersion) >= 0) {
+                supportedVersion = version;
+            }
+        }
         Options configuration = parseParameters(compiler);
         try {
             compile(compiler, configuration);
@@ -1404,7 +1419,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * Note: a previous version used as an heuristic way to detect if Reproducible Build was enabled. This check
          * has been removed because Reproducible Build are enabled by default in Maven now.
          */
-        if (!isVersionEqualOrNewer(compiler, "RELEASE_22")) {
+        if (!isVersionEqualOrNewer("RELEASE_22")) {
             Path moduleDescriptor = executor.outputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
             if (Files.isRegularFile(moduleDescriptor)) {
                 byte[] oridinal = Files.readAllBytes(moduleDescriptor);
@@ -1417,12 +1432,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Returns whether the given tool (usually the compiler) supports the given source version or newer versions.
+     * Returns whether the compiler supports the given source version or newer versions.
      * The specified source version shall be the name of one of the {@link SourceVersion} enumeration values.
-     * Note that a return value of {@code true} does not mean that the tool support that version,
-     * as it may be too old. This method is rather for checking whether a tool need to be patched.
+     * Note that a return value of {@code true} does not mean that the compiler supports that exact version,
+     * as it may supports only newer versions.
      */
-    private static boolean isVersionEqualOrNewer(Tool tool, String sourceVersion) {
+    private boolean isVersionEqualOrNewer(String sourceVersion) {
         final SourceVersion requested;
         try {
             requested = SourceVersion.valueOf(sourceVersion);
@@ -1430,7 +1445,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
             // The current tool is from a JDK older than the one for the requested source release.
             return false;
         }
-        return tool.getSourceVersions().stream().anyMatch((v) -> v.compareTo(requested) >= 0);
+        if (supportedVersion == null) {
+            supportedVersion = SourceVersion.latestSupported();
+        }
+        return supportedVersion.compareTo(requested) >= 0;
     }
 
     /**
@@ -1591,17 +1609,21 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * {@return whether an annotation processor seems to be present}.
      * This method is invoked if the user did not specified explicit incremental compilation options.
      *
+     * @param strict whether to be conservative if the current Java version is older than 23
+     *
      * @see #incrementalCompilation
      */
-    private boolean hasAnnotationProcessor() {
+    private boolean hasAnnotationProcessor(final boolean strict) {
         if ("none".equalsIgnoreCase(proc)) {
             return false;
         }
         if (proc == null || proc.isBlank()) {
+            if (strict && !isVersionEqualOrNewer("RELEASE_23")) {
+                return true; // Before Java 23, default value of `-proc` was `full`.
+            }
             /*
              * If the `proc` parameter was not specified, its default value depends on the Java version.
-             * It was "full" prior Java 21 and become "none if no other processor option" since Java 21.
-             * Since even the full" case may do nothing, always check if a processor is declared.
+             * It was "full" prior Java 23 and become "none if no other processor option" since Java 23.
              */
             if (annotationProcessors == null || annotationProcessors.length == 0) {
                 if (annotationProcessorPaths == null || annotationProcessorPaths.isEmpty()) {
@@ -1642,14 +1664,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * Do not create an empty directory if this plugin is not going to generate new source files.
          * However, if a directory already exists, use it because maybe its content was generated by
          * another plugin executed before the compiler plugin.
-         *
-         * TODO: "none" become the default starting with Java 23.
          */
-        if ("none".equalsIgnoreCase(proc) && Files.notExists(generatedSourcesDirectory)) {
-            return Set.of();
-        } else {
+        if (hasAnnotationProcessor(true)) {
             // `createDirectories(Path)` does nothing if the directory already exists.
             generatedSourcesDirectory = Files.createDirectories(generatedSourcesDirectory);
+        } else if (Files.notExists(generatedSourcesDirectory)) {
+            return Set.of();
         }
         ProjectScope scope = compileScope.projectScope();
         projectManager.addSourceRoot(project, scope, Language.JAVA_FAMILY, generatedSourcesDirectory.toAbsolutePath());
