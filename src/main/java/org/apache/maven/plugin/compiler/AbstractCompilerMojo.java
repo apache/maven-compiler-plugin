@@ -472,6 +472,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Whether to show messages about what the compiler is doing.
      * If {@code true}, then the {@code -verbose} option will be added to compiler arguments.
+     * In addition, files such as {@code target/javac.args} will be generated even on successful compilation.
      *
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac -verbose</a>
      */
@@ -1096,12 +1097,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * The debug file will contain the compiler options together with the list of source files to compile.
      *
      * <p>Note: debug logging should not be confused with the {@link #debug} flag.</p>
+     *
+     * @see CompilerMojo#debugFileName
+     * @see TestCompilerMojo#debugFileName
      */
     @Nullable
     protected abstract String getDebugFileName();
 
     /**
      * {@return the debug file name with its path, or null if none}.
+     * This method does not check if the debug file will be written, as the compilation result is not yet known.
      */
     final Path getDebugFilePath() {
         String filename = getDebugFileName();
@@ -1110,6 +1115,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
         }
         // Do not use `this.getOutputDirectory()` because it may be deeper in `classes/META-INF/versions/`.
         return Path.of(project.getBuild().getOutputDirectory()).resolveSibling(filename);
+    }
+
+    /**
+     * Returns whether the debug file should be written after a successful build.
+     * By default, debug files are written only if the build failed.
+     * However, some options can change this behavior.
+     */
+    final boolean shouldWriteDebugFile() {
+        return verbose || logger.isDebugEnabled();
     }
 
     /**
@@ -1352,7 +1366,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * In case of failure, or if debugging is enabled, dump the options to a file.
          * By default, the file will have the ".args" extension.
          */
-        if (!success || verbose || logger.isDebugEnabled()) {
+        if (!success || shouldWriteDebugFile()) {
             IOException suppressed = null;
             try {
                 writeDebugFile(executor, configuration, success);
