@@ -521,7 +521,7 @@ public class ToolExecutor {
      */
     private StandardJavaFileManager createFileManager(JavaCompiler compiler, boolean workaround) {
         StandardJavaFileManager fileManager = compiler.getStandardFileManager(listener, LOCALE, encoding);
-        if (workaround && WorkaroundForPatchModule.ENABLED) {
+        if (WorkaroundForPatchModule.ENABLED && workaround && !(compiler instanceof ForkedTool)) {
             fileManager = new WorkaroundForPatchModule(fileManager);
         }
         return fileManager;
