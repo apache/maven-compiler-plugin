@@ -63,6 +63,11 @@ class ForkedTool implements Tool, OptionChecker {
     private final Path debugFilePath;
 
     /**
+     * Whether to write the {@code target/javac.sh} file even on successful compilation.
+     */
+    private final boolean verbose;
+
+    /**
      * Creates a new forked compiler.
      *
      * @param  mojo  the MOJO from which to get the configuration
@@ -71,6 +76,7 @@ class ForkedTool implements Tool, OptionChecker {
         basedir = mojo.basedir;
         executable = Objects.requireNonNull(mojo.executable);
         debugFilePath = mojo.getDebugFilePath();
+        verbose = mojo.shouldWriteDebugFile();
     }
 
     /**
@@ -191,14 +197,24 @@ class ForkedTool implements Tool, OptionChecker {
     }
 
     /**
-     * Starts the process and wait for its completion.
-     * If a debug file has been specified, writes in that file the command which is about to be executed.
+     * Starts the process and waits for its completion.
+     * If the process fails and a debug file has been specified, writes the command in that file.
      *
      * @param builder builder of the process to start
      * @param out where to send additional compiler output
+     * @return the exit value of the process
      */
     private int start(ProcessBuilder builder, Appendable out) throws IOException {
-        if (debugFilePath != null) {
+        Process process = builder.start();
+        int status;
+        try {
+            status = process.waitFor();
+        } catch (InterruptedException e) {
+            out.append("Compilation has been interrupted by " + e).append(System.lineSeparator());
+            process.destroy();
+            status = 1;
+        }
+        if ((status != 0 || verbose) && debugFilePath != null) {
             // Use the path separator as a way to identify the operating system.
             final boolean windows = File.separatorChar == '\\';
             String filename = debugFilePath.getFileName().toString();
@@ -221,13 +237,6 @@ class ForkedTool implements Tool, OptionChecker {
                 debugFile.newLine();
             }
         }
-        Process process = builder.start();
-        try {
-            return process.waitFor();
-        } catch (InterruptedException e) {
-            out.append("Compilation has been interrupted by " + e).append(System.lineSeparator());
-            process.destroy();
-            return 1;
-        }
+        return status;
     }
 }

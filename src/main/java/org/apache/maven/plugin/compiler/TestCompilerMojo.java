@@ -225,6 +225,10 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * from the command-line by typing {@code javac @target/javac-test.args}.
      * The debug file will contain the compiler options together with the list of source files to compile.
      *
+     * <p>By default, this debug file is written only if the compilation of test code failed.
+     * The writing of the debug files can be forced by setting the {@link #verbose} flag to {@code true}
+     * or by specifying the {@code --verbose} option to Maven on the command-line.</p>
+     *
      * @see CompilerMojo#debugFileName
      * @since 3.10.0
      */
@@ -355,6 +359,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * {@return the file where to dump the command-line when debug is activated or when the compilation failed}.
+     *
+     * @see #debugFileName
      */
     @Nullable
     @Override
