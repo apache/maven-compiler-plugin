@@ -86,7 +86,7 @@ under the License.
 
     <asmVersion>9.8</asmVersion>
     <guiceVersion>6.0.0</guiceVersion>
-    <mockitoVersion>5.19.0</mockitoVersion>
+    <mockitoVersion>5.20.0</mockitoVersion>
     <eclipseCompilerVersion>3.42.0</eclipseCompilerVersion>
     <version.maven-plugin-tools-3.x>3.13.1</version.maven-plugin-tools-3.x>
     <version.maven-plugin-tools>4.0.0-beta-1</version.maven-plugin-tools>
