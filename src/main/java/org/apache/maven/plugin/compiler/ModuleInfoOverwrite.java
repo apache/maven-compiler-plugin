@@ -108,7 +108,7 @@ final class ModuleInfoOverwrite implements Runnable {
      * to temporarily remove {@code module-info.class} from the test directory
      * (otherwise {@code javac} does not seem to consider that we are patching a module).
      *
-     * @throws IOException if an error occurred while renaming the file.
+     * @throws IOException if an error occurred while renaming the file
      */
     private void substitute() throws IOException {
         Files.move(testSourceFile, savedSourceFile);
@@ -123,7 +123,7 @@ final class ModuleInfoOverwrite implements Runnable {
     /**
      * Restores the {@code module-info} file.
      *
-     * @throws IOException if an error occurred while renaming the file.
+     * @throws IOException if an error occurred while renaming the file
      */
     void restore() throws IOException {
         if (shutdownHook != null) {

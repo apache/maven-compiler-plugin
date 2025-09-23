@@ -54,8 +54,8 @@ final class ModuleDirectoryRemover implements Closeable {
     /**
      * Temporarily renames the given output directory for matching the layout of {@code javac} output.
      *
-     * @param  outputDirectory  the output directory (must exist)
-     * @param  moduleName       the name of the module
+     * @param outputDirectory  the output directory (must exist)
+     * @param moduleName       the name of the module
      * @throws IOException if an error occurred while renaming the output directory
      */
     private ModuleDirectoryRemover(Path outputDirectory, String moduleName) throws IOException {
@@ -68,8 +68,8 @@ final class ModuleDirectoryRemover implements Closeable {
     /**
      * Temporarily renames the given output directory for matching the layout of {@code javac} output.
      *
-     * @param  outputDirectory  the output directory (must exist)
-     * @param  moduleName       the name of the module, or {@code null} if none
+     * @param outputDirectory  the output directory (must exist)
+     * @param moduleName       the name of the module, or {@code null} if none
      * @return a handler for restoring the directory to its original name, or {@code null} if there is no renaming
      * @throws IOException if an error occurred while renaming the output directory
      */

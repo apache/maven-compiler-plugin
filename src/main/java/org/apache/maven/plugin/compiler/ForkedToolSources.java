@@ -55,7 +55,6 @@ import org.apache.maven.api.PathType;
  * Source files for a call to {@code javac} or {@code javadoc} command to be executed as a separated process.
  *
  * @author Martin Desruisseaux
- *
  * @see ForkedCompiler
  */
 final class ForkedToolSources implements StandardJavaFileManager {

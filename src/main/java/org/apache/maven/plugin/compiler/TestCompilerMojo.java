@@ -115,7 +115,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     protected String testTarget;
 
     /**
-     * the {@code --release} argument for the test Java compiler
+     * The {@code --release} argument for the test Java compiler.
      *
      * @see CompilerMojo#release
      * @since 3.6
@@ -137,9 +137,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * The arguments to be passed to test compiler.
      *
-     * @deprecated Replaced by {@link #testCompilerArgs} for consistency with the main phase.
-     *
      * @since 2.1
+     * @deprecated replaced by {@link #testCompilerArgs} for consistency with the main phase
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -150,10 +149,9 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * If this parameter is specified, it replaces {@link #compilerArgument}.
      * Otherwise, the {@code compilerArgument} parameter is used.
      *
-     * @deprecated Use {@link #testCompilerArgs} instead.
-     *
      * @see CompilerMojo#compilerArgument
      * @since 2.1
+     * @deprecated use {@link #testCompilerArgs} instead
      */
     @Parameter
     @Deprecated(since = "4.0.0")
@@ -186,8 +184,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * Dependencies are also placed on the class-path, unless their type is {@code module-jar}.
      *
      * @since 3.11
-     *
-     * @deprecated Use {@code "claspath-jar"} dependency type instead, and avoid {@code module-info.java} in tests.
+     * @deprecated use {@code "claspath-jar"} dependency type instead, and avoid {@code module-info.java} in tests
      */
     @Deprecated(since = "4.0.0")
     @Parameter(defaultValue = "true")
@@ -240,7 +237,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * If {@link #skip} is {@code true}, then this method logs a message and does nothing else.
      * Otherwise, this method executes the steps described in the method of the parent class.
      *
-     * @throws MojoException if the compiler cannot be run.
+     * @throws MojoException if the compiler cannot be run
      */
     @Override
     public void execute() throws MojoException {
@@ -254,7 +251,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * Parses the parameters declared in the <abbr>MOJO</abbr>.
      *
-     * @param  compiler  the tools to use for verifying the validity of options
+     * @param compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     @Override
@@ -414,9 +411,9 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * Creates a new task for compiling the test classes.
      *
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
-     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @return the task to execute for compiling the tests using the configuration in this <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      */
     @Override
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {

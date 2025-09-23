@@ -103,7 +103,7 @@ final class SourcesForRelease implements Closeable {
      * Adds the given source file to this collection of source files.
      * The value of {@code source.directory.release}, if not null, must be equal to {@link #release}.
      *
-     * @param source the source file to add.
+     * @param source the source file to add
      */
     void add(SourceFile source) {
         var directory = source.directory;

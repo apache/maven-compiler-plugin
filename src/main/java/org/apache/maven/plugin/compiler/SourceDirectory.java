@@ -165,7 +165,7 @@ final class SourceDirectory {
      * @param moduleName name of the module for which source directories are provided, or {@code null} if none
      * @param release Java release for which source directories are provided, or {@code null} for the default release
      * @param outputDirectory the directory where to store the compilation results
-     * @param outputFileKind Kind of output files in the output directory (usually {@ codeCLASS})
+     * @param outputFileKind kind of output files in the output directory (usually {@ codeCLASS})
      */
     @SuppressWarnings("checkstyle:ParameterNumber")
     private SourceDirectory(

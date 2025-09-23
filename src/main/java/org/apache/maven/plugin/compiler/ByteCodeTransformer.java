@@ -54,7 +54,6 @@ final class ByteCodeTransformer {
      *
      * @param originalBytecode the byte code to patch
      * @return the patched byte code, or {@code null} if no change is needed
-     *
      * @see <a href="https://issues.apache.org/jira/browse/MCOMPILER-542">MCOMPILER-542</a>
      * @see <a href="https://bugs.openjdk.org/browse/JDK-8318913">JDK-8318913</a>
      * @see #MODULE_VERSION_FIX

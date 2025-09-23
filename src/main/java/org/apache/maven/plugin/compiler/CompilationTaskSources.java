@@ -37,7 +37,7 @@ class CompilationTaskSources {
     /**
      * Creates a new compilation task.
      *
-     * @param files the files to compile.
+     * @param files the files to compile
      */
     CompilationTaskSources(List<Path> files) {
         this.files = files;
@@ -47,9 +47,9 @@ class CompilationTaskSources {
      * Executes the compilation task. Subclasses can override this method is they need to perform
      * pre-compilation or post-compilation tasks.
      *
-     * @param  task the compilation task
-     * @return whether the compilation was successful.
-     * @throws IOException if an initialization or cleaner task was required and failed.
+     * @param task the compilation task
+     * @return whether the compilation was successful
+     * @throws IOException if an initialization or cleaner task was required and failed
      */
     boolean compile(JavaCompiler.CompilationTask task) throws IOException {
         return task.call();

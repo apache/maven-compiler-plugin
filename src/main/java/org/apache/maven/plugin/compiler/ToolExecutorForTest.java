@@ -115,7 +115,7 @@ class ToolExecutorForTest extends ToolExecutor {
      * We keep that directory when the project is configured with the new {@code <source>} element,
      * but have to remove it for compatibility reason if the project is compiled in the old way.
      *
-     * @deprecated Exists only for compatibility with the Maven 3 way to do a modular project.
+     * @deprecated exists only for compatibility with the Maven 3 way to do a modular project.
      * Is likely to cause confusion, for example with incremental builds.
      * New projects should use the {@code <source>} elements instead.
      */
@@ -128,8 +128,8 @@ class ToolExecutorForTest extends ToolExecutor {
      *
      * @param mojo the <abbr>MOJO</abbr> from which to take a snapshot
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
-     * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
+     * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      */
     @SuppressWarnings("deprecation")
     ToolExecutorForTest(TestCompilerMojo mojo, DiagnosticListener<? super JavaFileObject> listener) throws IOException {
@@ -208,7 +208,7 @@ class ToolExecutorForTest extends ToolExecutor {
      * This method reads the module descriptor when first needed and caches the result.
      * This used if the user did not specified an explicit {@code <module>} element in the sources.
      *
-     * @throws IOException if the module descriptor cannot be read.
+     * @throws IOException if the module descriptor cannot be read
      */
     private String getMainModuleName() throws IOException {
         if (moduleName == null) {

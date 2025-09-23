@@ -23,7 +23,7 @@ import java.util.Objects;
 /**
  * Simple representation of a Maven dependency exclusion.
  *
- * @deprecated Used for {@link AbstractCompilerMojo#annotationProcessorPaths}, which is deprecated.
+ * @deprecated used for {@link AbstractCompilerMojo#annotationProcessorPaths}, which is deprecated
  */
 @Deprecated(since = "4.0.0")
 public final class DependencyExclusion {

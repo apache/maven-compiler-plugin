@@ -36,8 +36,7 @@ import org.apache.maven.api.services.DependencyCoordinatesFactoryRequest;
  *
  * @author Andreas Gudian
  * @since 3.4
- *
- * @deprecated Used for {@link AbstractCompilerMojo#annotationProcessorPaths}, which is deprecated.
+ * @deprecated used for {@link AbstractCompilerMojo#annotationProcessorPaths}, which is deprecated
  */
 @Deprecated(since = "4.0.0")
 public final class DependencyCoordinate {
