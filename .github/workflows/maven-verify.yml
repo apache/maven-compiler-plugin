@@ -29,3 +29,7 @@ jobs:
       jdk-distribution-matrix: '[ "temurin", "zulu", "microsoft", "adopt-openj9" ]'
       maven4-build: true
       maven4-version: '4.0.0-rc-4' # the same as used in project
+      matrix-exclude: '[
+        { "jdk": "25", "distribution": "adopt-openj9" },
+        { "jdk": "25", "distribution": "microsoft"}     
+      ]'
