@@ -36,6 +36,9 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <proc>none</proc>
+          <annotationProcessors>
+            <annotationProcessor>foo.MyProcessor</annotationProcessor>
+          </annotationProcessors>
         </configuration>
       </plugin>
     </plugins>
