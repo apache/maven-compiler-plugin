@@ -98,6 +98,7 @@ under the License.
 
     <!-- TODO remove with next parent -->
     <maven4x.site.path>plugins-archives/${project.artifactId}-LATEST-4.x</maven4x.site.path>
+    <version.maven-invoker-plugin>3.9.1</version.maven-invoker-plugin>
     <!-- 4.x publish -->
     <maven.site.path>${maven4x.site.path}</maven.site.path>
   </properties>
