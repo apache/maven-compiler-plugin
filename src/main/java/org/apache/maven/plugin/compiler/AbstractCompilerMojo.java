@@ -40,6 +40,7 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -1311,6 +1312,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws IOException if an input file cannot be read
      * @throws MojoException if the compilation failed
      */
+    @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
         if (!executor.applyIncrementalBuild(this, configuration)) {
@@ -1353,7 +1355,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         if (!success || verbose || logger.isDebugEnabled()) {
             IOException suppressed = null;
             try {
-                writeDebugFile(executor, configuration);
+                writeDebugFile(executor, configuration, success);
                 if (success && tipForCommandLineCompilation != null) {
                     logger.debug(tipForCommandLineCompilation);
                     tipForCommandLineCompilation = null;
@@ -1536,6 +1538,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Deprecated(since = "4.0.0")
+    @SuppressWarnings("UseSpecificCatch")
     final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
         List<DependencyCoordinate> dependencies = annotationProcessorPaths;
         if (dependencies != null && !dependencies.isEmpty()) {
@@ -1699,11 +1702,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param executor the executor that compiled the classes
      * @param configuration options provided to the compiler
+     * @param showBaseVersion whether the tip shown to user suggests the base Java release instead of the last one
      * @throws IOException if an error occurred while writing the debug file
      */
-    private void writeDebugFile(final ToolExecutor executor, final Options configuration) throws IOException {
-        final Path path = getDebugFilePath();
-        if (path == null) {
+    private void writeDebugFile(final ToolExecutor executor, final Options configuration, final boolean showBaseVersion)
+            throws IOException {
+        final Path debugFilePath = getDebugFilePath();
+        if (debugFilePath == null) {
             logger.warn("The <debugFileName> parameter should not be empty.");
             return;
         }
@@ -1719,40 +1724,77 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     .append(chdir);
         }
         commandLine.append(System.lineSeparator()).append("    ").append(executable != null ? executable : compilerId);
-        try (BufferedWriter out = Files.newBufferedWriter(path)) {
-            configuration.format(commandLine, out);
-            for (Map.Entry<PathType, List<Path>> entry : executor.dependencies.entrySet()) {
-                List<Path> files = entry.getValue();
-                files = files.stream().map(this::relativize).toList();
-                String separator = "";
-                for (String element : entry.getKey().option(files)) {
-                    out.write(separator);
-                    out.write(element);
-                    separator = " ";
+        Path pathForRelease = debugFilePath;
+        /*
+         * The following loop will iterate over all groups of source files compiled for the same Java release,
+         * starting with the base release. If the project is not a multi-release project, it iterates only once.
+         * If the compilation failed, the loop will stop after the first Java release for which an error occurred.
+         */
+        final int count = executor.sourcesForDebugFile.size();
+        final int indexToShow = showBaseVersion ? 0 : count - 1;
+        for (int i = 0; i < count; i++) {
+            final SourcesForRelease sources = executor.sourcesForDebugFile.get(i);
+            if (i != 0) {
+                String version = sources.outputForRelease.getFileName().toString();
+                String filename = debugFilePath.getFileName().toString();
+                int s = filename.lastIndexOf('.');
+                if (s >= 0) {
+                    filename = filename.substring(0, s) + '-' + version + filename.substring(s);
+                } else {
+                    filename = filename + '-' + version;
                 }
-                out.newLine();
+                pathForRelease = debugFilePath.resolveSibling(filename);
             }
-            out.write("-d \"");
-            out.write(relativize(getOutputDirectory()).toString());
-            out.write('"');
-            out.newLine();
-            try {
-                executor.getSourceFiles().forEach((file) -> {
-                    try {
-                        out.write('"');
-                        out.write(relativize(file).toString());
-                        out.write('"');
-                        out.newLine();
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
+            /*
+             * Write the `javac.args` or `javac-<version>.args` file where `<version>` is the targeted Java release.
+             * The `-J` options need to be on the command line rather than in the file, and therefore can be written
+             * only once.
+             */
+            try (BufferedWriter out = Files.newBufferedWriter(pathForRelease)) {
+                configuration.setRelease(sources.getReleaseString());
+                configuration.format((i == indexToShow) ? commandLine : null, out);
+                for (Map.Entry<PathType, List<Path>> entry : sources.dependencySnapshot.entrySet()) {
+                    writeOption(out, entry.getKey(), entry.getValue());
+                }
+                for (Map.Entry<String, Set<Path>> root : sources.roots.entrySet()) {
+                    String moduleName = root.getKey();
+                    writeOption(out, SourcePathType.valueOf(moduleName), root.getValue());
+                }
+                out.write("-d \"");
+                out.write(relativize(sources.outputForRelease).toString());
+                out.write('"');
+                out.newLine();
+                for (final Path file : sources.files) {
+                    out.write('"');
+                    out.write(relativize(file).toString());
+                    out.write('"');
+                    out.newLine();
+                }
             }
         }
-        tipForCommandLineCompilation =
-                commandLine.append(" @").append(relativize(path)).toString();
+        Path path = relativize(showBaseVersion ? debugFilePath : pathForRelease);
+        tipForCommandLineCompilation = commandLine.append(" @").append(path).toString();
+    }
+
+    /**
+     * Writes the paths for the given Java compiler option.
+     *
+     * @param out where to write
+     * @param type the type of path to write as a compiler option
+     * @param files the paths associated to the specified option
+     * @throws IOException in an error occurred while writing to the output
+     */
+    private void writeOption(BufferedWriter out, PathType type, Collection<Path> files) throws IOException {
+        if (!files.isEmpty()) {
+            files = files.stream().map(this::relativize).toList();
+            String separator = "";
+            for (String element : type.option(files)) {
+                out.write(separator);
+                out.write(element);
+                separator = " ";
+            }
+            out.newLine();
+        }
     }
 
     /**

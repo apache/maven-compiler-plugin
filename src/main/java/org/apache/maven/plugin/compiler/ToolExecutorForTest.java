@@ -199,7 +199,7 @@ class ToolExecutorForTest extends ToolExecutor {
                     }
                 }
             }
-            dependencies(pathType).add(0, mainOutputDirectory);
+            prependDependency(pathType, mainOutputDirectory);
         }
     }
 

@@ -387,10 +387,12 @@ public final class Options {
                 continue;
             }
             if (option.startsWith("-J")) {
-                if (commandLine.length() != 0) {
-                    commandLine.append(' ');
+                if (commandLine != null) {
+                    if (commandLine.length() != 0) {
+                        commandLine.append(' ');
+                    }
+                    commandLine.append(option);
                 }
-                commandLine.append(option);
                 continue;
             }
             if (hasOptions) {
