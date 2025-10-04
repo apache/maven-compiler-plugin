@@ -79,9 +79,9 @@ or sets an environment variable, so that the build remains portable.
     [...]
     <profile>
       <id>compiler</id>
-        <properties>
-          <JAVA_11_HOME>/usr/lib/jvm/java-11-openjdkk</JAVA_11_HOME>
-        </properties>
+      <properties>
+        <JAVA_11_HOME>/usr/lib/jvm/java-11-openjdkk</JAVA_11_HOME>
+      </properties>
     </profile>
   </profiles>
   [...]
