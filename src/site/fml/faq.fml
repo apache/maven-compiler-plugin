@@ -34,8 +34,7 @@ under the License.
           in the build of your project for source generation (in that way the sources are generated each time).
         </p>
         <p>For more information about Modello, please visit the
-          <a href="https://codehaus-plexus.github.io/modello/">Modello website</a>
-          .
+          <a href="https://codehaus-plexus.github.io/modello/">Modello website</a>.
         </p>
       </answer>
     </faq>
