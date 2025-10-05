@@ -30,6 +30,7 @@ jobs:
       jdk-distribution-matrix: '[ "temurin", "zulu", "microsoft", "adopt-openj9" ]'
       jdk-matrix: '[ "8", "21", "25" ]'
       maven4-enabled: true
+      verify-fail-fast: false
       matrix-exclude: '[
           { "jdk": "8", "distribution": "microsoft" },
           { "jdk": "8", "distribution": "temurin", "os": "macos-latest" },
