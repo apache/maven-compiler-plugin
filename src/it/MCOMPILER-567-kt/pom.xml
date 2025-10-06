@@ -27,6 +27,10 @@
   <packaging>jar</packaging>
   <version>1.0-SNAPSHOT</version>
 
+  <properties>
+    <kotlin.compiler.daemon>false</kotlin.compiler.daemon>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
