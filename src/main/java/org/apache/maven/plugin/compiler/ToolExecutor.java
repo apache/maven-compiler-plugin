@@ -664,7 +664,8 @@ public class ToolExecutor {
                     Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(c.files);
                     StandardJavaFileManager workaround = fileManager;
                     boolean workaroundNeedsClose = false;
-                    if (WorkaroundForPatchModule.ENABLED) { // Test alone for making clear everything inside is a hack.
+                    // Check flag separately to clearly indicate this entire block is a workaround hack.
+                    if (WorkaroundForPatchModule.ENABLED) {
                         if (workaround instanceof WorkaroundForPatchModule wp) {
                             workaround = wp.getFileManagerIfUsable();
                             if (workaround == null) {

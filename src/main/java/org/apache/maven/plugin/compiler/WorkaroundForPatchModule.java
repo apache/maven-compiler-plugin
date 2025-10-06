@@ -41,7 +41,7 @@ import org.apache.maven.api.JavaPathType;
  * Workaround for a {@code javax.tools} method which seems not yet supported on all compilers.
  * At least with OpenJDK 24, an {@link UnsupportedOperationException} may occur during the call to
  * {@code fileManager.setLocationForModule(StandardLocation.PATCH_MODULE_PATH, moduleName, paths)}.
- * The workaround is to format the paths in a {@code --path-module} option instead.
+ * The workaround is to format the paths in a {@code --patch-module} option instead.
  * The problem is that we can specify this option only once per file manager instance.
  *
  * <p>We may remove this workaround in a future version of the Maven Compiler Plugin

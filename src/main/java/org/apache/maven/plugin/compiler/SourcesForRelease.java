@@ -83,7 +83,7 @@ final class SourcesForRelease implements Closeable {
     Map<PathType, List<Path>> dependencySnapshot;
 
     /**
-     * The output directory for the release. This is either base base output directory or a sub-directory
+     * The output directory for the release. This is either the base output directory or a sub-directory
      * in {@code META-INF/versions/}. This field is not used by this class, but made available for making
      * easier to write the {@code target/javac.args} debug file.
      */
