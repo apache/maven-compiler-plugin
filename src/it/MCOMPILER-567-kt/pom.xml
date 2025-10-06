@@ -25,6 +25,10 @@
   <packaging>jar</packaging>
   <name>MCOMPILER-567-kt</name>
 
+  <properties>
+    <kotlin.compiler.daemon>false</kotlin.compiler.daemon>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
