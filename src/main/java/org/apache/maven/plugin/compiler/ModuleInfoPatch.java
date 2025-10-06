@@ -568,7 +568,7 @@ final class ModuleInfoPatch {
      * otherwise the runtime dependencies derived from {@code TEST-MODULE-PaTH} may not be correct.
      *
      * @param otherModule the other module to patch, or {@code null} or empty if none
-     * @return patch for the other module, or {@code nuoo} if {@code otherModule} was null or empty
+     * @return patch for the other module, or {@code null} if {@code otherModule} was null or empty
      */
     public ModuleInfoPatch patchWithSameReads(String otherModule) {
         if (otherModule == null || otherModule.isBlank()) {
