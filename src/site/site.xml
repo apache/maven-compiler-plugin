@@ -32,6 +32,12 @@ under the License.
       <item name="License" href="https://www.apache.org/licenses/"/>
       <item name="Download" href="download.html"/>
     </menu>
+    <menu name="Configuration">
+      <item name="Multi-source project" href="sources.html"/>
+      <item name="Multi-release project" href="multirelease.html"/>
+      <item name="Multi-module projects" href="modules.html"/>
+      <item name="Module-info patch for tests" href="module-info-patch.html"/>
+    </menu>
     <menu name="Examples">
       <item name="Compile Using A Different JDK" href="examples/compile-using-different-jdk.html"/>
       <item name="Compile Using the --release javac Option" href="examples/set-compiler-release.html"/>
@@ -39,7 +45,6 @@ under the License.
       <item name="Pass Compiler Arguments" href="examples/pass-compiler-arguments.html"/>
       <item name="Non-javac compilerIds" href="non-javac-compilers.html"/>
       <item name="Older projects with module-info" href="examples/module-info.html"/>
-      <item name="MultiRelease" href="multirelease.html"/>
       <item name="Perform annotation processing" href="examples/annotation-processor.html"/>
     </menu>
   </body>

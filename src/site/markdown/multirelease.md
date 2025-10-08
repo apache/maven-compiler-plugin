@@ -22,7 +22,7 @@ under the License.
 With [JEP-238](http://openjdk.java.net/jeps/238) the support of multirelease JARs was introduced.
 This means that you can have Java version dependent classes inside one JAR.
 Based on the runtime, it will pick up the best matching version of a class.
-The files of a multi-release project are organized like below:
+The output files of a multi-release project are organized like below:
 
 ```
 .
@@ -112,7 +112,7 @@ These directories are declared together with the Java release like below:
     <source>
       <scope>test</scope>
       <directory>src/test/java</directory>
-      <targetVersion>17</targetVersion>
+      <targetVersion>21</targetVersion>     <!-- Can often be omitted for tests -->
   </sources>
   [...]
 </build>
@@ -121,4 +121,4 @@ These directories are declared together with the Java release like below:
 The Maven Compiler plugin will take care of invoking `javac` once for each target version in increasing version order,
 with the `--release` option set to the given `<targetVersion>` value, and
 with the classes of previous versions added to the class-path or module-path with most recent versions having precedence.
-The compiled classes are written in the appropriate `target/classes` or `target/classes/META-INF/versions` directory.
+The compiled classes are written in the `target/classes` and `target/classes/META-INF/versions` directories.
