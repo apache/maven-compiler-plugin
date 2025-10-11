@@ -201,7 +201,10 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * <p>This field exists in this class only for transferring this information
      * to {@link ToolExecutorForTest#hasTestModuleInfo}, which is the class that
      * needs this information.</p>
+     *
+     * @deprecated Avoid {@code module-info.java} in tests.
      */
+    @Deprecated(since = "4.0.0")
     transient boolean hasTestModuleInfo;
 
     /**
@@ -394,15 +397,15 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             }
         }
         if (hasTestModuleInfo) {
-            MessageBuilder message = messageBuilderFactory.builder();
-            message.a("Overwriting the ")
-                    .warning(MODULE_INFO + JAVA_FILE_SUFFIX)
-                    .a(" file in the test directory is deprecated. Use ")
-                    .info("--add-reads")
-                    .a(", ")
-                    .info("--add-modules")
-                    .a(" and related options instead.");
-            logger.warn(message.toString());
+            if (AbstractCompilerMojo.PREVIEW_ENABLED) {
+                MessageBuilder message = messageBuilderFactory.builder();
+                message.a("Overwriting the ")
+                        .warning(MODULE_INFO + JAVA_FILE_SUFFIX)
+                        .a(" file in the test directory is deprecated. Use ")
+                        .info(ModuleInfoPatch.FILENAME)
+                        .a(" instead.");
+                logger.warn(message.toString());
+            }
             if (SUPPORT_LEGACY) {
                 return useModulePath;
             }

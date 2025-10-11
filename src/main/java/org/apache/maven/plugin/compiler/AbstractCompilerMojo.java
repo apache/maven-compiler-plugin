@@ -99,6 +99,14 @@ import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
  */
 public abstract class AbstractCompilerMojo implements Mojo {
     /**
+     * Whether feature previews are enabled.
+     * To enable the preview, the following option must be provided to Maven:
+     *
+     * <pre>-Dmaven.compiler.preview=true</pre>
+     */
+    static final boolean PREVIEW_ENABLED = Boolean.getBoolean("maven.compiler.preview");
+
+    /**
      * Whether to support legacy (and often deprecated) behavior.
      * This is currently hard-coded to {@code true} for compatibility reason.
      * TODO: consider making configurable.
@@ -1311,6 +1319,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws IOException if an input file cannot be read
      * @throws MojoException if the compilation failed
      */
+    @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
         if (!executor.applyIncrementalBuild(this, configuration)) {
@@ -1536,6 +1545,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Deprecated(since = "4.0.0")
+    @SuppressWarnings("UseSpecificCatch")
     final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
         List<DependencyCoordinate> dependencies = annotationProcessorPaths;
         if (dependencies != null && !dependencies.isEmpty()) {
