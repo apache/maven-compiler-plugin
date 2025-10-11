@@ -622,6 +622,10 @@ public class ToolExecutor {
                              */
                             List<Path> classpath = prependDependency(JavaPathType.CLASSES, latestOutputDirectory);
                             fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, classpath);
+                        } else if (!AbstractCompilerMojo.PREVIEW_ENABLED) {
+                            throw new CompilationFailureException("Multi-release in a modular project "
+                                    + "is a preview feature. For enabling this feature, add the "
+                                    + "-Dmaven.compiler.preview=true option to the mvn command.");
                         } else {
                             /*
                              * For a modular project, this block can be executed an arbitrary number of times
