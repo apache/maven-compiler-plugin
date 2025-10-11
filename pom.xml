@@ -103,6 +103,12 @@ under the License.
     <version.maven-invoker-plugin>3.9.1</version.maven-invoker-plugin>
     <!-- 4.x publish -->
     <maven.site.path>${maven4x.site.path}</maven.site.path>
+
+    <maven.compiler.source />
+    <maven.compiler.target />
+    <maven.compiler.release>17</maven.compiler.release>
+    <minimalJavaBuildVersion>${maven.compiler.release}</minimalJavaBuildVersion>
+
   </properties>
 
   <dependencies>
@@ -215,6 +221,33 @@ under the License.
               <exclude>unit/**</exclude>
             </excludes>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <configuration>
+            <targetJdk>${maven.compiler.release}</targetJdk>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <executions>
+            <execution>
+              <id>enforce-bytecode-version</id>
+              <goals>
+                <goal>enforce</goal>
+              </goals>
+              <configuration>
+                <rules>
+                  <enforceBytecodeVersion>
+                    <maxJdkVersion>${maven.compiler.release}</maxJdkVersion>
+                  </enforceBytecodeVersion>
+                </rules>
+                <fail>true</fail>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
       </plugins>
     </pluginManagement>
