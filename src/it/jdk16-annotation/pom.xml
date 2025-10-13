@@ -52,4 +52,30 @@ under the License.
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <profiles>
+    <profile>
+      <id>jdk21</id>
+      <activation>
+        <jdk>[21,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>@project.version@</version>
+            <executions>
+              <execution>
+                <id>default-testCompile</id>
+                <configuration>
+                  <proc>full</proc>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
