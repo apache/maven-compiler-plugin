@@ -397,15 +397,13 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             }
         }
         if (hasTestModuleInfo) {
-            if (AbstractCompilerMojo.PREVIEW_ENABLED) {
-                MessageBuilder message = messageBuilderFactory.builder();
-                message.a("Overwriting the ")
-                        .warning(MODULE_INFO + JAVA_FILE_SUFFIX)
-                        .a(" file in the test directory is deprecated. Use ")
-                        .info(ModuleInfoPatch.FILENAME)
-                        .a(" instead.");
-                logger.warn(message.toString());
-            }
+            MessageBuilder message = messageBuilderFactory.builder();
+            message.a("Overwriting the ")
+                    .warning(MODULE_INFO + JAVA_FILE_SUFFIX)
+                    .a(" file in the test directory is deprecated. Use ")
+                    .info(ModuleInfoPatch.FILENAME)
+                    .a(" instead.");
+            logger.warn(message.toString());
             if (SUPPORT_LEGACY) {
                 return useModulePath;
             }

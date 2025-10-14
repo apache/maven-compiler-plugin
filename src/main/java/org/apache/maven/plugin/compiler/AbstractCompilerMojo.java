@@ -99,14 +99,6 @@ import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
  */
 public abstract class AbstractCompilerMojo implements Mojo {
     /**
-     * Whether feature previews are enabled.
-     * To enable the preview, the following option must be provided to Maven:
-     *
-     * <pre>-Dmaven.compiler.preview=true</pre>
-     */
-    static final boolean PREVIEW_ENABLED = Boolean.getBoolean("maven.compiler.preview");
-
-    /**
      * Whether to support legacy (and often deprecated) behavior.
      * This is currently hard-coded to {@code true} for compatibility reason.
      * TODO: consider making configurable.

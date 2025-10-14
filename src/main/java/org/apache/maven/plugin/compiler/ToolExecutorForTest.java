@@ -287,10 +287,6 @@ class ToolExecutorForTest extends ToolExecutor {
                 defaultInfo = new ModuleInfoPatch(module, info);
                 defaultInfo.setToDefaults();
                 info = defaultInfo;
-            } else if (!AbstractCompilerMojo.PREVIEW_ENABLED) {
-                throw new ModuleInfoPatchException("The parsing of \"" + ModuleInfoPatch.FILENAME + "\" files "
-                        + "is a preview feature. For enabling this feature, the `-Dmaven.compiler.preview=true` "
-                        + "option must be given to the `mvn` command.");
             } else {
                 info = new ModuleInfoPatch(getMainModuleName(), info);
                 try (BufferedReader reader = Files.newBufferedReader(file)) {
