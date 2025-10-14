@@ -420,7 +420,7 @@ public class ToolExecutor {
                 }
             } else if (key instanceof JavaPathType.Modular type) {
                 /*
-                 * Source code of test classes, handled as a "dependency".
+                 * Main code to be tested by the test classes. This is handled as a "dependency".
                  * Placed on: --patch-module-path.
                  */
                 Optional<JavaFileManager.Location> location = type.rawType().location();
