@@ -20,10 +20,10 @@
 <project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
   <modelVersion>4.1.0</modelVersion>
   <groupId>org.apache.maven.plugins</groupId>
-  <artifactId>multirelease-on-classpath</artifactId>
+  <artifactId>multirelease-with-modules</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
-  <name>Multirelease in Maven 4</name>
+  <name>Multirelease with modules</name>
 
   <build>
     <plugins>
@@ -41,16 +41,24 @@
 
     <sources>
       <source>
-        <directory>src/main/java</directory>
+        <module>foo.bar</module>
+        <directory>src/foo.bar/main/java</directory>
         <targetVersion>15</targetVersion>
       </source>
       <source>
-        <directory>src/main/java_16</directory>
+        <module>foo.bar</module>
+        <directory>src/foo.bar/main/java_16</directory>
         <targetVersion>16</targetVersion>
       </source>
       <source>
-        <directory>src/main/java_17</directory>
-        <targetVersion>17</targetVersion>
+        <module>foo.bar.more</module>
+        <directory>src/foo.bar.more/main/java</directory>
+        <targetVersion>15</targetVersion>
+      </source>
+      <source>
+        <module>foo.bar.more</module>
+        <directory>src/foo.bar.more/main/java_16</directory>
+        <targetVersion>16</targetVersion>
       </source>
     </sources>
   </build>
