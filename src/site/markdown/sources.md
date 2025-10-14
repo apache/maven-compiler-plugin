@@ -179,7 +179,9 @@ src
          └─ org/foo/bar/**/*Test.java
 ```
 
+
 ### Current support
+
 As of October 2025, only the Maven Compiler Plugin supports module source hierarchy.
 The following plugins need to be updated:
 

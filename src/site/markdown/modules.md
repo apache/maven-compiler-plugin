@@ -77,7 +77,9 @@ then a `module-info-patch.maven` file (syntax described below) can be placed in 
 This Maven file is preferred to a `module-info.java` file in the test directory because the Maven file
 *completes* the main `module-info.class` (using compiler arguments) instead of *replacing* it.
 
+
 ### Limitation
+
 When using the package hierarchy, problems may occur if the module name is a single name without `.` separator
 (for example, `foo` or `bar` but not `foo.bar`) and that name is identical to a package name.
 In such case, the hack implemented in the Maven compiler plugin for Maven 3 compatibility

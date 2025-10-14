@@ -50,6 +50,7 @@ but means modules having `test` and `test-runtime` Maven's scope at execution ti
 
 
 ## Syntax
+
 The syntax is:
 
 * The same styles of comment as Java (`/*` … `*/` and `//`) are accepted.
@@ -62,7 +63,9 @@ Note that they are options where the values are package or module names, not pat
 Options with path values (`--module-path`, `--module-source-path`, `--patch-module`, _etc._)
 continue to be derived from the dependencies declared in the POM.
 
+
 ### Options applying to all modules
+
 All options declared in a `module-info-patch.maven` file apply only to the module declared after the `patch-module` token,
 except the `--add-modules` and `--limit-modules` options.
 These two options apply to all modules in a multi-modules project,
@@ -74,6 +77,7 @@ then the effective value is the union of the values declared in each file, witho
 
 
 ### Special option values
+
 The following option values have special meanings:
 
 * `SUBPROJECT-MODULES`: all other modules in the current Maven (sub)project.
@@ -91,6 +95,7 @@ The following option values have special meanings:
 
 
 ## Example
+
 Below is an example of a `module-info-patch.maven` file content
 for modifying the `module-info` of a module named `org.foo.bar`:
 
@@ -113,7 +118,9 @@ patch-module org.foo.bar {                // Put here the name of the module to 
 }
 ```
 
+
 ### How module info patches are compiled
+
 `module-info-patch.maven` are compiled into a file of options in the following ways:
 
 * `add-modules org.foo, org.bar;` is translated to `--add-modules org.foo,org.bar`.
