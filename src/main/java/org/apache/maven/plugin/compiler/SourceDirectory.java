@@ -233,7 +233,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return the target version as an object from the Java tools API}.
+     * {@return the target version as an object from the Java tools API}
      *
      * @param root the source directory for which to get the target version
      * @throws UnsupportedVersionException if the version string cannot be parsed
@@ -368,7 +368,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return the Java version of the sources in this directory if different than the base version}.
+     * {@return the Java version of the sources in this directory if different than the base version}
      * The value returned by this method is related to the {@code META-INF/versions/} subdirectory in
      * the path returned by {@link #getOutputDirectory()}. If this method returns an empty value, then
      * there is no such subdirectory (which doesn't mean that the user did not specified a Java version).
@@ -379,7 +379,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return the directory where to store the compilation results}.
+     * {@return the directory where to store the compilation results}
      * This is the <abbr>MOJO</abbr> output directory potentially completed with
      * sub-directories for module name and {@code META-INF/versions} versioning.
      */
@@ -409,7 +409,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return a hash code value for this root directory}.
+     * {@return a hash code value for this root directory}
      */
     @Override
     public int hashCode() {
@@ -417,7 +417,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return a string representation of this root directory for debugging purposes}.
+     * {@return a string representation of this root directory for debugging purposes}
      */
     @Override
     public String toString() {

@@ -134,7 +134,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String encoding;
 
     /**
-     * {@return the character set used for decoding bytes, or null for the platform default}.
+     * {@return the character set used for decoding bytes, or null for the platform default}
      * No warning is emitted in the latter case because as of Java 18, the default is UTF-8,
      * i.e. the encoding is no longer platform-dependent.
      */
@@ -947,7 +947,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty list for all Java source files}.
+     * {@return the inclusion filters for the compiler, or an empty list for all Java source files}
      * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
      * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
      * behavior of Maven 3.
@@ -955,7 +955,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Set<String> getIncludes();
 
     /**
-     * {@return the exclusion filters for the compiler, or an empty list if none}.
+     * {@return the exclusion filters for the compiler, or an empty list if none}
      * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
      * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
      * behavior of Maven 3.
@@ -963,7 +963,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Set<String> getExcludes();
 
     /**
-     * {@return the exclusion filters for the incremental calculation}.
+     * {@return the exclusion filters for the incremental calculation}
      * Updated source files, if excluded by this filter, will not cause the project to be rebuilt.
      *
      * @see SourceFile#ignoreModification
@@ -971,7 +971,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Set<String> getIncrementalExcludes();
 
     /**
-     * {@return whether all includes/excludes matchers specified in the plugin configuration are empty}.
+     * {@return whether all includes/excludes matchers specified in the plugin configuration are empty}
      * This method checks only the plugin configuration. It does not check the {@code <source>} elements.
      */
     final boolean hasNoFileMatchers() {
@@ -981,14 +981,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the destination directory (or class output directory) for class files}.
+     * {@return the destination directory (or class output directory) for class files}
      * This directory will be given to the {@code -d} Java compiler option.
      */
     @Nonnull
     protected abstract Path getOutputDirectory();
 
     /**
-     * {@return the {@code --source} argument for the Java compiler}.
+     * {@return the {@code --source} argument for the Java compiler}
      * The default implementation returns the {@link #source} value.
      */
     @Nullable
@@ -997,7 +997,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the {@code --target} argument for the Java compiler}.
+     * {@return the {@code --target} argument for the Java compiler}
      * The default implementation returns the {@link #target} value.
      */
     @Nullable
@@ -1006,7 +1006,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the {@code --release} argument for the Java compiler}.
+     * {@return the {@code --release} argument for the Java compiler}
      * The default implementation returns the {@link #release} value.
      */
     @Nullable
@@ -1015,7 +1015,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the root directories of Java source code for the given scope}.
+     * {@return the root directories of Java source code for the given scope}
      * This method ignores the deprecated {@link #compileSourceRoots} element.
      *
      * @param scope whether to get the directories for main code or for the test code
@@ -1025,7 +1025,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the root directories of the Java source files to compile, excluding empty directories}.
+     * {@return the root directories of the Java source files to compile, excluding empty directories}
      * The list needs to be modifiable for allowing the addition of generated source directories.
      * This is determined from the {@link #compileSourceRoots} plugin configuration if non-empty,
      * or from {@code <source>} elements otherwise.
@@ -1044,7 +1044,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation processing}.
+     * {@return the path where to place generated source files created by annotation processing}
      */
     @Nullable
     protected abstract Path getGeneratedSourcesDirectory();
@@ -1072,7 +1072,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return whether the sources contain at least one {@code module-info.java} file}.
+     * {@return whether the sources contain at least one {@code module-info.java} file}
      * Note that the sources may contain more than one {@code module-info.java} file
      * if compiling a project with Module Source Hierarchy.
      *
@@ -1101,7 +1101,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the file where to dump the command-line when debug logging is enabled or when the compilation failed}.
+     * {@return the file where to dump the command-line when debug logging is enabled or when the compilation failed}
      * For example, if the value is {@code "javac"}, then the Java compiler can be launched
      * from the command-line by typing {@code javac @target/javac.args}.
      * The debug file will contain the compiler options together with the list of source files to compile.
@@ -1115,7 +1115,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract String getDebugFileName();
 
     /**
-     * {@return the debug file name with its path, or null if none}.
+     * {@return the debug file name with its path, or null if none}
      * This method does not check if the debug file will be written, as the compilation result is not yet known.
      */
     final Path getDebugFilePath() {
@@ -1222,7 +1222,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the compiler to use for compiling the code}.
+     * {@return the compiler to use for compiling the code}
      * If {@link #fork} is {@code true}, the returned compiler will be a wrapper for a command line.
      * Otherwise, it will be the compiler identified by {@link #compilerId} if a value was supplied,
      * or the standard compiler provided with the Java platform otherwise.
@@ -1452,7 +1452,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the tool chain specified by the user in plugin parameters}.
+     * {@return the tool chain specified by the user in plugin parameters}
      */
     private Optional<Toolchain> getToolchain() {
         if (jdkToolchain != null) {
@@ -1498,8 +1498,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return all dependencies grouped by the path types where to place them}. If the module-path contains
-     * any filename-based dependency and this MOJO is compiling the main code, then a warning will be logged.
+     * {@return all dependencies grouped by the path types where to place them}
+     * If the module-path contains any filename-based dependency and this <abbr>MOJO</abbr>
+     * is compiling the main code, then a warning will be logged.
      *
      * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path.
      * @throws IOException if an I/O error occurred while fetching dependencies
@@ -1606,7 +1607,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return whether an annotation processor seems to be present}.
+     * {@return whether an annotation processor seems to be present}
      * This method is invoked if the user did not specified explicit incremental compilation options.
      *
      * @param strict whether to be conservative if the current Java version is older than 23

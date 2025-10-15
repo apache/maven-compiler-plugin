@@ -157,7 +157,7 @@ final class PathFilter extends SimpleFileVisitor<Path> {
     }
 
     /**
-     * {@return all source files found in the given root directories}.
+     * {@return all source files found in the given root directories}
      * The include and exclude filters specified at construction time are applied.
      * Hidden directories are ignored, and symbolic links are followed.
      *

@@ -209,7 +209,7 @@ class ToolExecutorForTest extends ToolExecutor {
     }
 
     /**
-     * {@return the module name of the main code, or an empty string if none}.
+     * {@return the module name of the main code, or an empty string if none}
      * This method reads the module descriptor when first needed and caches the result.
      * This used if the user did not specified an explicit {@code <module>} element in the sources.
      *

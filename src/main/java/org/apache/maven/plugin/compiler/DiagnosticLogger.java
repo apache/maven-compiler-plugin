@@ -217,7 +217,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     }
 
     /**
-     * {@return the pattern for formatting the specified number followed by a label}.
+     * {@return the pattern for formatting the specified number followed by a label}
      * The given number should be the widest number to format.
      * A margin of 4 spaces is added at the beginning of the line.
      */

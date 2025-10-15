@@ -226,7 +226,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation processing on the main classes}.
+     * {@return the path where to place generated source files created by annotation processing on the main classes}
      */
     @Nullable
     @Override
@@ -235,7 +235,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}.
+     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}
      */
     @Override
     protected Set<String> getIncludes() {
@@ -243,7 +243,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the compiler, or an empty set if none}.
+     * {@return the exclusion filters for the compiler, or an empty set if none}
      */
     @Override
     protected Set<String> getExcludes() {
@@ -251,7 +251,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the incremental calculation, or an empty set if none}.
+     * {@return the exclusion filters for the incremental calculation, or an empty set if none}
      */
     @Override
     protected Set<String> getIncrementalExcludes() {
@@ -259,7 +259,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the destination directory for main class files}.
+     * {@return the destination directory for main class files}
      * If {@link #multiReleaseOutput} is true <em>(deprecated)</em>,
      * the output will be in a {@code META-INF/versions} subdirectory.
      */
@@ -273,7 +273,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}.
+     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}
      *
      * @see #debugFileName
      */
@@ -301,7 +301,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return whether the project has at least one module-info file}.
+     * {@return whether the project has at least one module-info file}
      * If no such file is found in the code to be compiled by this <abbr>MOJO</abbr> execution,
      * then this method searches in the multi-release codes compiled by previous executions.
      *
@@ -330,7 +330,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the output directory of each target Java version}.
+     * {@return the output directory of each target Java version}
      * By convention, {@link SourceVersion#RELEASE_0} stands for the base version.
      *
      * @throws IOException if this method needs to walk through directories and that operation failed
@@ -437,7 +437,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}.
+     * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}
      *
      * @deprecated For compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.

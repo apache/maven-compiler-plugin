@@ -278,7 +278,7 @@ public class ToolExecutor {
     }
 
     /**
-     * {@return whether a release version is specified for all sources}.
+     * {@return whether a release version is specified for all sources}
      */
     final boolean isReleaseSpecifiedForAll() {
         for (SourceDirectory source : sourceDirectories) {
@@ -360,7 +360,7 @@ public class ToolExecutor {
     }
 
     /**
-     * {@return a modifiable list of paths to all dependencies of the given type}.
+     * {@return a modifiable list of paths to all dependencies of the given type}
      * The returned list is intentionally live: elements can be added or removed
      * from the list for changing the state of this executor.
      *

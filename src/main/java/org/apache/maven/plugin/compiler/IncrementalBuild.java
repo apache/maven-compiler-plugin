@@ -772,7 +772,7 @@ final class IncrementalBuild {
     }
 
     /**
-     * {@return whether the given list of modified files should not cause a recompilation}.
+     * {@return whether the given list of modified files should not cause a recompilation}
      * This method returns {@code true} if the given list is empty or contains only files
      * with the {@link SourceFile#ignoreModification} set to {@code true}.
      *

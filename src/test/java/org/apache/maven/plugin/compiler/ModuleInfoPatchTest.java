@@ -83,7 +83,7 @@ public class ModuleInfoPatchTest implements OptionChecker {
     }
 
     /**
-     * {@return the number of arguments the given option takes}.
+     * {@return the number of arguments the given option takes}
      *
      * @param option an option
      */

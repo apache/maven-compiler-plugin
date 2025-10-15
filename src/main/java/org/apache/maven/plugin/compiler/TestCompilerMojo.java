@@ -280,7 +280,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation processing on the test classes}.
+     * {@return the path where to place generated source files created by annotation processing on the test classes}
      */
     @Nullable
     @Override
@@ -289,7 +289,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}.
+     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}
      */
     @Override
     protected Set<String> getIncludes() {
@@ -297,7 +297,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the compiler, or an empty set if none}.
+     * {@return the exclusion filters for the compiler, or an empty set if none}
      */
     @Override
     protected Set<String> getExcludes() {
@@ -305,7 +305,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the incremental calculation, or an empty set if none}.
+     * {@return the exclusion filters for the incremental calculation, or an empty set if none}
      */
     @Override
     protected Set<String> getIncrementalExcludes() {
@@ -349,7 +349,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the destination directory for test class files}.
+     * {@return the destination directory for test class files}
      */
     @Nonnull
     @Override
@@ -358,7 +358,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}.
+     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}
      *
      * @see #debugFileName
      */
@@ -369,10 +369,10 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the module name declared in the test sources}. We have to parse the source instead
-     * of the {@code module-info.class} file because the classes may not have been compiled yet.
-     * This is not very reliable, but putting a {@code module-info.java} file in the tests is
-     * deprecated anyway.
+     * {@return the module name declared in the test sources}
+     * We have to parse the source instead of the {@code module-info.class} file
+     * because the classes may not have been compiled yet.
+     * This is not very reliable, but putting a {@code module-info.java} file in the tests is deprecated anyway.
      */
     final String getTestModuleName(List<SourceDirectory> compileSourceRoots) throws IOException {
         for (SourceDirectory directory : compileSourceRoots) {
@@ -388,7 +388,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return whether the project has at least one {@code module-info.class} file}.
+     * {@return whether the project has at least one {@code module-info.class} file}
      *
      * @param roots root directories of the sources to compile
      * @throws IOException if this method needed to read a module descriptor and failed

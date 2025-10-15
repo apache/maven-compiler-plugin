@@ -191,7 +191,7 @@ final class SourcesForRelease implements Closeable {
     }
 
     /**
-     * {@return a string representation for debugging purposes}.
+     * {@return a string representation for debugging purposes}
      */
     @Override
     public String toString() {

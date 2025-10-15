@@ -473,7 +473,7 @@ final class PathSelector implements PathMatcher {
     }
 
     /**
-     * {@return a potentially simpler matcher equivalent to this matcher}.
+     * {@return a potentially simpler matcher equivalent to this matcher}
      */
     @SuppressWarnings("checkstyle:MissingSwitchDefault")
     public PathMatcher simplify() {
@@ -505,7 +505,7 @@ final class PathSelector implements PathMatcher {
     }
 
     /**
-     * {@return whether the given file matches according to one of the given matchers}.
+     * {@return whether the given file matches according to one of the given matchers}
      */
     private static boolean isMatched(Path path, PathMatcher[] matchers) {
         for (PathMatcher matcher : matchers) {
@@ -554,7 +554,7 @@ final class PathSelector implements PathMatcher {
     }
 
     /**
-     * {@return a string representation for logging purposes}.
+     * {@return a string representation for logging purposes}
      */
     @Override
     public String toString() {
