@@ -36,7 +36,6 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <release>17</release>
             <compilerArgs>
               <arg>--add-exports</arg>
               <arg>app/org.maven.test=ALL_UNNAMED</arg>
