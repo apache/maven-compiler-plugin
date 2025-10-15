@@ -33,10 +33,6 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <compilerId>ecj</compilerId>
-          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
-          <source />
-          <target />
-          <release>17</release>
         </configuration>
         <dependencies>
           <dependency>

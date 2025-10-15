@@ -67,11 +67,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
-          <source />
-          <target />
-        </configuration>
         <executions>
           <execution>
             <id>default-compile</id>
