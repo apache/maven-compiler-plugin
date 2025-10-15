@@ -372,7 +372,7 @@ final class ModuleInfoPatch {
     }
 
     /**
-     * {@return the set of modules associated to the given package name}.
+     * {@return the set of modules associated to the given package name}
      *
      * @param target the map where to store the set of modules
      * @param packageName the package name for which to get a set of modules
@@ -581,7 +581,7 @@ final class ModuleInfoPatch {
     }
 
     /**
-     * {@return the name of the module to patch, or null if unspecified and no default}.
+     * {@return the name of the module to patch, or null if unspecified and no default}
      */
     public String getModuleName() {
         return moduleName;

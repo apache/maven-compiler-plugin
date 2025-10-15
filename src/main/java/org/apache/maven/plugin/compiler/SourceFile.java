@@ -89,7 +89,7 @@ final class SourceFile {
     }
 
     /**
-     * {@return whether the output file is the same as the one that we would infer from heuristic rules}.
+     * {@return whether the output file is the same as the one that we would infer from heuristic rules}
      *
      * <p>TODO: this is not yet implemented. We need to clarify how to get the output file information
      * from the compiler, maybe via the {@link javax.tools.JavaFileManager#getFileForOutput} method.
@@ -164,7 +164,7 @@ final class SourceFile {
     }
 
     /**
-     * {@return a hash code value for this file}.
+     * {@return a hash code value for this file}
      */
     @Override
     public int hashCode() {
@@ -172,7 +172,7 @@ final class SourceFile {
     }
 
     /**
-     * {@return a string representation of this source file for debugging purposes}.
+     * {@return a string representation of this source file for debugging purposes}
      * This string representation is shown in Maven output if debug logs are enabled.
      */
     @Override

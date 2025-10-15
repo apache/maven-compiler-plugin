@@ -88,7 +88,7 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
     }
 
     /**
-     * {@return the original file manager, or {@code null} if the caller needs to create a new one}.
+     * {@return the original file manager, or {@code null} if the caller needs to create a new one}
      * The returned value is {@code null} when we have been unable to set a {@code --patch-module}
      * option on the current file manager. In such case, the caller should create a new file manager
      * and configure it with {@link #copyTo(StandardJavaFileManager)}.

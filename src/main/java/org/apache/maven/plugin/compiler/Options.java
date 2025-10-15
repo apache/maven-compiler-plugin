@@ -418,7 +418,7 @@ public final class Options {
     }
 
     /**
-     * {@return a string representatation of the options for debugging purposes}.
+     * {@return a string representatation of the options for debugging purposes}
      */
     @Override
     public String toString() {

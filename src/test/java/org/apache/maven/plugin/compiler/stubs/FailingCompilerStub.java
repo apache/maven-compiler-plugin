@@ -45,7 +45,7 @@ public class FailingCompilerStub extends CompilerStub {
     public FailingCompilerStub() {}
 
     /**
-     * {@return the compiler idenitifer of this stub}.
+     * {@return the compiler idenitifer of this stub}
      */
     @Override
     public String name() {

@@ -96,7 +96,7 @@ final class SourcePathType implements PathType {
     }
 
     /**
-     * {@return the option followed by a string representation of the given path elements}.
+     * {@return the option followed by a string representation of the given path elements}
      *
      * @param paths the path elements to format
      */
@@ -108,7 +108,7 @@ final class SourcePathType implements PathType {
     }
 
     /**
-     * {@return a hash code value based on the module name}.
+     * {@return a hash code value based on the module name}
      */
     @Override
     public int hashCode() {
@@ -116,7 +116,7 @@ final class SourcePathType implements PathType {
     }
 
     /**
-     * {@return whether the given object represents the same source path as this object}.
+     * {@return whether the given object represents the same source path as this object}
      */
     @Override
     public boolean equals(Object obj) {
@@ -124,7 +124,7 @@ final class SourcePathType implements PathType {
     }
 
     /**
-     * {@return a string representation for debugging purposes}.
+     * {@return a string representation for debugging purposes}
      */
     @Override
     public String toString() {
