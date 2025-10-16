@@ -18,6 +18,4 @@
  */
 package foo;
 
-import junit.framework.TestCase;
-
-public class MyTest extends TestCase {}
+public class MyTest {}
