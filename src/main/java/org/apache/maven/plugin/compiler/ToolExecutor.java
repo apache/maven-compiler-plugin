@@ -256,7 +256,6 @@ public class ToolExecutor {
                 return;
             }
         }
-        generatedSourceDirectories = mojo.addGeneratedSourceDirectory();
         /*
          * Get the dependencies. If the module-path contains any automatic (filename-based)
          * dependency and the MOJO is compiling the main code, then a warning will be logged.
@@ -267,6 +266,8 @@ public class ToolExecutor {
             copyDependencyValues();
         }
         mojo.resolveProcessorPathEntries(dependencies);
+        mojo.amendincrementalCompilation(incrementalBuildConfig, dependencies.keySet());
+        generatedSourceDirectories = mojo.addGeneratedSourceDirectory(dependencies.keySet());
     }
 
     /**

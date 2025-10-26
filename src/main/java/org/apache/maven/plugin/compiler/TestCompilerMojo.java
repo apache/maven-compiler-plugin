@@ -268,8 +268,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     @SuppressWarnings("deprecation")
     public Options parseParameters(final OptionChecker compiler) {
         Options configuration = super.parseParameters(compiler);
-        configuration.addUnchecked(
-                testCompilerArgs == null || testCompilerArgs.isEmpty() ? compilerArgs : testCompilerArgs);
+        configuration.addUnchecked(isAbsent(testCompilerArgs) ? compilerArgs : testCompilerArgs);
         if (testCompilerArguments != null) {
             for (Map.Entry<String, String> entry : testCompilerArguments.entrySet()) {
                 configuration.addUnchecked(List.of(entry.getKey(), entry.getValue()));
