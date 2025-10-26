@@ -106,6 +106,20 @@ public abstract class AbstractCompilerMojo implements Mojo {
     static final boolean SUPPORT_LEGACY = true;
 
     /**
+     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
+     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
+     * Used for detecting if {@code module-info.class} needs to be patched for reproducible builds.
+     */
+    private static final String RELEASE_22 = "RELEASE_22";
+
+    /**
+     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
+     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
+     * Used for determining the default value of the {@code -proc} compiler option.
+     */
+    private static final String RELEASE_23 = "RELEASE_23";
+
+    /**
      * The executable to use by default if nine is specified.
      */
     private static final String DEFAULT_EXECUTABLE = "javac";
@@ -659,7 +673,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
     final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
-        if (incrementalCompilation == null || incrementalCompilation.isBlank()) {
+        if (isAbsent(incrementalCompilation)) {
             if (useIncrementalCompilation != null) {
                 return useIncrementalCompilation
                         ? EnumSet.of(
@@ -668,17 +682,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
                                 IncrementalBuild.Aspect.REBUILD_ON_ADD)
                         : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
             }
-            var aspects = EnumSet.of(
+            return EnumSet.of(
                     IncrementalBuild.Aspect.OPTIONS,
                     IncrementalBuild.Aspect.DEPENDENCIES,
                     IncrementalBuild.Aspect.SOURCES);
-            if (hasAnnotationProcessor(false)) {
-                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
-            }
-            return aspects;
-        } else {
-            return IncrementalBuild.Aspect.parse(incrementalCompilation);
+        }
+        return IncrementalBuild.Aspect.parse(incrementalCompilation);
+    }
+
+    /**
+     * Amends the configuration of incremental compilation for the presence of annotation processors.
+     *
+     * @param aspects the configuration to amend if an annotation processor is found
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
+     */
+    final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
+        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
+            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
+            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
         }
     }
 
@@ -1034,7 +1055,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws IOException if this method needs to walk through directories and that operation failed
      */
     final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) throws IOException {
-        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+        if (isAbsent(compileSourceRoots)) {
             Stream<SourceRoot> roots = getSourceRoots(compileScope.projectScope());
             return SourceDirectory.fromProject(roots, getRelease(), outputDirectory);
         } else {
@@ -1120,7 +1141,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     final Path getDebugFilePath() {
         String filename = getDebugFileName();
-        if (filename == null || filename.isBlank()) {
+        if (isAbsent(filename)) {
             return null;
         }
         // Do not use `this.getOutputDirectory()` because it may be deeper in `classes/META-INF/versions/`.
@@ -1419,7 +1440,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * Note: a previous version used as an heuristic way to detect if Reproducible Build was enabled. This check
          * has been removed because Reproducible Build are enabled by default in Maven now.
          */
-        if (!isVersionEqualOrNewer("RELEASE_22")) {
+        if (!isVersionEqualOrNewer(RELEASE_22)) {
             Path moduleDescriptor = executor.outputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
             if (Files.isRegularFile(moduleDescriptor)) {
                 byte[] oridinal = Files.readAllBytes(moduleDescriptor);
@@ -1452,12 +1473,36 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
+     * Returns whether the given string is null or empty, ignoring spaces.
+     * This is a convenience for a frequent check, and also for clarity.
+     */
+    private static boolean isAbsent(String c) {
+        return (c == null) || c.isBlank();
+    }
+
+    /**
+     * Returns whether the given array is null or empty.
+     * Defined as a complement of {@link #isAbsent(Collection)}.
+     */
+    private static boolean isAbsent(Object[] c) {
+        return (c == null) || c.length == 0;
+    }
+
+    /**
+     * Returns whether the given collection is null or empty.
+     * This is a convenience for a frequent check, and also for clarity.
+     */
+    static boolean isAbsent(Collection<?> c) {
+        return (c == null) || c.isEmpty();
+    }
+
+    /**
      * {@return the tool chain specified by the user in plugin parameters}
      */
     private Optional<Toolchain> getToolchain() {
         if (jdkToolchain != null) {
             List<Toolchain> tcs = toolchainManager.getToolchains(session, "jdk", jdkToolchain);
-            if (tcs != null && !tcs.isEmpty()) {
+            if (!isAbsent(tcs)) {
                 return Optional.of(tcs.get(0));
             }
         }
@@ -1559,11 +1604,6 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Adds paths to the annotation processor dependencies. Paths are added to the list associated
      * to the {@link JavaPathType#PROCESSOR_CLASSES} entry of given map, which should be modifiable.
      *
-     * <h4>Implementation note</h4>
-     * We rely on the fact that {@link org.apache.maven.impl.DefaultDependencyResolverResult} creates
-     * modifiable instances of map and lists. This is a fragile assumption, but this method is deprecated anyway
-     * and may be removed in a future version.
-     *
      * @param addTo the modifiable map and lists where to append more paths to annotation processor dependencies
      * @throws MojoException if an error occurred while resolving the dependencies
      *
@@ -1574,7 +1614,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @SuppressWarnings("UseSpecificCatch")
     final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
         List<DependencyCoordinate> dependencies = annotationProcessorPaths;
-        if (dependencies != null && !dependencies.isEmpty()) {
+        if (!isAbsent(dependencies)) {
             try {
                 List<org.apache.maven.api.DependencyCoordinates> coords = dependencies.stream()
                         .map((coord) -> coord.toCoordinate(project, session))
@@ -1608,42 +1648,25 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * {@return whether an annotation processor seems to be present}
-     * This method is invoked if the user did not specified explicit incremental compilation options.
      *
-     * @param strict whether to be conservative if the current Java version is older than 23
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      *
      * @see #incrementalCompilation
      */
-    private boolean hasAnnotationProcessor(final boolean strict) {
-        if ("none".equalsIgnoreCase(proc)) {
-            return false;
-        }
-        if (proc == null || proc.isBlank()) {
-            if (strict && !isVersionEqualOrNewer("RELEASE_23")) {
-                return true; // Before Java 23, default value of `-proc` was `full`.
-            }
+    private boolean hasAnnotationProcessor(final Set<PathType> dependencyTypes) {
+        if (isAbsent(proc)) {
             /*
              * If the `proc` parameter was not specified, its default value depends on the Java version.
              * It was "full" prior Java 23 and become "none if no other processor option" since Java 23.
              */
-            if (annotationProcessors == null || annotationProcessors.length == 0) {
-                if (annotationProcessorPaths == null || annotationProcessorPaths.isEmpty()) {
-                    DependencyResolver resolver = session.getService(DependencyResolver.class);
-                    if (resolver == null) { // Null value happen during tests, depending on the mock used.
-                        return false;
-                    }
-                    var allowedTypes = EnumSet.of(JavaPathType.PROCESSOR_CLASSES, JavaPathType.PROCESSOR_MODULES);
-                    DependencyResolverResult dependencies = resolver.resolve(DependencyResolverRequest.builder()
-                            .session(session)
-                            .project(project)
-                            .requestType(DependencyResolverRequest.RequestType.COLLECT)
-                            .pathScope(compileScope)
-                            .pathTypeFilter(allowedTypes)
-                            .build());
-
-                    return !dependencies.getDependencies().isEmpty();
+            if (isVersionEqualOrNewer(RELEASE_23)) {
+                if (isAbsent(annotationProcessors) && isAbsent(annotationProcessorPaths)) {
+                    return dependencyTypes.contains(JavaPathType.PROCESSOR_CLASSES)
+                            || dependencyTypes.contains(JavaPathType.PROCESSOR_MODULES);
                 }
             }
+        } else if (proc.equalsIgnoreCase("none")) {
+            return false;
         }
         return true;
     }
@@ -1653,10 +1676,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * known to the project manager. This is used for adding the output of annotation processor.
      * The returned set is either empty or a singleton.
      *
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      * @return the added directory in a singleton set, or an empty set if none
      * @throws IOException if the directory cannot be created
      */
-    final Set<Path> addGeneratedSourceDirectory() throws IOException {
+    final Set<Path> addGeneratedSourceDirectory(final Set<PathType> dependencyTypes) throws IOException {
         Path generatedSourcesDirectory = getGeneratedSourcesDirectory();
         if (generatedSourcesDirectory == null) {
             return Set.of();
@@ -1666,7 +1690,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * However, if a directory already exists, use it because maybe its content was generated by
          * another plugin executed before the compiler plugin.
          */
-        if (hasAnnotationProcessor(true)) {
+        if (hasAnnotationProcessor(dependencyTypes)) {
             // `createDirectories(Path)` does nothing if the directory already exists.
             generatedSourcesDirectory = Files.createDirectories(generatedSourcesDirectory);
         } else if (Files.notExists(generatedSourcesDirectory)) {
@@ -1714,7 +1738,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         mb.a("    <plugin>").newline();
         mb.a("      <groupId>org.apache.maven.plugins</groupId>").newline();
         mb.a("      <artifactId>maven-compiler-plugin</artifactId>").newline();
-        if (mavenCompilerPluginVersion != null && !mavenCompilerPluginVersion.isBlank()) {
+        if (!isAbsent(mavenCompilerPluginVersion)) {
             mb.a("      <version>")
                     .a(mavenCompilerPluginVersion)
                     .a("</version>")

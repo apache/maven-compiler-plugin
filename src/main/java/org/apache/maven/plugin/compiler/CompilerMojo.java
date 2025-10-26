@@ -405,7 +405,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             final Stream<Path> sourceDirectories;
             if (executor != null) {
                 sourceDirectories = executor.sourceDirectories.stream().map(dir -> dir.root);
-            } else if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+            } else if (isAbsent(compileSourceRoots)) {
                 sourceDirectories = getSourceRoots(compileScope.projectScope()).map(SourceRoot::directory);
             } else {
                 sourceDirectories = compileSourceRoots.stream().map(Path::of);
