@@ -25,7 +25,7 @@ def causedByExpected = content.contains ( 'Caused by: org.apache.maven.plugin.co
 def twoFilesBeingCompiled = content.contains ( 'Compiling all files' )
 def checkResult = content.contains ( 'BUILD FAILURE' )
 def compilationFailure1 = content.contains( '[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:')
-def compilationFailure2 = content.contains( ':compile (default-compile) on project blah: Cannot compile')
+def compilationFailure2 = content.contains( ':compile (default-compile) on project MCOMPILER-192: Cannot compile')
 
 println "Jenkins: causedByExpected:${causedByExpected} twoFilesBeingCompiled:${twoFilesBeingCompiled} checkResult: ${checkResult} compilationFailure1: ${compilationFailure1} compilationFailure2: ${compilationFailure2}"
 

@@ -21,7 +21,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>multirelease</groupId>
+    <groupId>org.apache.maven.plugins.compiler.it</groupId>
     <artifactId>multirelease-parent</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
@@ -67,7 +67,7 @@
       </activation>
       <dependencies>
         <dependency>
-          <groupId>multirelease</groupId>
+          <groupId>org.apache.maven.plugins.compiler.it</groupId>
           <artifactId>multirelease-nine</artifactId>
           <version>1.0.0-SNAPSHOT</version>
           <scope>provided</scope>
@@ -107,7 +107,7 @@
                 </goals>
                 <phase>generate-resources</phase>
                 <configuration>
-                  <includeGroupIds>multirelease</includeGroupIds>
+                  <includeGroupIds>org.apache.maven.plugins.compiler.it</includeGroupIds>
                   <includeArtifactIds>multirelease-nine</includeArtifactIds>
                   <excludeTransitive>true</excludeTransitive>
                   <includes>**/*.class</includes>
