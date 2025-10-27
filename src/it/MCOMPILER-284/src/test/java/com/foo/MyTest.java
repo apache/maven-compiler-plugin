@@ -18,8 +18,15 @@
  */
 package com.foo;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
-public class MyTest extends TestCase {
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+public class MyTest {
     private MyClass myClass = new MyClass();
+
+    @Test
+    public void testApp() {
+        assertTrue(true);
+    }
 }

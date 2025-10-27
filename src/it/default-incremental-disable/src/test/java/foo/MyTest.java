@@ -18,6 +18,12 @@
  */
 package foo;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
-public class MyTest extends TestCase {}
+public class MyTest {
+
+    @Test
+    public void test() {
+        System.out.println("test");
+    }
+}
