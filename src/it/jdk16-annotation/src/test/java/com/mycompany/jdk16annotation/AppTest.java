@@ -18,20 +18,21 @@
  */
 package com.mycompany.jdk16annotation;
 
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 /**
  * Unit test for simple App.
  */
 @ServiceProvider(service = App.class, path = "xxx", position = 1)
 public class AppTest {
-    /**
-     * Create the test case
-     *
-     * @param testName name of the test case
-     */
-    public AppTest(String testName) {}
 
     /**
      * Rigourous Test :-)
      */
-    public void testApp() {}
+    @Test
+    public void testApp() {
+        assertTrue(true);
+    }
 }
