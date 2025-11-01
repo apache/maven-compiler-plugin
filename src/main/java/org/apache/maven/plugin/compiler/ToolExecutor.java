@@ -654,6 +654,7 @@ public class ToolExecutor {
                 fileManager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, Set.of(outputForRelease));
                 latestOutputDirectory = outputForRelease;
                 unit.outputForRelease = outputForRelease;
+                sourcesForDebugFile.add(unit);
                 /*
                  * Compile the source files now. The following loop should be executed exactly once.
                  * It may be executed twice when compiling test classes overwriting the `module-info`,
@@ -681,7 +682,6 @@ public class ToolExecutor {
                     if (workaroundNeedsClose) {
                         workaround.close();
                     }
-                    sourcesForDebugFile.add(unit);
                     if (!success) {
                         break compile;
                     }

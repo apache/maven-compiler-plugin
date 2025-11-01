@@ -181,7 +181,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      *
      * @param cause if compilation failed with an exception, the cause
      */
-    Optional<String> firstError(Exception cause) {
+    Optional<String> firstError(Throwable cause) {
         return Optional.ofNullable(cause != null && firstError == null ? cause.getMessage() : firstError);
     }
 
