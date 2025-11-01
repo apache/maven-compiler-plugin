@@ -1368,12 +1368,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;
         }
-        Exception failureCause = null;
+        Throwable failureCause = null;
         final var compilerOutput = new StringWriter();
         boolean success;
         try {
             success = executor.compile(compiler, configuration, compilerOutput);
-        } catch (Exception e) {
+        } catch (Exception | NoClassDefFoundError e) {
+            // `NoClassDefFoundError` may happen if a dependency of an annotation processor is missing.
             success = false;
             failureCause = e;
         }
