@@ -54,6 +54,7 @@ import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
 import org.apache.maven.impl.InternalSession;
 import org.apache.maven.plugin.compiler.stubs.CompilerStub;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -62,7 +63,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -73,7 +73,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 @MojoTest
-public class CompilerMojoTestCase {
+class CompilerMojoTestCase {
 
     private static final String LOCAL_REPO = "/target/local-repo";
 
@@ -127,11 +127,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-basic-test")
-    public void testCompilerBasic(
+    void compilerBasic(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         Log log = mock(Log.class);
         compileMojo.logger = log;
@@ -153,7 +151,7 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-basic-sourcetarget")
-    public void testCompilerBasicSourceTarget(
+    void compilerBasicSourceTarget(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
 
         Log log = mock(Log.class);
@@ -167,11 +165,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-empty-source-test")
-    public void testCompilerEmptySource(
+    void compilerEmptySource(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertFalse(Files.exists(compileMojo.getOutputDirectory()));
@@ -188,11 +184,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-includes-excludes-test")
-    public void testCompilerIncludesExcludes(
+    void compilerIncludesExcludes(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestCompile2.class");
@@ -211,11 +205,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-fork-test")
-    public void testCompilerFork(
+    void compilerFork(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         // JAVA_HOME doesn't have to be on the PATH.
         String javaHome = System.getenv("JAVA_HOME");
@@ -238,11 +230,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-one-output-file-test")
-    public void testOneOutputFileForAllInput(
+    void oneOutputFileForAllInput(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         assertEquals(CompilerStub.COMPILER_ID, compileMojo.compilerId);
         compileMojo.execute();
@@ -258,7 +248,7 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-args-test")
-    public void testCompilerArgs(@InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
+    void compilerArgs(@InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
 
         assertEquals(CompilerStub.COMPILER_ID, compileMojo.compilerId);
         compileMojo.execute();
@@ -287,7 +277,7 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-implicit-test")
-    public void testImplicitFlagNone(
+    void implicitFlagNone(
             @InjectMojo(goal = "compile", pom = "plugin-config-none.xml") CompilerMojo compileMojo) {
 
         assertEquals("none", compileMojo.implicit);
@@ -299,7 +289,7 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-implicit-test")
-    public void testImplicitFlagNotSet(
+    void implicitFlagNotSet(
             @InjectMojo(goal = "compile", pom = "plugin-config-not-set.xml") CompilerMojo compileMojo) {
 
         assertNull(compileMojo.implicit);
@@ -316,11 +306,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-modular-project")
-    public void testModularProject(
+    void modularProject(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertOutputFileExists(compileMojo, SourceDirectory.MODULE_INFO + SourceDirectory.CLASS_FILE_SUFFIX);
@@ -336,7 +324,7 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-fail-test")
-    public void testCompileFailure(@InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
+    void compileFailure(@InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
         assertThrows(CompilationFailureException.class, compileMojo::execute, "Should throw an exception");
         assertOutputFileExists(compileMojo, "..", "javac.args"); // Command-line that user can execute.
     }
@@ -346,14 +334,12 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-failonerror-test")
-    public void testCompileFailOnError(
+    void compileFailOnError(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
 
-        try {
+        Assertions.assertDoesNotThrow(() -> {
             compileMojo.execute();
-        } catch (CompilationFailureException e) {
-            fail("The compilation error should have been consumed because failOnError = false");
-        }
+        }, "The compilation error should have been consumed because failOnError = false");
         assertOutputFileExists(compileMojo, "..", "javac.args"); // Command-line that user can execute.
     }
 
@@ -363,11 +349,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-skip-main")
-    public void testCompileSkipMain(
+    void compileSkipMain(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         compileMojo.skipMain = true;
         compileMojo.execute();
@@ -384,11 +368,9 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-skip-test")
-    public void testCompileSkipTest(
+    void compileSkipTest(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertOutputFileExists(compileMojo, "foo/TestSkipTestCompile0.class");
