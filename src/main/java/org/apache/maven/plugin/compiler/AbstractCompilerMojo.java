@@ -1775,7 +1775,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
         final var commandLine = new StringBuilder("For trying to compile from the command-line, use:");
         Path dir = basedir;
         if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
-            dir = Path.of(System.getProperty("user.dir")).relativize(dir);
+            try {
+                dir = Path.of(System.getProperty("user.dir")).relativize(dir);
+            } catch (IllegalArgumentException e) {
+                // Ignore, keep the absolute path.
+            }
             String chdir = dir.toString();
             if (!chdir.isEmpty()) {
                 boolean isWindows = (File.separatorChar == '\\');

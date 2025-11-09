@@ -120,7 +120,7 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
 
     /**
      * Sets a module path by asking the file manager to parse an option formatted by this method.
-     * Invoked when a module path cannot be specified through the API
+     * Invoked when a module path cannot be specified through the standard <abbr>API</abbr>.
      * This is the workaround described in class Javadoc.
      *
      * @param fileManager the file manager on which an attempt to set the location has been made and failed
@@ -136,8 +136,28 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
             UnsupportedOperationException cause)
             throws IOException {
 
+        String[] options = type.option(paths);
+        for (int i = options.length; --i >= 1; ) {
+            /*
+             * Maven 4.0.0-rc-5 puts filenames between quotes like the example shown below.
+             * We need to remove the quotes before to pass the option to `JavaFileManager`.
+             *
+             *     --patch-module foo.bar="/something/target/classes"
+             *
+             * Note: Maven 4.0.0-rc-4 did not put filenames between quotes, which gives the
+             * impression of a regression. However, we should not necessarily modify Maven
+             * core because of this issue, because this whole `WorkaroundForPatchModule`
+             * class is (as of Java 24) a workaround for `JavaFileManager` not accepting
+             * `StandardLocation.PATCH_MODULE_PATH` in calls to `setLocationForModule(…)`.
+             */
+            String option = options[i];
+            int s = option.indexOf('"');
+            if (s >= 0 && (s == 0 || option.charAt(s - 1) == '=') && option.endsWith("\"")) {
+                options[i] = option.substring(0, s) + option.substring(s + 1, option.length() - 1);
+            }
+        }
+        Iterator<String> it = Arrays.asList(options).iterator();
         String message;
-        Iterator<String> it = Arrays.asList(type.option(paths)).iterator();
         if (!fileManager.handleOption(it.next(), it)) {
             message = "Failed to set the %s option for module %s";
         } else if (it.hasNext()) {
