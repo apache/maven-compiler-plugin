@@ -18,5 +18,18 @@
  */
 package user;
 
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 @SimpleAnnotation
-public class SimpleTestObject {}
+public class SimpleTestObject {
+    /**
+     * Verifies that the {@code annotation-processor-dep} dependency is not on the class-path.
+     * That dependency should be on the annotation processor path instead.
+     */
+    @Test
+    public void ensureProcessorDependencyNotInClasspath() {
+        assertThrows(ClassNotFoundException.class, () -> Class.forName("dependency.AnnotationProcessorDependency"));
+    }
+}

@@ -42,8 +42,7 @@ public class SimpleAnnotationProcessor extends AbstractProcessor {
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         // Verifies that transitive dependencies worked.
-        // TODO: pending https://github.com/apache/maven/pull/11373
-        // dependency.AnnotationProcessorDependency.foo();
+        dependency.AnnotationProcessorDependency.foo();
 
         boolean claimed = false;
         for (TypeElement annotation : annotations) {
