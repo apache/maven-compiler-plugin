@@ -470,7 +470,8 @@ final class ForkedToolSources implements StandardJavaFileManager {
      */
     void addAllLocations(List<String> command) {
         for (Map.Entry<PathType, Collection<? extends Path>> entry : locations.entrySet()) {
-            command.addAll(Arrays.asList(entry.getKey().option(entry.getValue())));
+            String[] options = entry.getKey().option(entry.getValue());
+            command.addAll(WorkaroundForPatchModule.optionWithoutQuotes(options));
         }
     }
 
