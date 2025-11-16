@@ -404,11 +404,11 @@ public final class Options {
             }
             boolean needsQuote = option.indexOf(' ') >= 0;
             if (needsQuote) {
-                out.append('"');
+                out.append(AbstractCompilerMojo.QUOTE);
             }
             out.append(option);
             if (needsQuote) {
-                out.append('"');
+                out.append(AbstractCompilerMojo.QUOTE);
             }
             hasOptions = true;
         }

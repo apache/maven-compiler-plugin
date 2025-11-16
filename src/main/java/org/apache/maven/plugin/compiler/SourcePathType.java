@@ -102,7 +102,7 @@ final class SourcePathType implements PathType {
      */
     @Override
     public String[] option(Iterable<? extends Path> paths) {
-        var joiner = new StringJoiner(File.pathSeparator, (moduleName != null) ? moduleName + "=\"" : "\"", "\"");
+        var joiner = new StringJoiner(File.pathSeparator, (moduleName != null) ? moduleName + '=' : "", "");
         paths.forEach((path) -> joiner.add(path.toString()));
         return new String[] {option().get(), joiner.toString()};
     }

@@ -120,7 +120,7 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
 
     /**
      * Sets a module path by asking the file manager to parse an option formatted by this method.
-     * Invoked when a module path cannot be specified through the API
+     * Invoked when a module path cannot be specified through the standard <abbr>API</abbr>.
      * This is the workaround described in class Javadoc.
      *
      * @param fileManager the file manager on which an attempt to set the location has been made and failed
