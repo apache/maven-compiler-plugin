@@ -27,8 +27,8 @@ assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar/foo/Ot
 assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar/foo/YetAnotherFile.class"))
 assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar.more/more/MainFile.class"))
 assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar.more/more/OtherFile.class"))
-assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions/16/foo.bar/foo/OtherFile.class"))
-assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions/16/foo.bar.more/more/OtherFile.class"))
+assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/OtherFile.class"))
+assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar.more/more/OtherFile.class"))
 
 int getMajor(File file)
 {

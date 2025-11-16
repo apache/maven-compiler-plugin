@@ -614,8 +614,8 @@ public class ToolExecutor {
                     }
                     outputForRelease = outputDirectory; // Modified below if compiling a non-base release.
                     if (isVersioned) {
-                        outputForRelease = Files.createDirectories(
-                                SourceDirectory.outputDirectoryForReleases(outputForRelease, unit.release));
+                        outputForRelease = Files.createDirectories(SourceDirectory.outputDirectoryForReleases(
+                                isModularProject, outputForRelease, unit.release));
                         if (isClasspathProject) {
                             /*
                              * For a non-modular project, this block is executed at most once par compilation unit.
