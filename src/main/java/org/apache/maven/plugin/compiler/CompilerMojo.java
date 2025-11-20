@@ -267,7 +267,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     protected Path getOutputDirectory() {
         if (SUPPORT_LEGACY && multiReleaseOutput && release != null) {
-            return SourceDirectory.outputDirectoryForReleases(outputDirectory).resolve(release);
+            return SourceDirectory.outputDirectoryForReleases(false, outputDirectory)
+                    .resolve(release);
         }
         return outputDirectory;
     }
@@ -340,7 +341,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Deprecated(since = "4.0.0")
     private TreeMap<SourceVersion, Path> getOutputDirectoryPerVersion() throws IOException {
-        final Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
+        final Path root = SourceDirectory.outputDirectoryForReleases(false, outputDirectory);
         if (Files.notExists(root)) {
             return null;
         }
@@ -365,7 +366,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * Adds the compilation outputs of previous Java releases to the class-path ot module-path.
+     * Adds the compilation outputs of previous Java releases to the class-path of module-path.
      * This method should be invoked only when compiling a multi-release <abbr>JAR</abbr> in the
      * old deprecated way.
      *
