@@ -51,6 +51,7 @@ To reproduce the old behavior, users can just disable the incremental compilatio
 The tests in the following directories were already disabled and have been removed:
 
 * `MCOMPILER-197` because it ran only on Java 8 while the build now requires Java 17.
+* `MCOMPILER-346` because it tests an issue fixed in Java 15 while the build now requires Java 17.
 * `groovy-project-with-new-plexus-compiler` because it ran only on Java 8 and the plexus compiler has been removed.
 
 The tests in the following directores are not supported anymore and have been removed:
