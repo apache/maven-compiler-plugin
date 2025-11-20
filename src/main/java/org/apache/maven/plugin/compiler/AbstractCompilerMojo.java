@@ -124,6 +124,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     private static final String DEFAULT_EXECUTABLE = "javac";
 
+    /**
+     * The quote character for filenames in shell scripts.
+     * Shall not be used with {@link javax.tools.JavaFileManager}.
+     */
+    static final char QUOTE = '"';
+
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
@@ -1775,7 +1781,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
         final var commandLine = new StringBuilder("For trying to compile from the command-line, use:");
         Path dir = basedir;
         if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
-            dir = Path.of(System.getProperty("user.dir")).relativize(dir);
+            try {
+                dir = Path.of(System.getProperty("user.dir")).relativize(dir);
+            } catch (IllegalArgumentException e) {
+                // Ignore, keep the absolute path.
+            }
             String chdir = dir.toString();
             if (!chdir.isEmpty()) {
                 boolean isWindows = (File.separatorChar == '\\');
@@ -1823,14 +1833,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     String moduleName = root.getKey();
                     writeOption(out, SourcePathType.valueOf(moduleName), root.getValue());
                 }
-                out.write("-d \"");
+                out.write("-d " + QUOTE);
                 out.write(relativize(sources.outputForRelease).toString());
-                out.write('"');
+                out.write(QUOTE);
                 out.newLine();
                 for (final Path file : sources.files) {
-                    out.write('"');
+                    out.write(QUOTE);
                     out.write(relativize(file).toString());
-                    out.write('"');
+                    out.write(QUOTE);
                     out.newLine();
                 }
             }
@@ -1841,6 +1851,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Writes the paths for the given Java compiler option.
+     * Used for the {@code *.args} debug file, because files will be written between quotes.
      *
      * @param out where to write
      * @param type the type of path to write as a compiler option
@@ -1850,11 +1861,17 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private void writeOption(BufferedWriter out, PathType type, Collection<Path> files) throws IOException {
         if (!files.isEmpty()) {
             files = files.stream().map(this::relativize).toList();
-            String separator = "";
-            for (String element : type.option(files)) {
-                out.write(separator);
-                out.write(element);
-                separator = " ";
+            String[] options = type.option(files);
+            for (int i = 0; i < options.length; i++) {
+                String element = options[i];
+                if (i == 0) {
+                    out.write(element);
+                } else {
+                    out.write(' ');
+                    out.write(QUOTE);
+                    out.write(element);
+                    out.write(QUOTE);
+                }
             }
             out.newLine();
         }
