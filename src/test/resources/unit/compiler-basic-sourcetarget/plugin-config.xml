@@ -30,8 +30,8 @@
           <debug>true</debug>
           <outputDirectory>${basedir}/target/test/unit/compiler-basic-test/target/classes</outputDirectory>
           <buildDirectory>${basedir}/target/test/unit/compiler-basic-test/target</buildDirectory>
-          <source>1.6</source>
-          <target>1.6</target>
+          <source>1.8</source>
+          <target>1.8</target>
         </configuration>
       </plugin>
     </plugins>

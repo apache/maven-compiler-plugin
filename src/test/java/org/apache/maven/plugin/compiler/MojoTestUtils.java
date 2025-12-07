@@ -18,32 +18,13 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import java.lang.reflect.Field;
-
 import org.apache.maven.execution.MavenSession;
-import org.apache.maven.plugin.MojoExecution;
-import org.apache.maven.plugin.descriptor.MojoDescriptor;
-import org.apache.maven.plugin.descriptor.PluginDescriptor;
 import org.apache.maven.project.MavenProject;
-import org.codehaus.plexus.util.ReflectionUtils;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class MojoTestUtils {
-
-    public static <T> T getVariableValueFromObject(Object object, String variable) throws IllegalAccessException {
-        Field field = ReflectionUtils.getFieldByNameIncludingSuperclasses(variable, object.getClass());
-        field.setAccessible(true);
-        return (T) field.get(object);
-    }
-
-    public static <T> void setVariableValueToObject(Object object, String variable, T value)
-            throws IllegalAccessException {
-        Field field = ReflectionUtils.getFieldByNameIncludingSuperclasses(variable, object.getClass());
-        field.setAccessible(true);
-        field.set(object, value);
-    }
 
     public static MavenProject getMockMavenProject() {
         MavenProject mp = new MavenProject();
@@ -60,16 +41,5 @@ public class MojoTestUtils {
         // Collections.emptyMap() );
         when(session.getCurrentProject()).thenReturn(getMockMavenProject());
         return session;
-    }
-
-    public static MojoExecution getMockMojoExecution() {
-        MojoDescriptor md = new MojoDescriptor();
-        MojoExecution me = new MojoExecution(md);
-
-        PluginDescriptor pd = new PluginDescriptor();
-        pd.setArtifactId("maven-compiler-plugin");
-        md.setPluginDescriptor(pd);
-
-        return me;
     }
 }

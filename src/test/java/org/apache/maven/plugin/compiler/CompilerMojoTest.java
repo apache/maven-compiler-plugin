@@ -20,23 +20,21 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.maven.api.plugin.testing.InjectMojo;
+import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.logging.Log;
-import org.apache.maven.plugin.testing.junit5.InjectMojo;
-import org.apache.maven.plugin.testing.junit5.MojoTest;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.junit.jupiter.api.Test;
 
+import static org.apache.maven.api.plugin.testing.MojoExtension.getVariableValueFromObject;
+import static org.apache.maven.api.plugin.testing.MojoExtension.setVariableValueToObject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenProject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession;
-import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMojoExecution;
-import static org.apache.maven.plugin.compiler.MojoTestUtils.getVariableValueFromObject;
-import static org.apache.maven.plugin.compiler.MojoTestUtils.setVariableValueToObject;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -70,7 +68,7 @@ class CompilerMojoTest {
         setVariableValueToObject(compilerMojo, "targetOrReleaseSet", false);
         compilerMojo.execute();
 
-        Artifact projectArtifact = getVariableValueFromObject(compilerMojo, "projectArtifact");
+        Artifact projectArtifact = (Artifact) getVariableValueFromObject(compilerMojo, "projectArtifact");
         assertNotNull(
                 projectArtifact.getFile(),
                 "MCOMPILER-94: artifact file should only be null if there is nothing to compile");
@@ -110,7 +108,7 @@ class CompilerMojoTest {
 
         assertFalse(compilerMojo.getOutputDirectory().exists());
 
-        Artifact projectArtifact = getVariableValueFromObject(compilerMojo, "projectArtifact");
+        Artifact projectArtifact = (Artifact) getVariableValueFromObject(compilerMojo, "projectArtifact");
         assertNull(
                 projectArtifact.getFile(), "MCOMPILER-94: artifact file should be null if there is nothing to compile");
     }
@@ -296,11 +294,7 @@ class CompilerMojoTest {
 
     private void setUpCompilerMojoTestEnv(CompilerMojo mojo) throws Exception {
         setVariableValueToObject(mojo, "projectArtifact", new ArtifactStub());
-        setVariableValueToObject(mojo, "compilePath", Collections.EMPTY_LIST);
         setVariableValueToObject(mojo, "session", getMockMavenSession());
         setVariableValueToObject(mojo, "project", getMockMavenProject());
-        setVariableValueToObject(mojo, "mojoExecution", getMockMojoExecution());
-        setVariableValueToObject(mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE);
-        setVariableValueToObject(mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET);
     }
 }

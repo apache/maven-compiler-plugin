@@ -26,19 +26,18 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.maven.api.plugin.testing.InjectMojo;
+import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
-import org.apache.maven.plugin.testing.junit5.InjectMojo;
-import org.apache.maven.plugin.testing.junit5.MojoTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import static org.apache.maven.api.plugin.testing.MojoExtension.getVariableValueFromObject;
+import static org.apache.maven.api.plugin.testing.MojoExtension.setVariableValueToObject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenProject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession;
-import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMojoExecution;
-import static org.apache.maven.plugin.compiler.MojoTestUtils.getVariableValueFromObject;
-import static org.apache.maven.plugin.compiler.MojoTestUtils.setVariableValueToObject;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -171,7 +170,7 @@ class TestCompilerMojoTest {
     }
 
     private void setUpCompilerMojoTestEnv(TestCompilerMojo mojo) throws Exception {
-        File buildDir = getVariableValueFromObject(mojo, "buildDirectory");
+        File buildDir = (File) getVariableValueFromObject(mojo, "buildDirectory");
         File testClassesDir = new File(buildDir, "test-classes");
         setVariableValueToObject(mojo, "outputDirectory", testClassesDir);
 
@@ -188,9 +187,6 @@ class TestCompilerMojoTest {
         setVariableValueToObject(mojo, "compileSourceRoots", Arrays.asList(sourceRoot, testSourceRoot));
 
         setVariableValueToObject(mojo, "session", getMockMavenSession());
-        setVariableValueToObject(mojo, "mojoExecution", getMockMojoExecution());
-        setVariableValueToObject(mojo, "source", AbstractCompilerMojo.DEFAULT_SOURCE);
-        setVariableValueToObject(mojo, "target", AbstractCompilerMojo.DEFAULT_TARGET);
     }
 
     static Stream<Arguments> olderThanJDK9() {
