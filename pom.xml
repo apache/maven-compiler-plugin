@@ -171,7 +171,7 @@ under the License.
     <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>4.0.0-alpha-2</version>
+      <version>3.4.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
