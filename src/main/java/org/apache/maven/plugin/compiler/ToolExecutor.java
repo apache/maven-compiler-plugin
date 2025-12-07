@@ -655,7 +655,6 @@ public class ToolExecutor {
              * More than one compilation unit may exist in the case of a multi-release project.
              * Units are compiled in the order of the release version, with base compiled first.
              */
-            compile:
             for (final SourcesForRelease unit : groupByReleaseAndModule()) {
                 configuration.setRelease(unit.getReleaseString());
                 for (final Map.Entry<String, Set<Path>> root : unit.roots.entrySet()) {
@@ -773,14 +772,10 @@ public class ToolExecutor {
                 unit.outputForRelease = outputForRelease;
                 sourcesForDebugFile.add(unit);
                 /*
-                 * Compile the source files now. The following loop should be executed exactly once.
-                 * It may be executed twice when compiling test classes overwriting the `module-info`,
-                 * in which case the `module-info` needs to be compiled separately from other classes.
-                 * However, this is a deprecated practice.
+                 * Compile the source files now.
                  */
-                JavaCompiler.CompilationTask task;
-                for (CompilationTaskSources c : toCompilationTasks(unit)) {
-                    Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(c.files);
+                if (!unit.files.isEmpty()) {
+                    Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(unit.files);
                     StandardJavaFileManager workaround = fileManager;
                     boolean workaroundNeedsClose = false;
                     // Check flag separately to clearly indicate this entire block is a workaround hack.
@@ -794,13 +789,14 @@ public class ToolExecutor {
                             }
                         }
                     }
+                    JavaCompiler.CompilationTask task;
                     task = compiler.getTask(otherOutput, workaround, listener, configuration.options, null, sources);
-                    success = c.compile(task);
+                    success = task.call();
                     if (workaroundNeedsClose) {
                         workaround.close();
                     }
                     if (!success) {
-                        break compile;
+                        break;
                     }
                 }
                 isVersioned = true; // Any further iteration is for a version after the base version.
@@ -819,17 +815,5 @@ public class ToolExecutor {
             incrementalBuild = null;
         }
         return success;
-    }
-
-    /**
-     * Subdivides a compilation unit into one or more compilation tasks.
-     * This is a workaround for deprecated practices such as overwriting the main {@code module-info} in the tests.
-     * In the latter case, we need to compile the test {@code module-info} separately, before the other test classes.
-     */
-    CompilationTaskSources[] toCompilationTasks(final SourcesForRelease unit) {
-        if (unit.files.isEmpty()) {
-            return new CompilationTaskSources[0];
-        }
-        return new CompilationTaskSources[] {new CompilationTaskSources(unit.files)};
     }
 }

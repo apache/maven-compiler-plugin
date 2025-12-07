@@ -104,12 +104,6 @@ class ToolExecutorForTest extends ToolExecutor {
     private String moduleNameFromPackageHierarchy;
 
     /**
-     * Whether the {@code module-info} of the tests overwrites the main {@code module-info}.
-     * This is a deprecated practice, but is accepted if {@link #SUPPORT_LEGACY} is true.
-     */
-    private boolean overwriteMainModuleInfo;
-
-    /**
      * Whether {@link #addModuleOptions(Options)} has already been invoked.
      * The options shall be completed only once, otherwise conflicts may occur.
      */
@@ -172,7 +166,6 @@ class ToolExecutorForTest extends ToolExecutor {
         // Following is non-null only for modular project using package hierarchy.
         final String testModuleName = mojo.moduleNameFromPackageHierarchy(sourceDirectories);
         if (testModuleName != null) {
-            overwriteMainModuleInfo = testModuleName.equals(moduleNameFromPackageHierarchy);
             moduleNameFromPackageHierarchy = testModuleName;
         }
         /*
@@ -448,51 +441,5 @@ class ToolExecutorForTest extends ToolExecutor {
     @Deprecated(since = "4.0.0")
     final String moduleNameFromPackageHierarchy() {
         return moduleNameFromPackageHierarchy;
-    }
-
-    /**
-     * Separates the compilation of {@code module-info} from other classes. This is needed when the
-     * {@code module-info} of the test classes overwrite the {@code module-info} of the main classes.
-     * In the latter case, we need to compile the test {@code module-info} first in order to substitute
-     * the main module-info by the test one before to compile the remaining test classes.
-     */
-    @Override
-    final CompilationTaskSources[] toCompilationTasks(final SourcesForRelease unit) {
-        if (!(SUPPORT_LEGACY && useModulePath && hasTestModuleInfo && overwriteMainModuleInfo)) {
-            return super.toCompilationTasks(unit);
-        }
-        CompilationTaskSources moduleInfo = null;
-        final List<Path> files = unit.files;
-        for (int i = files.size(); --i >= 0; ) {
-            if (SourceDirectory.isModuleInfoSource(files.get(i))) {
-                moduleInfo = new CompilationTaskSources(List.of(files.remove(i)));
-                if (files.isEmpty()) {
-                    return new CompilationTaskSources[] {moduleInfo};
-                }
-                break;
-            }
-        }
-        if (files.isEmpty()) {
-            return new CompilationTaskSources[0];
-        }
-        var task = new CompilationTaskSources(files) {
-            /**
-             * Substitutes the main {@code module-info.class} by the test's one, compiles test classes,
-             * then restores the original {@code module-info.class}. The test {@code module-info.class}
-             * must have been compiled separately before this method is invoked.
-             */
-            @Override
-            boolean compile(JavaCompiler.CompilationTask task) throws IOException {
-                try (unit) {
-                    unit.substituteModuleInfos(mainOutputDirectory, outputDirectory);
-                    return super.compile(task);
-                }
-            }
-        };
-        if (moduleInfo != null) {
-            return new CompilationTaskSources[] {moduleInfo, task};
-        } else {
-            return new CompilationTaskSources[] {task};
-        }
     }
 }
