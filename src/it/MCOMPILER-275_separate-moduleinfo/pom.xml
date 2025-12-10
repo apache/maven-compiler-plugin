@@ -49,9 +49,6 @@
             <id>default-compile</id>
             <!-- compile everything to ensure module-info contains right entries -->
             <configuration>
-              <jdkToolchain>
-                <version>1.9</version>
-              </jdkToolchain>
               <release>17</release>
             </configuration>
           </execution>
@@ -64,9 +61,7 @@
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
-              <!-- ideally this would be 1.5, but with CI's it is hard to have a proper toolchains.xml in place -->
-              <source>8</source>
-              <target>8</target>
+              <release>16</release>
             </configuration>
           </execution>
         </executions>

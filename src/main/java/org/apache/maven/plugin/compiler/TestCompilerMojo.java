@@ -213,13 +213,6 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     private transient boolean hasMainModuleInfo;
 
     /**
-     * Path to the {@code module-info.class} file of the main code, or {@code null} if that file does not exist.
-     * This field exists only for transferring this information to {@link ToolExecutorForTest#mainModulePath},
-     * and should be {@code null} the rest of the time.
-     */
-    transient Path mainModulePath;
-
-    /**
      * The file where to dump the command-line when debug is activated or when the compilation failed.
      * For example, if the value is {@code "javac-test"}, then the Java compiler can be launched
      * from the command-line by typing {@code javac @target/javac-test.args}.
@@ -368,19 +361,22 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the module name declared in the test sources}
+     * {@return the module name found in the package hierarchy of given sources}
      * We have to parse the source instead of the {@code module-info.class} file
-     * because the classes may not have been compiled yet.
-     * This is not very reliable, but putting a {@code module-info.java} file in the tests is deprecated anyway.
+     * because the classes may not have been compiled yet. This is not reliable,
+     * but the use of package hierarchy for modular project should be avoided in
+     * Maven 4.
+     *
+     * @deprecated Declare modules in {@code <source>} elements instead.
      */
-    final String getTestModuleName(List<SourceDirectory> compileSourceRoots) throws IOException {
+    @Deprecated(since = "4.0.0")
+    final String moduleNameFromPackageHierarchy(List<SourceDirectory> compileSourceRoots) throws IOException {
         for (SourceDirectory directory : compileSourceRoots) {
-            if (directory.moduleName != null) {
-                return directory.moduleName;
-            }
-            String name = parseModuleInfoName(directory.getModuleInfo().orElse(null));
-            if (name != null) {
-                return name;
+            if (directory.moduleName == null) {
+                String name = parseModuleInfoName(directory.getModuleInfo().orElse(null));
+                if (name != null) {
+                    return name;
+                }
             }
         }
         return null;
@@ -388,8 +384,11 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * {@return whether the project has at least one {@code module-info.class} file}
+     * The {@code module-info.class} should be located in the main source code.
+     * However, this method checks also in the test source code for compatibility with Maven 3,
+     * but this practice is deprecated.
      *
-     * @param roots root directories of the sources to compile
+     * @param roots root directories of the source files of the test classes to compile
      * @throws IOException if this method needed to read a module descriptor and failed
      */
     @Override
@@ -426,18 +425,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      */
     @Override
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
-        try {
-            Path file = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
-            if (Files.isRegularFile(file)) {
-                mainModulePath = file;
-                hasMainModuleInfo = true;
-            }
-            return new ToolExecutorForTest(this, listener);
-        } finally {
-            // Reset the fields that were used only for transfering information to `ToolExecutorForTest`.
-            hasTestModuleInfo = false;
-            hasMainModuleInfo = false;
+        Path mainModulePath = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
+        if (Files.isRegularFile(mainModulePath)) {
+            hasMainModuleInfo = true;
+        } else {
             mainModulePath = null;
         }
+        return new ToolExecutorForTest(this, listener, mainModulePath);
     }
 }

@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +81,7 @@ final class SourcesForRelease implements Closeable {
      * Snapshot of {@link ToolExecutor#dependencies}.
      * This information is saved in case a {@code target/javac.args} debug file needs to be written.
      */
-    Map<PathType, List<Path>> dependencySnapshot;
+    Map<PathType, Collection<Path>> dependencySnapshot;
 
     /**
      * The output directory for the release. This is either the base output directory or a sub-directory

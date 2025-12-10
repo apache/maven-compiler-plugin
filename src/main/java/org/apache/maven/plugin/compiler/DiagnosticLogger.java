@@ -97,12 +97,14 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * @return the given path, potentially relative to the base directory
      */
     private String relativize(String file) {
-        try {
-            return directory.relativize(Path.of(file)).toString();
-        } catch (IllegalArgumentException e) {
-            // Ignore, keep the absolute path.
-            return file;
+        if (directory != null) {
+            try {
+                return directory.relativize(Path.of(file)).toString();
+            } catch (IllegalArgumentException e) {
+                // Ignore, keep the absolute path.
+            }
         }
+        return file;
     }
 
     /**

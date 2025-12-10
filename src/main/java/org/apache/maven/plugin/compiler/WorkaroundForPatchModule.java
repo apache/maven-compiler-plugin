@@ -30,9 +30,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -83,8 +83,8 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
      */
     WorkaroundForPatchModule(final StandardJavaFileManager fileManager) {
         super(fileManager);
-        definedLocations = new HashSet<>();
-        patchesAsOption = new HashMap<>();
+        definedLocations = new LinkedHashSet<>();
+        patchesAsOption = new LinkedHashMap<>();
     }
 
     /**
@@ -157,28 +157,25 @@ final class WorkaroundForPatchModule extends ForwardingJavaFileManager<StandardJ
     @Override
     public void setLocationForModule(
             JavaFileManager.Location location, String moduleName, Collection<? extends Path> paths) throws IOException {
-
-        if (paths.isEmpty()) {
-            return;
-        }
-        final boolean isPatch = (location == StandardLocation.PATCH_MODULE_PATH);
-        if (isPatch && patchesAsOption.replace(moduleName, paths) != null) {
-            /*
-             * The patch was already specified by formatting the `--patch-module` option.
-             * We cannot do that again, because that option can appear only once per module.
-             */
-            needsNewFileManager = true;
-            return;
-        }
-        try {
-            fileManager.setLocationForModule(location, moduleName, paths);
-        } catch (UnsupportedOperationException e) {
-            if (isPatch) {
+        if (location == StandardLocation.PATCH_MODULE_PATH) {
+            if (patchesAsOption.replace(moduleName, paths) != null) {
+                /*
+                 * The patch was already specified by formatting the `--patch-module` option.
+                 * We cannot do that again, because that option can appear only once per module.
+                 * We nevertheless stored the new paths in `patchesAsOption` for use by `copyTo(…)`.
+                 */
+                needsNewFileManager = true;
+                return;
+            }
+            try {
+                fileManager.setLocationForModule(location, moduleName, paths);
+            } catch (UnsupportedOperationException e) {
                 specifyAsOption(fileManager, JavaPathType.patchModule(moduleName), paths, e);
                 patchesAsOption.put(moduleName, paths);
                 return;
             }
-            throw e;
+        } else {
+            fileManager.setLocationForModule(location, moduleName, paths);
         }
         definedLocations.add(fileManager.getLocationForModule(location, moduleName));
     }

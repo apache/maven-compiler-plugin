@@ -60,6 +60,11 @@ final class SourceDirectory {
     static final String CLASS_FILE_SUFFIX = ".class";
 
     /**
+     * The {@value} directory.
+     */
+    static final String META_INF = "META-INF";
+
+    /**
      * The root directory of all source files. Whether the path is relative or absolute depends on the paths given to
      * the {@link #fromProject fromProject(…)} or {@link #fromPluginConfiguration fromPluginConfiguration(…)} methods.
      * This class preserves the relative/absolute characteristic of the user-specified directories in order to behave
@@ -244,7 +249,7 @@ final class SourceDirectory {
      */
     static Path outputDirectoryForReleases(boolean modular, Path outputDirectory) {
         // TODO: use Path.resolve(String, String...) with Java 22.
-        return outputDirectory.resolve("META-INF").resolve(modular ? "versions-modular" : "versions");
+        return outputDirectory.resolve(META_INF).resolve(modular ? "versions-modular" : "versions");
     }
 
     /**
@@ -266,7 +271,7 @@ final class SourceDirectory {
      * @return the parsed version, or {@code null} if the given string was null or empty
      * @throws UnsupportedVersionException if the version string cannot be parsed
      */
-    private static SourceVersion parse(final String version) {
+    static SourceVersion parse(final String version) {
         if (version == null || version.isBlank()) {
             return null;
         }
