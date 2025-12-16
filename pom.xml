@@ -84,7 +84,7 @@ under the License.
     <javaVersion>17</javaVersion>
     <mavenVersion>4.0.0-rc-4</mavenVersion>
 
-    <asmVersion>9.9</asmVersion>
+    <asmVersion>9.9.1</asmVersion>
     <guiceVersion>6.0.0</guiceVersion>
     <mockitoVersion>5.21.0</mockitoVersion>
     <eclipseCompilerVersion>3.42.0</eclipseCompilerVersion>
