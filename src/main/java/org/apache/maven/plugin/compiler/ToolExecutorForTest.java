@@ -41,8 +41,8 @@ import java.util.TreeMap;
 import java.util.stream.Stream;
 
 import static org.apache.maven.plugin.compiler.AbstractCompilerMojo.SUPPORT_LEGACY;
+import static org.apache.maven.plugin.compiler.DirectoryHierarchy.META_INF;
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
-import static org.apache.maven.plugin.compiler.SourceDirectory.META_INF;
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
 
 /**
@@ -206,7 +206,7 @@ class ToolExecutorForTest extends ToolExecutor {
         addDirectoryIfModule(
                 mainOutputDirectory, moduleNameFromPackageHierarchy, SourceVersion.RELEASE_0, patchedModules);
         addModuleDirectories(mainOutputDirectory, SourceVersion.RELEASE_0, patchedModules);
-        Path versionsDirectory = SourceDirectory.outputDirectoryForReleases(true, mainOutputDirectory);
+        Path versionsDirectory = DirectoryHierarchy.MODULE_SOURCE.outputDirectoryForReleases(mainOutputDirectory);
         if (Files.exists(versionsDirectory)) {
             List<Path> asList;
             try (Stream<Path> paths = Files.list(versionsDirectory)) {

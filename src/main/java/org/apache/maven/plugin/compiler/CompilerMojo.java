@@ -267,7 +267,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     protected Path getOutputDirectory() {
         if (SUPPORT_LEGACY && multiReleaseOutput && release != null) {
-            return SourceDirectory.outputDirectoryForReleases(false, outputDirectory)
+            return DirectoryHierarchy.PACKAGE
+                    .outputDirectoryForReleases(outputDirectory)
                     .resolve(release);
         }
         return outputDirectory;
@@ -341,7 +342,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Deprecated(since = "4.0.0")
     private TreeMap<SourceVersion, Path> getOutputDirectoryPerVersion() throws IOException {
-        final Path root = SourceDirectory.outputDirectoryForReleases(false, outputDirectory);
+        final Path root = DirectoryHierarchy.PACKAGE.outputDirectoryForReleases(outputDirectory);
         if (Files.notExists(root)) {
             return null;
         }

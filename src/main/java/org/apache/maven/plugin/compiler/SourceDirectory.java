@@ -60,11 +60,6 @@ final class SourceDirectory {
     static final String CLASS_FILE_SUFFIX = ".class";
 
     /**
-     * The {@value} directory.
-     */
-    static final String META_INF = "META-INF";
-
-    /**
      * The root directory of all source files. Whether the path is relative or absolute depends on the paths given to
      * the {@link #fromProject fromProject(…)} or {@link #fromPluginConfiguration fromPluginConfiguration(…)} methods.
      * This class preserves the relative/absolute characteristic of the user-specified directories in order to behave
@@ -211,45 +206,9 @@ final class SourceDirectory {
                 release = SourceVersion.latestSupported();
                 // `this.release` intentionally left to null.
             }
-            outputDirectory = outputDirectoryForReleases(moduleName != null, outputDirectory, release);
+            var hierarchy = (moduleName != null) ? DirectoryHierarchy.MODULE_SOURCE : DirectoryHierarchy.PACKAGE;
+            outputDirectory = hierarchy.outputDirectoryForReleases(outputDirectory, release);
         }
-    }
-
-    /**
-     * Returns the directory where to write the compiled class files for a specific Java release.
-     * The standard path is {@code META-INF/versions/${release}} where {@code ${release}} is the
-     * numerical value of the {@code release} argument. However if {@code modular} is {@code true},
-     * then the returned path is rather {@code META-INF/versions-modular/${release}}. The latter is
-     * non-standard because there is no standard multi-module <abbr>JAR</abbr> formats as of 2025.
-     * The use of {@code "versions-modular"} is for allowing other plugins such as Maven JAR plugin
-     * to avoid confusion with the standard case.
-     *
-     * @param modular whether each version directory contains module names
-     * @param outputDirectory usually the value of {@link #outputDirectory}
-     * @param release the release, or {@code null} for the default release
-     * @return the directory for the classes of the specified version
-     */
-    static Path outputDirectoryForReleases(boolean modular, Path outputDirectory, SourceVersion release) {
-        if (release == null) {
-            release = SourceVersion.latestSupported();
-        }
-        String version = release.name(); // TODO: replace by runtimeVersion() in Java 18.
-        version = version.substring(version.lastIndexOf('_') + 1);
-        return outputDirectoryForReleases(modular, outputDirectory).resolve(version);
-    }
-
-    /**
-     * Returns the directory where to write the compiled class files for all Java releases.
-     * The standard path (when {@code modular} is {@code false}) is {@code META-INF/versions}.
-     * The caller shall add the version number to the returned path.
-     *
-     * @param modular whether each version directory contains module names
-     * @param outputDirectory usually the value of {@link #outputDirectory}
-     * @return the directory for all versions
-     */
-    static Path outputDirectoryForReleases(boolean modular, Path outputDirectory) {
-        // TODO: use Path.resolve(String, String...) with Java 22.
-        return outputDirectory.resolve(META_INF).resolve(modular ? "versions-modular" : "versions");
     }
 
     /**
