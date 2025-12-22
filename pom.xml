@@ -198,19 +198,6 @@ under the License.
     </dependency>
   </dependencies>
 
-  <repositories>
-    <repository>
-      <releases>
-        <enabled>false</enabled>
-      </releases>
-      <snapshots>
-        <enabled>true</enabled>
-      </snapshots>
-      <id>plexus.snapshots</id>
-      <url>https://oss.sonatype.org/content/repositories/plexus-snapshots</url>
-    </repository>
-  </repositories>
-
   <build>
     <pluginManagement>
       <plugins>
