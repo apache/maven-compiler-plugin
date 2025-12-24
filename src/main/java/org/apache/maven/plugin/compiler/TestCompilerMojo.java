@@ -32,11 +32,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
+import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.java.DefaultJavaToolChain;
@@ -45,6 +47,7 @@ import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.jpms.LocationManager;
+import org.codehaus.plexus.languages.java.jpms.ModuleNameSource;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
 
@@ -378,25 +381,216 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 if (compilerArgs == null) {
                     compilerArgs = new ArrayList<>();
                 }
-                compilerArgs.add("--patch-module");
 
-                StringBuilder patchModuleValue = new StringBuilder(mainModuleDescriptor.name())
-                        .append('=')
-                        .append(mainOutputDirectory)
-                        .append(PS);
-                for (String root : compileSourceRoots) {
-                    patchModuleValue.append(root).append(PS);
+                // Patch module to add 
+                LinkedHashMap<String, List<String>> patchModules = new LinkedHashMap<>();
+
+                List<String> mainModulePaths = new ArrayList<>();
+                // Add main output dir
+                mainModulePaths.add(mainOutputDirectory.getAbsolutePath());
+                // Add source roots
+                mainModulePaths.addAll(compileSourceRoots);
+                patchModules.put(mainModuleDescriptor.name(), mainModulePaths);
+                
+                // Main module detected, modularized test dependencies must augment patch modules
+                patchModulesForTestDependencies( 
+                    mainModuleDescriptor.name(), mainOutputDirectory.getAbsolutePath(),
+                    patchModules 
+                );
+
+                for (Entry<String, List<String>> patchModuleEntry: patchModules.entrySet()) {
+                    compilerArgs.add("--patch-module");
+                    StringBuilder patchModuleValue = new StringBuilder(patchModuleEntry.getKey())
+                                    .append('=');
+                    
+                    for (String path : patchModuleEntry.getValue()) {
+                        patchModuleValue.append(path).append(PS);
+                    }
+                    
+                    compilerArgs.add(patchModuleValue.toString());
                 }
-
-                compilerArgs.add(patchModuleValue.toString());
-
+                
                 compilerArgs.add("--add-reads");
                 compilerArgs.add(mainModuleDescriptor.name() + "=ALL-UNNAMED");
             } else {
                 modulepathElements = Collections.emptyList();
                 classpathElements = testPath;
             }
+
         }
+    }
+
+    /**
+     * Compiling with test classpath is not sufficient because some dependencies <br/>
+     * may be modularized and their test class path addition would be ignored.<p/>
+     * Example from MCOMPILER-372_modularized_test:<br/>
+     * prj2 test classes depend on prj1 classes and test classes<br/>
+     * As prj1.jar is added as a module, pjr1-tests.jar classes are ignored if we add jar class path<br/>
+     * We have to add pjr1-tests.jar as --patch-module<p/>
+     * @param mainModuleName
+     * param mainModuleTarget
+     * @param patchModules map of module names -&gt; list of paths to add to --patch-module option
+     * 
+     */
+    protected void patchModulesForTestDependencies( 
+        String mainModuleName, String mainModuleTarget,
+        LinkedHashMap<String, List<String>> patchModules 
+    ) {
+        File mainModuleDescriptorClassFile = new File(mainModuleTarget, "module-info.class");
+
+        ResolvePathsResult<File> result;
+        
+        try {
+            // Get compile path information to identify modularized compile path elements
+            Collection<File> dependencyArtifacts = getCompileClasspathElements(getProject());
+            
+            ResolvePathsRequest<File> request =
+                ResolvePathsRequest.ofFiles(dependencyArtifacts)
+                .setMainModuleDescriptor(mainModuleDescriptorClassFile);
+
+            Toolchain toolchain = getToolchain();
+            if (toolchain instanceof DefaultJavaToolChain) {
+                request.setJdkHome(new File(((DefaultJavaToolChain) toolchain).getJavaHome()));
+            }
+
+            result = locationManager.resolvePaths(request);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        
+        // Prepare a path list containing test paths for modularized paths
+        // This path list will augment modules to be able to compile
+        List<String> listModuleTestPaths = new ArrayList<>(testPath.size());
+        
+        // Browse modules
+        for (Entry<File, ModuleNameSource> pathElt : result.getModulepathElements().entrySet()) {
+            
+            File modulePathElt = pathElt.getKey();
+
+            // Get module name
+            JavaModuleDescriptor moduleDesc = result.getPathElements().get( modulePathElt );
+            String moduleName = (moduleDesc != null) ? moduleDesc.name() : null;
+            
+            if ( 
+                  // Is it a modularized compile elements?
+                  ( modulePathElt != null ) && ( moduleName != null )
+                  &&
+                  // Is it different from main module name
+                  !mainModuleName.equals( moduleName )
+            ) {
+                
+                // Get test path element
+                File moduleTestPathElt = getModuleTestPathElt(modulePathElt);
+                
+                if (moduleTestPathElt != null) {
+                    listModuleTestPaths.add(moduleTestPathElt.getAbsolutePath());
+                }
+            }
+        }
+        
+        // Remove main target path
+        listModuleTestPaths.remove(mainModuleTarget);
+        listModuleTestPaths.remove(outputDirectory.getAbsolutePath());
+        
+        // Freeze list
+        listModuleTestPaths = Collections.unmodifiableList(listModuleTestPaths);
+        
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("patchModule test paths:");
+            for (String moduleTestPath : listModuleTestPaths) {
+                getLog().debug("  " + moduleTestPath);
+            }
+            
+        }
+        
+        // Get modularized dependencies resolved before
+        for (Entry<File, ModuleNameSource> pathElt : result.getModulepathElements().entrySet()) {
+            File path = pathElt.getKey();
+            
+            // Get module name
+            JavaModuleDescriptor moduleDesc = result.getPathElements().get(path);
+            String moduleName = (moduleDesc != null) ? moduleDesc.name() : null;
+            
+            if ( 
+                  // Is it a modularized compile elements?
+                  ( path != null ) && ( moduleName != null )
+                  &&
+                  // Not an auto-module
+                  !moduleDesc.isAutomatic()
+                  &&
+                  // Is it different from main module name
+                  !mainModuleName.equals( moduleName )
+            ) {
+            
+                // Add --add-reads <moduleName>=ALL-UNNAMED
+                compilerArgs.add( "--add-reads" );
+                StringBuilder sbAddReads = new StringBuilder();
+                sbAddReads.append(moduleName).append("=ALL-UNNAMED");
+                compilerArgs.add(sbAddReads.toString());
+                
+                // Add compile classpath if needed
+                if (!listModuleTestPaths.isEmpty()) {
+                    // Yes, add it as patch module
+                    List<String> listPath = patchModules.get(moduleName);
+                    // Make sure it is initialized
+                    if (listPath == null) {
+                        listPath = new ArrayList<>();
+                        patchModules.put(moduleName, listPath);
+                    } 
+                    
+                    // Add test compile path but not main module target
+                    listPath.addAll(listModuleTestPaths);
+                }
+            }
+        }
+
+        if (pathElements == null) {
+            pathElements = new LinkedHashMap<>(result.getPathElements().size());
+            for (Entry<File, JavaModuleDescriptor> entry : result.getPathElements().entrySet()) {
+                pathElements.put(entry.getKey().getAbsolutePath(), entry.getValue());
+            }
+        }
+    }
+
+    /**
+     * Get module test path element from module path element
+     * @param modulePathElt
+     * @return
+     */
+    protected File getModuleTestPathElt(File modulePathElt) {
+        // Get test path from reactor projects
+        File result = getModuleTestPathEltFromReactorProjects(modulePathElt);
+        return result;
+        
+    }
+
+    protected File getModuleTestPathEltFromReactorProjects(File modulePathElt) {
+        File result = null;
+        
+        // Get reactor projects
+        List<MavenProject> reactorProjects = getReactorProjects();
+        
+        // Find project matching module path
+        for (MavenProject reactorProject : reactorProjects) {
+            // Get build folder
+            File reactorProjectBuildFolder = new File(reactorProject.getBuild().getOutputDirectory());
+            
+            // Same as module path element?
+            if (modulePathElt.equals(reactorProjectBuildFolder)) {
+                // Yes, get test build folder
+                result = new File(reactorProject.getBuild().getTestOutputDirectory());
+                // Loop is finished
+                break;
+            }
+            
+        }
+        
+        // Last check : result (directory or file) exists?
+        if ((result != null) && !result.exists()) {
+            result = null;
+        }
+        
+        return result;
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner(int staleMillis) {
@@ -488,5 +682,15 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     @Override
     protected Set<String> getExcludes() {
         return testExcludes;
+    }
+    
+    private List<File> getCompileClasspathElements(MavenProject project) {
+        // 3 is outputFolder + 2 reserved for multirelease  
+        List<File> list = new ArrayList<>(project.getArtifacts().size() + 3);
+        list.add(new File(project.getBuild().getOutputDirectory()));
+        for (Artifact a : project.getArtifacts()) {
+            list.add(a.getFile());
+        }
+        return list;
     }
 }
