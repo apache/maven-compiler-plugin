@@ -1523,7 +1523,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param source the source file to parse (may be null or not exist)
      * @return the module name, or {@code null} if not found
+     *
+     * @deprecated This is invoked only by other deprecated methods.
      */
+    @Deprecated(since = "4.0.0")
     final String parseModuleInfoName(Path source) throws IOException {
         if (source != null && Files.exists(source)) {
             Charset charset = charset();
@@ -1619,7 +1622,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     @Deprecated(since = "4.0.0")
     @SuppressWarnings("UseSpecificCatch")
-    final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
+    final void resolveProcessorPathEntries(Map<PathType, Collection<Path>> addTo) throws MojoException {
         List<DependencyCoordinate> dependencies = annotationProcessorPaths;
         if (!isAbsent(dependencies)) {
             try {
@@ -1826,7 +1829,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             try (BufferedWriter out = Files.newBufferedWriter(pathForRelease)) {
                 configuration.setRelease(sources.getReleaseString());
                 configuration.format((i == indexToShow) ? commandLine : null, out);
-                for (Map.Entry<PathType, List<Path>> entry : sources.dependencySnapshot.entrySet()) {
+                for (Map.Entry<PathType, Collection<Path>> entry : sources.dependencySnapshot.entrySet()) {
                     writeOption(out, entry.getKey(), entry.getValue());
                 }
                 for (Map.Entry<String, Set<Path>> root : sources.roots.entrySet()) {

@@ -65,6 +65,16 @@ final class ForkedToolSources implements StandardJavaFileManager {
      */
     private record OtherPathType(String name, String optionString, String moduleName) implements PathType {
         /**
+         * An option for the directory of source files of a module.
+         *
+         * @param   moduleName  name of the module
+         * @return  option for the directory of source files of the specified module
+         */
+        static OtherPathType moduleSources(String moduleName) {
+            return new OtherPathType("MODULE_SOURCE_PATH", "--module-source-path", moduleName);
+        }
+
+        /**
          * The option for the directory of source files.
          */
         static final OtherPathType SOURCES = new OtherPathType("SOURCES", "--source-path", null);
@@ -417,7 +427,7 @@ final class ForkedToolSources implements StandardJavaFileManager {
                 throw new IllegalArgumentException("Unsupported location: " + location);
             }
         }
-        if (paths == null || paths.isEmpty()) {
+        if (isAbsent(paths)) {
             locations.remove(type);
         } else {
             locations.put(type, paths);
@@ -435,15 +445,22 @@ final class ForkedToolSources implements StandardJavaFileManager {
         if (location == StandardLocation.PATCH_MODULE_PATH) {
             type = JavaPathType.patchModule(moduleName);
         } else if (location == StandardLocation.MODULE_SOURCE_PATH) {
-            type = new OtherPathType("MODULE_SOURCE_PATH", "--module-source-path", moduleName);
+            type = OtherPathType.moduleSources(moduleName);
         } else {
             throw new IllegalArgumentException("Unsupported location: " + location);
         }
-        if (paths == null || paths.isEmpty()) {
+        if (isAbsent(paths)) {
             locations.remove(type);
         } else {
             locations.put(type, paths);
         }
+    }
+
+    /**
+     * Returns whether the given collection is null or empty.
+     */
+    private static boolean isAbsent(Collection<?> c) {
+        return (c == null) || c.isEmpty();
     }
 
     /**

@@ -206,45 +206,9 @@ final class SourceDirectory {
                 release = SourceVersion.latestSupported();
                 // `this.release` intentionally left to null.
             }
-            outputDirectory = outputDirectoryForReleases(moduleName != null, outputDirectory, release);
+            var hierarchy = (moduleName != null) ? DirectoryHierarchy.MODULE_SOURCE : DirectoryHierarchy.PACKAGE;
+            outputDirectory = hierarchy.outputDirectoryForReleases(outputDirectory, release);
         }
-    }
-
-    /**
-     * Returns the directory where to write the compiled class files for a specific Java release.
-     * The standard path is {@code META-INF/versions/${release}} where {@code ${release}} is the
-     * numerical value of the {@code release} argument. However if {@code modular} is {@code true},
-     * then the returned path is rather {@code META-INF/versions-modular/${release}}. The latter is
-     * non-standard because there is no standard multi-module <abbr>JAR</abbr> formats as of 2025.
-     * The use of {@code "versions-modular"} is for allowing other plugins such as Maven JAR plugin
-     * to avoid confusion with the standard case.
-     *
-     * @param modular whether each version directory contains module names
-     * @param outputDirectory usually the value of {@link #outputDirectory}
-     * @param release the release, or {@code null} for the default release
-     * @return the directory for the classes of the specified version
-     */
-    static Path outputDirectoryForReleases(boolean modular, Path outputDirectory, SourceVersion release) {
-        if (release == null) {
-            release = SourceVersion.latestSupported();
-        }
-        String version = release.name(); // TODO: replace by runtimeVersion() in Java 18.
-        version = version.substring(version.lastIndexOf('_') + 1);
-        return outputDirectoryForReleases(modular, outputDirectory).resolve(version);
-    }
-
-    /**
-     * Returns the directory where to write the compiled class files for all Java releases.
-     * The standard path (when {@code modular} is {@code false}) is {@code META-INF/versions}.
-     * The caller shall add the version number to the returned path.
-     *
-     * @param modular whether each version directory contains module names
-     * @param outputDirectory usually the value of {@link #outputDirectory}
-     * @return the directory for all versions
-     */
-    static Path outputDirectoryForReleases(boolean modular, Path outputDirectory) {
-        // TODO: use Path.resolve(String, String...) with Java 22.
-        return outputDirectory.resolve("META-INF").resolve(modular ? "versions-modular" : "versions");
     }
 
     /**
@@ -266,7 +230,7 @@ final class SourceDirectory {
      * @return the parsed version, or {@code null} if the given string was null or empty
      * @throws UnsupportedVersionException if the version string cannot be parsed
      */
-    private static SourceVersion parse(final String version) {
+    static SourceVersion parse(final String version) {
         if (version == null || version.isBlank()) {
             return null;
         }

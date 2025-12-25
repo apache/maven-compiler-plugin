@@ -22,9 +22,9 @@ import javax.lang.model.SourceVersion;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,7 +80,7 @@ final class SourcesForRelease implements Closeable {
      * Snapshot of {@link ToolExecutor#dependencies}.
      * This information is saved in case a {@code target/javac.args} debug file needs to be written.
      */
-    Map<PathType, List<Path>> dependencySnapshot;
+    Map<PathType, Collection<Path>> dependencySnapshot;
 
     /**
      * The output directory for the release. This is either the base output directory or a sub-directory
@@ -132,36 +132,6 @@ final class SourcesForRelease implements Closeable {
             directory.getModuleInfo().ifPresent((path) -> moduleInfos.put(directory, null));
         }
         files.add(source.file);
-    }
-
-    /**
-     * If there is any {@code module-info.class} in the main classes that are overwritten by this set of sources,
-     * temporarily replace the main files by the test files. The {@link #close()} method must be invoked after
-     * this method for resetting the original state.
-     *
-     * <p>This method is invoked when the test files overwrite the {@code module-info.class} from the main files.
-     * This method should not be invoked during the compilation of main classes, as its behavior may be not well
-     * defined.</p>
-     */
-    void substituteModuleInfos(final Path mainOutputDirectory, final Path testOutputDirectory) throws IOException {
-        for (Map.Entry<SourceDirectory, ModuleInfoOverwrite> entry : moduleInfos.entrySet()) {
-            Path main = mainOutputDirectory;
-            Path test = testOutputDirectory;
-            SourceDirectory directory = entry.getKey();
-            String moduleName = directory.moduleName;
-            if (moduleName != null) {
-                main = main.resolve(moduleName);
-                if (!Files.isDirectory(main)) {
-                    main = mainOutputDirectory;
-                }
-                test = test.resolve(moduleName);
-                if (!Files.isDirectory(test)) {
-                    test = testOutputDirectory;
-                }
-            }
-            Path source = directory.getModuleInfo().orElseThrow(); // Should never be absent for entries in the map.
-            entry.setValue(ModuleInfoOverwrite.create(source, main, test));
-        }
     }
 
     /**

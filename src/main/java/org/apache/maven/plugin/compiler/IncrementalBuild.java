@@ -566,7 +566,7 @@ final class IncrementalBuild {
         }
         boolean rebuild = false;
         boolean allChanged = true;
-        List<Path> added = new ArrayList<>();
+        final var added = new ArrayList<Path>();
         for (SourceFile source : sourceFiles) {
             SourceInfo previous = previousBuild.remove(source.file);
             if (previous != null) {
@@ -646,13 +646,14 @@ final class IncrementalBuild {
      *
      * @see Aspect#DEPENDENCIES
      */
-    String dependencyChanges(Iterable<List<Path>> dependencies, Collection<String> fileExtensions) throws IOException {
+    String dependencyChanges(Iterable<Collection<Path>> dependencies, Collection<String> fileExtensions)
+            throws IOException {
         if (!cacheLoaded) {
             loadCache();
         }
         final FileTime changeTime = FileTime.fromMillis(previousBuildTime);
         final var updated = new ArrayList<Path>();
-        for (List<Path> roots : dependencies) {
+        for (Collection<Path> roots : dependencies) {
             for (Path root : roots) {
                 try (Stream<Path> files = Files.walk(root)) {
                     files.filter((f) -> {
