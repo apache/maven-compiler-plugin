@@ -19,7 +19,7 @@ under the License.
 
 The Compiler Plugin is used to compile the sources of your project.
 The default compiler used to compile Java sources is `javac`.
-If you want to use another compiler, refer to the [using Non-Javac Compilers](/non-javac-compilers.html) page.
+If you want to use another compiler, refer to the [using Non-Javac Compilers](./examples/non-javac-compilers.html) page.
 
 **NOTE:** To know more about the JDK `javac`, please see the
 [tool guide](https://docs.oracle.com/en/java/javase/24/docs/specs/man/javac.html).

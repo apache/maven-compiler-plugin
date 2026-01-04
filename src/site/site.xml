@@ -43,7 +43,7 @@ under the License.
       <item name="Compile Using the --release javac Option" href="examples/set-compiler-release.html"/>
       <item name="Compile Using Memory Allocation Enhancements" href="examples/compile-with-memory-enhancements.html"/>
       <item name="Pass Compiler Arguments" href="examples/pass-compiler-arguments.html"/>
-      <item name="Non-javac compilerIds" href="non-javac-compilers.html"/>
+      <item name="Non-javac compilerIds" href="examples/non-javac-compilers.html"/>
       <item name="Older projects with module-info" href="examples/module-info.html"/>
       <item name="Perform annotation processing" href="examples/annotation-processor.html"/>
     </menu>
