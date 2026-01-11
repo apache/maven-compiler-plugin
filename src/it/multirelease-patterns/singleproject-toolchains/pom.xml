@@ -18,7 +18,7 @@
   ~ under the License.
   -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
                              http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -31,13 +31,22 @@
   <properties>
     <!-- The oldest Java version supported by this tool. -->
     <!-- Will control compilation of the main code and the unit tests. -->
-    <base.java.version>1.8</base.java.version>
+    <base.java.version>8</base.java.version>
 
     <!-- set the property when running from the release plugin -->
     <arguments>-Dmulti_release=true</arguments>
   </properties>
 
   <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>@project.version@</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
 
       <!-- Use toolchains to select the compilers -->
@@ -65,10 +74,8 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>@project.version@</version>
         <configuration>
-          <source>${base.java.version}</source>
-          <target>${base.java.version}</target>
+          <release>${base.java.version}</release>
         </configuration>
         <executions>
           <!-- for Java 9 -->
@@ -126,7 +133,7 @@
         <configuration>
           <includes>
               <include>**/*Test.java</include>
-          </includes>      
+          </includes>
         </configuration>
       </plugin>
     </plugins>
@@ -140,7 +147,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
   <profiles>
 
     <!-- enable java9 compilation -->
