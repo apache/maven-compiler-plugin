@@ -1000,6 +1000,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 return;
             }
 
+            staleSources = filterSourceFiles(staleSources);
             compilerConfiguration.setSourceFiles(staleSources);
 
             try {
@@ -1885,6 +1886,17 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     public void setRelease(String release) {
         this.release = release;
         targetOrReleaseSet = true;
+    }
+
+    private Set<File> filterSourceFiles(Set<File> sourceFiles) {
+        final File generatedSources = getGeneratedSourcesDirectory();
+        if (generatedSources == null) {
+            return sourceFiles;
+        }
+        final String generatedSourcesPath = generatedSources.getAbsolutePath();
+        return sourceFiles.stream()
+                .filter(x -> !x.getAbsolutePath().startsWith(generatedSourcesPath))
+                .collect(Collectors.toSet());
     }
 
     final String getImplicit() {
