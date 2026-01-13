@@ -1178,43 +1178,54 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws MojoException if the compiler cannot be run
      */
     @Override
-    public void execute() throws MojoException {
-        JavaCompiler compiler = compiler();
-        for (SourceVersion version : compiler.getSourceVersions()) {
-            if (supportedVersion == null || version.compareTo(supportedVersion) >= 0) {
-                supportedVersion = version;
-            }
-        }
-        Options configuration = parseParameters(compiler);
-        try {
-            compile(compiler, configuration);
-        } catch (RuntimeException e) {
-            String message = e.getLocalizedMessage();
-            if (message == null) {
-                message = e.getClass().getSimpleName();
-            } else if (e instanceof MojoException) {
-                int s = message.indexOf(System.lineSeparator());
-                if (s >= 0) {
-                    message = message.substring(0, s); // Log only the first line.
-                }
-            }
-            MessageBuilder mb = messageBuilderFactory
-                    .builder()
-                    .strong("COMPILATION ERROR: ")
-                    .a(message);
-            logger.error(mb.toString(), verbose ? e : null);
-            if (tipForCommandLineCompilation != null) {
-                logger.info(tipForCommandLineCompilation);
-                tipForCommandLineCompilation = null;
-            }
-            if (failOnError) {
-                throw e;
-            }
-        } catch (IOException e) {
-            logger.error("I/O error while compiling the project.", e);
-            throw new CompilationFailureException("I/O error while compiling the project.", e);
+public void execute() throws MojoException {
+    JavaCompiler compiler = compiler();
+    for (SourceVersion version : compiler.getSourceVersions()) {
+        if (supportedVersion == null || version.compareTo(supportedVersion) >= 0) {
+            supportedVersion = version;
         }
     }
+
+    Options configuration = parseParameters(compiler);
+    try {
+        // --- Fix for issue #1006: ensure <proc>only</proc> runs annotation processors ---
+        if ("only".equalsIgnoreCase(configuration.getProc())) {
+            logger.info("Running annotation processors (proc: only)");
+            compile(compiler, configuration);
+            return;
+        }
+        // -------------------------------------------------------------------------------
+        compile(compiler, configuration);
+    } catch (RuntimeException e) {
+        String message = e.getLocalizedMessage();
+        if (message == null) {
+            message = e.getClass().getSimpleName();
+        } else if (e instanceof MojoException) {
+            int s = message.indexOf(System.lineSeparator());
+            if (s >= 0) {
+                message = message.substring(0, s); // Log only the first line.
+            }
+        }
+
+        MessageBuilder mb = messageBuilderFactory
+                .builder()
+                .strong("COMPILATION ERROR: ")
+                .a(message);
+        logger.error(mb.toString(), verbose ? e : null);
+
+        if (tipForCommandLineCompilation != null) {
+            logger.info(tipForCommandLineCompilation);
+            tipForCommandLineCompilation = null;
+        }
+
+        if (failOnError) {
+            throw e;
+        }
+    } catch (IOException e) {
+        logger.error("I/O error while compiling the project.", e);
+        throw new CompilationFailureException("I/O error while compiling the project.", e);
+    }
+}
 
     /**
      * Creates a new task by taking a snapshot of the current configuration of this <abbr>MOJO</abbr>.
