@@ -53,7 +53,6 @@
           <encoding>UTF-8</encoding>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
-          <proc>full</proc>
           <fork>true</fork> <!-- Change this to false and the Diagnostic.Kind.NOTE messages show up -->
           <useIncrementalCompilation>false</useIncrementalCompilation>
           <compilerArgs combine.children="append">
@@ -68,4 +67,23 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>java9</id>
+      <activation>
+        <jdk>[9,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+              <proc>full</proc>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
