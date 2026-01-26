@@ -53,6 +53,7 @@
           <encoding>UTF-8</encoding>
           <showWarnings>true</showWarnings>
           <showDeprecation>true</showDeprecation>
+          <proc>full</proc>
           <fork>true</fork> <!-- Change this to false and the Diagnostic.Kind.NOTE messages show up -->
           <useIncrementalCompilation>false</useIncrementalCompilation>
           <compilerArgs combine.children="append">
