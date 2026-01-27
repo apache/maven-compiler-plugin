@@ -212,7 +212,7 @@ final class PathSelector implements PathMatcher {
         }
         prefixes = sortByLength(prefixes, false);
         suffixes = sortByLength(suffixes, true);
-        
+
         /*
          * Keep only the excludes which start with one of the prefixes and end with one of the suffixes.
          * Note that a prefix or suffix may be the empty string, which matches everything.
