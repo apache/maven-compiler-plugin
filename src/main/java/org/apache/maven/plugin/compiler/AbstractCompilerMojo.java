@@ -88,39 +88,34 @@ import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
  * Each instance shall be used only once, then discarded.
  *
  * <h2>Thread-safety</h2>
- * This class is not thread-safe. If this class is used in a multi-thread
- * context, users are responsible for synchronizing all accesses to this
- * <abbr>MOJO</abbr> instance. However, the executor returned by
- * {@link #createExecutor(DiagnosticListener)} can safely launch the compilation
- * in a background thread.
+ * This class is not thread-safe. If this class is used in a multi-thread context,
+ * users are responsible for synchronizing all accesses to this <abbr>MOJO</abbr> instance.
+ * However, the executor returned by {@link #createExecutor(DiagnosticListener)} can safely
+ * launch the compilation in a background thread.
  *
  * @author <a href="mailto:trygvis@inamo.no">Trygve Laugstøl</a>
  * @author Martin Desruisseaux
  * @since 2.0
  */
 public abstract class AbstractCompilerMojo implements Mojo {
-
     /**
-     * Whether to support legacy (and often deprecated) behavior. This is
-     * currently hard-coded to {@code true} for compatibility reason. TODO:
-     * consider making configurable.
+     * Whether to support legacy (and often deprecated) behavior.
+     * This is currently hard-coded to {@code true} for compatibility reason.
+     * TODO: consider making configurable.
      */
     static final boolean SUPPORT_LEGACY = true;
 
     /**
-     * Name of a {@link SourceVersion} enumeration value for a version above 17
-     * (the current Maven target). The {@code SourceVersion} value cannot be
-     * referenced directly because it does not exist in Java 17. Used for
-     * detecting if {@code module-info.class} needs to be patched for
-     * reproducible builds.
+     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
+     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
+     * Used for detecting if {@code module-info.class} needs to be patched for reproducible builds.
      */
     private static final String RELEASE_22 = "RELEASE_22";
 
     /**
-     * Name of a {@link SourceVersion} enumeration value for a version above 17
-     * (the current Maven target). The {@code SourceVersion} value cannot be
-     * referenced directly because it does not exist in Java 17. Used for
-     * determining the default value of the {@code -proc} compiler option.
+     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
+     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
+     * Used for determining the default value of the {@code -proc} compiler option.
      */
     private static final String RELEASE_23 = "RELEASE_23";
 
@@ -130,22 +125,20 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private static final String DEFAULT_EXECUTABLE = "javac";
 
     /**
-     * The quote character for filenames in shell scripts. Shall not be used
-     * with {@link javax.tools.JavaFileManager}.
+     * The quote character for filenames in shell scripts.
+     * Shall not be used with {@link javax.tools.JavaFileManager}.
      */
     static final char QUOTE = '"';
 
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
+
     /**
-     * The {@code --module-version} argument for the Java compiler. This is
-     * ignored if not applicable, e.g., in non-modular projects.
+     * The {@code --module-version} argument for the Java compiler.
+     * This is ignored if not applicable, e.g., in non-modular projects.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-module-version">javac
-     *      --module-version</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-module-version">javac --module-version</a>
      * @since 4.0.0
      */
     @Parameter(property = "maven.compiler.moduleVersion", defaultValue = "${project.version}")
@@ -154,20 +147,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * The {@code -encoding} argument for the Java compiler.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-encoding">javac
-     *      -encoding</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-encoding">javac -encoding</a>
      * @since 2.1
      */
     @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
     protected String encoding;
 
     /**
-     * {@return the character set used for decoding bytes, or null for the platform
-     * default}
-     * No warning is emitted in the latter case because as of Java 18, the
-     * default is UTF-8, i.e. the encoding is no longer platform-dependent.
+     * {@return the character set used for decoding bytes, or null for the platform default}
+     * No warning is emitted in the latter case because as of Java 18, the default is UTF-8,
+     * i.e. the encoding is no longer platform-dependent.
      */
     final Charset charset() {
         if (encoding != null) {
@@ -182,50 +171,39 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * The {@code --source} argument for the Java compiler.
-     * <p>
-     * <b>Notes:</b>
-     * </p>
+     * <p><b>Notes:</b></p>
      * <ul>
-     * <li>Since 3.8.0 the default value has changed from 1.5 to 1.6.</li>
-     * <li>Since 3.9.0 the default value has changed from 1.6 to 1.7.</li>
-     * <li>Since 3.11.0 the default value has changed from 1.7 to 1.8.</li>
-     * <li>Since 4.0.0-beta-2 the default value has been removed. As of Java 9,
-     * the {@link #release} parameter is preferred.</li>
+     *   <li>Since 3.8.0 the default value has changed from 1.5 to 1.6.</li>
+     *   <li>Since 3.9.0 the default value has changed from 1.6 to 1.7.</li>
+     *   <li>Since 3.11.0 the default value has changed from 1.7 to 1.8.</li>
+     *   <li>Since 4.0.0-beta-2 the default value has been removed.
+     *       As of Java 9, the {@link #release} parameter is preferred.</li>
      * </ul>
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-source">javac
-     *      --source</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-source">javac --source</a>
      */
     @Parameter(property = "maven.compiler.source")
     protected String source;
 
     /**
      * The {@code --target} argument for the Java compiler.
-     * <p>
-     * <b>Notes:</b>
-     * </p>
+     * <p><b>Notes:</b></p>
      * <ul>
-     * <li>Since 3.8.0 the default value has changed from 1.5 to 1.6.</li>
-     * <li>Since 3.9.0 the default value has changed from 1.6 to 1.7.</li>
-     * <li>Since 3.11.0 the default value has changed from 1.7 to 1.8.</li>
-     * <li>Since 4.0.0-beta-2 the default value has been removed. As of Java 9,
-     * the {@link #release} parameter is preferred.</li>
+     *   <li>Since 3.8.0 the default value has changed from 1.5 to 1.6.</li>
+     *   <li>Since 3.9.0 the default value has changed from 1.6 to 1.7.</li>
+     *   <li>Since 3.11.0 the default value has changed from 1.7 to 1.8.</li>
+     *   <li>Since 4.0.0-beta-2 the default value has been removed.
+     *       As of Java 9, the {@link #release} parameter is preferred.</li>
      * </ul>
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-target">javac
-     *      --target</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-target">javac --target</a>
      */
     @Parameter(property = "maven.compiler.target")
     protected String target;
 
     /**
-     * The {@code --release} argument for the Java compiler when the sources do
-     * not declare this version. The suggested way to declare the target Java
-     * release is to specify it with the sources like below:
+     * The {@code --release} argument for the Java compiler when the sources do not declare this version.
+     * The suggested way to declare the target Java release is to specify it with the sources like below:
      *
      * <pre>{@code
      * <build>
@@ -237,56 +215,45 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *   </sources>
      * </build>}</pre>
      *
-     * If such {@code <targetVersion>} element is found, it has precedence over
-     * this {@code release} property. If a source does not declare a target Java
-     * version, then the value of this {@code release} property is used as a
-     * fallback. If omitted, the compiler will generate bytecodes for the Java
-     * version running the compiler.
+     * If such {@code <targetVersion>} element is found, it has precedence over this {@code release} property.
+     * If a source does not declare a target Java version, then the value of this {@code release} property is
+     * used as a fallback.
+     * If omitted, the compiler will generate bytecodes for the Java version running the compiler.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-release">javac
-     *      --release</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-release">javac --release</a>
      * @since 3.6
      */
     @Parameter(property = "maven.compiler.release")
     protected String release;
 
     /**
-     * Whether {@link #target} or {@link #release} has a non-blank value. Used
-     * for logging a warning if no target Java version was specified.
+     * Whether {@link #target} or {@link #release} has a non-blank value.
+     * Used for logging a warning if no target Java version was specified.
      */
     private boolean targetOrReleaseSet;
 
     /**
-     * The highest version supported by the compiler, or {@code null} if not yet
-     * determined.
+     * The highest version supported by the compiler, or {@code null} if not yet determined.
      *
      * @see #isVersionEqualOrNewer(String)
      */
     private SourceVersion supportedVersion;
 
     /**
-     * Whether to enable preview language features of the java compiler. If
-     * {@code true}, then the {@code --enable-preview} option will be added to
-     * compiler arguments.
+     * Whether to enable preview language features of the java compiler.
+     * If {@code true}, then the {@code --enable-preview} option will be added to compiler arguments.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-enable-preview">javac
-     *      --enable-preview</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-enable-preview">javac --enable-preview</a>
      * @since 3.10.1
      */
     @Parameter(property = "maven.compiler.enablePreview", defaultValue = "false")
     protected boolean enablePreview;
 
     /**
-     * The root directories containing the source files to be compiled. If
-     * {@code null} or empty, the directories will be obtained from the
-     * {@code <Source>} elements declared in the project. If non-empty, the
-     * project {@code <Source>} elements are ignored. This configuration option
-     * should be used only when there is a need to override the project
-     * configuration.
+     * The root directories containing the source files to be compiled. If {@code null} or empty,
+     * the directories will be obtained from the {@code <Source>} elements declared in the project.
+     * If non-empty, the project {@code <Source>} elements are ignored. This configuration option
+     * should be used only when there is a need to override the project configuration.
      *
      * @deprecated Replaced by the project-wide {@code <sources>} element.
      */
@@ -295,18 +262,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected List<String> compileSourceRoots;
 
     /**
-     * Additional arguments to be passed verbatim to the Java compiler. This
-     * parameter can be used when the Maven compiler plugin does not provide a
-     * parameter for a Java compiler option. It may happen, for example, for new
-     * or preview Java features which are not yet handled by this compiler
-     * plugin.
+     * Additional arguments to be passed verbatim to the Java compiler. This parameter can be used when
+     * the Maven compiler plugin does not provide a parameter for a Java compiler option. It may happen,
+     * for example, for new or preview Java features which are not yet handled by this compiler plugin.
      *
-     * <p>
-     * If an option has a value, the option and the value shall be specified in
-     * two separated {@code <arg>} elements. For example, the
-     * {@code -Xmaxerrs 1000} option (for setting the maximal number of errors
-     * to 1000) can be specified as below (together with other options):
-     * </p>
+     * <p>If an option has a value, the option and the value shall be specified in two separated {@code <arg>}
+     * elements. For example, the {@code -Xmaxerrs 1000} option (for setting the maximal number of errors to
+     * 1000) can be specified as below (together with other options):</p>
      *
      * <pre>{@code
      * <compilerArgs>
@@ -316,37 +278,25 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *   <arg>J-Duser.language=en_us</arg>
      * </compilerArgs>}</pre>
      *
-     * Note that {@code -J} options should be specified only if {@link #fork} is
-     * set to {@code true}. Other options can be specified regardless the
-     * {@link #fork} value. The compiler plugin does not verify whether the
-     * arguments given through this parameter are valid. For this reason, the
-     * other parameters provided by the compiler plugin should be preferred when
-     * they exist, because the plugin checks whether the corresponding options
-     * are supported.
+     * Note that {@code -J} options should be specified only if {@link #fork} is set to {@code true}.
+     * Other options can be specified regardless the {@link #fork} value.
+     * The compiler plugin does not verify whether the arguments given through this parameter are valid.
+     * For this reason, the other parameters provided by the compiler plugin should be preferred when
+     * they exist, because the plugin checks whether the corresponding options are supported.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac
-     *      -J</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
      * @since 3.1
      */
     @Parameter
     protected List<String> compilerArgs;
 
     /**
-     * The single argument string to be passed to the compiler. To pass multiple
-     * arguments such as {@code -Xmaxerrs 1000} (which are actually two
-     * arguments), {@link #compilerArgs} is preferred.
+     * The single argument string to be passed to the compiler. To pass multiple arguments such as
+     * {@code -Xmaxerrs 1000} (which are actually two arguments), {@link #compilerArgs} is preferred.
      *
-     * <p>
-     * Note that {@code -J} options should be specified only if {@link #fork} is
-     * set to {@code true}.
-     * </p>
+     * <p>Note that {@code -J} options should be specified only if {@link #fork} is set to {@code true}.</p>
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac
-     *      -J</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
      *
      * @deprecated Use {@link #compilerArgs} instead.
      */
@@ -355,54 +305,42 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String compilerArgument;
 
     /**
-     * Configures if annotation processing and/or compilation are performed by
-     * the compiler. If set, the value will be appended to the {@code -proc:}
-     * compiler option.
+     * Configures if annotation processing and/or compilation are performed by the compiler.
+     * If set, the value will be appended to the {@code -proc:} compiler option.
      *
      * Possible values are:
      * <ul>
-     * <li>{@code none} – no annotation processing is performed, only
-     * compilation is done.</li>
-     * <li>{@code only} – only annotation processing is done, no
-     * compilation.</li>
-     * <li>{@code full} – annotation processing followed by compilation is
-     * done.</li>
+     *   <li>{@code none} – no annotation processing is performed, only compilation is done.</li>
+     *   <li>{@code only} – only annotation processing is done, no compilation.</li>
+     *   <li>{@code full} – annotation processing followed by compilation is done.</li>
      * </ul>
      *
-     * The default value depends on the JDK used for the build. Prior to Java
-     * 23, the default was {@code full}, so annotation processing and
-     * compilation were executed without explicit configuration.
+     * The default value depends on the JDK used for the build.
+     * Prior to Java 23, the default was {@code full},
+     * so annotation processing and compilation were executed without explicit configuration.
      *
-     * For security reasons, starting with Java 23 no annotation processing is
-     * done if neither any {@code -processor}, {@code -processor path} or
-     * {@code -processor module} are set, or either {@code only} or {@code full}
-     * is set. So literally the default is {@code none}. It is recommended to
-     * always list the annotation processors you want to execute instead of
-     * using the {@code proc} configuration, to ensure that only desired
-     * processors are executed and not any "hidden" (and maybe malicious).
+     * For security reasons, starting with Java 23 no annotation processing is done if neither
+     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set,
+     * or either {@code only} or {@code full} is set.
+     * So literally the default is {@code none}.
+     * It is recommended to always list the annotation processors you want to execute
+     * instead of using the {@code proc} configuration,
+     * to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
      *
      * @see #annotationProcessors
-     * @see <a href="https://inside.java/2024/06/18/quality-heads-up/">Inside
-     *      Java 2024-06-18 Quality Heads up</a>
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac
-     *      -proc</a>
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac
-     *      Annotation Processing</a>
+     * @see <a href="https://inside.java/2024/06/18/quality-heads-up/">Inside Java 2024-06-18 Quality Heads up</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      * @since 2.2
      */
     @Parameter(property = "maven.compiler.proc")
     protected String proc;
-    // Reminder: if above list of legal values is modified, update also
-    // addComaSeparated("-proc", …)
+    // Reminder: if above list of legal values is modified, update also addComaSeparated("-proc", …)
 
     /**
-     * Class names of annotation processors to run. If not set, the default
-     * annotation processors discovery process applies. If set, the value will
-     * be appended to the {@code -processor} compiler option.
+     * Class names of annotation processors to run.
+     * If not set, the default annotation processors discovery process applies.
+     * If set, the value will be appended to the {@code -processor} compiler option.
      *
      * @see #proc
      * @since 2.2
@@ -411,20 +349,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String[] annotationProcessors;
 
     /**
-     * Classpath elements to supply as annotation processor path. If specified,
-     * the compiler will detect annotation processors only in those classpath
-     * elements. If omitted (and {@code proc} is set to {@code only} or
-     * {@code full}), the default classpath is used to detect annotation
-     * processors. The detection itself depends on the configuration of
-     * {@link #annotationProcessors}. Since JDK 23 by default no annotation
-     * processing is performed as long as no processors is listed for security
-     * reasons. Therefore, you should always list the desired processors using
-     * this configuration element or {@code annotationProcessorPaths}.
+     * Classpath elements to supply as annotation processor path. If specified, the compiler will detect annotation
+     * processors only in those classpath elements. If omitted (and {@code proc} is set to {@code only} or {@code full}), the default classpath is used to detect annotation
+     * processors. The detection itself depends on the configuration of {@link #annotationProcessors}.
+     * Since JDK 23 by default no annotation processing is performed as long as no processors is listed for security reasons.
+     * Therefore, you should always list the desired processors using this configuration element or {@code annotationProcessorPaths}.
      *
      * <p>
-     * Each classpath element is specified using their Maven coordinates
-     * (groupId, artifactId, version, classifier, type). Transitive dependencies
-     * are added automatically. Exclusions are supported as well. Example:
+     * Each classpath element is specified using their Maven coordinates (groupId, artifactId, version, classifier,
+     * type). Transitive dependencies are added automatically. Exclusions are supported as well. Example:
      * </p>
      *
      * <pre>
@@ -449,57 +382,45 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * <b>Note:</b> Exclusions are supported from version 3.11.0.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor-path">javac
-     *      -processorpath</a>
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac
-     *      Annotation Processing</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor-path">javac -processorpath</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      * @since 3.5
      *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element
-     *             set to {@code processor}, {@code classpath-processor} or
-     *             {@code modular-processor}.
+     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Parameter
     @Deprecated(since = "4.0.0")
     protected List<DependencyCoordinate> annotationProcessorPaths;
 
     /**
-     * Whether to use the Maven dependency management section when resolving
-     * transitive dependencies of annotation processor paths.
+     * Whether to use the Maven dependency management section when resolving transitive dependencies of annotation
+     * processor paths.
      * <p>
-     * This flag does not enable / disable the ability to resolve the version of
-     * annotation processor paths from dependency management section. It only
-     * influences the resolution of transitive dependencies of those top-level
-     * paths.
+     * This flag does not enable / disable the ability to resolve the version of annotation processor paths
+     * from dependency management section. It only influences the resolution of transitive dependencies of those
+     * top-level paths.
      * </p>
      *
      * @since 3.12.0
      *
-     * @deprecated This flag is ignored. Replaced by ordinary dependencies with
-     *             {@code <type>} element set to {@code processor},
-     *             {@code classpath-processor} or {@code modular-processor}.
+     * @deprecated This flag is ignored.
+     * Replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Deprecated(since = "4.0.0")
     @Parameter(defaultValue = "false")
     protected boolean annotationProcessorPathsUseDepMgmt;
 
     /**
-     * Whether to generate {@code package-info.class} even when empty. By
-     * default, package info source files that only contain javadoc and no
-     * annotation on the package can lead to no class file being generated by
-     * the compiler. It may cause a file miss on build systems that check for
-     * file existence in order to decide what to recompile.
+     * Whether to generate {@code package-info.class} even when empty.
+     * By default, package info source files that only contain javadoc and no annotation
+     * on the package can lead to no class file being generated by the compiler.
+     * It may cause a file miss on build systems that check for file existence in order to decide what to recompile.
      *
-     * <p>
-     * If {@code true}, the {@code -Xpkginfo:always} compiler option is added if
-     * the compiler supports that extra option. If the extra option is not
-     * supported, then a warning is logged and no option is added to the
-     * compiler arguments.
-     * </p>
+     * <p>If {@code true}, the {@code -Xpkginfo:always} compiler option is added if the compiler supports that
+     * extra option. If the extra option is not supported, then a warning is logged and no option is added to
+     * the compiler arguments.</p>
      *
      * @see #incrementalCompilation
      * @since 3.10
@@ -508,56 +429,42 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean createMissingPackageInfoClass;
 
     /**
-     * Whether to generate class files for implicitly referenced files. If set,
-     * the value will be appended to the {@code -implicit:} compiler option.
+     * Whether to generate class files for implicitly referenced files.
+     * If set, the value will be appended to the {@code -implicit:} compiler option.
      * Standard values are:
      * <ul>
-     * <li>{@code class} – automatically generates class files.</li>
-     * <li>{@code none} – suppresses class file generation.</li>
+     *   <li>{@code class} – automatically generates class files.</li>
+     *   <li>{@code none}  – suppresses class file generation.</li>
      * </ul>
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-implicit">javac
-     *      -implicit</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-implicit">javac -implicit</a>
      * @since 3.10.2
      */
     @Parameter(property = "maven.compiler.implicit")
     protected String implicit;
-    // Reminder: if above list of legal values is modified, update also
-    // addComaSeparated("-implicit", …)
+    // Reminder: if above list of legal values is modified, update also addComaSeparated("-implicit", …)
 
     /**
-     * Whether to generate metadata for reflection on method parameters. If
-     * {@code true}, the {@code -parameters} option will be added to compiler
-     * arguments.
+     * Whether to generate metadata for reflection on method parameters.
+     * If {@code true}, the {@code -parameters} option will be added to compiler arguments.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-parameters">javac
-     *      -parameters</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-parameters">javac -parameters</a>
      * @since 3.6.2
      */
     @Parameter(property = "maven.compiler.parameters", defaultValue = "false")
     protected boolean parameters;
 
     /**
-     * Whether to include debugging information in the compiled class files. The
-     * amount of debugging information to include is specified by the
-     * {@link #debuglevel} parameter. If this {@code debug} flag is
-     * {@code true}, then the {@code -g} option may be added to compiler
-     * arguments with a value determined by the {@link #debuglevel} argument. If
-     * this {@code debug} flag is {@code false}, then the {@code -g:none} option
-     * will be added to the compiler arguments.
+     * Whether to include debugging information in the compiled class files.
+     * The amount of debugging information to include is specified by the {@link #debuglevel} parameter.
+     * If this {@code debug} flag is {@code true}, then the {@code -g} option may be added to compiler arguments
+     * with a value determined by the {@link #debuglevel} argument. If this {@code debug} flag is {@code false},
+     * then the {@code -g:none} option will be added to the compiler arguments.
      *
      * @see #debuglevel
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac
-     *      -g</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac -g</a>
      *
-     * @deprecated Setting this flag to {@code false} is replaced by
-     *             {@code <debuglevel>none</debuglevel>}.
+     * @deprecated Setting this flag to {@code false} is replaced by {@code <debuglevel>none</debuglevel>}.
      */
     @Deprecated(since = "4.0.0")
     @Parameter(property = "maven.compiler.debug", defaultValue = "true")
@@ -565,39 +472,27 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Kinds of debugging information to include in the compiled class files.
-     * Legal values are {@code lines}, {@code vars}, {@code source}, {@code all}
-     * and {@code none}. Values other than {@code all} and {@code none} can be
-     * combined in a comma-separated list.
+     * Legal values are {@code lines}, {@code vars}, {@code source}, {@code all} and {@code none}.
+     * Values other than {@code all} and {@code none} can be combined in a comma-separated list.
      *
-     * <p>
-     * If debug level is not specified, then the {@code -g} option will
-     * <em>not</em> be added, which means that the default debugging information
-     * will be generated (typically {@code lines} and {@code source} but not
-     * {@code vars}).
-     * </p>
+     * <p>If debug level is not specified, then the {@code -g} option will <em>not</em> be added,
+     * which means that the default debugging information will be generated
+     * (typically {@code lines} and {@code source} but not {@code vars}).</p>
      *
-     * <p>
-     * If debug level is {@code all}, then only the {@code -g} option is added,
-     * which means that all debugging information will be generated. If debug
-     * level is anything else, then the comma-separated list of keywords is
-     * appended to the {@code -g} command-line switch.
-     * </p>
+     * <p>If debug level is {@code all}, then only the {@code -g} option is added,
+     * which means that all debugging information will be generated.
+     * If debug level is anything else, then the comma-separated list of keywords
+     * is appended to the {@code -g} command-line switch.</p>
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac
-     *      -g:[lines,vars,source]</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac -g:[lines,vars,source]</a>
      * @since 2.1
      */
     @Parameter(property = "maven.compiler.debuglevel")
     protected String debuglevel;
-    // Reminder: if above list of legal values is modified, update also
-    // addComaSeparated("-g", …)
+    // Reminder: if above list of legal values is modified, update also addComaSeparated("-g", …)
 
     /**
-     * Whether to optimize the compiled code using the compiler's optimization
-     * methods.
-     *
+     * Whether to optimize the compiled code using the compiler's optimization methods.
      * @deprecated This property is ignored.
      */
     @Deprecated(forRemoval = true)
@@ -605,23 +500,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected Boolean optimize;
 
     /**
-     * Whether to show messages about what the compiler is doing. If
-     * {@code true}, then the {@code -verbose} option will be added to compiler
-     * arguments. In addition, files such as {@code target/javac.args} will be
-     * generated even on successful compilation.
+     * Whether to show messages about what the compiler is doing.
+     * If {@code true}, then the {@code -verbose} option will be added to compiler arguments.
+     * In addition, files such as {@code target/javac.args} will be generated even on successful compilation.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac
-     *      -verbose</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac -verbose</a>
      */
     @Parameter(property = "maven.compiler.verbose", defaultValue = "false")
     protected boolean verbose;
 
     /**
-     * Whether to provide more details about why a module is rebuilt. This is
-     * used only if {@link #incrementalCompilation} is set to something else
-     * than {@code "none"}.
+     * Whether to provide more details about why a module is rebuilt.
+     * This is used only if {@link #incrementalCompilation} is set to something else than {@code "none"}.
      *
      * @see #incrementalCompilation
      */
@@ -629,10 +519,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean showCompilationChanges;
 
     /**
-     * Whether to show source locations where deprecated APIs are used. If
-     * {@code true}, then the {@code -deprecation} option will be added to
-     * compiler arguments. That option is itself a shorthand for
-     * {@code -Xlint:deprecation}.
+     * Whether to show source locations where deprecated APIs are used.
+     * If {@code true}, then the {@code -deprecation} option will be added to compiler arguments.
+     * That option is itself a shorthand for {@code -Xlint:deprecation}.
      *
      * @see #showWarnings
      * @see #failOnWarning
@@ -641,9 +530,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean showDeprecation;
 
     /**
-     * Whether to show compilation warnings. If {@code false}, then the
-     * {@code -nowarn} option will be added to compiler arguments. That option
-     * is itself a shorthand for {@code -Xlint:none}.
+     * Whether to show compilation warnings.
+     * If {@code false}, then the {@code -nowarn} option will be added to compiler arguments.
+     * That option is itself a shorthand for {@code -Xlint:none}.
      *
      * @see #showDeprecation
      * @see #failOnWarning
@@ -652,9 +541,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean showWarnings = true;
 
     /**
-     * Whether the build will stop if there are compilation warnings. If
-     * {@code true}, then the {@code -Werror} option will be added to compiler
-     * arguments.
+     * Whether the build will stop if there are compilation warnings.
+     * If {@code true}, then the {@code -Werror} option will be added to compiler arguments.
      *
      * @see #showWarnings
      * @see #showDeprecation
@@ -673,132 +561,93 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean failOnError = true;
 
     /**
-     * Sets the name of the output file when compiling a set of sources to a
-     * single file.
+     * Sets the name of the output file when compiling a set of sources to a single file.
      *
-     * <p>
-     * expression="${project.build.finalName}"
-     * </p>
+     * <p>expression="${project.build.finalName}"</p>
      *
-     * @deprecated Bundling many class files into a single file should be done
-     *             by other plugins.
+     * @deprecated Bundling many class files into a single file should be done by other plugins.
      */
     @Parameter
     @Deprecated(since = "4.0.0", forRemoval = true)
     protected String outputFileName;
 
     /**
-     * Timestamp for reproducible output archive entries. It can be either
-     * formatted as ISO 8601 {@code yyyy-MM-dd'T'HH:mm:ssXXX} or as an int
-     * representing seconds since the epoch (like
-     * <a href=
-     * "https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
+     * Timestamp for reproducible output archive entries. It can be either formatted as ISO 8601
+     * {@code yyyy-MM-dd'T'HH:mm:ssXXX} or as an int representing seconds since the epoch (like
+     * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
      *
      * @since 3.12.0
      *
-     * @deprecated Not used by the compiler plugin since it does not generate
-     *             archive.
+     * @deprecated Not used by the compiler plugin since it does not generate archive.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(defaultValue = "${project.build.outputTimestamp}")
     protected String outputTimestamp;
 
     /**
-     * The algorithm to use for selecting which files to compile. Values can be
-     * {@code dependencies}, {@code sources}, {@code classes},
-     * {@code rebuild-on-change}, {@code rebuild-on-add}, {@code modules} or
-     * {@code none}.
+     * The algorithm to use for selecting which files to compile.
+     * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
+     * {@code rebuild-on-add}, {@code modules} or {@code none}.
      *
-     * <p>
-     * <b>{@code options}:</b>
-     * recompile all source files if the compiler options changed. Changes are
-     * detected on a <i>best-effort</i> basis only.
-     * </p>
+     * <p><b>{@code options}:</b>
+     * recompile all source files if the compiler options changed.
+     * Changes are detected on a <i>best-effort</i> basis only.</p>
      *
-     * <p>
-     * <b>{@code dependencies}:</b>
-     * recompile all source files if at least one dependency (JAR file) changed
-     * since the last build. This check is based on the last modification times
-     * of JAR files.
-     * </p>
+     * <p><b>{@code dependencies}:</b>
+     * recompile all source files if at least one dependency (JAR file) changed since the last build.
+     * This check is based on the last modification times of JAR files.</p>
      *
-     * <p>
-     * <b>{@code sources}:</b>
-     * recompile source files modified since the last build. In addition, if a
-     * source file has been deleted, then all source files are recompiled. This
-     * check is based on the modification times of source files rather than the
-     * modification times of the {@code *.class} files.
-     * </p>
+     * <p><b>{@code sources}:</b>
+     * recompile source files modified since the last build.
+     * In addition, if a source file has been deleted, then all source files are recompiled.
+     * This check is based on the modification times of source files
+     * rather than the modification times of the {@code *.class} files.</p>
      *
-     * <p>
-     * <b>{@code classes}:</b>
-     * recompile source files ({@code *.java}) associated to no output file
-     * ({@code *.class}) or associated to an output file older than the source.
-     * This algorithm does not check if a source file has been removed,
-     * potentially leaving non-recompiled classes with references to classes
-     * that no longer exist.
-     * </p>
+     * <p><b>{@code classes}:</b>
+     * recompile source files ({@code *.java}) associated to no output file ({@code *.class})
+     * or associated to an output file older than the source. This algorithm does not check
+     * if a source file has been removed, potentially leaving non-recompiled classes with
+     * references to classes that no longer exist.</p>
      *
-     * <p>
-     * The {@code sources} and {@code classes} values are partially redundant,
-     * doing the same work in different ways. It is usually not necessary to
-     * specify those two values.
-     * </p>
+     * <p>The {@code sources} and {@code classes} values are partially redundant,
+     * doing the same work in different ways. It is usually not necessary to specify those two values.</p>
      *
-     * <p>
-     * <b>{@code modules}:</b>
-     * recompile modules and let the compiler decides which individual files to
-     * recompile. The compiler plugin does not enumerate the source files to
-     * recompile (actually, it does not scan at all the source directories).
-     * Instead, it only specifies the module to recompile using the
-     * {@code --module} option. The Java compiler will scan the source
-     * directories itself and compile only those source files that are newer
-     * than the corresponding files in the output directory.
-     * </p>
+     * <p><b>{@code modules}:</b>
+     * recompile modules and let the compiler decides which individual files to recompile.
+     * The compiler plugin does not enumerate the source files to recompile (actually, it does not scan at all the
+     * source directories). Instead, it only specifies the module to recompile using the {@code --module} option.
+     * The Java compiler will scan the source directories itself and compile only those source files that are newer
+     * than the corresponding files in the output directory.</p>
      *
-     * <p>
-     * <b>{@code rebuild-on-add}:</b>
-     * modifier for recompiling all source files when the addition of a new file
-     * is detected. This flag is effective only when used together with
-     * {@code sources} or {@code classes}. When used with {@code classes}, it
-     * provides a way to detect class renaming (this is not needed with
-     * {@code sources} for detecting renaming).
-     * </p>
+     * <p><b>{@code rebuild-on-add}:</b>
+     * modifier for recompiling all source files when the addition of a new file is detected.
+     * This flag is effective only when used together with {@code sources} or {@code classes}.
+     * When used with {@code classes}, it provides a way to detect class renaming
+     * (this is not needed with {@code sources} for detecting renaming).</p>
      *
-     * <p>
-     * <b>{@code rebuild-on-change}:</b>
-     * modifier for recompiling all source files when a change is detected in at
-     * least one source file. This flag is effective only when used together
-     * with {@code sources} or {@code classes}. It does not rebuild when a new
-     * source file is added without change in other files, unless
-     * {@code rebuild-on-add} is also specified.
-     * </p>
+     * <p><b>{@code rebuild-on-change}:</b>
+     * modifier for recompiling all source files when a change is detected in at least one source file.
+     * This flag is effective only when used together with {@code sources} or {@code classes}.
+     * It does not rebuild when a new source file is added without change in other files,
+     * unless {@code rebuild-on-add} is also specified.</p>
      *
-     * <p>
-     * <b>{@code none}:</b>
-     * the compiler plugin unconditionally specifies all sources to the Java
-     * compiler. This option is mutually exclusive with all other incremental
-     * compilation options.
-     * </p>
+     * <p><b>{@code none}:</b>
+     * the compiler plugin unconditionally specifies all sources to the Java compiler.
+     * This option is mutually exclusive with all other incremental compilation options.</p>
      *
      * <h4>Limitations</h4>
-     * In all cases, the current compiler-plugin does not detect structural
-     * changes other than file addition or removal. For example, the plugin does
-     * not detect whether a method has been removed in a class.
+     * In all cases, the current compiler-plugin does not detect structural changes other than file addition or removal.
+     * For example, the plugin does not detect whether a method has been removed in a class.
      *
      * <h4>Default value</h4>
-     * The default value depends on the context. If there is no annotation
-     * processor, then the default is {@code "options,dependencies,sources"}. It
-     * means that a full rebuild will be done if the compiler options or the
-     * dependencies changed, or if a source file has been deleted. Otherwise,
-     * only the modified source files will be recompiled.
+     * The default value depends on the context.
+     * If there is no annotation processor, then the default is {@code "options,dependencies,sources"}.
+     * It means that a full rebuild will be done if the compiler options or the dependencies changed,
+     * or if a source file has been deleted. Otherwise, only the modified source files will be recompiled.
      *
-     * <p>
-     * If an annotation processor is present (e.g., {@link #proc} set to a value
-     * other than {@code "none"}), then the default value is same as above with
-     * the addition of {@code "rebuild-on-add,rebuild-on-change"}. It means that
-     * a full rebuild will be done if any kind of change is detected.
-     * </p>
+     * <p>If an annotation processor is present (e.g., {@link #proc} set to a value other than {@code "none"}),
+     * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
+     * It means that a full rebuild will be done if any kind of change is detected.</p>
      *
      * @see #staleMillis
      * @see #fileExtensions
@@ -814,23 +663,20 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @since 3.1
      *
-     * @deprecated Replaced by {@link #incrementalCompilation}. A value of
-     *             {@code true} in this old property is equivalent to
-     *             {@code "dependencies,sources,rebuild-on-add"} in the new
-     *             property, and a
-     *             value of {@code false} is equivalent to {@code "classes"}.
+     * @deprecated Replaced by {@link #incrementalCompilation}.
+     * A value of {@code true} in this old property is equivalent to {@code "dependencies,sources,rebuild-on-add"}
+     * in the new property, and a value of {@code false} is equivalent to {@code "classes"}.
      */
     @Deprecated(since = "4.0.0")
     @Parameter(property = "maven.compiler.useIncrementalCompilation")
     protected Boolean useIncrementalCompilation;
 
     /**
-     * Returns the configuration of the incremental compilation. If the argument
-     * is null or blank, then this method applies the default values documented
-     * in {@link #incrementalCompilation} javadoc.
+     * Returns the configuration of the incremental compilation.
+     * If the argument is null or blank, then this method applies
+     * the default values documented in {@link #incrementalCompilation} javadoc.
      *
-     * @throws MojoException if a value is not recognized, or if mutually
-     *                       exclusive values are specified
+     * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
     final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
         if (isAbsent(incrementalCompilation)) {
@@ -851,14 +697,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Amends the configuration of incremental compilation for the presence of
-     * annotation processors.
+     * Amends the configuration of incremental compilation for the presence of annotation processors.
      *
-     * @param aspects         the configuration to amend if an annotation processor
-     *                        is
-     *                        found
-     * @param dependencyTypes the type of dependencies, for checking if any of
-     *                        them is a processor path
+     * @param aspects the configuration to amend if an annotation processor is found
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
     final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
@@ -868,11 +710,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * File extensions to check timestamp for incremental build. Default
-     * contains only {@code class} and {@code jar}.
+     * File extensions to check timestamp for incremental build.
+     * Default contains only {@code class} and {@code jar}.
      *
-     * TODO: Rename with a name making clearer that this parameter is about
-     * incremental build.
+     * TODO: Rename with a name making clearer that this parameter is about incremental build.
      *
      * @see #incrementalCompilation
      * @since 3.1
@@ -881,8 +722,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected List<String> fileExtensions;
 
     /**
-     * The granularity in milliseconds of the last modification date for testing
-     * whether a source needs recompilation.
+     * The granularity in milliseconds of the last modification
+     * date for testing whether a source needs recompilation.
      *
      * @see #incrementalCompilation
      */
@@ -890,9 +731,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected int staleMillis;
 
     /**
-     * Allows running the compiler in a separate process. If {@code false}, the
-     * plugin uses the built-in compiler, while if {@code true} it will use an
-     * executable.
+     * Allows running the compiler in a separate process.
+     * If {@code false}, the plugin uses the built-in compiler, while if {@code true} it will use an executable.
      *
      * @see #executable
      * @see #compilerId
@@ -903,14 +743,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected boolean fork;
 
     /**
-     * Requirements for this JDK toolchain for using a different {@code javac}
-     * than the one of the JDK used by Maven. This overrules the toolchain
-     * selected by the
-     * <a href=
-     * "https://maven.apache.org/plugins/maven-toolchains-plugin/">maven-toolchain-plugin</a>.
-     * See
-     * <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html">
-     * Guide to Toolchains</a>
+     * Requirements for this JDK toolchain for using a different {@code javac} than the one of the JDK used by Maven.
+     * This overrules the toolchain selected by the
+     * <a href="https://maven.apache.org/plugins/maven-toolchains-plugin/">maven-toolchain-plugin</a>.
+     * See <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html"> Guide to Toolchains</a>
      * for more info.
      *
      * <pre>
@@ -938,16 +774,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected Map<String, String> jdkToolchain;
 
     /**
-     * Identifier of the compiler to use. This identifier shall match the
-     * identifier of a compiler known to the
-     * {@linkplain #jdkToolchain JDK tool chain}, or the
-     * {@linkplain JavaCompiler#name() name} of a {@link JavaCompiler} instance
-     * registered as a service findable by {@link ServiceLoader}. See this
-     * <a href="non-javac-compilers.html">guide</a> for more information. If
-     * unspecified, then the
-     * {@linkplain ToolProvider#getSystemJavaCompiler() system Java compiler} is
-     * used. The identifier of the system Java compiler is usually
-     * {@code javac}.
+     * Identifier of the compiler to use. This identifier shall match the identifier of a compiler known
+     * to the {@linkplain #jdkToolchain JDK tool chain}, or the {@linkplain JavaCompiler#name() name} of
+     * a {@link JavaCompiler} instance registered as a service findable by {@link ServiceLoader}.
+     * See this <a href="non-javac-compilers.html">guide</a> for more information.
+     * If unspecified, then the {@linkplain ToolProvider#getSystemJavaCompiler() system Java compiler} is used.
+     * The identifier of the system Java compiler is usually {@code javac}.
      *
      * @see #fork
      * @see #executable
@@ -969,21 +801,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String compilerVersion;
 
     /**
-     * Whether to use the legacy {@code com.sun.tools.javac} API instead of
-     * {@code javax.tools} API.
+     * Whether to use the legacy {@code com.sun.tools.javac} API instead of {@code javax.tools} API.
      *
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">New
-     *      API</a>
-     * @see
-     *      <a href=
-     *      "https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">Legacy
-     *      API</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">New API</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">Legacy API</a>
      * @since 3.13
      *
-     * @deprecated Ignored because the compiler plugin now always use the
-     *             {@code javax.tools} API.
+     * @deprecated Ignored because the compiler plugin now always use the {@code javax.tools} API.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.forceLegacyJavacApi")
@@ -994,8 +818,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @since 3.0
      *
-     * @deprecated Ignored because {@code java.lang.Compiler} has been
-     *             deprecated and removed from the JDK.
+     * @deprecated Ignored because {@code java.lang.Compiler} has been deprecated and removed from the JDK.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.forceJavacCompilerUse")
@@ -1004,21 +827,17 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Strategy to re use {@code javacc} class created. Legal values are:
      * <ul>
-     * <li>{@code reuseCreated} (default) – will reuse already created but in
-     * case of multi-threaded builds, each thread will have its own
-     * instance.</li>
-     * <li>{@code reuseSame} – the same Javacc class will be used for each
-     * compilation even for multi-threaded build.</li>
-     * <li>{@code alwaysNew} – a new Javacc class will be created for each
-     * compilation.</li>
+     *   <li>{@code reuseCreated} (default) – will reuse already created but in case of multi-threaded builds,
+     *       each thread will have its own instance.</li>
+     *   <li>{@code reuseSame} – the same Javacc class will be used for each compilation even
+     *       for multi-threaded build.</li>
+     *   <li>{@code alwaysNew} – a new Javacc class will be created for each compilation.</li>
      * </ul>
-     * Note this parameter value depends on the OS/JDK you are using, but the
-     * default value should work on most of env.
+     * Note this parameter value depends on the OS/JDK you are using, but the default value should work on most of env.
      *
      * @since 2.5
      *
-     * @deprecated Not supported anymore. The reuse of {@link JavaFileManager}
-     *             instance is plugin implementation details.
+     * @deprecated Not supported anymore. The reuse of {@link JavaFileManager} instance is plugin implementation details.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.compilerReuseStrategy")
@@ -1027,16 +846,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * @since 2.5
      *
-     * @deprecated Deprecated as a consequence of {@link #compilerReuseStrategy}
-     *             deprecation.
+     * @deprecated Deprecated as a consequence of {@link #compilerReuseStrategy} deprecation.
      */
     @Deprecated(since = "4.0.0", forRemoval = true)
     @Parameter(property = "maven.compiler.skipMultiThreadWarning")
     protected Boolean skipMultiThreadWarning;
 
     /**
-     * Executable of the compiler to use when {@link #fork} is {@code true}. If
-     * this parameter is specified, then the {@link #jdkToolchain} is ignored.
+     * Executable of the compiler to use when {@link #fork} is {@code true}.
+     * If this parameter is specified, then the {@link #jdkToolchain} is ignored.
      *
      * @see #jdkToolchain
      * @see #fork
@@ -1046,10 +864,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String executable;
 
     /**
-     * Initial size, in megabytes, of the memory allocation pool if
-     * {@link #fork} is set to {@code true}. Examples: "64", "64M". Suffixes "k"
-     * (for kilobytes) and "G" (for gigabytes) are also accepted. If no suffix
-     * is provided, "M" is assumed.
+     * Initial size, in megabytes, of the memory allocation pool if {@link #fork} is set to {@code true}.
+     * Examples: "64", "64M". Suffixes "k" (for kilobytes) and "G" (for gigabytes) are also accepted.
+     * If no suffix is provided, "M" is assumed.
      *
      * @see #fork
      * @since 2.0.1
@@ -1058,10 +875,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String meminitial;
 
     /**
-     * Maximum size, in megabytes, of the memory allocation pool if
-     * {@link #fork} is set to {@code true}. Examples: "128", "128M". Suffixes
-     * "k" (for kilobytes) and "G" (for gigabytes) are also accepted. If no
-     * suffix is provided, "M" is assumed.
+     * Maximum size, in megabytes, of the memory allocation pool if {@link #fork} is set to {@code true}.
+     * Examples: "128", "128M". Suffixes "k" (for kilobytes) and "G" (for gigabytes) are also accepted.
+     * If no suffix is provided, "M" is assumed.
      *
      * @see #fork
      * @since 2.0.1
@@ -1072,6 +888,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     // ----------------------------------------------------------------------
     // Read-only parameters
     // ----------------------------------------------------------------------
+
     /**
      * The directory to run the compiler from if fork is true.
      */
@@ -1079,13 +896,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected Path basedir;
 
     /**
-     * Path to a file where to cache information about the last incremental
-     * build. This is used when "incremental" builds are enabled for detecting
-     * additions or removals of source files, or changes in plugin
-     * configuration. This file should be in the output directory and can be
-     * deleted at any time
+     * Path to a file where to cache information about the last incremental build.
+     * This is used when "incremental" builds are enabled for detecting additions
+     * or removals of source files, or changes in plugin configuration.
+     * This file should be in the output directory and can be deleted at any time
      */
-    @Parameter(defaultValue = "${project.build.directory}/maven-status/${mojo.plugin.descriptor.artifactId}/${mojo.executionId}.cache", required = true, readonly = true)
+    @Parameter(
+            defaultValue =
+                    "${project.build.directory}/maven-status/${mojo.plugin.descriptor.artifactId}/${mojo.executionId}.cache",
+            required = true,
+            readonly = true)
     protected Path mojoStatusPath;
 
     /**
@@ -1113,36 +933,34 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected MessageBuilderFactory messageBuilderFactory;
 
     /**
-     * The logger for reporting information or warnings to the user. Currently,
-     * this is also used for console output.
+     * The logger for reporting information or warnings to the user.
+     * Currently, this is also used for console output.
      *
      * <h4>Thread safety</h4>
-     * This logger should be thread-safe if the {@link ToolExecutor} is executed
-     * in a background thread.
+     * This logger should be thread-safe if the {@link ToolExecutor} is executed in a background thread.
      */
     @Inject
     protected Log logger;
 
     /**
-     * Cached value for writing replacement proposal when a deprecated option is
-     * used. This is set to a non-null value when first needed. An empty string
-     * means that this information couldn't be fetched.
+     * Cached value for writing replacement proposal when a deprecated option is used.
+     * This is set to a non-null value when first needed. An empty string means that
+     * this information couldn't be fetched.
      *
      * @see #writePlugin(MessageBuilder, String, String)
      */
     private String mavenCompilerPluginVersion;
 
     /**
-     * A tip about how to launch the Java compiler from the command-line. The
-     * command-line may have {@code -J} options before the argument file. This
-     * is non-null if the compilation failed or if Maven is executed in debug
-     * mode.
+     * A tip about how to launch the Java compiler from the command-line.
+     * The command-line may have {@code -J} options before the argument file.
+     * This is non-null if the compilation failed or if Maven is executed in debug mode.
      */
     private String tipForCommandLineCompilation;
 
     /**
-     * {@code MAIN_COMPILE} if this MOJO is for compiling the main code, or
-     * {@code TEST_COMPILE} if compiling the tests.
+     * {@code MAIN_COMPILE} if this MOJO is for compiling the main code,
+     * or {@code TEST_COMPILE} if compiling the tests.
      */
     final PathScope compileScope;
 
@@ -1156,38 +974,32 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty list for all
-     * Java source files}
-     * The filter patterns are described in
-     * {@link java.nio.file.FileSystem#getPathMatcher(String)}. If no syntax is
-     * specified, the default syntax is a derivative of "glob" compatible with
-     * the behavior of Maven 3.
+     * {@return the inclusion filters for the compiler, or an empty list for all Java source files}
+     * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
+     * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
+     * behavior of Maven 3.
      */
     protected abstract Set<String> getIncludes();
 
     /**
      * {@return the exclusion filters for the compiler, or an empty list if none}
-     * The filter patterns are described in
-     * {@link java.nio.file.FileSystem#getPathMatcher(String)}. If no syntax is
-     * specified, the default syntax is a derivative of "glob" compatible with
-     * the behavior of Maven 3.
+     * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
+     * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
+     * behavior of Maven 3.
      */
     protected abstract Set<String> getExcludes();
 
     /**
-     * {@return the exclusion filters for the incremental calculation} Updated
-     * source files, if excluded by this filter, will not cause the project to
-     * be rebuilt.
+     * {@return the exclusion filters for the incremental calculation}
+     * Updated source files, if excluded by this filter, will not cause the project to be rebuilt.
      *
      * @see SourceFile#ignoreModification
      */
     protected abstract Set<String> getIncrementalExcludes();
 
     /**
-     * {@return whether all includes/excludes matchers specified in the plugin
-     * configuration are empty}
-     * This method checks only the plugin configuration. It does not check the
-     * {@code <source>} elements.
+     * {@return whether all includes/excludes matchers specified in the plugin configuration are empty}
+     * This method checks only the plugin configuration. It does not check the {@code <source>} elements.
      */
     final boolean hasNoFileMatchers() {
         return getIncludes().isEmpty()
@@ -1196,16 +1008,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the destination directory (or class output directory) for class
-     * files}
+     * {@return the destination directory (or class output directory) for class files}
      * This directory will be given to the {@code -d} Java compiler option.
      */
     @Nonnull
     protected abstract Path getOutputDirectory();
 
     /**
-     * {@return the {@code --source} argument for the Java compiler} The default
-     * implementation returns the {@link #source} value.
+     * {@return the {@code --source} argument for the Java compiler}
+     * The default implementation returns the {@link #source} value.
      */
     @Nullable
     protected String getSource() {
@@ -1213,8 +1024,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the {@code --target} argument for the Java compiler} The default
-     * implementation returns the {@link #target} value.
+     * {@return the {@code --target} argument for the Java compiler}
+     * The default implementation returns the {@link #target} value.
      */
     @Nullable
     protected String getTarget() {
@@ -1222,8 +1033,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the {@code --release} argument for the Java compiler} The
-     * default implementation returns the {@link #release} value.
+     * {@return the {@code --release} argument for the Java compiler}
+     * The default implementation returns the {@link #release} value.
      */
     @Nullable
     protected String getRelease() {
@@ -1234,25 +1045,20 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * {@return the root directories of Java source code for the given scope}
      * This method ignores the deprecated {@link #compileSourceRoots} element.
      *
-     * @param scope whether to get the directories for main code or for the test
-     *              code
+     * @param scope whether to get the directories for main code or for the test code
      */
     final Stream<SourceRoot> getSourceRoots(ProjectScope scope) {
         return projectManager.getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY);
     }
 
     /**
-     * {@return the root directories of the Java source files to compile, excluding
-     * empty directories}
-     * The list needs to be modifiable for allowing the addition of generated
-     * source directories. This is determined from the
-     * {@link #compileSourceRoots} plugin configuration if non-empty, or from
-     * {@code <source>} elements otherwise.
+     * {@return the root directories of the Java source files to compile, excluding empty directories}
+     * The list needs to be modifiable for allowing the addition of generated source directories.
+     * This is determined from the {@link #compileSourceRoots} plugin configuration if non-empty,
+     * or from {@code <source>} elements otherwise.
      *
-     * @param outputDirectory the directory where to store the compilation
-     *                        results
-     * @throws IOException if this method needs to walk through directories and
-     *                     that operation failed
+     * @param outputDirectory the directory where to store the compilation results
+     * @throws IOException if this method needs to walk through directories and that operation failed
      */
     final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) throws IOException {
         if (isAbsent(compileSourceRoots)) {
@@ -1265,35 +1071,27 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation
-     * processing}
+     * {@return the path where to place generated source files created by annotation processing}
      */
     @Nullable
     protected abstract Path getGeneratedSourcesDirectory();
 
     /**
-     * Returns the module which is being patched in a multi-release project, or
-     * {@code null} if none. This is used when the
-     * {@link CompilerMojo#multiReleaseOutput} deprecated flag is {@code true}.
-     * This module name is handled in a special way because, contrarily to the
-     * case where the project uses the recommended {@code <sources>} elements
-     * (in which case all target releases are compiled in a single Maven
-     * Compiler Plugin execution), the Maven Compiler Plugin does not know what
-     * have been compiled for the other releases, because each target release is
-     * compiled with an execution of {@link CompilerMojo} separated from other
-     * executions.
+     * Returns the module which is being patched in a multi-release project, or {@code null} if none.
+     * This is used when the {@link CompilerMojo#multiReleaseOutput} deprecated flag is {@code true}.
+     * This module name is handled in a special way because, contrarily to the case where the project
+     * uses the recommended {@code <sources>} elements (in which case all target releases are compiled
+     * in a single Maven Compiler Plugin execution), the Maven Compiler Plugin does not know what have
+     * been compiled for the other releases, because each target release is compiled with an execution
+     * of {@link CompilerMojo} separated from other executions.
      *
-     * @return the module name in a previous execution of the compiler plugin,
-     *         or {@code null} if none
-     * @throws IOException if this method needs to walk through directories and
-     *                     that operation failed
+     * @return the module name in a previous execution of the compiler plugin, or {@code null} if none
+     * @throws IOException if this method needs to walk through directories and that operation failed
      *
      * @see CompilerMojo#addImplicitDependencies(ToolExecutor)
      *
-     * @deprecated For compatibility with the previous way to build
-     *             multi-release JAR file. May be removed after we drop support of
-     *             the old
-     *             way to do multi-release.
+     * @deprecated For compatibility with the previous way to build multi-release JAR file.
+     *             May be removed after we drop support of the old way to do multi-release.
      */
     @Deprecated(since = "4.0.0")
     String moduleOfPreviousExecution() throws IOException {
@@ -1301,33 +1099,23 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return whether the sources contain at least one {@code module-info.java}
-     * file}
-     * Note that the sources may contain more than one {@code module-info.java}
-     * file if compiling a project with Module Source Hierarchy.
+     * {@return whether the sources contain at least one {@code module-info.java} file}
+     * Note that the sources may contain more than one {@code module-info.java} file
+     * if compiling a project with Module Source Hierarchy.
      *
-     * <p>
-     * If the user explicitly specified a modular or classpath project, then the
-     * {@code module-info.java} is assumed to exist or not without
-     * verification.
-     * </p>
+     * <p>If the user explicitly specified a modular or classpath project, then the
+     * {@code module-info.java} is assumed to exist or not without verification.</p>
      *
-     * <p>
-     * The test compiler overrides this method for checking the existence of the
-     * the {@code module-info.class} file in the main output directory
-     * instead.
-     * </p>
+     * <p>The test compiler overrides this method for checking the existence of the
+     * the {@code module-info.class} file in the main output directory instead.</p>
      *
      * @param roots root directories of the sources to compile
-     * @throws IOException if this method needed to read a module descriptor and
-     *                     failed
+     * @throws IOException if this method needed to read a module descriptor and failed
      */
     boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
         return switch (project.getPackaging().type().id()) {
-            case Type.CLASSPATH_JAR ->
-                false;
-            case Type.MODULAR_JAR ->
-                true;
+            case Type.CLASSPATH_JAR -> false;
+            case Type.MODULAR_JAR -> true;
             default -> {
                 for (SourceDirectory root : roots) {
                     if (root.getModuleInfo().isPresent()) {
@@ -1340,17 +1128,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the file where to dump the command-line when debug logging is
-     * enabled or when the compilation failed}
-     * For example, if the value is {@code "javac"}, then the Java compiler can
-     * be launched from the command-line by typing
-     * {@code javac @target/javac.args}. The debug file will contain the
-     * compiler options together with the list of source files to compile.
+     * {@return the file where to dump the command-line when debug logging is enabled or when the compilation failed}
+     * For example, if the value is {@code "javac"}, then the Java compiler can be launched
+     * from the command-line by typing {@code javac @target/javac.args}.
+     * The debug file will contain the compiler options together with the list of source files to compile.
      *
-     * <p>
-     * Note: debug logging should not be confused with the {@link #debug}
-     * flag.
-     * </p>
+     * <p>Note: debug logging should not be confused with the {@link #debug} flag.</p>
      *
      * @see CompilerMojo#debugFileName
      * @see TestCompilerMojo#debugFileName
@@ -1359,23 +1142,21 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract String getDebugFileName();
 
     /**
-     * {@return the debug file name with its path, or null if none} This method
-     * does not check if the debug file will be written, as the compilation
-     * result is not yet known.
+     * {@return the debug file name with its path, or null if none}
+     * This method does not check if the debug file will be written, as the compilation result is not yet known.
      */
     final Path getDebugFilePath() {
         String filename = getDebugFileName();
         if (isAbsent(filename)) {
             return null;
         }
-        // Do not use `this.getOutputDirectory()` because it may be deeper in
-        // `classes/META-INF/versions/`.
+        // Do not use `this.getOutputDirectory()` because it may be deeper in `classes/META-INF/versions/`.
         return Path.of(project.getBuild().getOutputDirectory()).resolveSibling(filename);
     }
 
     /**
-     * Returns whether the debug file should be written after a successful
-     * build. By default, debug files are written only if the build failed.
+     * Returns whether the debug file should be written after a successful build.
+     * By default, debug files are written only if the build failed.
      * However, some options can change this behavior.
      */
     final boolean shouldWriteDebugFile() {
@@ -1386,16 +1167,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Runs the Java compiler. This method performs the following steps:
      *
      * <ol>
-     * <li>Get a Java compiler by a call to {@link #compiler()}.</li>
-     * <li>Get the options to give to the compiler by a call to
-     * {@link #parseParameters(OptionChecker)}.</li>
-     * <li>Get an executor with {@link #createExecutor(DiagnosticListener)} with
-     * the default listener.</li>
-     * <li>{@linkplain ToolExecutor#applyIncrementalBuild Apply the incremental
-     * build}
-     * if enabled.</li>
-     * <li>{@linkplain ToolExecutor#compile Execute the compilation}.</li>
-     * <li>Shows messages in the {@linkplain #logger}.</li>
+     *   <li>Get a Java compiler by a call to {@link #compiler()}.</li>
+     *   <li>Get the options to give to the compiler by a call to {@link #parseParameters(OptionChecker)}.</li>
+     *   <li>Get an executor with {@link #createExecutor(DiagnosticListener)} with the default listener.</li>
+     *   <li>{@linkplain ToolExecutor#applyIncrementalBuild Apply the incremental build} if enabled.</li>
+     *   <li>{@linkplain ToolExecutor#compile Execute the compilation}.</li>
+     *   <li>Shows messages in the {@linkplain #logger}.</li>
      * </ol>
      *
      * @throws MojoException if the compiler cannot be run
@@ -1408,17 +1185,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 supportedVersion = version;
             }
         }
-
         Options configuration = parseParameters(compiler);
         try {
-            // --- Fix for issue #1006: ensure <proc>only</proc> runs annotation processors
-            // ---
-            if ("only".equalsIgnoreCase(configuration.getProc())) {
-                logger.info("Running annotation processors (proc: only)");
-                compile(compiler, configuration);
-                return;
-            }
-            // -------------------------------------------------------------------------------
             compile(compiler, configuration);
         } catch (RuntimeException e) {
             String message = e.getLocalizedMessage();
@@ -1430,18 +1198,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     message = message.substring(0, s); // Log only the first line.
                 }
             }
-
             MessageBuilder mb = messageBuilderFactory
                     .builder()
                     .strong("COMPILATION ERROR: ")
                     .a(message);
             logger.error(mb.toString(), verbose ? e : null);
-
             if (tipForCommandLineCompilation != null) {
                 logger.info(tipForCommandLineCompilation);
                 tipForCommandLineCompilation = null;
             }
-
             if (failOnError) {
                 throw e;
             }
@@ -1452,26 +1217,20 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Creates a new task by taking a snapshot of the current configuration of
-     * this <abbr>MOJO</abbr>. This method creates the
-     * {@linkplain ToolExecutor#outputDirectory output directory} if it does not
-     * already exist.
+     * Creates a new task by taking a snapshot of the current configuration of this <abbr>MOJO</abbr>.
+     * This method creates the {@linkplain ToolExecutor#outputDirectory output directory} if it does not already exist.
      *
      * <h4>Multi-threading</h4>
-     * This method and the returned objects are not thread-safe. However, this
-     * method takes a snapshot of the configuration of this <abbr>MOJO</abbr>.
-     * Changes in this <abbr>MOJO</abbr> after this method call will not affect
-     * the returned executor. Therefore, the executor can safely be executed in
-     * a background thread, provided that the {@link #logger} is thread-safe.
+     * This method and the returned objects are not thread-safe.
+     * However, this method takes a snapshot of the configuration of this <abbr>MOJO</abbr>.
+     * Changes in this <abbr>MOJO</abbr> after this method call will not affect the returned executor.
+     * Therefore, the executor can safely be executed in a background thread,
+     * provided that the {@link #logger} is thread-safe.
      *
-     * @param listener where to send compilation warnings, or {@code null} for
-     *                 the Maven logger
-     * @return the task to execute for compiling the project using the
-     *         configuration in this <abbr>MOJO</abbr>
-     * @throws MojoException  if this method identifies an invalid parameter in
-     *                        this <abbr>MOJO</abbr>
-     * @throws IOException    if an error occurred while creating the output
-     *                        directory or scanning the source directories
+     * @param listener where to send compilation warnings, or {@code null} for the Maven logger
+     * @return the task to execute for compiling the project using the configuration in this <abbr>MOJO</abbr>
+     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
+     * @throws IOException if an error occurred while creating the output directory or scanning the source directories
      * @throws MavenException if an error occurred while fetching dependencies
      */
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
@@ -1490,11 +1249,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the compiler to use for compiling the code} If {@link #fork} is
-     * {@code true}, the returned compiler will be a wrapper for a command line.
-     * Otherwise, it will be the compiler identified by {@link #compilerId} if a
-     * value was supplied, or the standard compiler provided with the Java
-     * platform otherwise.
+     * {@return the compiler to use for compiling the code}
+     * If {@link #fork} is {@code true}, the returned compiler will be a wrapper for a command line.
+     * Otherwise, it will be the compiler identified by {@link #compilerId} if a value was supplied,
+     * or the standard compiler provided with the Java platform otherwise.
      *
      * @throws MojoException if no compiler was found
      */
@@ -1524,14 +1282,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
             return new ForkedCompiler(this);
         }
         /*
-         * Search a `javax.tools.JavaCompiler` having a name matching the specified
-         * `compilerId`.
-         * This is done before other code that can cause the mojo to return before the
-         * lookup is
-         * done, possibly resulting in misconfigured POMs still building. If no
-         * `compilerId` was
-         * specified, then the Java compiler bundled with the JDK is used (it may be
-         * absent).
+         * Search a `javax.tools.JavaCompiler` having a name matching the specified `compilerId`.
+         * This is done before other code that can cause the mojo to return before the lookup is
+         * done, possibly resulting in misconfigured POMs still building. If no `compilerId` was
+         * specified, then the Java compiler bundled with the JDK is used (it may be absent).
          */
         if (logger.isDebugEnabled()) {
             logger.debug(
@@ -1554,23 +1308,19 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Parses the parameters declared in the <abbr>MOJO</abbr>. The
-     * {@link #release} parameter is excluded because it is handled in a special
-     * way in order to support the compilation of multi-version projects.
+     * Parses the parameters declared in the <abbr>MOJO</abbr>.
+     * The {@link #release} parameter is excluded because it is handled in a special way
+     * in order to support the compilation of multi-version projects.
      *
-     * @param compiler the tools to use for verifying the validity of options
+     * @param  compiler  the tools to use for verifying the validity of options
      * @return the options after validation
      */
     public Options parseParameters(final OptionChecker compiler) {
         /*
-         * Options to provide to the compiler, excluding all kinds of path (source
-         * files, destination directory,
-         * class-path, module-path, etc.). Some options are validated by Maven in
-         * addition of being validated by
-         * the compiler. In those cases, the validation by the compiler is done before
-         * the validation by Maven.
-         * For example, Maven will check for illegal values in the "-g" option only if
-         * the compiler rejected
+         * Options to provide to the compiler, excluding all kinds of path (source files, destination directory,
+         * class-path, module-path, etc.). Some options are validated by Maven in addition of being validated by
+         * the compiler. In those cases, the validation by the compiler is done before the validation by Maven.
+         * For example, Maven will check for illegal values in the "-g" option only if the compiler rejected
          * the fully formatted option (e.g. "-g:vars,lines") that we provided to it.
          */
         final var configuration = new Options(compiler, logger);
@@ -1613,9 +1363,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Runs the compiler, then shows the result in the Maven logger.
      *
-     * @param compiler      the compiler
+     * @param compiler the compiler
      * @param configuration options to provide to the compiler
-     * @throws IOException   if an input file cannot be read
+     * @throws IOException if an input file cannot be read
      * @throws MojoException if the compilation failed
      */
     @SuppressWarnings("UseSpecificCatch")
@@ -1630,18 +1380,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
         try {
             success = executor.compile(compiler, configuration, compilerOutput);
         } catch (Exception | NoClassDefFoundError e) {
-            // `NoClassDefFoundError` may happen if a dependency of an annotation processor
-            // is missing.
+            // `NoClassDefFoundError` may happen if a dependency of an annotation processor is missing.
             success = false;
             failureCause = e;
         }
         /*
-         * The compilation errors or warnings should have already been reported by
-         * `DiagnosticLogger`.
-         * However, the compiler may have other messages not associated to a particular
-         * source file.
-         * For example, `ForkedCompiler` uses this writer if the compilation has been
-         * interrupted.
+         * The compilation errors or warnings should have already been reported by `DiagnosticLogger`.
+         * However, the compiler may have other messages not associated to a particular source file.
+         * For example, `ForkedCompiler` uses this writer if the compilation has been interrupted.
          */
         String additionalMessage = compilerOutput.toString();
         if (!additionalMessage.isBlank()) {
@@ -1697,12 +1443,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
             }
         }
         /*
-         * Workaround for MCOMPILER-542, needed only if a modular project is compiled
-         * with a JDK older than Java 22.
-         * Note: a previous version used as an heuristic way to detect if Reproducible
-         * Build was enabled. This check
-         * has been removed because Reproducible Build are enabled by default in Maven
-         * now.
+         * Workaround for MCOMPILER-542, needed only if a modular project is compiled with a JDK older than Java 22.
+         * Note: a previous version used as an heuristic way to detect if Reproducible Build was enabled. This check
+         * has been removed because Reproducible Build are enabled by default in Maven now.
          */
         if (!isVersionEqualOrNewer(RELEASE_22)) {
             Path moduleDescriptor = executor.outputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
@@ -1717,10 +1460,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Returns whether the compiler supports the given source version or newer
-     * versions. The specified source version shall be the name of one of the
-     * {@link SourceVersion} enumeration values. Note that a return value of
-     * {@code true} does not mean that the compiler supports that exact version,
+     * Returns whether the compiler supports the given source version or newer versions.
+     * The specified source version shall be the name of one of the {@link SourceVersion} enumeration values.
+     * Note that a return value of {@code true} does not mean that the compiler supports that exact version,
      * as it may supports only newer versions.
      */
     private boolean isVersionEqualOrNewer(String sourceVersion) {
@@ -1728,8 +1470,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         try {
             requested = SourceVersion.valueOf(sourceVersion);
         } catch (IllegalArgumentException e) {
-            // The current tool is from a JDK older than the one for the requested source
-            // release.
+            // The current tool is from a JDK older than the one for the requested source release.
             return false;
         }
         if (supportedVersion == null) {
@@ -1739,24 +1480,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Returns whether the given string is null or empty, ignoring spaces. This
-     * is a convenience for a frequent check, and also for clarity.
+     * Returns whether the given string is null or empty, ignoring spaces.
+     * This is a convenience for a frequent check, and also for clarity.
      */
     private static boolean isAbsent(String c) {
         return (c == null) || c.isBlank();
     }
 
     /**
-     * Returns whether the given array is null or empty. Defined as a complement
-     * of {@link #isAbsent(Collection)}.
+     * Returns whether the given array is null or empty.
+     * Defined as a complement of {@link #isAbsent(Collection)}.
      */
     private static boolean isAbsent(Object[] c) {
         return (c == null) || c.length == 0;
     }
 
     /**
-     * Returns whether the given collection is null or empty. This is a
-     * convenience for a frequent check, and also for clarity.
+     * Returns whether the given collection is null or empty.
+     * This is a convenience for a frequent check, and also for clarity.
      */
     static boolean isAbsent(Collection<?> c) {
         return (c == null) || c.isEmpty();
@@ -1776,10 +1517,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Returns the module name as declared in the given {@code module-info.java}
-     * source file. This approach is less reliable than reading the compiled
-     * {@code module-info.class} file, but is sometime needed when the compiled
-     * file is not yet available.
+     * Returns the module name as declared in the given {@code module-info.java} source file.
+     * This approach is less reliable than reading the compiled {@code module-info.class} file,
+     * but is sometime needed when the compiled file is not yet available.
      *
      * @param source the source file to parse (may be null or not exist)
      * @return the module name, or {@code null} if not found
@@ -1790,8 +1530,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     final String parseModuleInfoName(Path source) throws IOException {
         if (source != null && Files.exists(source)) {
             Charset charset = charset();
-            try (BufferedReader in = (charset != null) ? Files.newBufferedReader(source, charset)
-                    : Files.newBufferedReader(source)) {
+            try (BufferedReader in =
+                    (charset != null) ? Files.newBufferedReader(source, charset) : Files.newBufferedReader(source)) {
                 var tokenizer = new StreamTokenizer(in);
                 tokenizer.slashSlashComments(true);
                 tokenizer.slashStarComments(true);
@@ -1814,15 +1554,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * {@return all dependencies grouped by the path types where to place them}
-     * If the module-path contains any filename-based dependency and this
-     * <abbr>MOJO</abbr>
+     * If the module-path contains any filename-based dependency and this <abbr>MOJO</abbr>
      * is compiling the main code, then a warning will be logged.
      *
-     * @param hasModuleDeclaration whether to allow placement of dependencies on
-     *                             the module-path.
-     * @throws IOException    if an I/O error occurred while fetching dependencies
-     * @throws MavenException if an error occurred while fetching dependencies
-     *                        for a reason other than I/O.
+     * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path.
+     * @throws IOException if an I/O error occurred while fetching dependencies
+     * @throws MavenException if an error occurred while fetching dependencies for a reason other than I/O.
      */
     final DependencyResolverResult resolveDependencies(boolean hasModuleDeclaration) throws IOException {
         DependencyResolver resolver = session.getService(DependencyResolver.class);
@@ -1842,10 +1579,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 .pathTypeFilter(allowedTypes)
                 .build());
         /*
-         * Report errors or warnings. If possible, we rethrow the first exception
-         * directly without
-         * wrapping in a `MojoException` for making the stack-trace a little bit easier
-         * to analyze.
+         * Report errors or warnings. If possible, we rethrow the first exception directly without
+         * wrapping in a `MojoException` for making the stack-trace a little bit easier to analyze.
          */
         Exception exception = null;
         for (Exception cause : dependencies.getExceptions()) {
@@ -1876,18 +1611,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Adds paths to the annotation processor dependencies. Paths are added to
-     * the list associated to the {@link JavaPathType#PROCESSOR_CLASSES} entry
-     * of given map, which should be modifiable.
+     * Adds paths to the annotation processor dependencies. Paths are added to the list associated
+     * to the {@link JavaPathType#PROCESSOR_CLASSES} entry of given map, which should be modifiable.
      *
-     * @param addTo the modifiable map and lists where to append more paths to
-     *              annotation processor dependencies
-     * @throws MojoException if an error occurred while resolving the
-     *                       dependencies
+     * @param addTo the modifiable map and lists where to append more paths to annotation processor dependencies
+     * @throws MojoException if an error occurred while resolving the dependencies
      *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element
-     *             set to {@code processor}, {@code classpath-processor} or
-     *             {@code modular-processor}.
+     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
+     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Deprecated(since = "4.0.0")
     @SuppressWarnings("UseSpecificCatch")
@@ -1898,8 +1629,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 List<org.apache.maven.api.DependencyCoordinates> coords = dependencies.stream()
                         .map((coord) -> coord.toCoordinate(project, session))
                         .toList();
-                Session sessionWithRepo = session
-                        .withRemoteRepositories(projectManager.getRemoteProjectRepositories(project));
+                Session sessionWithRepo =
+                        session.withRemoteRepositories(projectManager.getRemoteProjectRepositories(project));
                 addTo.merge(
                         JavaPathType.PROCESSOR_CLASSES,
                         sessionWithRepo
@@ -1928,18 +1659,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * {@return whether an annotation processor seems to be present}
      *
-     * @param dependencyTypes the type of dependencies, for checking if any of
-     *                        them is a processor path
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      *
      * @see #incrementalCompilation
      */
     private boolean hasAnnotationProcessor(final Set<PathType> dependencyTypes) {
         if (isAbsent(proc)) {
             /*
-             * If the `proc` parameter was not specified, its default value depends on the
-             * Java version.
-             * It was "full" prior Java 23 and become "none if no other processor option"
-             * since Java 23.
+             * If the `proc` parameter was not specified, its default value depends on the Java version.
+             * It was "full" prior Java 23 and become "none if no other processor option" since Java 23.
              */
             if (isVersionEqualOrNewer(RELEASE_23)) {
                 if (isAbsent(annotationProcessors) && isAbsent(annotationProcessorPaths)) {
@@ -1954,13 +1682,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Ensures that the directory for generated sources exists, and adds it to
-     * the list of source directories known to the project manager. This is used
-     * for adding the output of annotation processor. The returned set is either
-     * empty or a singleton.
+     * Ensures that the directory for generated sources exists, and adds it to the list of source directories
+     * known to the project manager. This is used for adding the output of annotation processor.
+     * The returned set is either empty or a singleton.
      *
-     * @param dependencyTypes the type of dependencies, for checking if any of
-     *                        them is a processor path
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      * @return the added directory in a singleton set, or an empty set if none
      * @throws IOException if the directory cannot be created
      */
@@ -1970,10 +1696,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
             return Set.of();
         }
         /*
-         * Do not create an empty directory if this plugin is not going to generate new
-         * source files.
-         * However, if a directory already exists, use it because maybe its content was
-         * generated by
+         * Do not create an empty directory if this plugin is not going to generate new source files.
+         * However, if a directory already exists, use it because maybe its content was generated by
          * another plugin executed before the compiler plugin.
          */
         if (hasAnnotationProcessor(dependencyTypes)) {
@@ -2001,20 +1725,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Formats the {@code <plugin>} block of code for configuring this plugin
-     * with the given option.
+     * Formats the {@code <plugin>} block of code for configuring this plugin with the given option.
      *
-     * @param mb     the message builder where to format the block of code
-     * @param option name of the XML sub-element of {@code <configuration>} for
-     *               the option
-     * @param value  the option value, or {@code null} if none
+     * @param mb the message builder where to format the block of code
+     * @param option name of the XML sub-element of {@code <configuration>} for the option
+     * @param value the option value, or {@code null} if none
      */
     private void writePlugin(MessageBuilder mb, String option, String value) {
         if (mavenCompilerPluginVersion == null) {
             try (InputStream is = AbstractCompilerMojo.class.getResourceAsStream("/" + JarFile.MANIFEST_NAME)) {
                 if (is != null) {
-                    mavenCompilerPluginVersion = new Manifest(is).getMainAttributes()
-                            .getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+                    mavenCompilerPluginVersion =
+                            new Manifest(is).getMainAttributes().getValue(Attributes.Name.IMPLEMENTATION_VERSION);
                 }
             } catch (IOException e) {
                 // noop
@@ -2039,20 +1761,17 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Dumps the compiler options together with the list of source files into a
-     * debug file. This is invoked in case of compilation failure, or if debug
-     * is enabled.
+     * Dumps the compiler options together with the list of source files into a debug file.
+     * This is invoked in case of compilation failure, or if debug is enabled.
      *
      * <h4>Syntax</h4>
-     * The arguments within a file can be separated by spaces or new line
-     * characters. If a file name contains embedded spaces, then the whole file
-     * name must be between double quotation marks. The -J options are not
-     * supported.
+     * The arguments within a file can be separated by spaces or new line characters.
+     * If a file name contains embedded spaces, then the whole file name must be between double quotation marks.
+     * The -J options are not supported.
      *
-     * @param executor        the executor that compiled the classes
-     * @param configuration   options provided to the compiler
-     * @param showBaseVersion whether the tip shown to user suggests the base
-     *                        Java release instead of the last one
+     * @param executor the executor that compiled the classes
+     * @param configuration options provided to the compiler
+     * @param showBaseVersion whether the tip shown to user suggests the base Java release instead of the last one
      * @throws IOException if an error occurred while writing the debug file
      */
     private void writeDebugFile(final ToolExecutor executor, final Options configuration, final boolean showBaseVersion)
@@ -2083,12 +1802,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
         commandLine.append(System.lineSeparator()).append("    ").append(executable != null ? executable : compilerId);
         Path pathForRelease = debugFilePath;
         /*
-         * The following loop will iterate over all groups of source files compiled for
-         * the same Java release,
-         * starting with the base release. If the project is not a multi-release
-         * project, it iterates only once.
-         * If the compilation failed, the loop will stop after the first Java release
-         * for which an error occurred.
+         * The following loop will iterate over all groups of source files compiled for the same Java release,
+         * starting with the base release. If the project is not a multi-release project, it iterates only once.
+         * If the compilation failed, the loop will stop after the first Java release for which an error occurred.
          */
         final int count = executor.sourcesForDebugFile.size();
         final int indexToShow = showBaseVersion ? 0 : count - 1;
@@ -2106,10 +1822,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 pathForRelease = debugFilePath.resolveSibling(filename);
             }
             /*
-             * Write the `javac.args` or `javac-<version>.args` file where `<version>` is
-             * the targeted Java release.
-             * The `-J` options need to be on the command line rather than in the file, and
-             * therefore can be written
+             * Write the `javac.args` or `javac-<version>.args` file where `<version>` is the targeted Java release.
+             * The `-J` options need to be on the command line rather than in the file, and therefore can be written
              * only once.
              */
             try (BufferedWriter out = Files.newBufferedWriter(pathForRelease)) {
@@ -2139,11 +1853,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Writes the paths for the given Java compiler option. Used for the
-     * {@code *.args} debug file, because files will be written between quotes.
+     * Writes the paths for the given Java compiler option.
+     * Used for the {@code *.args} debug file, because files will be written between quotes.
      *
-     * @param out   where to write
-     * @param type  the type of path to write as a compiler option
+     * @param out where to write
+     * @param type the type of path to write as a compiler option
      * @param files the paths associated to the specified option
      * @throws IOException in an error occurred while writing to the output
      */
@@ -2167,13 +1881,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Makes the given file relative to the base directory if the path is inside
-     * the project directory tree. The check for the project directory tree
-     * (starting from the root of all sub-projects) is for avoiding to
-     * relativize the paths to JAR files in the Maven local repository for
-     * example.
+     * Makes the given file relative to the base directory if the path is inside the project directory tree.
+     * The check for the project directory tree (starting from the root of all sub-projects) is for avoiding
+     * to relativize the paths to JAR files in the Maven local repository for example.
      *
-     * @param file the path to make relative to the base directory
+     * @param  file  the path to make relative to the base directory
      * @return the given path, potentially relative to the base directory
      */
     private Path relativize(Path file) {
