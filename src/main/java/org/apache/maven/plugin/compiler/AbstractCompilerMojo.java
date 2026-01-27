@@ -83,9 +83,9 @@ import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
 
 /**
- * Base class of Mojos compiling Java source code. This plugin uses the
- * {@link JavaCompiler} interface from JDK 6+. Each instance shall be used only
- * once, then discarded.
+ * Base class of Mojos compiling Java source code.
+ * This plugin uses the {@link JavaCompiler} interface from JDK 6+.
+ * Each instance shall be used only once, then discarded.
  *
  * <h2>Thread-safety</h2>
  * This class is not thread-safe. If this class is used in a multi-thread
