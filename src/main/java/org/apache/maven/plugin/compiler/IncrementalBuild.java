@@ -780,6 +780,6 @@ final class IncrementalBuild {
      * @param sourceFiles return value of {@link #getModifiedSources()}.
      */
     static boolean isEmptyOrIgnorable(List<SourceFile> sourceFiles) {
-        return !sourceFiles.stream().anyMatch((s) -> !s.ignoreModification);
+        return sourceFiles.stream().allMatch((s) -> s.ignoreModification);
     }
 }

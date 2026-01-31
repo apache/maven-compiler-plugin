@@ -1602,10 +1602,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             }
         }
         if (ProjectScope.MAIN.equals(compileScope.projectScope())) {
-            String warning = dependencies.warningForFilenameBasedAutomodules().orElse(null);
-            if (warning != null) { // Do not use Optional.ifPresent(…) for avoiding confusing source class name.
-                logger.warn(warning);
-            }
+            dependencies.warningForFilenameBasedAutomodules().ifPresent(warning -> logger.warn(warning));
         }
         return dependencies;
     }
