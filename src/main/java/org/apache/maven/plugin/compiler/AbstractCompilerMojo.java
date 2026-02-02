@@ -1244,7 +1244,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws MavenException if an error occurred while fetching dependencies
      */
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
-        var executor = new ToolExecutor(this, useOrCreateListener(listener));
+        var executor = new ToolExecutor(this, listener);
         if (!(targetOrReleaseSet || executor.isReleaseSpecifiedForAll())) {
             MessageBuilder mb = messageBuilderFactory
                     .builder()
