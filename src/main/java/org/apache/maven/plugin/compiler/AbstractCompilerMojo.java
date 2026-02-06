@@ -1227,6 +1227,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             throw new CompilationFailureException("I/O error while compiling the project.", e);
         }
     }
+    
     /**
      * Creates a new task by taking a snapshot of the current configuration of this <abbr>MOJO</abbr>.
      * This method creates the {@linkplain ToolExecutor#outputDirectory output directory} if it does not already exist.
