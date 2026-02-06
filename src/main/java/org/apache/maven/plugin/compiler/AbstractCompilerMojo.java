@@ -1190,7 +1190,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         try {
             // --- Fix for issue #1006: ensure <proc>only</proc> runs annotation processors
             // ---
-            if ("only".equalsIgnoreCase(configuration.getProc())) {
+            if ("only".equalsIgnoreCase(compilerConfiguration.getProc())) {
                 logger.info("Running annotation processors (proc: only)");
                 compile(compiler, configuration);
                 return;
