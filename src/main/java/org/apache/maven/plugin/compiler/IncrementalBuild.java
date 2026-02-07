@@ -77,7 +77,7 @@ final class IncrementalBuild {
          * not on the existence or modification times of the {@code *.class} files.
          *
          * <p>It is usually not needed to specify both {@code SOURCES} and {@link #CLASSES}.
-         * But doing so it not forbidden.</p>
+         * But doing so is not forbidden.</p>
          *
          * <h4>Implementation note</h4>
          * The checks use information about the previous build saved in {@code target/…/*.cache} files.
@@ -92,7 +92,7 @@ final class IncrementalBuild {
          * references to classes that no longer exist.
          *
          * <p>It is usually not needed to specify both {@link #SOURCES} and {@code CLASSES}.
-         * But doing so it not forbidden.</p>
+         * But doing so is not forbidden.</p>
          *
          * <h4>Implementation note</h4>
          * This check does not use or generate any {@code *.cache} file.
@@ -223,9 +223,9 @@ final class IncrementalBuild {
     private static final byte NEW_SOURCE_DIRECTORY = 1, NEW_TARGET_DIRECTORY = 2;
 
     /**
-     * Flag in the binary output file telling that the output file of a source is different
-     * than the one inferred by heuristic rules. For performance reason, we store the output
-     * files explicitly only when it cannot be inferred.
+     * Flag in the binary output file indicating that the output file of a source is different
+     * from the one inferred by heuristic rules. For performance reasons, we store the output
+     * file explicitly only when it cannot be inferred.
      *
      * @see javax.tools.JavaFileManager#getFileForOutput
      */
@@ -326,7 +326,7 @@ final class IncrementalBuild {
      * @param mojo the MOJO which is compiling source code
      * @param sourceFiles all source files
      * @param saveSourceList whether to save the list of source files in the cache
-     * @param options the compiler options
+     * @param configuration the compiler options
      * @param aspects result of {@link Aspect#parse(String)}
      * @throws IOException if the parent directory cannot be created
      */
@@ -384,11 +384,10 @@ final class IncrementalBuild {
      *   </ul></li>
      * </ul>
      *
-     * The "new source directory" flag is for avoiding to repeat the parent directory.
+     * The "new source directory" flag is to avoid repeating the parent directory.
      * If that flag is {@code false}, then only the filename is stored and the parent
      * is the same as the previous file.
      *
-     * @param sources whether to save also the list of source files
      * @throws IOException if an error occurred while writing the cache file
      */
     @SuppressWarnings({"checkstyle:InnerAssignment", "checkstyle:NeedBraces"})

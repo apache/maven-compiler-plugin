@@ -32,7 +32,7 @@ import java.util.function.UnaryOperator;
 import org.apache.maven.api.plugin.Log;
 
 /**
- * An helper class for preparing the options to pass to the tool (compiler or document generator).
+ * A helper class for preparing the options to pass to the tool (compiler or document generator).
  * It does <em>not</em> include the options related to paths (class-path, destination directory, <i>etc.</i>).
  * If an option is unsupported by the tool, a message is logged at the warning level.
  *
@@ -364,7 +364,7 @@ public final class Options {
      *
      * @param arguments the arguments to add, or {@code null} if none
      *
-     * @deprecated Use {@link #addUnchecked(List)} instead. This method does not check for quoted strings.
+     * @deprecated Use {@link #addUnchecked(Iterable)} instead. This method does not check for quoted strings.
      */
     @Deprecated(since = "4.0.0")
     void addUnchecked(String arguments) {
@@ -418,7 +418,7 @@ public final class Options {
     }
 
     /**
-     * {@return a string representatation of the options for debugging purposes}
+     * {@return a string representation of the options for debugging purposes}
      */
     @Override
     public String toString() {
