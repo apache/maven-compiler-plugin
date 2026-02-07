@@ -145,12 +145,6 @@ under the License.
 
     <dependency>
       <groupId>org.apache.maven</groupId>
-      <artifactId>maven-core</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
       <artifactId>maven-impl</artifactId>
       <version>${mavenVersion}</version>
       <scope>test</scope>
@@ -158,12 +152,6 @@ under the License.
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-testing</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-xml</artifactId>
       <version>${mavenVersion}</version>
       <scope>test</scope>
     </dependency>
