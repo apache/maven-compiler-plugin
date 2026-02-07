@@ -364,7 +364,7 @@ public final class Options {
      *
      * @param arguments the arguments to add, or {@code null} if none
      *
-     * @deprecated Use {@link #addUnchecked(List)} instead. This method does not check for quoted strings.
+     * @deprecated Use {@link #addUnchecked(Iterable)} instead. This method does not check for quoted strings.
      */
     @Deprecated(since = "4.0.0")
     void addUnchecked(String arguments) {
