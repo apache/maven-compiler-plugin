@@ -32,7 +32,7 @@ import java.util.function.UnaryOperator;
 import org.apache.maven.api.plugin.Log;
 
 /**
- * An helper class for preparing the options to pass to the tool (compiler or document generator).
+ * A helper class for preparing the options to pass to the tool (compiler or document generator).
  * It does <em>not</em> include the options related to paths (class-path, destination directory, <i>etc.</i>).
  * If an option is unsupported by the tool, a message is logged at the warning level.
  *
@@ -418,7 +418,7 @@ public final class Options {
     }
 
     /**
-     * {@return a string representatation of the options for debugging purposes}
+     * {@return a string representation of the options for debugging purposes}
      */
     @Override
     public String toString() {
