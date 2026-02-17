@@ -85,7 +85,6 @@ under the License.
     <mavenVersion>4.0.0-rc-4</mavenVersion>
 
     <asmVersion>9.9.1</asmVersion>
-    <guiceVersion>6.0.0</guiceVersion>
     <mockitoVersion>5.21.0</mockitoVersion>
     <eclipseCompilerVersion>3.42.0</eclipseCompilerVersion>
     <version.maven-plugin-tools-3.x>3.13.1</version.maven-plugin-tools-3.x>
@@ -153,12 +152,6 @@ under the License.
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-testing</artifactId>
       <version>${mavenVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <version>${guiceVersion}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
