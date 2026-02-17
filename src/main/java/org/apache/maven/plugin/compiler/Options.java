@@ -320,13 +320,13 @@ public final class Options {
         if (expected == count) {
             warning = null;
             return true;
-        } else if (expected < 1) {
+        } else if (expected == 0) {
+            warning = "The '" + option + "' option does not expect any argument.";
+        } else if (expected < 0) {
             if (checker instanceof ForkedCompiler) {
                 return true; // That implementation actually knows nothing about which options are supported.
             }
             warning = "The '" + option + "' option is not supported.";
-        } else if (expected == 0) {
-            warning = "The '" + option + "' option does not expect any argument.";
         } else if (expected == 1) {
             warning = "The '" + option + "' option expects a single argument.";
         } else {
