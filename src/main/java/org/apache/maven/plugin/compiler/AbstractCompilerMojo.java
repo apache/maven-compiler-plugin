@@ -885,6 +885,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @Parameter(property = "maven.compiler.maxmem")
     protected String maxmem;
 
+    /**
+     * Should maven log a summary of compiler messages (if any) by type.
+     * When there are a lot of messages of the same type (unchecked, deprecation etc),
+     * it can make the output more readable.
+     *
+     * @since 4.0.0-beta-5
+     */
+    @Parameter(property = "maven.compiler.messageLogType", defaultValue = "COMPILER")
+    protected MessageLogType messageLogType;
+
     // ----------------------------------------------------------------------
     // Read-only parameters
     // ----------------------------------------------------------------------
@@ -1227,7 +1237,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Therefore, the executor can safely be executed in a background thread,
      * provided that the {@link #logger} is thread-safe.
      *
-     * @param listener where to send compilation warnings, or {@code null} for the Maven logger
+     * @param listener where to send compilation messages, or {@code null} for the Maven logger
      * @return the task to execute for compiling the project using the configuration in this <abbr>MOJO</abbr>
      * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
@@ -1246,6 +1256,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
             logger.warn(mb.build());
         }
         return executor;
+    }
+
+    /**
+     * Simple utility to enforce a listener.
+     * @param listener caller provided listener.
+     * @return user listener if not null else maven internal one.
+     */
+    private DiagnosticListener<? super JavaFileObject> useOrCreateListener(
+            final DiagnosticListener<? super JavaFileObject> listener) {
+        return listener == null
+                ? new DiagnosticLogger(logger, messageBuilderFactory, null, project.getRootDirectory(), messageLogType)
+                : listener;
     }
 
     /**
@@ -1370,7 +1392,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
-        final ToolExecutor executor = createExecutor(null);
+        final ToolExecutor executor = createExecutor(useOrCreateListener(null));
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;
         }
