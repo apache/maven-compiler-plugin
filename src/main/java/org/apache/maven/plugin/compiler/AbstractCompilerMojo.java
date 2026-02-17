@@ -1185,8 +1185,17 @@ public abstract class AbstractCompilerMojo implements Mojo {
                 supportedVersion = version;
             }
         }
+
         Options configuration = parseParameters(compiler);
         try {
+            // --- Fix for issue #1006: ensure <proc>only</proc> runs annotation processors
+            // ---
+            if ("only".equalsIgnoreCase(compilerConfiguration.getProc())) {
+                logger.info("Running annotation processors (proc: only)");
+                compile(compiler, configuration);
+                return;
+            }
+            // -------------------------------------------------------------------------------
             compile(compiler, configuration);
         } catch (RuntimeException e) {
             String message = e.getLocalizedMessage();
@@ -1198,15 +1207,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     message = message.substring(0, s); // Log only the first line.
                 }
             }
+
             MessageBuilder mb = messageBuilderFactory
                     .builder()
                     .strong("COMPILATION ERROR: ")
                     .a(message);
             logger.error(mb.toString(), verbose ? e : null);
+
             if (tipForCommandLineCompilation != null) {
                 logger.info(tipForCommandLineCompilation);
                 tipForCommandLineCompilation = null;
             }
+
             if (failOnError) {
                 throw e;
             }
@@ -1215,7 +1227,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             throw new CompilationFailureException("I/O error while compiling the project.", e);
         }
     }
-
+    
     /**
      * Creates a new task by taking a snapshot of the current configuration of this <abbr>MOJO</abbr>.
      * This method creates the {@linkplain ToolExecutor#outputDirectory output directory} if it does not already exist.
