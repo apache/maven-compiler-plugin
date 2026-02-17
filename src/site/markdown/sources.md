@@ -68,7 +68,7 @@ See the example in next sub-section.
 ## Declaration of many source directories
 
 External plugins such as `build-helper-maven-plugin` are no longer needed
-and should be replaced by the build-in `<sources>` elements as shown below.
+and should be replaced by the built-in `<sources>` elements as shown below.
 Note that the directories of the first and last `<source>` elements are omitted
 as their default values are `src/main/java` and `src/test/java` respectively.
 
@@ -94,10 +94,10 @@ as their default values are `src/main/java` and `src/test/java` respectively.
 ```
 
 
-## Multi-releases project
+## Multi-release project
 
-The new compiler plugin handles automatically multiple executions of `javac` with different `--release` option values
-together with automatic adjustments of class-path, module-path and output directories for producing a multi-releases project.
+The compiler plugin automatically handles multiple executions of `javac` with different `--release` option values
+together with automatic adjustments of class-path, module-path and output directories for producing a multi-release project.
 Example:
 
 ```xml
@@ -125,8 +125,8 @@ Example:
 ## Multi-module project
 
 Maven 4 supports the Java [module source hierarchy](https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#directory-hierarchies)
-with the canvas that as of October 2025, not all plugins have been updated yet.
-Compared to multi Maven sub-project, using multi Java module in a single Maven sub-project has advantages such as
+with the caveat that as of February 2026, not all plugins have been updated yet.
+Compared to multiple Maven sub-projects, using multiple Java modules in a single Maven sub-project has advantages such as
 resolving compiler warnings in references to dependent modules (the converse of references to dependencies),
 easier sharing of test code between modules in the Maven sub-project (no need for `test-jar`),
 and easier aggregated Javadoc for modules in the Maven sub-project.
@@ -197,7 +197,7 @@ but should be replaced by the `<sources>` element when applicable.
 Those two ways are not strictly equivalent:
 
 * The Maven 4 way specifies filters independently for each source directory.
-  These filters will be applied by all plugins that migrated to the Maven 4 API, not only the compiler plugin.
+  These filters will be applied by all plugins that have migrated to the Maven 4 API, not only the compiler plugin.
 * Conversely, the Maven 3 way specifies filters which will be applied only by the compiler plugin.
   However, these filters apply to all source directories.
 
