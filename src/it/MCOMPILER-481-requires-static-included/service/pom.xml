@@ -33,7 +33,7 @@ under the License.
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-util-ajax</artifactId>
-      <version>10.0.7</version>
+      <version>12.1.6</version>
       <optional>true</optional>
     </dependency>
   </dependencies>
