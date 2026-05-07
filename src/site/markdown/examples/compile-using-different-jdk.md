@@ -28,8 +28,8 @@ Each of those plugins need a tool of the JDK to operate: `javac`, `javadoc`, `ja
 A toolchain is a way to specify the path to the JDK to use for all of those plugins in a centralized manner,
 independent from the one running Maven itself.
 
-To set this up, refer to the [Guide to Using Toolchains](http://maven.apache.org/guides/mini/guide-using-toolchains.html),
-which makes use of the [Maven Toolchains Plugin](http://maven.apache.org/plugins/maven-toolchains-plugin/).
+To set this up, refer to the [Guide to Using Toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html),
+which makes use of the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolchains-plugin/).
 
 With the maven-toolchains-plugin you configure 1 default JDK toolchain for all related maven-plugins.
 Since maven-compiler-plugin 3.6.0 when using with Maven 3.3.1+ it is also possible to give the plugin its own toolchain,
@@ -69,7 +69,7 @@ as discussed in the next paragraph.
 ```
 
 The above example uses a `JAVA_11_HOME` property in order to avoid hard-coding a filesystem path for the executable.
-Each developer defines this property in [settings.xml](http://maven.apache.org/ref/current/maven-settings/settings.html),
+Each developer defines this property in [settings.xml](https://maven.apache.org/ref/current/maven-settings/settings.html),
 or sets an environment variable, so that the build remains portable.
 
 ```xml
@@ -92,4 +92,4 @@ or sets an environment variable, so that the build remains portable.
 ```
 
 If you build with a different JDK, you may want to
-[customize the jar file manifest](http://maven.apache.org/plugins/maven-jar-plugin/examples/manifest-customization.html).
+[customize the jar file manifest](https://maven.apache.org/plugins/maven-jar-plugin/examples/manifest-customization.html).
