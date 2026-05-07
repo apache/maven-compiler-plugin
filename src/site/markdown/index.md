@@ -50,7 +50,7 @@ Especially for fixing bugs it is crucial that the developers can reproduce your 
 For this reason, entire debug logs, POMs or most preferably little demo projects attached to the issue are very much appreciated.
 Of course, patches are welcome, too.
 Contributors can check out the project from our [source repository](./scm.html) and will find supplementary information
-in the [guide to helping with Maven](http://maven.apache.org/guides/development/guide-helping.html).
+in the [guide to helping with Maven](https://maven.apache.org/guides/development/guide-helping.html).
 
 The following pages describes how to use the plugin beyond the default
 "one source directory, one module, one release" default configuration:
