@@ -1428,9 +1428,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
                         .append(compileScope.projectScope().id())
                         .append(" classes.");
                 if (executor.listener instanceof DiagnosticLogger diagnostic) {
-                    diagnostic.firstError(failureCause).ifPresent((c) -> message.append(System.lineSeparator())
-                            .append("The first error is: ")
-                            .append(c));
+                    diagnostic
+                            .firstError(failureCause)
+                            .ifPresent((c) -> message.append(System.lineSeparator())
+                                    .append("The first error is: ")
+                                    .append(c));
                 }
                 var failure = new CompilationFailureException(message.toString(), failureCause);
                 if (suppressed != null) {
