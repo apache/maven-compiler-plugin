@@ -39,6 +39,7 @@ import org.apache.maven.api.di.Provides;
 import org.apache.maven.api.di.Singleton;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
+import org.apache.maven.api.model.Source;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.testing.Basedir;
 import org.apache.maven.api.plugin.testing.InjectMojo;
@@ -127,11 +128,10 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-basic-test")
+    @SuppressWarnings("deprecation")
     public void testCompilerBasic(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         Log log = mock(Log.class);
         compileMojo.logger = log;
@@ -142,6 +142,7 @@ public class CompilerMojoTestCase {
                 session.getArtifactPath(compileMojo.projectArtifact).isPresent(),
                 "MCOMPILER-94: artifact file should only be null if there is nothing to compile");
 
+        testCompileMojo.compileSourceRoots = List.of(MojoExtension.getBasedir() + "/src/test/java");
         testCompileMojo.execute();
         assertOutputFileExists(testCompileMojo, "foo", "TestCompile0Test.class");
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestCompile0Test.class");
@@ -188,17 +189,17 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-includes-excludes-test")
+    @SuppressWarnings("deprecation")
     public void testCompilerIncludesExcludes(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestCompile2.class");
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestCompile3.class");
         assertOutputFileExists(compileMojo, "foo", "TestCompile4.class");
 
+        testCompileMojo.compileSourceRoots = List.of(MojoExtension.getBasedir() + "/src/test/java");
         testCompileMojo.execute();
         assertOutputFileDoesNotExist(testCompileMojo, "foo", "TestCompile2TestCase.class");
         assertOutputFileDoesNotExist(testCompileMojo, "foo", "TestCompile3TestCase.class");
@@ -211,11 +212,10 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-fork-test")
+    @SuppressWarnings("deprecation")
     public void testCompilerFork(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         // JAVA_HOME doesn't have to be on the PATH.
         String javaHome = System.getenv("JAVA_HOME");
@@ -227,6 +227,7 @@ public class CompilerMojoTestCase {
         compileMojo.execute();
         assertOutputFileExists(compileMojo, "foo", "TestCompile1.class");
 
+        testCompileMojo.compileSourceRoots = List.of(MojoExtension.getBasedir() + "/src/test/java");
         testCompileMojo.execute();
         assertOutputFileExists(testCompileMojo, "foo", "TestCompile1TestCase.class");
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestCompile1TestCase.class");
@@ -238,17 +239,17 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-one-output-file-test")
+    @SuppressWarnings("deprecation")
     public void testOneOutputFileForAllInput(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         assertEquals(CompilerStub.COMPILER_ID, compileMojo.compilerId);
         compileMojo.execute();
         assertCompilerStubOutputFileExists(compileMojo);
 
-        assertEquals(CompilerStub.COMPILER_ID, testCompileMojo.compilerId);
+        testCompileMojo.compilerId = CompilerStub.COMPILER_ID;
+        testCompileMojo.compileSourceRoots = List.of(MojoExtension.getBasedir() + "/src/test/java");
         testCompileMojo.execute();
         assertCompilerStubOutputFileExists(testCompileMojo);
     }
@@ -316,16 +317,16 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-modular-project")
+    @SuppressWarnings("deprecation")
     public void testModularProject(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertOutputFileExists(compileMojo, SourceDirectory.MODULE_INFO + SourceDirectory.CLASS_FILE_SUFFIX);
         assertOutputFileExists(compileMojo, "foo", "TestModular.class");
 
+        testCompileMojo.compileSourceRoots = List.of(MojoExtension.getBasedir() + "/src/test/java");
         testCompileMojo.execute();
         assertOutputFileExists(testCompileMojo, "foo", "TestModularTestCase.class");
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestModularTestCase.class");
@@ -363,16 +364,16 @@ public class CompilerMojoTestCase {
      */
     @Test
     @Basedir("${basedir}/target/test-classes/unit/compiler-skip-main")
+    @SuppressWarnings("deprecation")
     public void testCompileSkipMain(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         compileMojo.skipMain = true;
         compileMojo.execute();
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestSkipMainCompile0.class");
 
+        testCompileMojo.compileSourceRoots = List.of(MojoExtension.getBasedir() + "/src/test/java");
         testCompileMojo.execute();
         assertOutputFileExists(testCompileMojo, "foo", "TestSkipMainCompile0Test.class");
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestSkipMainCompile0Test.class");
@@ -386,9 +387,7 @@ public class CompilerMojoTestCase {
     @Basedir("${basedir}/target/test-classes/unit/compiler-skip-test")
     public void testCompileSkipTest(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo,
-            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
-                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
-                    TestCompilerMojo testCompileMojo) {
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml") TestCompilerMojo testCompileMojo) {
 
         compileMojo.execute();
         assertOutputFileExists(compileMojo, "foo/TestSkipTestCompile0.class");
@@ -419,6 +418,7 @@ public class CompilerMojoTestCase {
 
         Map<String, String> props = new HashMap<>();
         props.put("basedir", MojoExtension.getBasedir());
+        props.put("project.basedir", MojoExtension.getBasedir());
         doReturn(props).when(session).getUserProperties();
 
         List<Path> artifacts = new ArrayList<>();
@@ -467,8 +467,14 @@ public class CompilerMojoTestCase {
                 .build(Build.newBuilder()
                         .directory(MojoExtension.getBasedir() + "/target")
                         .outputDirectory(MojoExtension.getBasedir() + "/target/classes")
-                        .sourceDirectory(MojoExtension.getBasedir() + "/src/main/java")
                         .testOutputDirectory(MojoExtension.getBasedir() + "/target/test-classes")
+                        .sources(List.of(
+                                Source.newInstance()
+                                        .withDirectory(MojoExtension.getBasedir() + "/src/main/java")
+                                        .withScope("main"),
+                                Source.newInstance()
+                                        .withDirectory(MojoExtension.getBasedir() + "/src/test/java")
+                                        .withScope("test")))
                         .build())
                 .build());
         stub.setBasedir(Path.of(MojoExtension.getBasedir()));
