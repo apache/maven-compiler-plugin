@@ -118,6 +118,11 @@ under the License.
       <version>3.4.2</version>
     </dependency>
     <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.22.0</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.maven.shared</groupId>
       <artifactId>maven-shared-incremental</artifactId>
       <version>1.1</version>

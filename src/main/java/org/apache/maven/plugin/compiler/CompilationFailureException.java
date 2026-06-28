@@ -27,9 +27,8 @@ import org.codehaus.plexus.compiler.CompilerMessage;
  * @author <a href="mailto:jason@maven.org">Jason van Zyl</a>
  * @since 2.0
  */
-@SuppressWarnings("serial")
 public class CompilationFailureException extends MojoFailureException {
-    private static final String LS = System.getProperty("line.separator");
+    private static final String LS = System.lineSeparator();
 
     /**
      * Wrap error messages from the compiler
