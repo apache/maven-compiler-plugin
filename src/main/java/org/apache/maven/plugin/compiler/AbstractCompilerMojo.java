@@ -18,6 +18,8 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.inject.Inject;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -54,7 +56,6 @@ import org.apache.maven.model.DependencyManagement;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
-import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.incremental.IncrementalBuildHelper;
@@ -103,7 +104,7 @@ import org.objectweb.asm.Opcodes;
  * @since 2.0
  */
 public abstract class AbstractCompilerMojo extends AbstractMojo {
-    protected static final String PS = System.getProperty("path.separator");
+    protected static final String PS = File.pathSeparator;
 
     private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
@@ -473,7 +474,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     /**
      *
      */
-    @Component
+    @Inject
     private ToolchainManager toolchainManager;
 
     /**
@@ -527,7 +528,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     /**
      * Plexus compiler manager.
      */
-    @Component
+    @Inject
     private CompilerManager compilerManager;
 
     /**
@@ -648,13 +649,13 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     /**
      * Resolves the artifacts needed.
      */
-    @Component
+    @Inject
     private RepositorySystem repositorySystem;
 
     /**
      * Artifact handler manager.
      */
-    @Component
+    @Inject
     private ArtifactHandlerManager artifactHandlerManager;
 
     protected abstract SourceInclusionScanner getSourceInclusionScanner(int staleMillis);
@@ -722,13 +723,13 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         if (isTestCompile()) {
             getLog().debug("Adding " + generatedSourcesPath
                     + " to the project test-compile source roots but NOT the actual test-compile source roots:\n  "
-                    + StringUtils.join(project.getTestCompileSourceRoots().iterator(), "\n  "));
+                    + String.join("\n  ", project.getTestCompileSourceRoots()));
 
             project.addTestCompileSourceRoot(generatedSourcesPath);
         } else {
             getLog().debug("Adding " + generatedSourcesPath
                     + " to the project compile source roots but NOT the actual compile source roots:\n  "
-                    + StringUtils.join(project.getCompileSourceRoots().iterator(), "\n  "));
+                    + String.join("\n  ", project.getCompileSourceRoots()));
 
             project.addCompileSourceRoot(generatedSourcesPath);
         }
@@ -787,7 +788,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
             writePlugin(mb);
 
-            getLog().warn(mb.toString());
+            getLog().warn(mb.build());
         }
 
         // ----------------------------------------------------------------------
@@ -906,7 +907,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame."
                             + " This can cause issues in some environments (os/jdk)!"
                             + " Consider using reuseCreated strategy."
-                            + System.getProperty("line.separator")
+                            + System.lineSeparator()
                             + "If your env is fine with reuseSame, you can skip this warning with the "
                             + "configuration field skipMultiThreadWarning "
                             + "or -Dmaven.compiler.skipMultiThreadWarning=true");

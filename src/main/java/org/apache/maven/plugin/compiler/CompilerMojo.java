@@ -43,7 +43,7 @@ import org.apache.maven.project.MavenProject;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.shared.utils.logging.MessageUtils;
 import org.apache.maven.toolchain.Toolchain;
-import org.apache.maven.toolchain.java.DefaultJavaToolChain;
+import org.apache.maven.toolchain.java.JavaToolchainImpl;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -72,7 +72,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     /**
      * The source directories containing the sources to be compiled.
      */
-    @Parameter(defaultValue = "${project.compileSourceRoots}", readonly = false, required = true)
+    @Parameter(defaultValue = "${project.compileSourceRoots}", required = true)
     private List<String> compileSourceRoots;
 
     /**
@@ -90,8 +90,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Parameter(
             property = "maven.compiler.outputDirectory",
             defaultValue = "${project.build.outputDirectory}",
-            required = true,
-            readonly = false)
+            required = true)
     private File outputDirectory;
 
     /**
@@ -277,8 +276,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
                         .setMainModuleDescriptor(moduleDeclaration.get().toFile());
 
                 Toolchain toolchain = getToolchain();
-                if (toolchain instanceof DefaultJavaToolChain) {
-                    request.setJdkHome(new File(((DefaultJavaToolChain) toolchain).getJavaHome()));
+                if (toolchain instanceof JavaToolchainImpl) {
+                    request.setJdkHome(new File(((JavaToolchainImpl) toolchain).getJavaHome()));
                 }
 
                 resolvePathsResult = locationManager.resolvePaths(request);
@@ -437,6 +436,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         return compilerArgument;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     protected Map<String, String> getCompilerArguments() {
         return compilerArguments;

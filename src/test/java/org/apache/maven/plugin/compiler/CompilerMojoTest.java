@@ -68,7 +68,7 @@ class CompilerMojoTest {
         setVariableValueToObject(compilerMojo, "targetOrReleaseSet", false);
         compilerMojo.execute();
 
-        Artifact projectArtifact = (Artifact) getVariableValueFromObject(compilerMojo, "projectArtifact");
+        Artifact projectArtifact = getVariableValueFromObject(compilerMojo, "projectArtifact");
         assertNotNull(
                 projectArtifact.getFile(),
                 "MCOMPILER-94: artifact file should only be null if there is nothing to compile");
@@ -108,7 +108,7 @@ class CompilerMojoTest {
 
         assertFalse(compilerMojo.getOutputDirectory().exists());
 
-        Artifact projectArtifact = (Artifact) getVariableValueFromObject(compilerMojo, "projectArtifact");
+        Artifact projectArtifact = getVariableValueFromObject(compilerMojo, "projectArtifact");
         assertNull(
                 projectArtifact.getFile(), "MCOMPILER-94: artifact file should be null if there is nothing to compile");
     }

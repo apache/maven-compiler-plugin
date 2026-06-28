@@ -39,7 +39,7 @@ import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.toolchain.Toolchain;
-import org.apache.maven.toolchain.java.DefaultJavaToolChain;
+import org.apache.maven.toolchain.java.JavaToolchainImpl;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
 import org.codehaus.plexus.compiler.util.scan.StaleSourceScanner;
@@ -74,7 +74,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     /**
      * The source directories containing the test-source to be compiled.
      */
-    @Parameter(defaultValue = "${project.testCompileSourceRoots}", readonly = false, required = true)
+    @Parameter(defaultValue = "${project.testCompileSourceRoots}", required = true)
     private List<String> compileSourceRoots;
 
     /**
@@ -85,7 +85,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      *
      * @see CompilerMojo#outputDirectory
      */
-    @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true, readonly = false)
+    @Parameter(defaultValue = "${project.build.testOutputDirectory}", required = true)
     private File outputDirectory;
 
     /**
@@ -260,8 +260,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                         .setMainModuleDescriptor(mainModuleDescriptorClassFile.getAbsolutePath());
 
                 Toolchain toolchain = getToolchain();
-                if (toolchain instanceof DefaultJavaToolChain) {
-                    request.setJdkHome(((DefaultJavaToolChain) toolchain).getJavaHome());
+                if (toolchain instanceof JavaToolchainImpl) {
+                    request.setJdkHome(((JavaToolchainImpl) toolchain).getJavaHome());
                 }
 
                 result = locationManager.resolvePaths(request);
@@ -298,8 +298,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                         .setMainModuleDescriptor(testModuleDescriptorJavaFile.getAbsolutePath());
 
                 Toolchain toolchain = getToolchain();
-                if (toolchain instanceof DefaultJavaToolChain) {
-                    request.setJdkHome(((DefaultJavaToolChain) toolchain).getJavaHome());
+                if (toolchain instanceof JavaToolchainImpl) {
+                    request.setJdkHome(((JavaToolchainImpl) toolchain).getJavaHome());
                 }
 
                 result = locationManager.resolvePaths(request);
@@ -462,6 +462,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
     }
 
+    @SuppressWarnings("deprecation")
     protected Map<String, String> getCompilerArguments() {
         return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
     }

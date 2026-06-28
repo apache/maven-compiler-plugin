@@ -170,7 +170,7 @@ class TestCompilerMojoTest {
     }
 
     private void setUpCompilerMojoTestEnv(TestCompilerMojo mojo) throws Exception {
-        File buildDir = (File) getVariableValueFromObject(mojo, "buildDirectory");
+        File buildDir = getVariableValueFromObject(mojo, "buildDirectory");
         File testClassesDir = new File(buildDir, "test-classes");
         setVariableValueToObject(mojo, "outputDirectory", testClassesDir);
 
