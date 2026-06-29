@@ -43,7 +43,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -54,6 +53,8 @@ import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A task which configures and executes a Java tool such as the Java compiler.
@@ -72,11 +73,6 @@ import org.apache.maven.api.services.MavenException;
  * @author Martin Desruisseaux
  */
 public class ToolExecutor {
-    /**
-     * The locale for diagnostics, or {@code null} for the platform default.
-     */
-    private static final Locale LOCALE = null;
-
     /**
      * The character encoding of source files, or {@code null} for the platform default encoding.
      *
@@ -222,12 +218,8 @@ public class ToolExecutor {
     protected ToolExecutor(final AbstractCompilerMojo mojo, DiagnosticListener<? super JavaFileObject> listener)
             throws IOException {
 
+        this.listener = requireNonNull(listener, "DiagnosticListener can't be null in ToolExecutor");
         logger = mojo.logger;
-        if (listener == null) {
-            Path root = mojo.project.getRootDirectory();
-            listener = new DiagnosticLogger(logger, mojo.messageBuilderFactory, LOCALE, root);
-        }
-        this.listener = listener;
         encoding = mojo.charset();
         incrementalBuildConfig = mojo.incrementalCompilationConfiguration();
         outputDirectory = Files.createDirectories(mojo.getOutputDirectory());
@@ -937,7 +929,7 @@ public class ToolExecutor {
             compiler = new WorkaroundForPatchModule(compiler);
         }
         boolean success = true;
-        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(listener, LOCALE, encoding)) {
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(listener, null, encoding)) {
             setDependencyPaths(fileManager);
             if (!generatedSourceDirectories.isEmpty()) {
                 fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, generatedSourceDirectories);
