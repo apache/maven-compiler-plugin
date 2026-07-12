@@ -46,6 +46,11 @@ final class SourceFile {
     final long lastModified;
 
     /**
+     * Whether this source file is empty.
+     */
+    final boolean isEmpty;
+
+    /**
      * Whether this source has been flagged as new or modified since the last build.
      *
      * @see IncrementalBuildHelper#inputFileTreeChanges
@@ -84,6 +89,7 @@ final class SourceFile {
         this.directory = directory;
         this.file = file;
         this.lastModified = attrs.lastModifiedTime().toMillis();
+        this.isEmpty = attrs.size() == 0;
         this.ignoreModification = ignoreModification;
         directory.visit(file);
     }

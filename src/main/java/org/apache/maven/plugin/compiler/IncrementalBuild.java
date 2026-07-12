@@ -774,11 +774,14 @@ final class IncrementalBuild {
     /**
      * {@return whether the given list of modified files should not cause a recompilation}
      * This method returns {@code true} if the given list is empty or contains only files
-     * with the {@link SourceFile#ignoreModification} set to {@code true}.
+     * with the {@link SourceFile#ignoreModification} set to {@code true}, or empty source
+     * files for which no output file exists.
      *
      * @param sourceFiles return value of {@link #getModifiedSources()}.
      */
     static boolean isEmptyOrIgnorable(List<SourceFile> sourceFiles) {
-        return sourceFiles.stream().allMatch((s) -> s.ignoreModification);
+        return sourceFiles.stream()
+                .allMatch(
+                        (s) -> s.ignoreModification || (s.isEmpty && Files.notExists(s.getOutputFile(), LINK_OPTIONS)));
     }
 }

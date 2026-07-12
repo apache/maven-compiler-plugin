@@ -66,6 +66,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -181,6 +182,26 @@ public class CompilerMojoTestCase {
 
         testCompileMojo.execute();
         assertFalse(Files.exists(testCompileMojo.getOutputDirectory()));
+    }
+
+    /**
+     * Tests that an empty source file does not cause compilation every time because it has no class file.
+     */
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-empty-source-change-detection-test")
+    public void testCompilerEmptySourceChangeDetection(
+            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) throws IOException {
+        Path source = compileMojo.basedir.resolve("src/main/java/Empty.java");
+        Files.createDirectories(source.getParent());
+        Files.write(source, new byte[0]);
+
+        Log log = mock(Log.class);
+        compileMojo.logger = log;
+        compileMojo.execute();
+
+        clearInvocations(log);
+        compileMojo.execute();
+        verify(log).info("Nothing to compile - all classes are up to date.");
     }
 
     /**
