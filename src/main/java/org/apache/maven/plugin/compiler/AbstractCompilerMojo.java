@@ -858,7 +858,11 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         compilerConfiguration.setSourceLocations(compileSourceRoots);
 
-        compilerConfiguration.setAnnotationProcessors(annotationProcessors);
+        String[] processors = annotationProcessors;
+        if (processors != null && Arrays.stream(processors).allMatch(StringUtils::isBlank)) {
+            processors = null;
+        }
+        compilerConfiguration.setAnnotationProcessors(processors);
 
         compilerConfiguration.setProcessorPathEntries(resolveProcessorPathEntries());
 
