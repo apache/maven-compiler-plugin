@@ -19,6 +19,7 @@
 package org.apache.maven.plugin.compiler;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -111,6 +113,27 @@ class CompilerMojoTest {
         Artifact projectArtifact = getVariableValueFromObject(compilerMojo, "projectArtifact");
         assertNull(
                 projectArtifact.getFile(), "MCOMPILER-94: artifact file should be null if there is nothing to compile");
+    }
+
+    /**
+     * Tests that an empty source file does not cause compilation every time because it has no class file.
+     */
+    @Test
+    @InjectMojo(goal = COMPILE, pom = "classpath:/unit/compiler-empty-source-change-detection-test/plugin-config.xml")
+    void testCompilerEmptySourceChangeDetection(CompilerMojo compilerMojo) throws Exception {
+        setUpCompilerMojoTestEnv(compilerMojo);
+
+        File source = new File(compilerMojo.getCompileSourceRoots().get(0), "Empty.java");
+        Files.createDirectories(source.getParentFile().toPath());
+        Files.write(source.toPath(), new byte[0]);
+
+        Log log = mock(Log.class);
+        compilerMojo.setLog(log);
+        compilerMojo.execute();
+
+        clearInvocations(log);
+        compilerMojo.execute();
+        verify(log).info("Nothing to compile - all classes are up to date.");
     }
 
     /**
