@@ -81,6 +81,17 @@ class CompilerMojoTest {
     }
 
     @Test
+    @InjectMojo(goal = COMPILE, pom = "classpath:/unit/compiler-empty-annotation-processors-test/plugin-config.xml")
+    void testCompilerEmptyAnnotationProcessors(CompilerMojo compilerMojo) throws Exception {
+        setUpCompilerMojoTestEnv(compilerMojo);
+
+        compilerMojo.execute();
+
+        File testClass = new File(compilerMojo.getOutputDirectory(), "TestCompile.class");
+        assertTrue(testClass::exists);
+    }
+
+    @Test
     @InjectMojo(goal = COMPILE, pom = "classpath:/unit/compiler-basic-sourcetarget/plugin-config.xml")
     void testCompilerBasicSourceTarget(CompilerMojo compilerMojo) throws Exception {
         setUpCompilerMojoTestEnv(compilerMojo);
