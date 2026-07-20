@@ -649,6 +649,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
      * It means that a full rebuild will be done if any kind of change is detected.</p>
      *
+     * <p>Whether an annotation processor is considered present depends on the Java version when {@link #proc}
+     * is unset, because {@code javac} enables annotation processing by default before Java&nbsp;23
+     * ({@code -proc:full}) but disables it since Java&nbsp;23 ({@code -proc:none} unless a processor is
+     * configured). Consequently, on Java&nbsp;versions prior to&nbsp;23 the plugin conservatively assumes that
+     * a processor may be present — since {@code javac} would discover processors on the compile classpath —
+     * and therefore applies {@code "rebuild-on-add,rebuild-on-change"} by default, doing a full rebuild on any
+     * change even when no processor is actually present. Projects on Java&nbsp;&lt;&nbsp;23 that use no
+     * annotation processor can restore per-file recompilation by setting {@link #proc} to {@code "none"}
+     * (or by setting this {@code incrementalCompilation} property explicitly).</p>
+     *
      * @see #staleMillis
      * @see #fileExtensions
      * @see #showCompilationChanges
