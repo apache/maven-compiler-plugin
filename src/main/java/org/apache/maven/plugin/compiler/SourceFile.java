@@ -18,6 +18,7 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -105,6 +106,15 @@ final class SourceFile {
         // The constants below must match the ones in `IncrementalBuild.SourceInfo`.
         return SourceDirectory.JAVA_FILE_SUFFIX.equals(directory.fileKind.extension)
                 && SourceDirectory.CLASS_FILE_SUFFIX.equals(directory.outputFileKind.extension);
+    }
+
+    /**
+     * {@return whether changes in this source file should not cause a recompilation}
+     * A source file is ignorable if its modification is explicitly ignored,
+     * or if the source file is empty and no corresponding output file exists.
+     */
+    boolean isEmptyOrIgnorable() {
+        return ignoreModification || (isEmpty && Files.notExists(getOutputFile()));
     }
 
     /**
