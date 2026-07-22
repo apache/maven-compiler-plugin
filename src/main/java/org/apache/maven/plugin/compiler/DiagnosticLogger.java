@@ -21,17 +21,21 @@ package org.apache.maven.plugin.compiler;
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaFileObject;
+import javax.tools.ToolProvider;
 
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
+
+import static java.util.Optional.ofNullable;
 
 /**
  * A Java compiler diagnostic listener which send the messages to the Maven logger.
@@ -60,6 +64,11 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     private final Path directory;
 
     /**
+     * Type of output of the logger.
+     */
+    private final MessageLogType logType;
+
+    /**
      * Number of errors or warnings.
      */
     private int numErrors, numWarnings;
@@ -77,23 +86,30 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     /**
      * Creates a listener which will send the diagnostics to the given logger.
      *
-     * @param logger the logger where to send diagnostics
+     * @param logger                the logger where to send diagnostics
      * @param messageBuilderFactory the factory for creating message builders
-     * @param locale the locale for compiler message
-     * @param directory the base directory with which to relativize the paths to source files
+     * @param locale                the locale for compiler message
+     * @param directory             the base directory with which to relativize the paths to source files
+     * @param logType               output flavor
      */
-    DiagnosticLogger(Log logger, MessageBuilderFactory messageBuilderFactory, Locale locale, Path directory) {
+    DiagnosticLogger(
+            Log logger,
+            MessageBuilderFactory messageBuilderFactory,
+            Locale locale,
+            Path directory,
+            MessageLogType logType) {
         this.logger = logger;
         this.messageBuilderFactory = messageBuilderFactory;
         this.locale = locale;
         this.directory = directory;
+        this.logType = logType;
         codeCount = new LinkedHashMap<>();
     }
 
     /**
      * Makes the given file relative to the base directory.
      *
-     * @param  file  the path to make relative to the base directory
+     * @param file the path to make relative to the base directory
      * @return the given path, potentially relative to the base directory
      */
     private String relativize(String file) {
@@ -118,63 +134,67 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         if (message == null || message.isBlank()) {
             return;
         }
-        MessageBuilder record = messageBuilderFactory.builder();
-        record.a(message);
-        JavaFileObject source = diagnostic.getSource();
-        Diagnostic.Kind kind = diagnostic.getKind();
-        String style;
-        switch (kind) {
-            case ERROR:
-                style = ".error:-bold,f:red";
-                break;
-            case MANDATORY_WARNING:
-            case WARNING:
-                style = ".warning:-bold,f:yellow";
-                break;
-            default:
-                style = ".info:-bold,f:blue";
-                if (diagnostic.getLineNumber() == Diagnostic.NOPOS) {
-                    source = null; // Some messages are generic, e.g. "Recompile with -Xlint:deprecation".
+        if (logType == MessageLogType.COMPILER || logType == MessageLogType.ALL) {
+            MessageBuilder record = messageBuilderFactory.builder();
+            record.a(message);
+            JavaFileObject source = diagnostic.getSource();
+            Diagnostic.Kind kind = diagnostic.getKind();
+            String style;
+            switch (kind) {
+                case ERROR:
+                    style = ".error:-bold,f:red";
+                    break;
+                case MANDATORY_WARNING:
+                case WARNING:
+                    style = ".warning:-bold,f:yellow";
+                    break;
+                default:
+                    style = ".info:-bold,f:blue";
+                    if (diagnostic.getLineNumber() == Diagnostic.NOPOS) {
+                        source = null; // Some messages are generic, e.g. "Recompile with -Xlint:deprecation".
+                    }
+                    break;
+            }
+            if (source != null) {
+                record.newline().a("    at ").a(relativize(source.getName()));
+                long line = diagnostic.getLineNumber();
+                long column = diagnostic.getColumnNumber();
+                if (line != Diagnostic.NOPOS || column != Diagnostic.NOPOS) {
+                    record.style(style).a('[');
+                    if (line != Diagnostic.NOPOS) {
+                        record.a(line);
+                    }
+                    if (column != Diagnostic.NOPOS) {
+                        record.a(',').a(column);
+                    }
+                    record.a(']').resetStyle();
                 }
-                break;
-        }
-        if (source != null) {
-            record.newline().a("    at ").a(relativize(source.getName()));
-            long line = diagnostic.getLineNumber();
-            long column = diagnostic.getColumnNumber();
-            if (line != Diagnostic.NOPOS || column != Diagnostic.NOPOS) {
-                record.style(style).a('[');
-                if (line != Diagnostic.NOPOS) {
-                    record.a(line);
-                }
-                if (column != Diagnostic.NOPOS) {
-                    record.a(',').a(column);
-                }
-                record.a(']').resetStyle();
+            }
+            String log = record.toString();
+            switch (kind) {
+                case ERROR:
+                    if (firstError == null) {
+                        firstError = message;
+                    }
+                    logger.error(log);
+                    numErrors++;
+                    break;
+                case MANDATORY_WARNING:
+                case WARNING:
+                    logger.warn(log);
+                    numWarnings++;
+                    break;
+                default:
+                    logger.info(log);
+                    break;
             }
         }
-        String log = record.toString();
-        switch (kind) {
-            case ERROR:
-                if (firstError == null) {
-                    firstError = message;
-                }
-                logger.error(log);
-                numErrors++;
-                break;
-            case MANDATORY_WARNING:
-            case WARNING:
-                logger.warn(log);
-                numWarnings++;
-                break;
-            default:
-                logger.info(log);
-                break;
-        }
-        // Statistics
-        String code = diagnostic.getCode();
-        if (code != null) {
-            codeCount.merge(code, 1, (old, initial) -> old + 1);
+        if (logType == MessageLogType.SUMMARY || logType == MessageLogType.ALL) {
+            // Statistics
+            String code = diagnostic.getCode();
+            if (code != null) {
+                codeCount.merge(code, 1, (old, initial) -> old + 1);
+            }
         }
     }
 
@@ -191,50 +211,93 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * Reports summary after the compilation finished.
      */
     void logSummary() {
-        MessageBuilder message = messageBuilderFactory.builder();
-        final String patternForCount;
         if (!codeCount.isEmpty()) {
-            @SuppressWarnings("unchecked")
-            Map.Entry<String, Integer>[] entries = codeCount.entrySet().toArray(Map.Entry[]::new);
-            Arrays.sort(entries, (a, b) -> Integer.compare(b.getValue(), a.getValue()));
-            patternForCount = patternForCount(Math.max(entries[0].getValue(), Math.max(numWarnings, numErrors)));
-            message.strong("Summary of compiler messages:").newline();
-            for (Map.Entry<String, Integer> entry : entries) {
+            final var bundle = tryGetCompilerBundle();
+            for (final var entry : codeCount.entrySet().stream()
+                    // sort occurrence then key to have an absolute ordering
+                    .sorted(Map.Entry.<String, Integer>comparingByValue()
+                            .reversed()
+                            .thenComparing(Map.Entry.comparingByKey()))
+                    .toList()) {
                 int count = entry.getValue();
-                message.format(patternForCount, count, entry.getKey()).newline();
+                String key = entry.getKey();
+                if (bundle != null) {
+                    try {
+                        // not great but the code is worse when you read it
+                        key = key + " (" + bundle.getString(key) + ")";
+                    } catch (final RuntimeException re) {
+                        // ignore, use the plain key
+                    }
+                }
+                Consumer<String> log;
+                if (entry.getKey().startsWith("compiler.")) {
+                    final var sub = entry.getKey().substring("compiler.".length());
+                    if (sub.startsWith("err.")) {
+                        log = logger::error;
+                    } else if (sub.startsWith("warn.")) {
+                        log = logger::warn;
+                    } else {
+                        log = logger::info;
+                    }
+                } else {
+                    log = logger::info;
+                }
+                log.accept(messageBuilderFactory
+                        .builder()
+                        .strong(key + ": ")
+                        .append(String.valueOf(count))
+                        .build());
             }
-        } else {
-            patternForCount = patternForCount(Math.max(numWarnings, numErrors));
         }
+
         if ((numWarnings | numErrors) != 0) {
+            MessageBuilder message = messageBuilderFactory.builder();
             message.strong("Total:");
+            if (numWarnings != 0) {
+                message.append(' ').append(String.valueOf(numWarnings)).append(" warning");
+                if (numWarnings > 1) {
+                    message.append('s');
+                }
+            }
+            if (numErrors != 0) {
+                message.append(' ').append(String.valueOf(numErrors)).append(" error");
+                if (numErrors > 1) {
+                    message.append('s');
+                }
+            }
+            logger.info(message.build());
         }
-        if (numWarnings != 0) {
-            writeCount(message, patternForCount, numWarnings, "warning");
-        }
-        if (numErrors != 0) {
-            writeCount(message, patternForCount, numErrors, "error");
-        }
-        logger.info(message.toString());
     }
 
-    /**
-     * {@return the pattern for formatting the specified number followed by a label}
-     * The given number should be the widest number to format.
-     * A margin of 4 spaces is added at the beginning of the line.
-     */
-    private static String patternForCount(int n) {
-        return "    %" + Integer.toString(n).length() + "d %s";
-    }
-
-    /**
-     * Appends the count of warnings or errors, making them plural if needed.
-     */
-    private static void writeCount(MessageBuilder message, String patternForCount, int count, String name) {
-        message.newline();
-        message.format(patternForCount, count, name);
-        if (count > 1) {
-            message.append('s');
+    // we mainly know the one for javac as of today, this impl is best effort
+    private ResourceBundle tryGetCompilerBundle() {
+        // ignore the locale since we do log everything in english,
+        // use only default bundle to avoid mixed outputs
+        final var bundleName = "com.sun.tools.javac.resources.compiler";
+        try {
+            final var clazz = ToolProvider.getSystemJavaCompiler().getClass();
+            final var resources = bundleName.replace('.', '/') + ".class";
+            final var is = clazz.getModule() == null
+                    ? ofNullable(clazz.getClassLoader())
+                            .orElseGet(ClassLoader::getSystemClassLoader)
+                            .getResourceAsStream(resources)
+                    : clazz.getModule().getResourceAsStream(resources);
+            if (is == null) {
+                return null;
+            }
+            try (is) {
+                final var bytes = is.readAllBytes();
+                final var rbClass = new ClassLoader() {
+                    {
+                        super.defineClass(bundleName, bytes, 0, bytes.length);
+                    }
+                }.loadClass(bundleName);
+                final var cons = rbClass.getConstructor();
+                cons.setAccessible(true);
+                return (ResourceBundle) cons.newInstance();
+            }
+        } catch (final Exception e) {
+            return null;
         }
     }
 }
