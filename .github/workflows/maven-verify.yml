@@ -24,7 +24,7 @@ on:
 jobs:
   build:
     name: Verify
-    uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v4
+    uses: apache/maven-gh-actions-shared/.github/workflows/maven-verify.yml@v5
     with:
       jdk-distribution-matrix: '[ "temurin", "zulu", "microsoft", "adopt-openj9" ]'
       maven4-build: true
