@@ -22,4 +22,8 @@ public class B {
     static int getCount() {
         return A9.getCount() + 2;
     }
+
+    static int getVersion() {
+        return 11;
+    }
 }

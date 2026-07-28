@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.maven.bug;
 
-assert new File(basedir, 'target/classes/org/maven/bug/A.class').exists()
-assert new File(basedir, 'target/classes/org/maven/bug/B.class').exists()
-assert new File(basedir, 'target/classes/META-INF/versions/9/org/maven/bug/A9.class').exists()
-assert new File(basedir, 'target/classes/META-INF/versions/9/org/maven/bug/B.class').exists()
-assert new File(basedir, 'target/classes/META-INF/versions/11/module-info.class').exists()
-assert new File(basedir, 'target/classes/META-INF/versions/11/org/maven/bug/B.class').exists()
-assert new File(basedir, 'target/test-classes/org/maven/bug/MrJarTest.class').exists()
+class MrJarTest {
+    static int getCount() {
+        return A.getCount() + A9.getCount() + B.getVersion();
+    }
+}

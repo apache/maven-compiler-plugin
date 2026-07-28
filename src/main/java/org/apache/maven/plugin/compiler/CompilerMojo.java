@@ -372,23 +372,13 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * earlier release directories are returned in descending order before the base output directory.
      */
     private List<File> getProjectOutputDirectories(MavenProject project) {
-        List<File> directories = new ArrayList<>();
         File outputDirectory = new File(project.getBuild().getOutputDirectory());
 
         if (multiReleaseOutput) {
-            File versionsFolder = new File(outputDirectory, "META-INF/versions");
-
-            // in reverse order
-            for (int version = Integer.parseInt(getRelease()) - 1; version >= 9; version--) {
-                File versionSubFolder = new File(versionsFolder, String.valueOf(version));
-                if (versionSubFolder.exists()) {
-                    directories.add(versionSubFolder);
-                }
-            }
+            return getProjectOutputDirectories(outputDirectory, getJavaMajorVersion(getRelease()) - 1);
         }
 
-        directories.add(outputDirectory);
-        return directories;
+        return Collections.singletonList(outputDirectory);
     }
 
     private List<File> getCompileClasspathElements(MavenProject project, List<File> projectOutputDirectories) {

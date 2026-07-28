@@ -701,6 +701,32 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return Optional.empty();
     }
 
+    /**
+     * Returns existing multirelease JAR output directories through the given release in descending order.
+     * The base output directory is returned last.
+     */
+    protected static List<File> getProjectOutputDirectories(File outputDirectory, int release) {
+        List<File> directories = new ArrayList<>();
+        File versionsFolder = new File(outputDirectory, "META-INF/versions");
+
+        for (int version = release; version >= 9; version--) {
+            File versionSubFolder = new File(versionsFolder, String.valueOf(version));
+            if (versionSubFolder.isDirectory()) {
+                directories.add(versionSubFolder);
+            }
+        }
+
+        directories.add(outputDirectory);
+        return directories;
+    }
+
+    /**
+     * Returns the major Java version from its legacy or current string representation.
+     */
+    protected static int getJavaMajorVersion(String version) {
+        return Integer.parseInt(version.startsWith("1.") ? version.substring(2) : version);
+    }
+
     private boolean targetOrReleaseSet;
 
     @Override

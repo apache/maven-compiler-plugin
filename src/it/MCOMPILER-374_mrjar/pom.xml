@@ -34,6 +34,7 @@ under the License.
         <version>@project.version@</version>
         <configuration>
           <release>8</release>
+          <testRelease>11</testRelease>
         </configuration>
         <executions>
           <execution>
