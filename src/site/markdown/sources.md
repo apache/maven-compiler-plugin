@@ -46,7 +46,7 @@ One can write:
   <build>
     <sources>
       <source>
-        <scope>main</scope>     <!-- Can be omited as it is the default -->
+        <scope>main</scope>     <!-- Can be omitted as it is the default -->
         <directory>my-custom-dir/foo</directory>
       </source>
       <source>
@@ -54,7 +54,7 @@ One can write:
         <directory>my-custom-dir/bar</directory>
       </source>
     </sources>
-  <build>
+  </build>
 </project>
 ```
 
@@ -81,7 +81,7 @@ as their default values are `src/main/java` and `src/test/java` respectively.
         <!-- Default directory is src/main/java -->
       </source>
       <source>
-        <scope>main</scope>     <!-- Can be omited as it is the default -->
+        <scope>main</scope>     <!-- Can be omitted as it is the default -->
         <directory>src/extension/java</directory>
       </source>
       <source>
@@ -89,7 +89,7 @@ as their default values are `src/main/java` and `src/test/java` respectively.
         <!-- Default directory is src/test/java -->
       </source>
     </sources>
-  <build>
+  </build>
 </project>
 ```
 
