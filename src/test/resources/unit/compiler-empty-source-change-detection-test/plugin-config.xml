@@ -27,7 +27,6 @@
             <compileSourceRoot>${basedir}/target/test-classes/unit/compiler-empty-source-change-detection-test/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>javac</compilerId>
-          <release>17</release>
           <outputDirectory>${basedir}/target/test/unit/compiler-empty-source-change-detection-test/target/classes</outputDirectory>
           <buildDirectory>${basedir}/target/test/unit/compiler-empty-source-change-detection-test/target</buildDirectory>
         </configuration>
