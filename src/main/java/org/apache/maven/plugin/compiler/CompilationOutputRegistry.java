@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,15 +65,23 @@ final class CompilationOutputRegistry {
             SourceMapping mapping, File outputDirectory, List<String> sourceRoots, Set<File> sources)
             throws InclusionScanException {
         Set<Path> outputs = new HashSet<>();
+        List<Path> roots = new ArrayList<>(sourceRoots.size());
         for (String sourceRoot : sourceRoots) {
-            Path root = Paths.get(sourceRoot).toAbsolutePath().normalize();
-            for (File source : sources) {
-                Path path = source.toPath().toAbsolutePath().normalize();
-                if (path.startsWith(root)) {
-                    for (File output : mapping.getTargetFiles(
-                            outputDirectory, root.relativize(path).toString())) {
-                        outputs.add(output.toPath().toAbsolutePath().normalize());
-                    }
+            roots.add(Paths.get(sourceRoot).toAbsolutePath().normalize());
+        }
+        for (File source : sources) {
+            Path path = source.toPath().toAbsolutePath().normalize();
+            Path matchingRoot = null;
+            for (Path root : roots) {
+                if (path.startsWith(root)
+                        && (matchingRoot == null || root.getNameCount() > matchingRoot.getNameCount())) {
+                    matchingRoot = root;
+                }
+            }
+            if (matchingRoot != null) {
+                for (File output : mapping.getTargetFiles(
+                        outputDirectory, matchingRoot.relativize(path).toString())) {
+                    outputs.add(output.toPath().toAbsolutePath().normalize());
                 }
             }
         }

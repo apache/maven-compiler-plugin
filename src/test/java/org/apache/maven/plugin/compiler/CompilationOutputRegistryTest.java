@@ -20,11 +20,14 @@ package org.apache.maven.plugin.compiler;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
+import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,13 +38,31 @@ class CompilationOutputRegistryTest {
 
     private static final String SECOND_EXECUTION = "compile@second";
 
-    private static final Path OUTPUT = Paths.get("target/classes/Example.class");
+    private static final Path OUTPUT =
+            Paths.get("target/classes/Example.class").toAbsolutePath().normalize();
 
-    private static final Path OTHER_OUTPUT = Paths.get("target/classes/Other.class");
+    private static final Path OTHER_OUTPUT =
+            Paths.get("target/classes/Other.class").toAbsolutePath().normalize();
 
     private final Map<String, Object> pluginContext = new HashMap<>();
 
     private final Set<Path> outputs = Collections.singleton(OUTPUT);
+
+    @Test
+    void shouldMapSourceAgainstMostSpecificRoot() throws InclusionScanException {
+        Path sourceRoot = Paths.get("src").toAbsolutePath().normalize();
+        Path nestedSourceRoot = sourceRoot.resolve("main/java");
+        Path outputDirectory = Paths.get("target/classes").toAbsolutePath().normalize();
+        Path source = nestedSourceRoot.resolve("org/example/Example.java");
+
+        assertEquals(
+                Collections.singleton(outputDirectory.resolve("org/example/Example.class")),
+                CompilationOutputRegistry.mapOutputs(
+                        new SuffixMapping(".java", ".class"),
+                        outputDirectory.toFile(),
+                        Arrays.asList(sourceRoot.toString(), nestedSourceRoot.toString()),
+                        Collections.singleton(source.toFile())));
+    }
 
     @Test
     void shouldIgnoreOutputsFromTheSameExecution() {

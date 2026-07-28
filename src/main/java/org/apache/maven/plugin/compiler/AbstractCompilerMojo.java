@@ -1618,8 +1618,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      */
     private boolean hasPreviouslyCompiledOutput(String compilerExecution, Set<Path> outputs) {
         Optional<Path> output = CompilationOutputRegistry.find(getPluginContext(), compilerExecution, outputs);
-        if (output.isPresent() && (getLog().isDebugEnabled() || showCompilationChanges)) {
+        if (output.isPresent() && showCompilationChanges) {
             getLog().info("\tOutput from another compiler execution: " + output.get());
+        } else if (output.isPresent()) {
+            getLog().debug("\tOutput from another compiler execution: " + output.get());
         }
         return output.isPresent();
     }

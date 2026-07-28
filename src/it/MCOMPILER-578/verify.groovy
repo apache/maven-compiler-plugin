@@ -17,14 +17,19 @@
  * under the License.
  */
 
+def majorVersion = { File classFile ->
+    assert classFile.isFile()
+    byte[] bytes = classFile.bytes
+    assert bytes.length >= 8
+    ((bytes[6] & 0xFF) << 8) | (bytes[7] & 0xFF)
+}
+
 def exampleClass = new File( basedir, 'target/classes/org/example/Example.class' )
-assert exampleClass.isFile()
-def exampleMajorVersion = exampleClass.bytes[7] & 0xFF
+def exampleMajorVersion = majorVersion( exampleClass )
 // major_version: 52 = Java 8, from the base-compile execution.
 assert exampleMajorVersion == 52
 
 def moduleInfoClass = new File( basedir, 'target/classes/module-info.class' )
-assert moduleInfoClass.isFile()
-def moduleInfoMajorVersion = moduleInfoClass.bytes[7] & 0xFF
+def moduleInfoMajorVersion = majorVersion( moduleInfoClass )
 // major_version: 55 = Java 11, from the base-modules-compile execution.
 assert moduleInfoMajorVersion == 55
