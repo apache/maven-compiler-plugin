@@ -109,6 +109,10 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * A list of exclusion filters for the compiler.
+     * A file such as {@code module-info.java} may still be compiled if it is implicitly referenced by the compiler,
+     * even if it has been excluded.
+     *
+     * @see AbstractCompilerMojo#implicit
      */
     @Parameter
     private Set<String> excludes = new HashSet<>();
