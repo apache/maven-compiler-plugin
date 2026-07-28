@@ -96,8 +96,9 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * A list of exclusion filters for the compiler.
-     * A file such as {@code module-info.java} may still be compiled if it is implicitly referenced by the compiler,
-     * even if it has been excluded.
+     * Excluding a source file only prevents the plugin from passing it explicitly to the compiler.
+     * The compiler may still find it on the source path and generate a class file for it.
+     * This can happen with {@code module-info.java}.
      *
      * @see AbstractCompilerMojo#implicit
      */
