@@ -858,11 +858,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         compilerConfiguration.setSourceLocations(compileSourceRoots);
 
-        String[] processors = annotationProcessors;
-        if (processors != null && Arrays.stream(processors).allMatch(StringUtils::isBlank)) {
-            processors = null;
-        }
-        compilerConfiguration.setAnnotationProcessors(processors);
+        compilerConfiguration.setAnnotationProcessors(normalizeAnnotationProcessors(annotationProcessors));
 
         compilerConfiguration.setProcessorPathEntries(resolveProcessorPathEntries());
 
@@ -1607,6 +1603,21 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
         return newCompileSourceRootsList;
+    }
+
+    /**
+     * Removes blank annotation processor names.
+     *
+     * @param processors the configured annotation processor names, or {@code null}.
+     * @return the non-blank annotation processor names, or {@code null} if none remain.
+     */
+    static String[] normalizeAnnotationProcessors(String[] processors) {
+        if (processors != null) {
+            processors = Arrays.stream(processors)
+                    .filter(processor -> !StringUtils.isBlank(processor))
+                    .toArray(String[]::new);
+        }
+        return processors == null || processors.length == 0 ? null : processors;
     }
 
     /**
