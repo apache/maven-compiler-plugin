@@ -1567,8 +1567,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                         if (Files.size(source.toPath()) != 0) {
                             staleSources.add(source);
                         } else {
-                            String relativePath =
-                                    rootFile.toPath().relativize(source.toPath()).toString();
+                            String relativePath = rootFile.toPath()
+                                    .relativize(source.toPath())
+                                    .toString();
                             boolean outputExists = mapping.getTargetFiles(outputDirectory, relativePath).stream()
                                     .anyMatch(File::exists);
                             // A zero-byte compilation unit legitimately produces no class. Keep it stale if an output
