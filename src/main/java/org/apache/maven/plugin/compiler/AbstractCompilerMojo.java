@@ -447,12 +447,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Whether to generate metadata for reflection on method parameters.
      * If {@code true}, the {@code -parameters} option will be added to compiler arguments.
+     * This is enabled by default. Set this parameter to {@code false} to omit the metadata.
      *
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-parameters">javac -parameters</a>
      * @since 3.6.2
      */
-    @Parameter(property = "maven.compiler.parameters", defaultValue = "false")
-    protected boolean parameters;
+    @Parameter(property = "maven.compiler.parameters", defaultValue = "true")
+    protected boolean parameters = true;
 
     /**
      * Whether to include debugging information in the compiled class files.

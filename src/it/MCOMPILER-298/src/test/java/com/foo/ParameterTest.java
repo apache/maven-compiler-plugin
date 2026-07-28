@@ -26,11 +26,11 @@ public class ParameterTest {
 
     @Test
     public void testParameter() throws Exception {
-        assertEquals(
-                "parameterName",
-                ParameterClass.class
-                        .getMethod("method", String.class)
-                        .getParameters()[0]
-                        .getName());
+        var parameter = ParameterClass.class.getMethod("method", String.class).getParameters()[0];
+        boolean expectedNamePresent = Boolean.parseBoolean(System.getProperty("expectedParameterNamePresent", "true"));
+        assertEquals(expectedNamePresent, parameter.isNamePresent());
+        if (expectedNamePresent) {
+            assertEquals("parameterName", parameter.getName());
+        }
     }
 }
