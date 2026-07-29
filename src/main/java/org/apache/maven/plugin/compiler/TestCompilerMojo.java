@@ -246,6 +246,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     public void execute() throws MojoException {
         if (skip) {
             logger.info("Not compiling test sources");
+            buildContext.markSkipExecution();
             return;
         }
         super.execute();

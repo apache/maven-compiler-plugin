@@ -64,6 +64,7 @@ import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
+import org.apache.maven.api.build.context.BuildContext;
 import org.apache.maven.api.di.Inject;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.Mojo;
@@ -943,6 +944,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected MessageBuilderFactory messageBuilderFactory;
 
     /**
+     * The build context for incremental build support.
+     * Used to signal to downstream plugins when compilation is skipped
+     * because all classes are up to date or there are no sources to compile.
+     */
+    @Inject
+    protected BuildContext buildContext;
+
+    /**
      * The logger for reporting information or warnings to the user.
      * Currently, this is also used for console output.
      *
@@ -1382,6 +1391,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
         if (!executor.applyIncrementalBuild(this, configuration)) {
+            buildContext.markSkipExecution();
             return;
         }
         Throwable failureCause = null;
