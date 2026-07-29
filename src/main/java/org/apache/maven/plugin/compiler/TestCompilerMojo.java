@@ -80,8 +80,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * A set of exclusion filters for the compiler.
+     * Excluding a source file only prevents the plugin from passing it explicitly to the compiler.
+     * The compiler may still find it on the source path and generate a class file for it.
+     * This can happen with {@code module-info.java}.
      *
      * @see CompilerMojo#excludes
+     * @see #implicit
      */
     @Parameter
     protected Set<String> testExcludes;
