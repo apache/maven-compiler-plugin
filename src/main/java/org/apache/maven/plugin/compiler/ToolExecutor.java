@@ -47,9 +47,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
+import org.apache.maven.api.build.context.BuildContext;
+import org.apache.maven.api.build.context.Input;
+import org.apache.maven.api.build.context.Metadata;
+import org.apache.maven.api.build.context.Status;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
@@ -170,10 +175,18 @@ public class ToolExecutor {
     private final EnumSet<IncrementalBuild.Aspect> incrementalBuildConfig;
 
     /**
-     * The incremental build to save if the build succeed.
-     * In case of failure, the cached information will be unchanged.
+     * The build context for incremental build support.
+     * Used to register inputs, detect changes, associate outputs, and clean up stale outputs.
      */
-    private IncrementalBuild incrementalBuild;
+    private final BuildContext buildContext;
+
+    /**
+     * Map of source file paths to their BuildContext {@link Input} handles.
+     * Populated during {@link #applyIncrementalBuild} for sources that were processed
+     * (compiled), and used after compilation to associate output class files.
+     * A {@code null} value means BuildContext was not used (e.g. MODULES or NONE aspect).
+     */
+    private Map<Path, Input> processedInputs;
 
     /**
      * Whether only a subset of the files will be compiled. This flag can be {@code true} only when
@@ -229,6 +242,7 @@ public class ToolExecutor {
         }
         this.listener = listener;
         encoding = mojo.charset();
+        buildContext = mojo.buildContext;
         incrementalBuildConfig = mojo.incrementalCompilationConfiguration();
         outputDirectory = Files.createDirectories(mojo.getOutputDirectory());
         sourceDirectories = mojo.getSourceDirectories(outputDirectory);
@@ -349,14 +363,16 @@ public class ToolExecutor {
 
     /**
      * Filters the source files to recompile, or cleans the output directory if everything should be rebuilt.
-     * If the directory structure of the source files has changed since the last build,
-     * or if a compiler option changed, or if a dependency changed,
-     * then this method keeps all source files and cleans the {@linkplain #outputDirectory output directory}.
-     * Otherwise, the source files that did not changed since the last build are removed from the list of sources
-     * to compile. If all source files have been removed, then this method returns {@code false} for notifying the
-     * caller that it can skip the build.
+     * Uses the {@link BuildContext} API to detect changes in source files, compiler options and plugin
+     * classpath since the last build. When the build context detects a configuration change (mojo parameters
+     * or plugin classpath), it <em>escalates</em> — treating all inputs as modified and forcing a full rebuild.
      *
-     * <p>If this method is invoked many times, all invocations after this first one have no effect.</p>
+     * <p>Source files are registered as {@link BuildContext} inputs. After compilation,
+     * {@link #associateOutputs()} associates each compiled source with its output class files
+     * (including inner classes) so that the build context can clean up stale outputs when
+     * sources are removed.</p>
+     *
+     * <p>If this method is invoked many times, all invocations after the first one have no effect.</p>
      *
      * @param mojo the <abbr>MOJO</abbr> from which to take the incremental build configuration
      * @param configuration the options which should match the options used during the last build
@@ -368,66 +384,191 @@ public class ToolExecutor {
         final boolean checkSources = incrementalBuildConfig.contains(IncrementalBuild.Aspect.SOURCES);
         final boolean checkClasses = incrementalBuildConfig.contains(IncrementalBuild.Aspect.CLASSES);
         final boolean checkDepends = incrementalBuildConfig.contains(IncrementalBuild.Aspect.DEPENDENCIES);
-        final boolean checkOptions = incrementalBuildConfig.contains(IncrementalBuild.Aspect.OPTIONS);
-        if (checkSources | checkClasses | checkDepends | checkOptions) {
-            incrementalBuild =
-                    new IncrementalBuild(mojo, sourceFiles, checkSources, configuration, incrementalBuildConfig);
-            String causeOfRebuild = null;
-            if (checkSources) {
-                // Should be first, because this method deletes output files of removed sources.
-                causeOfRebuild = incrementalBuild.inputFileTreeChanges();
-            }
-            if (checkClasses && causeOfRebuild == null) {
-                causeOfRebuild = incrementalBuild.markNewOrModifiedSources();
-            }
-            if (checkDepends && causeOfRebuild == null) {
-                List<String> fileExtensions = mojo.fileExtensions;
-                causeOfRebuild = incrementalBuild.dependencyChanges(dependencies.values(), fileExtensions);
-            }
-            if (checkOptions && causeOfRebuild == null) {
-                causeOfRebuild = incrementalBuild.optionChanges();
-            }
-            if (causeOfRebuild != null) {
-                if (!sourceFiles.isEmpty()) { // Avoid misleading message such as "all sources changed".
-                    logger.info(causeOfRebuild);
-                }
-            } else {
-                isPartialBuild = true;
-                sourceFiles = incrementalBuild.getModifiedSources();
-                if (IncrementalBuild.isEmptyOrIgnorable(sourceFiles)) {
-                    incrementalBuildConfig.clear(); // Prevent this method to be executed twice.
-                    logger.info("Nothing to compile - all classes are up to date.");
-                    sourceFiles = List.of();
-                    return false;
-                } else {
-                    int n = sourceFiles.size();
-                    var sb = new StringBuilder("Compiling ").append(n).append(" modified source file");
-                    if (n > 1) {
-                        sb.append('s'); // Make plural.
+        // Note: OPTIONS and plugin classpath changes are handled automatically by BuildContext's
+        // MojoConfigurationDigester and ClasspathDigester — they trigger escalation when changed.
+        if (!(checkSources
+                | checkClasses
+                | checkDepends
+                | incrementalBuildConfig.contains(IncrementalBuild.Aspect.OPTIONS))) {
+            incrementalBuildConfig.clear();
+            return true;
+        }
+        final boolean rebuildOnAdd = incrementalBuildConfig.contains(IncrementalBuild.Aspect.REBUILD_ON_ADD);
+        final boolean rebuildOnChange = incrementalBuildConfig.contains(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+
+        /*
+         * Register all source files with BuildContext. Each file is individually registered so
+         * we respect the filtering already applied by PathFilter (includes/excludes, file kind).
+         * The Metadata provides the change status relative to the previous build.
+         */
+        final var allInputs = new ArrayList<Metadata<Input>>(sourceFiles.size());
+        final var pathToSourceFile = new HashMap<Path, SourceFile>(sourceFiles.size() + sourceFiles.size() / 3);
+        for (SourceFile sf : sourceFiles) {
+            allInputs.add(buildContext.registerInput(sf.file));
+            pathToSourceFile.put(sf.file, sf);
+        }
+
+        /*
+         * Check dependency changes if the DEPENDENCIES aspect is active.
+         * Register JAR dependencies as BuildContext inputs so their content changes
+         * are tracked across builds. Directory dependencies are treated conservatively.
+         */
+        boolean dependencyChanged = false;
+        if (checkDepends) {
+            for (Collection<Path> deps : dependencies.values()) {
+                for (Path dep : deps) {
+                    if (Files.isRegularFile(dep)) {
+                        Metadata<Input> depMeta = buildContext.registerInput(dep);
+                        if (depMeta.getStatus() != Status.UNMODIFIED) {
+                            dependencyChanged = true;
+                        }
                     }
-                    logger.info(sb.append('.'));
                 }
-            }
-            if (!(checkSources | checkDepends | checkOptions)) {
-                incrementalBuild.deleteCache();
-                incrementalBuild = null;
             }
         }
-        incrementalBuildConfig.clear(); // Prevent this method to be executed twice.
+
+        /*
+         * Determine what needs to be rebuilt. BuildContext escalation (from config or classpath
+         * change) reports all inputs as NEW or MODIFIED, which naturally leads to a full rebuild.
+         */
+        boolean hasNew = false;
+        boolean hasModified = false;
+        for (Metadata<Input> meta : allInputs) {
+            Status status = meta.getStatus();
+            if (status == Status.NEW) {
+                hasNew = true;
+            } else if (status == Status.MODIFIED) {
+                hasModified = true;
+            }
+        }
+        boolean hasChanged = hasNew || hasModified;
+        boolean fullRebuild = dependencyChanged || (rebuildOnChange && hasModified) || (rebuildOnAdd && hasNew);
+
+        /*
+         * If BuildContext reports processing required but no current inputs are changed,
+         * this indicates either removed source files or some other state change.
+         * In either case, a full rebuild is warranted for correctness (remaining sources
+         * might reference the deleted classes). BuildContext's finalizeContext() will
+         * automatically clean up stale outputs from removed inputs.
+         */
+        if (!hasChanged && buildContext.isProcessingRequired()) {
+            fullRebuild = true;
+            hasChanged = true; // force compilation of all sources
+        }
+
+        if (!hasChanged) {
+            incrementalBuildConfig.clear();
+            logger.info("Nothing to compile - all classes are up to date.");
+            sourceFiles = List.of();
+            return false;
+        }
+
+        if (fullRebuild) {
+            // Full rebuild: compile all source files.
+            if (!sourceFiles.isEmpty()) {
+                if (dependencyChanged) {
+                    logger.info("Recompiling all files because some dependencies changed.");
+                } else if (rebuildOnChange && hasModified) {
+                    logger.info("Recompiling all files because at least one source file changed.");
+                } else if (rebuildOnAdd && hasNew) {
+                    logger.info("Recompiling all files because of added source files.");
+                } else {
+                    logger.info("Recompiling all files.");
+                }
+            }
+        } else {
+            // Partial build: determine which sources need compilation.
+            isPartialBuild = true;
+            for (Metadata<Input> meta : allInputs) {
+                if (meta.getStatus() != Status.UNMODIFIED) {
+                    SourceFile sf = pathToSourceFile.get(meta.getPath());
+                    if (sf != null) {
+                        sf.isNewOrModified = true;
+                    }
+                }
+            }
+            sourceFiles = sourceFiles.stream().filter(sf -> sf.isNewOrModified).toList();
+
+            if (IncrementalBuild.isEmptyOrIgnorable(sourceFiles)) {
+                // All modified sources are empty or ignorable — no compilation needed.
+                // Do NOT call meta.process() so that markSkipExecution() can be called.
+                incrementalBuildConfig.clear();
+                logger.info("Nothing to compile - all classes are up to date.");
+                sourceFiles = List.of();
+                return false;
+            }
+            int n = sourceFiles.size();
+            var sb = new StringBuilder("Compiling ").append(n).append(" modified source file");
+            if (n > 1) {
+                sb.append('s');
+            }
+            logger.info(sb.append('.'));
+        }
+
+        /*
+         * Process inputs with BuildContext and build the map for output association.
+         * This step is deferred until after we confirm compilation will actually happen,
+         * because processing inputs prevents markSkipExecution() from being called later.
+         * For a full rebuild, all inputs are processed. For a partial rebuild, only
+         * changed inputs are processed — unchanged inputs' associations from the
+         * previous build are carried over automatically by BuildContext.
+         */
+        processedInputs = new HashMap<>();
+        for (Metadata<Input> meta : allInputs) {
+            if (fullRebuild || meta.getStatus() != Status.UNMODIFIED) {
+                Input input = meta.process();
+                processedInputs.put(input.getPath(), input);
+            }
+        }
+        incrementalBuildConfig.clear();
         return true;
     }
 
     /**
-     * Writes the incremental build cache into the {@code target/maven-status/maven-compiler-plugin/} directory.
-     * This method should be invoked only once. Next invocations after the first one have no effect.
+     * Associates compiled source files with their output class files in the build context.
+     * This enables the build context to track input-to-output relationships and automatically
+     * clean up stale outputs (including inner class files) when source files are removed.
      *
-     * @throws IOException if an error occurred while writing the cache
+     * <p>For each source file that was processed during this build, this method discovers the
+     * output class file and any inner class files ({@code Foo$Bar.class}, {@code Foo$1.class})
+     * by scanning the output directory. Each discovered class file is associated with the source
+     * file's {@link Input} handle via {@link Input#associateOutput(Path)}.</p>
+     *
+     * @throws IOException if an error occurred while scanning the output directory
      */
-    private void saveIncrementalBuild() throws IOException {
-        if (incrementalBuild != null) {
-            incrementalBuild.writeCache();
-            incrementalBuild = null;
+    private void associateOutputs() throws IOException {
+        if (processedInputs == null || processedInputs.isEmpty()) {
+            return;
         }
+        for (SourceFile sf : sourceFiles) {
+            Input input = processedInputs.get(sf.file);
+            if (input == null) {
+                continue;
+            }
+            Path classFile = sf.getOutputFile();
+            if (!Files.exists(classFile)) {
+                continue; // e.g. package-info.java with no output
+            }
+            // Associate the primary class file.
+            input.associateOutput(classFile);
+            // Discover and associate inner class files (Foo$Bar.class, Foo$1.class, etc.)
+            String className = classFile.getFileName().toString();
+            String prefix = className.substring(0, className.length() - SourceDirectory.CLASS_FILE_SUFFIX.length());
+            Path parentDir = classFile.getParent();
+            if (parentDir != null && Files.isDirectory(parentDir)) {
+                try (Stream<Path> siblings = Files.list(parentDir)) {
+                    siblings.filter(p -> {
+                                String name = p.getFileName().toString();
+                                return name.startsWith(prefix)
+                                        && name.endsWith(SourceDirectory.CLASS_FILE_SUFFIX)
+                                        && !name.equals(className)
+                                        && name.charAt(prefix.length()) == '$';
+                            })
+                            .forEach(p -> input.associateOutput(p));
+                }
+            }
+        }
+        processedInputs = null;
     }
 
     /**
@@ -976,12 +1117,12 @@ public class ToolExecutor {
             throw e.getCause();
         }
 
-        // Performs post-compilation tasks such as logging and writing incremental build cache.
+        // Performs post-compilation tasks such as logging and associating outputs with BuildContext.
         if (listener instanceof DiagnosticLogger diagnostic) {
             diagnostic.logSummary();
         }
         if (success) {
-            saveIncrementalBuild();
+            associateOutputs();
         }
         return success;
     }

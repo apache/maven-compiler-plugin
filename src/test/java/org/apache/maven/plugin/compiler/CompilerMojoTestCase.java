@@ -206,6 +206,9 @@ public class CompilerMojoTestCase {
         compileMojo.execute();
 
         clearInvocations(log);
+        // In Maven runtime, each mojo execution gets a fresh BuildContext from DI.
+        // Simulate that here since the context is closed after the first execution.
+        compileMojo.buildContext = buildContext();
         compileMojo.execute();
         verify(log).info("Nothing to compile - all classes are up to date.");
     }
