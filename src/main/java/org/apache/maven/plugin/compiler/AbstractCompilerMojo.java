@@ -689,22 +689,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
-    final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
+    final EnumSet<Aspect> incrementalCompilationConfiguration() {
         if (isAbsent(incrementalCompilation)) {
             if (useIncrementalCompilation != null) {
                 return useIncrementalCompilation
-                        ? EnumSet.of(
-                                IncrementalBuild.Aspect.DEPENDENCIES,
-                                IncrementalBuild.Aspect.SOURCES,
-                                IncrementalBuild.Aspect.REBUILD_ON_ADD)
-                        : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
+                        ? EnumSet.of(Aspect.DEPENDENCIES, Aspect.SOURCES, Aspect.REBUILD_ON_ADD)
+                        : EnumSet.of(Aspect.CLASSES);
             }
-            return EnumSet.of(
-                    IncrementalBuild.Aspect.OPTIONS,
-                    IncrementalBuild.Aspect.DEPENDENCIES,
-                    IncrementalBuild.Aspect.SOURCES);
+            return EnumSet.of(Aspect.OPTIONS, Aspect.DEPENDENCIES, Aspect.SOURCES);
         }
-        return IncrementalBuild.Aspect.parse(incrementalCompilation);
+        return Aspect.parse(incrementalCompilation);
     }
 
     /**
@@ -713,10 +707,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @param aspects the configuration to amend if an annotation processor is found
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
-    final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
+    final void amendincrementalCompilation(EnumSet<Aspect> aspects, Set<PathType> dependencyTypes) {
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+            aspects.add(Aspect.REBUILD_ON_ADD);
+            aspects.add(Aspect.REBUILD_ON_CHANGE);
         }
     }
 

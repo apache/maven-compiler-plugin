@@ -172,7 +172,7 @@ public class ToolExecutor {
      * @see AbstractCompilerMojo#incrementalCompilation
      * @see AbstractCompilerMojo#useIncrementalCompilation
      */
-    private final EnumSet<IncrementalBuild.Aspect> incrementalBuildConfig;
+    private final EnumSet<Aspect> incrementalBuildConfig;
 
     /**
      * The build context for incremental build support.
@@ -254,7 +254,7 @@ public class ToolExecutor {
          * skip the build if there is no source code to compile. We want arguments to be verified first
          * in order to warn about possible configuration problems.
          */
-        if (incrementalBuildConfig.contains(IncrementalBuild.Aspect.MODULES)) {
+        if (incrementalBuildConfig.contains(Aspect.MODULES)) {
             boolean hasNoFileMatchers = mojo.hasNoFileMatchers();
             for (SourceDirectory root : sourceDirectories) {
                 if (root.moduleName == null) {
@@ -381,20 +381,17 @@ public class ToolExecutor {
      */
     public boolean applyIncrementalBuild(final AbstractCompilerMojo mojo, final Options configuration)
             throws IOException {
-        final boolean checkSources = incrementalBuildConfig.contains(IncrementalBuild.Aspect.SOURCES);
-        final boolean checkClasses = incrementalBuildConfig.contains(IncrementalBuild.Aspect.CLASSES);
-        final boolean checkDepends = incrementalBuildConfig.contains(IncrementalBuild.Aspect.DEPENDENCIES);
+        final boolean checkSources = incrementalBuildConfig.contains(Aspect.SOURCES);
+        final boolean checkClasses = incrementalBuildConfig.contains(Aspect.CLASSES);
+        final boolean checkDepends = incrementalBuildConfig.contains(Aspect.DEPENDENCIES);
         // Note: OPTIONS and plugin classpath changes are handled automatically by BuildContext's
         // MojoConfigurationDigester and ClasspathDigester — they trigger escalation when changed.
-        if (!(checkSources
-                | checkClasses
-                | checkDepends
-                | incrementalBuildConfig.contains(IncrementalBuild.Aspect.OPTIONS))) {
+        if (!(checkSources | checkClasses | checkDepends | incrementalBuildConfig.contains(Aspect.OPTIONS))) {
             incrementalBuildConfig.clear();
             return true;
         }
-        final boolean rebuildOnAdd = incrementalBuildConfig.contains(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-        final boolean rebuildOnChange = incrementalBuildConfig.contains(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+        final boolean rebuildOnAdd = incrementalBuildConfig.contains(Aspect.REBUILD_ON_ADD);
+        final boolean rebuildOnChange = incrementalBuildConfig.contains(Aspect.REBUILD_ON_CHANGE);
 
         /*
          * Register all source files with BuildContext. Each file is individually registered so
@@ -489,7 +486,7 @@ public class ToolExecutor {
             }
             sourceFiles = sourceFiles.stream().filter(sf -> sf.isNewOrModified).toList();
 
-            if (IncrementalBuild.isEmptyOrIgnorable(sourceFiles)) {
+            if (sourceFiles.stream().allMatch(SourceFile::isEmptyOrIgnorable)) {
                 // All modified sources are empty or ignorable — no compilation needed.
                 // Do NOT call meta.process() so that markSkipExecution() can be called.
                 incrementalBuildConfig.clear();
