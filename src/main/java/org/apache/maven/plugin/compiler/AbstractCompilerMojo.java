@@ -76,6 +76,7 @@ import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
+import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
 
@@ -938,6 +939,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     @Inject
     protected ToolchainManager toolchainManager;
+
+    /**
+     * The service to use for creating include and exclude filters.
+     */
+    @Inject
+    protected PathMatcherFactory matcherFactory;
 
     @Inject
     protected MessageBuilderFactory messageBuilderFactory;
