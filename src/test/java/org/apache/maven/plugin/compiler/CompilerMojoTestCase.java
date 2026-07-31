@@ -40,20 +40,21 @@ import org.apache.maven.api.di.Singleton;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
 import org.apache.maven.api.plugin.Log;
-import org.apache.maven.api.plugin.testing.Basedir;
-import org.apache.maven.api.plugin.testing.InjectMojo;
-import org.apache.maven.api.plugin.testing.MojoExtension;
-import org.apache.maven.api.plugin.testing.MojoParameter;
-import org.apache.maven.api.plugin.testing.MojoTest;
-import org.apache.maven.api.plugin.testing.stubs.ProducedArtifactStub;
-import org.apache.maven.api.plugin.testing.stubs.ProjectStub;
-import org.apache.maven.api.plugin.testing.stubs.SessionMock;
 import org.apache.maven.api.services.ArtifactManager;
+import org.apache.maven.api.services.DiagnosticReporter;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
 import org.apache.maven.impl.InternalSession;
 import org.apache.maven.plugin.compiler.stubs.CompilerStub;
+import org.apache.maven.testing.plugin.Basedir;
+import org.apache.maven.testing.plugin.InjectMojo;
+import org.apache.maven.testing.plugin.MojoExtension;
+import org.apache.maven.testing.plugin.MojoParameter;
+import org.apache.maven.testing.plugin.MojoTest;
+import org.apache.maven.testing.plugin.stubs.ProducedArtifactStub;
+import org.apache.maven.testing.plugin.stubs.ProjectStub;
+import org.apache.maven.testing.plugin.stubs.SessionMock;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -472,6 +473,14 @@ public class CompilerMojoTestCase {
         doAnswer(iom -> artifacts).when(session).resolveDependencies(any(), eq(PathScope.TEST_COMPILE));
 
         return session;
+    }
+
+    @Provides
+    @Singleton
+    @SuppressWarnings("unused")
+    private static DiagnosticReporter createDiagnosticReporter() {
+        // No-op reporter for tests — diagnostics are verified via Log mock
+        return problem -> {};
     }
 
     @Provides

@@ -30,11 +30,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.services.BuilderProblem;
+import org.apache.maven.api.services.DiagnosticReporter;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
 
 /**
- * A Java compiler diagnostic listener which send the messages to the Maven logger.
+ * A Java compiler diagnostic listener which sends the messages to the Maven logger
+ * and reports structured {@link BuilderProblem}s to the {@link DiagnosticReporter}.
  *
  * @author Martin Desruisseaux
  */
@@ -48,6 +51,12 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * The factory for creating message builders.
      */
     private final MessageBuilderFactory messageBuilderFactory;
+
+    /**
+     * The service for reporting structured diagnostics to the build report.
+     * May be {@code null} if no reporter is available (e.g. Maven 4.0.x).
+     */
+    private final DiagnosticReporter diagnosticReporter;
 
     /**
      * The locale for compiler message.
@@ -75,16 +84,24 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     private String firstError;
 
     /**
-     * Creates a listener which will send the diagnostics to the given logger.
+     * Creates a listener which will send the diagnostics to the given logger
+     * and to the given diagnostic reporter.
      *
      * @param logger the logger where to send diagnostics
      * @param messageBuilderFactory the factory for creating message builders
+     * @param diagnosticReporter the reporter for structured build diagnostics, or {@code null}
      * @param locale the locale for compiler message
      * @param directory the base directory with which to relativize the paths to source files
      */
-    DiagnosticLogger(Log logger, MessageBuilderFactory messageBuilderFactory, Locale locale, Path directory) {
+    DiagnosticLogger(
+            Log logger,
+            MessageBuilderFactory messageBuilderFactory,
+            DiagnosticReporter diagnosticReporter,
+            Locale locale,
+            Path directory) {
         this.logger = logger;
         this.messageBuilderFactory = messageBuilderFactory;
+        this.diagnosticReporter = diagnosticReporter;
         this.locale = locale;
         this.directory = directory;
         codeCount = new LinkedHashMap<>();
@@ -105,6 +122,17 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
             }
         }
         return file;
+    }
+
+    /**
+     * Maps a {@link Diagnostic.Kind} to a {@link BuilderProblem.Severity}.
+     */
+    private static BuilderProblem.Severity mapSeverity(Diagnostic.Kind kind) {
+        return switch (kind) {
+            case ERROR -> BuilderProblem.Severity.ERROR;
+            case WARNING, MANDATORY_WARNING -> BuilderProblem.Severity.WARNING;
+            default -> BuilderProblem.Severity.INFO;
+        };
     }
 
     /**
@@ -176,6 +204,40 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         if (code != null) {
             codeCount.merge(code, 1, (old, initial) -> old + 1);
         }
+        // Report structured diagnostic to the build report
+        reportToBuildReport(diagnostic, message, code);
+    }
+
+    /**
+     * Reports a structured {@link BuilderProblem} to the {@link DiagnosticReporter}.
+     * <p>
+     * Each diagnostic is reported with a per-type key ({@code "compiler:<code>"})
+     * so that the build report deduplicates by diagnostic kind. For example, 50
+     * unchecked warnings produce a single entry with count=50 in the summary.
+     * Individual per-file details remain in the build log.
+     */
+    private void reportToBuildReport(Diagnostic<? extends JavaFileObject> diagnostic, String message, String code) {
+        if (diagnosticReporter == null || code == null) {
+            return;
+        }
+        BuilderProblem.Builder builder = BuilderProblem.builder()
+                .severity(mapSeverity(diagnostic.getKind()))
+                .message(message)
+                .key("compiler:" + code);
+        // Attach source location from the first occurrence (collector deduplicates by key)
+        JavaFileObject sourceFile = diagnostic.getSource();
+        if (sourceFile != null) {
+            builder.source(relativize(sourceFile.getName()));
+            long line = diagnostic.getLineNumber();
+            if (line != Diagnostic.NOPOS) {
+                builder.lineNumber((int) line);
+            }
+            long column = diagnostic.getColumnNumber();
+            if (column != Diagnostic.NOPOS) {
+                builder.columnNumber((int) column);
+            }
+        }
+        diagnosticReporter.report(builder.build());
     }
 
     /**
