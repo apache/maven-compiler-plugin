@@ -16,4 +16,4 @@
 # under the License.
 
 _extends: maven-gh-actions-shared
-tag-template: maven-compiler-plugin-$NEXT_MINOR_VERSION
+tag-template: maven-compiler-plugin-$RESOLVED_VERSION
