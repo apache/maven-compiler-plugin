@@ -64,6 +64,7 @@ import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
+import org.apache.maven.api.build.context.BuildContext;
 import org.apache.maven.api.di.Inject;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.Mojo;
@@ -688,22 +689,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
-    final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
+    final EnumSet<Aspect> incrementalCompilationConfiguration() {
         if (isAbsent(incrementalCompilation)) {
             if (useIncrementalCompilation != null) {
                 return useIncrementalCompilation
-                        ? EnumSet.of(
-                                IncrementalBuild.Aspect.DEPENDENCIES,
-                                IncrementalBuild.Aspect.SOURCES,
-                                IncrementalBuild.Aspect.REBUILD_ON_ADD)
-                        : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
+                        ? EnumSet.of(Aspect.DEPENDENCIES, Aspect.SOURCES, Aspect.REBUILD_ON_ADD)
+                        : EnumSet.of(Aspect.CLASSES);
             }
-            return EnumSet.of(
-                    IncrementalBuild.Aspect.OPTIONS,
-                    IncrementalBuild.Aspect.DEPENDENCIES,
-                    IncrementalBuild.Aspect.SOURCES);
+            return EnumSet.of(Aspect.OPTIONS, Aspect.DEPENDENCIES, Aspect.SOURCES);
         }
-        return IncrementalBuild.Aspect.parse(incrementalCompilation);
+        return Aspect.parse(incrementalCompilation);
     }
 
     /**
@@ -712,10 +707,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @param aspects the configuration to amend if an annotation processor is found
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
-    final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
+    final void amendincrementalCompilation(EnumSet<Aspect> aspects, Set<PathType> dependencyTypes) {
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+            aspects.add(Aspect.REBUILD_ON_ADD);
+            aspects.add(Aspect.REBUILD_ON_CHANGE);
         }
     }
 
@@ -941,6 +936,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     @Inject
     protected MessageBuilderFactory messageBuilderFactory;
+
+    /**
+     * The build context for incremental build support.
+     * Used to signal to downstream plugins when compilation is skipped
+     * because all classes are up to date or there are no sources to compile.
+     */
+    @Inject
+    protected BuildContext buildContext;
 
     /**
      * The logger for reporting information or warnings to the user.
@@ -1382,6 +1385,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
         if (!executor.applyIncrementalBuild(this, configuration)) {
+            buildContext.markSkipExecution();
             return;
         }
         Throwable failureCause = null;

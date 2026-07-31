@@ -53,8 +53,8 @@ final class SourceFile {
 
     /**
      * Whether this source has been flagged as new or modified since the last build.
-     *
-     * @see IncrementalBuildHelper#inputFileTreeChanges
+     * Set by the BuildContext-based change detection in
+     * {@link ToolExecutor#applyIncrementalBuild}.
      */
     boolean isNewOrModified;
 
@@ -103,7 +103,6 @@ final class SourceFile {
      * Then, {@link #getOutputFile} should compare that value with the inferred one and set a flag.</p>
      */
     boolean isStandardOutputFile() {
-        // The constants below must match the ones in `IncrementalBuild.SourceInfo`.
         return SourceDirectory.JAVA_FILE_SUFFIX.equals(directory.fileKind.extension)
                 && SourceDirectory.CLASS_FILE_SUFFIX.equals(directory.outputFileKind.extension);
     }

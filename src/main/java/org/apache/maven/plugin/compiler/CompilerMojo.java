@@ -197,6 +197,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     public void execute() throws MojoException {
         if (skipMain) {
             logger.info("Not compiling main sources");
+            buildContext.markSkipExecution();
             return;
         }
         try {

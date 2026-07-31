@@ -34,26 +34,32 @@ import java.util.Map;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.Project;
 import org.apache.maven.api.Session;
+import org.apache.maven.api.build.context.BuildContext;
 import org.apache.maven.api.di.Inject;
+import org.apache.maven.api.di.Priority;
 import org.apache.maven.api.di.Provides;
 import org.apache.maven.api.di.Singleton;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
 import org.apache.maven.api.plugin.Log;
-import org.apache.maven.api.plugin.testing.Basedir;
-import org.apache.maven.api.plugin.testing.InjectMojo;
-import org.apache.maven.api.plugin.testing.MojoExtension;
-import org.apache.maven.api.plugin.testing.MojoParameter;
-import org.apache.maven.api.plugin.testing.MojoTest;
-import org.apache.maven.api.plugin.testing.stubs.ProducedArtifactStub;
-import org.apache.maven.api.plugin.testing.stubs.ProjectStub;
-import org.apache.maven.api.plugin.testing.stubs.SessionMock;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
+import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
+import org.apache.maven.impl.DefaultPathMatcherFactory;
 import org.apache.maven.impl.InternalSession;
+import org.apache.maven.internal.build.context.impl.DefaultBuildContext;
+import org.apache.maven.internal.build.context.impl.FilesystemWorkspace;
 import org.apache.maven.plugin.compiler.stubs.CompilerStub;
+import org.apache.maven.testing.plugin.Basedir;
+import org.apache.maven.testing.plugin.InjectMojo;
+import org.apache.maven.testing.plugin.MojoExtension;
+import org.apache.maven.testing.plugin.MojoParameter;
+import org.apache.maven.testing.plugin.MojoTest;
+import org.apache.maven.testing.plugin.stubs.ProducedArtifactStub;
+import org.apache.maven.testing.plugin.stubs.ProjectStub;
+import org.apache.maven.testing.plugin.stubs.SessionMock;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -200,6 +206,9 @@ public class CompilerMojoTestCase {
         compileMojo.execute();
 
         clearInvocations(log);
+        // In Maven runtime, each mojo execution gets a fresh BuildContext from DI.
+        // Simulate that here since the context is closed after the first execution.
+        compileMojo.buildContext = buildContext();
         compileMojo.execute();
         verify(log).info("Nothing to compile - all classes are up to date.");
     }
@@ -494,5 +503,20 @@ public class CompilerMojoTestCase {
                 .build());
         stub.setBasedir(Path.of(MojoExtension.getBasedir()));
         return stub;
+    }
+
+    @Provides
+    @Priority(10)
+    @SuppressWarnings("unused")
+    private static PathMatcherFactory pathMatcherFactory() {
+        return new DefaultPathMatcherFactory();
+    }
+
+    @Provides
+    @Priority(10)
+    @SuppressWarnings("unused")
+    private static BuildContext buildContext() {
+        return new DefaultBuildContext(
+                new FilesystemWorkspace(), null, new HashMap<>(), null, new DefaultPathMatcherFactory());
     }
 }
