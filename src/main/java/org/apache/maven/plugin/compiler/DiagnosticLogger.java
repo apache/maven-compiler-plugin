@@ -211,10 +211,10 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     /**
      * Reports a structured {@link BuilderProblem} to the {@link DiagnosticReporter}.
      * <p>
-     * Each diagnostic is reported with a per-type key ({@code "compiler:<code>"})
-     * so that the build report deduplicates by diagnostic kind. For example, 50
-     * unchecked warnings produce a single entry with count=50 in the summary.
-     * Individual per-file details remain in the build log.
+     * Each diagnostic is reported with a per-location key
+     * ({@code "compiler:<code>:<source>:<line>"}) so each unique file+line
+     * gets its own entry in the build report. Warnings of the same type in
+     * different files are kept as separate entries.
      */
     private void reportToBuildReport(Diagnostic<? extends JavaFileObject> diagnostic, String message, String code) {
         if (diagnosticReporter == null || code == null) {
@@ -222,21 +222,25 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         }
         BuilderProblem.Builder builder = BuilderProblem.builder()
                 .severity(mapSeverity(diagnostic.getKind()))
-                .message(message)
-                .key("compiler:" + code);
-        // Attach source location from the first occurrence (collector deduplicates by key)
+                .message(message);
+        // Build a per-location key so each unique file+line keeps its own entry
         JavaFileObject sourceFile = diagnostic.getSource();
+        StringBuilder keyBuilder = new StringBuilder("compiler:").append(code);
         if (sourceFile != null) {
-            builder.source(relativize(sourceFile.getName()));
+            String relPath = relativize(sourceFile.getName());
+            builder.source(relPath);
+            keyBuilder.append(':').append(relPath);
             long line = diagnostic.getLineNumber();
             if (line != Diagnostic.NOPOS) {
                 builder.lineNumber((int) line);
+                keyBuilder.append(':').append(line);
             }
             long column = diagnostic.getColumnNumber();
             if (column != Diagnostic.NOPOS) {
                 builder.columnNumber((int) column);
             }
         }
+        builder.key(keyBuilder.toString());
         diagnosticReporter.report(builder.build());
     }
 
