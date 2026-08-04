@@ -389,7 +389,7 @@ public class ToolExecutor {
             }
             if (causeOfRebuild != null) {
                 if (!sourceFiles.isEmpty()) { // Avoid misleading message such as "all sources changed".
-                    logger.info(causeOfRebuild);
+                    logger.debug(causeOfRebuild);
                 }
             } else {
                 isPartialBuild = true;
