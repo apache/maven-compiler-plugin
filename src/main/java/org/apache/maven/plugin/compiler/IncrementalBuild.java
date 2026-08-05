@@ -318,7 +318,7 @@ final class IncrementalBuild {
     /**
      * Whether to provide more details about why a module is rebuilt.
      */
-    private final boolean showCompilationChanges;
+    final boolean showCompilationChanges;
 
     /**
      * Creates a new helper for an incremental build.

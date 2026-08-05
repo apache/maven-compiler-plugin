@@ -405,7 +405,12 @@ public class ToolExecutor {
                     if (n > 1) {
                         sb.append('s'); // Make plural.
                     }
-                    logger.info(sb.append('.'));
+                    sb.append('.');
+                    if (incrementalBuild.showCompilationChanges) {
+                        logger.info(sb);
+                    } else {
+                        logger.debug(sb);
+                    }
                 }
             }
             if (!(checkSources | checkDepends | checkOptions)) {
