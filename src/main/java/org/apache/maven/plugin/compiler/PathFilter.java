@@ -84,15 +84,21 @@ final class PathFilter extends SimpleFileVisitor<Path> {
 
     /**
      * The service to use for creating include and exclude filters.
-     * Used for setting a value to {@link #fileMatcher} and {@link #directoryMatcher}.
+     * Used for setting a value to {@link #fileMatcher}, {@link #directoryMatcher},
+     * and {@link #incrementalExcludeMatchers}.
      */
     @Nonnull
     private final PathMatcherFactory matcherFactory;
 
     /**
-     * Combination of include and exclude filters.
+     * Combination of include and exclude filters applied on files.
      */
-    private PathMatcher matchers;
+    private PathMatcher fileMatcher;
+
+    /**
+     * Combination of include and exclude filters applied on directories.
+     */
+    private PathMatcher directoryMatcher;
 
     /**
      * All exclusion filters for incremental build calculation, or an empty list if none.
@@ -147,7 +153,7 @@ final class PathFilter extends SimpleFileVisitor<Path> {
      */
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        if (matchers.matches(file)) {
+        if (fileMatcher.matches(file)) {
             sourceFiles.add(new SourceFile(
                     sourceRoot,
                     file,
@@ -159,11 +165,13 @@ final class PathFilter extends SimpleFileVisitor<Path> {
 
     /**
      * Invoked for a directory before entries in the directory are visited.
-     * If the directory is hidden, then it is skipped.
+     * If the directory is hidden or is certain to contain no matching files, then it is skipped.
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-        return Files.isHidden(dir) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
+        return !Files.isHidden(dir) && directoryMatcher.matches(dir)
+                ? FileVisitResult.CONTINUE
+                : FileVisitResult.SKIP_SUBTREE;
     }
 
     /**
@@ -192,10 +200,11 @@ final class PathFilter extends SimpleFileVisitor<Path> {
                     }
                 }
                 sourceRoot = directory;
-                matchers = matcherFactory.createPathMatcher(
+                fileMatcher = matcherFactory.createPathMatcher(
                         directory.root,
                         concat(directory.includes, includesOrDefault),
                         concat(directory.excludes, excludes));
+                directoryMatcher = matcherFactory.deriveDirectoryMatcher(fileMatcher);
                 Files.walkFileTree(directory.root, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, this);
             }
         } catch (UncheckedIOException e) {
@@ -203,7 +212,9 @@ final class PathFilter extends SimpleFileVisitor<Path> {
         } finally {
             sourceRoot = null;
             sourceFiles = null;
-            matchers = null;
+            fileMatcher = null;
+            directoryMatcher = null;
+            incrementalExcludeMatchers = null;
         }
         return result;
     }
