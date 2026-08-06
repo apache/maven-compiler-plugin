@@ -70,10 +70,10 @@ import org.apache.maven.api.plugin.Mojo;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.Parameter;
 import org.apache.maven.api.services.ArtifactManager;
+import org.apache.maven.api.services.BuilderProblem;
 import org.apache.maven.api.services.DependencyResolver;
 import org.apache.maven.api.services.DependencyResolverRequest;
 import org.apache.maven.api.services.DependencyResolverResult;
-import org.apache.maven.api.services.DiagnosticReporter;
 import org.apache.maven.api.services.MavenException;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
@@ -944,19 +944,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected MessageBuilderFactory messageBuilderFactory;
 
     /**
-     * Service for reporting structured build diagnostics to the build report.
-     * Compiler warnings and errors are reported through this service so they
-     * appear with structured keys, source locations, and suggestions in
-     * {@code mvnlog --diagnostics} and the JSON build report.
-     *
-     * @since 4.0.0-beta-5
-     */
-    @Inject
-    protected DiagnosticReporter diagnosticReporter;
-
-    /**
      * The logger for reporting information or warnings to the user.
-     * Currently, this is also used for console output.
+     * Also used for structured diagnostic reporting via {@link Log#problem(BuilderProblem)},
+     * which feeds into the build report, {@code mvnlog --diagnostics}, and warning suppression.
+     *
+     * <p>Sub-components receive child loggers (e.g. {@code logger.child("diagnostics")},
+     * {@code logger.child("options")}) for hierarchical naming in the log output.</p>
      *
      * <h4>Thread safety</h4>
      * This logger should be thread-safe if the {@link ToolExecutor} is executed in a background thread.
@@ -1345,7 +1338,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * For example, Maven will check for illegal values in the "-g" option only if the compiler rejected
          * the fully formatted option (e.g. "-g:vars,lines") that we provided to it.
          */
-        final var configuration = new Options(compiler, logger);
+        final var configuration = new Options(compiler, logger.child("options"));
         configuration.addIfNonBlank("--source", getSource());
         targetOrReleaseSet = configuration.addIfNonBlank("--target", getTarget());
         targetOrReleaseSet |= configuration.setRelease(getRelease());
@@ -1475,7 +1468,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
             Path moduleDescriptor = executor.outputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
             if (Files.isRegularFile(moduleDescriptor)) {
                 byte[] oridinal = Files.readAllBytes(moduleDescriptor);
-                byte[] modified = ByteCodeTransformer.patchJdkModuleVersion(oridinal, getRelease(), logger);
+                byte[] modified =
+                        ByteCodeTransformer.patchJdkModuleVersion(oridinal, getRelease(), logger.child("bytecode"));
                 if (modified != null) {
                     Files.write(moduleDescriptor, modified);
                 }

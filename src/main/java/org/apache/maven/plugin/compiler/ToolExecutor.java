@@ -225,7 +225,7 @@ public class ToolExecutor {
         logger = mojo.logger;
         if (listener == null) {
             Path root = mojo.project.getRootDirectory();
-            listener = new DiagnosticLogger(logger, mojo.messageBuilderFactory, mojo.diagnosticReporter, LOCALE, root);
+            listener = new DiagnosticLogger(logger.child("diagnostics"), LOCALE, root);
         }
         this.listener = listener;
         encoding = mojo.charset();

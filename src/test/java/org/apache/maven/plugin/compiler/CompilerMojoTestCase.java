@@ -41,7 +41,6 @@ import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.services.ArtifactManager;
-import org.apache.maven.api.services.DiagnosticReporter;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
@@ -65,6 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.clearInvocations;
@@ -73,6 +73,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @MojoTest
 public class CompilerMojoTestCase {
@@ -136,6 +137,7 @@ public class CompilerMojoTestCase {
                     TestCompilerMojo testCompileMojo) {
 
         Log log = mock(Log.class);
+        when(log.child(anyString())).thenReturn(log);
         compileMojo.logger = log;
         compileMojo.execute();
         verify(log).warn(startsWith("No explicit value set for --release or --target."));
@@ -159,6 +161,7 @@ public class CompilerMojoTestCase {
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
 
         Log log = mock(Log.class);
+        when(log.child(anyString())).thenReturn(log);
         compileMojo.logger = log;
         compileMojo.execute();
         verify(log, never()).warn(startsWith("No explicit value set for --release or --target."));
@@ -197,6 +200,7 @@ public class CompilerMojoTestCase {
         Files.write(source, new byte[0]);
 
         Log log = mock(Log.class);
+        when(log.child(anyString())).thenReturn(log);
         compileMojo.logger = log;
         compileMojo.execute();
 
@@ -473,14 +477,6 @@ public class CompilerMojoTestCase {
         doAnswer(iom -> artifacts).when(session).resolveDependencies(any(), eq(PathScope.TEST_COMPILE));
 
         return session;
-    }
-
-    @Provides
-    @Singleton
-    @SuppressWarnings("unused")
-    private static DiagnosticReporter createDiagnosticReporter() {
-        // No-op reporter for tests — diagnostics are verified via Log mock
-        return problem -> {};
     }
 
     @Provides
