@@ -1,47 +1,38 @@
- ------
- Setting the -source and -target of the Java Compiler
- ------
- Edwin Punzalan
- ------
- 2006-07-05
- ------
+---
+title: Setting the -source and -target of the Java Compiler
+author: 
+  - Edwin Punzalan
+date: 2006-07-05
+---
 
-~~ Licensed to the Apache Software Foundation (ASF) under one
-~~ or more contributor license agreements.  See the NOTICE file
-~~ distributed with this work for additional information
-~~ regarding copyright ownership.  The ASF licenses this file
-~~ to you under the Apache License, Version 2.0 (the
-~~ "License"); you may not use this file except in compliance
-~~ with the License.  You may obtain a copy of the License at
-~~
-~~   http://www.apache.org/licenses/LICENSE-2.0
-~~
-~~ Unless required by applicable law or agreed to in writing,
-~~ software distributed under the License is distributed on an
-~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-~~ KIND, either express or implied.  See the License for the
-~~ specific language governing permissions and limitations
-~~ under the License.
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-~~ NOTE: For help with the syntax of this file, see:
-~~ http://maven.apache.org/doxia/references/apt-format.html
+http://www.apache.org/licenses/LICENSE-2.0
 
-Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-  (If you're are using version <<<3.13.0>>> or newer of the Compiler Plugin, use the recommended
-  {{{../examples/set-compiler-release.html}<<<maven.compiler.release>>> property}}.)
+# Setting the `-source` and `-target` of the Java Compiler
 
-  Sometimes when you may need to compile a certain project to a different
-  version than what you are currently using.  The <<<javac>>> can accept
-  such command using <<<-source>>> and <<<-target>>>.  The Compiler Plugin
-  can also be configured to provide these options during compilation.
-  You have to set the version following {{{https://openjdk.org/jeps/223}Java's new Version-String Scheme (JEP 223)}}}.
+(If you're are using version `3.13.0` or newer of the Compiler Plugin, use the recommended [`maven.compiler.release` property](../examples/set-compiler-release.html).)
 
-  For example, if you want to use the Java 8 language features and also want the compiled classes to be compatible
-  with JVM 8 (former 1.8) you can either add the two following properties, which are the default property names
-  for the plugin parameters:
+Sometimes when you may need to compile a certain project to a different version than what you are currently using. The `javac` can accept such command using `-source` and `-target`. The Compiler Plugin can also be configured to provide these options during compilation. You have to set the version following [Java's new Version-String Scheme (JEP 223)](https://openjdk.org/jeps/223)}.
 
-+-----
+For example, if you want to use the Java 8 language features and also want the compiled classes to be compatible with JVM 8 (former 1.8) you can either add the two following properties, which are the default property names for the plugin parameters:
+
+```unknown
 <project>
   [...]
   <properties>
@@ -50,11 +41,11 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   </properties>
   [...]
 </project>
-+-----
+```
 
-  or configure the plugin directly:
+or configure the plugin directly:
 
-+-----
+```unknown
 <project>
   [...]
   <build>
@@ -74,19 +65,9 @@ Setting the <<<-source>>> and <<<-target>>> of the Java Compiler
   </build>
   [...]
 </project>
-+-----
+```
 
-  <<Note:>> Merely setting the <<<target>>> option does not guarantee that your code actually runs on a JRE with the
-  specified version. The pitfall is unintended usage of APIs that only exist in later JREs which would make your code
-  fail at runtime with a linkage error. To avoid this issue, you can either configure the compiler's boot classpath
-  to match the target JRE, or use the
-  {{{http://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/}Animal Sniffer Maven Plugin}}
-  to verify your code doesn't use unintended APIs, or better yet use the
-  {{{../examples/set-compiler-release.html}<<<release>>> option supported since JDK 9}}.
-  Since plugin version <<<3.13.0>>> you can use the <<<release>>> property also on JDK 8.
-  The compiler plugin will convert it to <<<source>>> and <<<target>>> automatically.
+**Note:** Merely setting the `target` option does not guarantee that your code actually runs on a JRE with the specified version. The pitfall is unintended usage of APIs that only exist in later JREs which would make your code fail at runtime with a linkage error. To avoid this issue, you can either configure the compiler's boot classpath to match the target JRE, or use the [Animal Sniffer Maven Plugin](http://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/) to verify your code doesn't use unintended APIs, or better yet use the [`release` option supported since JDK 9](../examples/set-compiler-release.html). Since plugin version `3.13.0` you can use the `release` property also on JDK 8. The compiler plugin will convert it to `source` and `target` automatically.
 
-  In the same way, setting the <<<source>>> option does not guarantee that your code actually compiles on a JDK with
-  the specified version. To compile your code with a specific JDK version, different than the one used to launch Maven,
-  refer to the {{{../examples/compile-using-different-jdk.html}Compile Using A Different JDK}} example.
+In the same way, setting the `source` option does not guarantee that your code actually compiles on a JDK with the specified version. To compile your code with a specific JDK version, different than the one used to launch Maven, refer to the [Compile Using A Different JDK](../examples/compile-using-different-jdk.html) example.
 
