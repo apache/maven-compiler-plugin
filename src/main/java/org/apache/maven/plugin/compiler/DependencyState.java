@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -152,38 +153,28 @@ final class DependencyState {
             }
         }
 
-        List<Path> files;
         try (Stream<Path> walk = Files.walk(dependency)) {
-            files = walk.filter(Files::isRegularFile)
+            List<Path> files = walk.filter(Files::isRegularFile)
                     .filter(file -> context.fileExtensions.contains(
                             FileUtils.extension(file.getFileName().toString())))
                     .sorted()
                     .collect(Collectors.toList());
-        } catch (IOException e) {
-            context.log.warn("I/O error reading dependency state: " + dependency + ": " + e.getMessage());
-            return new ModificationState("unreadable", null);
-        }
 
-        MessageDigest digest = newDigest();
-        Path changedDependency = null;
-        boolean unreadable = false;
-        for (Path file : files) {
-            try {
+            MessageDigest digest = newDigest();
+            Path changedDependency = null;
+            for (Path file : files) {
                 BasicFileAttributes attributes = readAttributes(file);
                 update(digest, dependency.relativize(file).toString());
                 update(digest, fileMetadata(attributes));
                 if (changedDependency == null && changedSinceBuildStart(attributes, context)) {
                     changedDependency = file;
                 }
-            } catch (IOException e) {
-                if (!unreadable) {
-                    context.log.warn("I/O error reading dependency state: " + dependency + ": " + e.getMessage());
-                    unreadable = true;
-                }
             }
+            return new ModificationState(files.size() + ":" + toHexString(digest.digest()), changedDependency);
+        } catch (IOException | UncheckedIOException e) {
+            context.log.warn("I/O error reading dependency state: " + dependency + ": " + e.getMessage());
+            return new ModificationState("unreadable", null);
         }
-        String recordedState = unreadable ? "unreadable" : files.size() + ":" + toHexString(digest.digest());
-        return new ModificationState(recordedState, changedDependency);
     }
 
     private static BasicFileAttributes readAttributes(Path file) throws IOException {
