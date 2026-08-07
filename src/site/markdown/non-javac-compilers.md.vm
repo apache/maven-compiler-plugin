@@ -1,65 +1,50 @@
- ------
- Using Non-Javac Compilers
- ------
- Edwin Punzalan
- ------
- 2006-07-19
- ------
+---
+title: Using Non-Javac Compilers
+author: 
+  - Edwin Punzalan
+date: 2006-07-19
+---
 
-~~ Licensed to the Apache Software Foundation (ASF) under one
-~~ or more contributor license agreements.  See the NOTICE file
-~~ distributed with this work for additional information
-~~ regarding copyright ownership.  The ASF licenses this file
-~~ to you under the Apache License, Version 2.0 (the
-~~ "License"); you may not use this file except in compliance
-~~ with the License.  You may obtain a copy of the License at
-~~
-~~   http://www.apache.org/licenses/LICENSE-2.0
-~~
-~~ Unless required by applicable law or agreed to in writing,
-~~ software distributed under the License is distributed on an
-~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-~~ KIND, either express or implied.  See the License for the
-~~ specific language governing permissions and limitations
-~~ under the License.
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-~~ NOTE: For help with the syntax of this file, see:
-~~ http://maven.apache.org/doxia/references/apt-format.html
+http://www.apache.org/licenses/LICENSE-2.0
 
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-Using Non-Javac Compilers
+# Using Non-Javac Compilers
 
-  Contrary to this plugin's name, the Compiler Plugin does not compile the
-  sources of your project by itself. To compile, the Compiler Plugin uses
-  another class to compile them.
+Contrary to this plugin's name, the Compiler Plugin does not compile the sources of your project by itself. To compile, the Compiler Plugin uses another class to compile them.
 
-  The parameter <<<compilerId>>> determines which class will be used.
+The parameter `compilerId` determines which class will be used.
 
-  Currently, the Compiler Plugin is bundled with the <<<javac>>> compiler
-  with artifactId <<<plexus-compiler-javac>>> version <<${plexusCompilerVersion}>>,
-  which can be seen as one of the dependencies declared inside the Compiler Plugin's POM.
+Currently, the Compiler Plugin is bundled with the `javac` compiler with artifactId `plexus-compiler-javac` version **${plexusCompilerVersion}**, which can be seen as one of the dependencies declared inside the Compiler Plugin's POM.
 
-  {{{https://codehaus-plexus.github.io/plexus-compiler/}Plexus Compiler}} component
-  has some other compiler Ids available under the groupId <<<org.codehaus.plexus>>>:
+[Plexus Compiler](https://codehaus-plexus.github.io/plexus-compiler/) component has some other compiler Ids available under the groupId `org.codehaus.plexus`:
 
-  * <<<aspectj>>> with artifactId <<<plexus-compiler-aspectj>>> - <<requires>>: <<<JDK 17+>>> and <<<Maven 3.9.6 +>>>
+- `aspectj` with artifactId `plexus-compiler-aspectj` - **requires**: `JDK 17+` and `Maven 3.9.6 +`
+- `csharp` with artifactId `plexus-compiler-csharp` - **requires**: `JDK 8+`
+- `eclipse` with artifactId `plexus-compiler-eclipse` - **requires**: `JDK 17+` and `Maven 3.9.6 +`
+- `javac-with-errorprone` with artifactId `plexus-compiler-javac-errorprone` - **requires**: `JDK 11+`
 
-  * <<<csharp>>> with artifactId <<<plexus-compiler-csharp>>> - <<requires>>: <<<JDK 8+>>>
+Using The Other Plexus Compilers
+--------------------------------
 
-  * <<<eclipse>>> with artifactId <<<plexus-compiler-eclipse>>> - <<requires>>: <<<JDK 17+>>> and <<<Maven 3.9.6 +>>>
+To use any of the non-javac compilers, you need to make the artifact available in the classpath when the Compiler Plugin runs. This is possible by adding the dependency when declaring the plugin in your project's `pom.xml`. The example below shows how to use the `csharp` compiler:
 
-  * <<<javac-with-errorprone>>>  with artifactId <<<plexus-compiler-javac-errorprone>>> - <<requires>>: <<<JDK 11+>>>
-
-  []
-
-* Using The Other Plexus Compilers
-
-  To use any of the non-javac compilers, you need to make the artifact available
-  in the classpath when the Compiler Plugin runs. This is possible by adding the
-  dependency when declaring the plugin in your project's <<<pom.xml>>>. The example
-  below shows how to use the <<<csharp>>> compiler:
-
-+-----
+```unknown
 <project>
   [...]
   <build>
@@ -82,4 +67,5 @@ Using Non-Javac Compilers
       </plugin>
   [...]
 </project>
-+-----
+```
+
