@@ -31,22 +31,32 @@ import java.util.Optional;
 
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.services.BuilderProblem;
+import org.apache.maven.api.services.DiagnosticReporter;
+import org.apache.maven.api.services.MessageBuilder;
+import org.apache.maven.api.services.MessageBuilderFactory;
 
 /**
- * A Java compiler diagnostic listener which sends the messages to the Maven logger.
- * When the logger supports structured problem reporting ({@link Log#problem(BuilderProblem)}),
- * each diagnostic is also reported as a {@link BuilderProblem} with a per-location dedup key,
- * enabling the build report, {@code mvnlog --diagnostics}, and warning suppression.
+ * A Java compiler diagnostic listener which sends the messages to the Maven logger
+ * and reports structured {@link BuilderProblem}s to the {@link DiagnosticReporter}.
  *
  * @author Martin Desruisseaux
  */
 final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     /**
-     * The logger where to send diagnostics and structured problems.
-     * This should be a child logger (e.g. {@code "compiler:compile.diagnostics"})
-     * obtained via {@link Log#child(String)}.
+     * The logger where to send diagnostics.
      */
     private final Log logger;
+
+    /**
+     * The factory for creating message builders.
+     */
+    private final MessageBuilderFactory messageBuilderFactory;
+
+    /**
+     * The service for reporting structured diagnostics to the build report.
+     * May be {@code null} if no reporter is available (e.g. Maven 4.0.x).
+     */
+    private final DiagnosticReporter diagnosticReporter;
 
     /**
      * The locale for compiler message.
@@ -74,17 +84,24 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     private String firstError;
 
     /**
-     * Creates a listener which will send the diagnostics to the given logger.
-     * Structured problems are reported via {@link Log#problem(BuilderProblem)},
-     * which handles dedup, suppression, and thread-safe interaction with the
-     * {@code BuildReportCollector} automatically.
+     * Creates a listener which will send the diagnostics to the given logger
+     * and to the given diagnostic reporter.
      *
-     * @param logger the logger where to send diagnostics (typically a child logger)
+     * @param logger the logger where to send diagnostics
+     * @param messageBuilderFactory the factory for creating message builders
+     * @param diagnosticReporter the reporter for structured build diagnostics, or {@code null}
      * @param locale the locale for compiler message
      * @param directory the base directory with which to relativize the paths to source files
      */
-    DiagnosticLogger(Log logger, Locale locale, Path directory) {
+    DiagnosticLogger(
+            Log logger,
+            MessageBuilderFactory messageBuilderFactory,
+            DiagnosticReporter diagnosticReporter,
+            Locale locale,
+            Path directory) {
         this.logger = logger;
+        this.messageBuilderFactory = messageBuilderFactory;
+        this.diagnosticReporter = diagnosticReporter;
         this.locale = locale;
         this.directory = directory;
         codeCount = new LinkedHashMap<>();
@@ -108,30 +125,20 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     }
 
     /**
-     * Maps a {@link Diagnostic.Kind} to a {@link BuilderProblem.Severity},
-     * or {@code null} if the kind has no corresponding severity (e.g. {@code NOTE}).
+     * Maps a {@link Diagnostic.Kind} to a {@link BuilderProblem.Severity}.
      */
     private static BuilderProblem.Severity mapSeverity(Diagnostic.Kind kind) {
         return switch (kind) {
             case ERROR -> BuilderProblem.Severity.ERROR;
             case WARNING, MANDATORY_WARNING -> BuilderProblem.Severity.WARNING;
-            default -> null;
+            default -> BuilderProblem.Severity.INFO;
         };
     }
 
     /**
-     * Invoked when the compiler emitted a diagnostic.
-     * <p>
-     * When the diagnostic has a code and a mappable severity (error or warning),
-     * a structured {@link BuilderProblem} is reported via {@link Log#problem(BuilderProblem)}
-     * with a per-location dedup key ({@code "compiler:<code>:<source>:<line>"}).
-     * This avoids double-counting with the {@code BuildReportCollector}'s WARN auto-promotion,
-     * because {@code Log.problem()} sets the structured-problem flag internally.
-     * <p>
-     * Informational diagnostics (notes, other) are logged at INFO level without
-     * creating a structured problem, since they are not actionable warnings.
+     * Invoked when the compiler emitted a warning.
      *
-     * @param diagnostic the diagnostic emitted by the Java compiler
+     * @param diagnostic the warning emitted by the Java compiler
      */
     @Override
     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
@@ -139,24 +146,57 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         if (message == null || message.isBlank()) {
             return;
         }
-        Diagnostic.Kind kind = diagnostic.getKind();
+        MessageBuilder record = messageBuilderFactory.builder();
+        record.a(message);
         JavaFileObject source = diagnostic.getSource();
-        // Track counts for the summary
+        Diagnostic.Kind kind = diagnostic.getKind();
+        String style;
+        switch (kind) {
+            case ERROR:
+                style = ".error:-bold,f:red";
+                break;
+            case MANDATORY_WARNING:
+            case WARNING:
+                style = ".warning:-bold,f:yellow";
+                break;
+            default:
+                style = ".info:-bold,f:blue";
+                if (diagnostic.getLineNumber() == Diagnostic.NOPOS) {
+                    source = null; // Some messages are generic, e.g. "Recompile with -Xlint:deprecation".
+                }
+                break;
+        }
+        if (source != null) {
+            record.newline().a("    at ").a(relativize(source.getName()));
+            long line = diagnostic.getLineNumber();
+            long column = diagnostic.getColumnNumber();
+            if (line != Diagnostic.NOPOS || column != Diagnostic.NOPOS) {
+                record.style(style).a('[');
+                if (line != Diagnostic.NOPOS) {
+                    record.a(line);
+                }
+                if (column != Diagnostic.NOPOS) {
+                    record.a(',').a(column);
+                }
+                record.a(']').resetStyle();
+            }
+        }
+        String log = record.toString();
         switch (kind) {
             case ERROR:
                 if (firstError == null) {
                     firstError = message;
                 }
+                logger.error(log);
                 numErrors++;
                 break;
             case MANDATORY_WARNING:
             case WARNING:
+                logger.warn(log);
                 numWarnings++;
                 break;
             default:
-                if (diagnostic.getLineNumber() == Diagnostic.NOPOS) {
-                    source = null; // Some messages are generic, e.g. "Recompile with -Xlint:deprecation".
-                }
+                logger.info(log);
                 break;
         }
         // Statistics
@@ -164,65 +204,44 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         if (code != null) {
             codeCount.merge(code, 1, (old, initial) -> old + 1);
         }
-        // Report as a structured problem when we have a diagnostic code and a mappable severity.
-        // Log.problem() handles both the console log and the build report,
-        // setting the STRUCTURED_PROBLEM_ACTIVE flag to prevent double-counting.
-        BuilderProblem.Severity severity = mapSeverity(kind);
-        if (code != null && severity != null) {
-            logger.problem(buildProblem(diagnostic, message, code, source, severity));
-        } else {
-            // Informational diagnostic or no code — fall back to plain logging
-            switch (kind) {
-                case ERROR -> logger.error(message);
-                case MANDATORY_WARNING, WARNING -> logger.warn(message);
-                default -> logger.info(message);
-            }
-        }
+        // Report structured diagnostic to the build report
+        reportToBuildReport(diagnostic, message, code);
     }
 
     /**
-     * Builds a structured {@link BuilderProblem} from the given compiler diagnostic.
-     * Each diagnostic gets a per-location key ({@code "compiler:<code>:<source>:<line>"})
-     * so each unique file+line keeps its own entry in the build report.
+     * Reports a structured {@link BuilderProblem} to the {@link DiagnosticReporter}.
      * <p>
-     * The message includes the source location as plain text (e.g.
-     * {@code "unchecked cast\n    at src/main/java/Foo.java[42,10]"})
-     * so it remains visible in the console output.
+     * Each diagnostic is reported with a per-location key
+     * ({@code "compiler:<code>:<source>:<line>"}) so each unique file+line
+     * gets its own entry in the build report. Warnings of the same type in
+     * different files are kept as separate entries.
      */
-    private BuilderProblem buildProblem(
-            Diagnostic<? extends JavaFileObject> diagnostic,
-            String message,
-            String code,
-            JavaFileObject source,
-            BuilderProblem.Severity severity) {
-        BuilderProblem.Builder builder = BuilderProblem.builder().severity(severity);
-        // Build message with source location and per-location dedup key
-        var fullMessage = new StringBuilder(message);
-        var keyBuilder = new StringBuilder("compiler:").append(code);
-        if (source != null) {
-            String relPath = relativize(source.getName());
+    private void reportToBuildReport(Diagnostic<? extends JavaFileObject> diagnostic, String message, String code) {
+        if (diagnosticReporter == null || code == null) {
+            return;
+        }
+        BuilderProblem.Builder builder = BuilderProblem.builder()
+                .severity(mapSeverity(diagnostic.getKind()))
+                .message(message);
+        // Build a per-location key so each unique file+line keeps its own entry
+        JavaFileObject sourceFile = diagnostic.getSource();
+        StringBuilder keyBuilder = new StringBuilder("compiler:").append(code);
+        if (sourceFile != null) {
+            String relPath = relativize(sourceFile.getName());
             builder.source(relPath);
             keyBuilder.append(':').append(relPath);
             long line = diagnostic.getLineNumber();
+            if (line != Diagnostic.NOPOS) {
+                builder.lineNumber((int) line);
+                keyBuilder.append(':').append(line);
+            }
             long column = diagnostic.getColumnNumber();
-            fullMessage.append(System.lineSeparator()).append("    at ").append(relPath);
-            if (line != Diagnostic.NOPOS || column != Diagnostic.NOPOS) {
-                fullMessage.append('[');
-                if (line != Diagnostic.NOPOS) {
-                    fullMessage.append(line);
-                    builder.lineNumber((int) line);
-                    keyBuilder.append(':').append(line);
-                }
-                if (column != Diagnostic.NOPOS) {
-                    fullMessage.append(',').append(column);
-                    builder.columnNumber((int) column);
-                }
-                fullMessage.append(']');
+            if (column != Diagnostic.NOPOS) {
+                builder.columnNumber((int) column);
             }
         }
-        return builder.key(keyBuilder.toString())
-                .message(fullMessage.toString())
-                .build();
+        builder.key(keyBuilder.toString());
+        diagnosticReporter.report(builder.build());
     }
 
     /**
@@ -238,24 +257,23 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * Reports summary after the compilation finished.
      */
     void logSummary() {
-        var message = new StringBuilder();
+        MessageBuilder message = messageBuilderFactory.builder();
         final String patternForCount;
         if (!codeCount.isEmpty()) {
             @SuppressWarnings("unchecked")
             Map.Entry<String, Integer>[] entries = codeCount.entrySet().toArray(Map.Entry[]::new);
             Arrays.sort(entries, (a, b) -> Integer.compare(b.getValue(), a.getValue()));
             patternForCount = patternForCount(Math.max(entries[0].getValue(), Math.max(numWarnings, numErrors)));
-            message.append("Summary of compiler messages:").append(System.lineSeparator());
+            message.strong("Summary of compiler messages:").newline();
             for (Map.Entry<String, Integer> entry : entries) {
                 int count = entry.getValue();
-                message.append(String.format(patternForCount, count, entry.getKey()))
-                        .append(System.lineSeparator());
+                message.format(patternForCount, count, entry.getKey()).newline();
             }
         } else {
             patternForCount = patternForCount(Math.max(numWarnings, numErrors));
         }
         if ((numWarnings | numErrors) != 0) {
-            message.append("Total:");
+            message.strong("Total:");
         }
         if (numWarnings != 0) {
             writeCount(message, patternForCount, numWarnings, "warning");
@@ -263,7 +281,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         if (numErrors != 0) {
             writeCount(message, patternForCount, numErrors, "error");
         }
-        logger.info(message);
+        logger.info(message.toString());
     }
 
     /**
@@ -278,9 +296,9 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     /**
      * Appends the count of warnings or errors, making them plural if needed.
      */
-    private static void writeCount(StringBuilder message, String patternForCount, int count, String name) {
-        message.append(System.lineSeparator());
-        message.append(String.format(patternForCount, count, name));
+    private static void writeCount(MessageBuilder message, String patternForCount, int count, String name) {
+        message.newline();
+        message.format(patternForCount, count, name);
         if (count > 1) {
             message.append('s');
         }
