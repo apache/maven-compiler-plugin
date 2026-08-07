@@ -73,7 +73,6 @@ import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.DependencyResolver;
 import org.apache.maven.api.services.DependencyResolverRequest;
 import org.apache.maven.api.services.DependencyResolverResult;
-import org.apache.maven.api.services.DiagnosticReporter;
 import org.apache.maven.api.services.MavenException;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
@@ -942,17 +941,6 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     @Inject
     protected MessageBuilderFactory messageBuilderFactory;
-
-    /**
-     * Service for reporting structured build diagnostics to the build report.
-     * Compiler warnings and errors are reported through this service so they
-     * appear with structured keys, source locations, and suggestions in
-     * {@code mvnlog --diagnostics} and the JSON build report.
-     *
-     * @since 4.0.0-beta-5
-     */
-    @Inject
-    protected DiagnosticReporter diagnosticReporter;
 
     /**
      * The logger for reporting information or warnings to the user.
