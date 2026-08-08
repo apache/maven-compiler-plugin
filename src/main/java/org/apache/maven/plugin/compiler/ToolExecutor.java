@@ -51,10 +51,10 @@ import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
-import org.apache.maven.api.build.context.BuildContext;
-import org.apache.maven.api.build.context.Input;
-import org.apache.maven.api.build.context.Metadata;
-import org.apache.maven.api.build.context.Status;
+import org.apache.maven.api.build.incremental.IncrementalContext;
+import org.apache.maven.api.build.incremental.Input;
+import org.apache.maven.api.build.incremental.Metadata;
+import org.apache.maven.api.build.incremental.Status;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
@@ -178,13 +178,13 @@ public class ToolExecutor {
      * The build context for incremental build support.
      * Used to register inputs, detect changes, associate outputs, and clean up stale outputs.
      */
-    private final BuildContext buildContext;
+    private final IncrementalContext buildContext;
 
     /**
-     * Map of source file paths to their BuildContext {@link Input} handles.
+     * Map of source file paths to their IncrementalContext {@link Input} handles.
      * Populated during {@link #applyIncrementalBuild} for sources that were processed
      * (compiled), and used after compilation to associate output class files.
-     * A {@code null} value means BuildContext was not used (e.g. MODULES or NONE aspect).
+     * A {@code null} value means IncrementalContext was not used (e.g. MODULES or NONE aspect).
      */
     private Map<Path, Input> processedInputs;
 
@@ -292,7 +292,7 @@ public class ToolExecutor {
             dependencies.putAll(dependencyResolution.getDispatchedPaths());
         }
         mojo.resolveProcessorPathEntries(dependencies);
-        mojo.amendincrementalCompilation(incrementalBuildConfig, dependencies.keySet());
+        mojo.amendincrementalCompilation(incrementalBuildConfig, dependencies);
         generatedSourceDirectories = mojo.addGeneratedSourceDirectory(dependencies.keySet());
         copyDependencyValues();
     }
@@ -363,11 +363,11 @@ public class ToolExecutor {
 
     /**
      * Filters the source files to recompile, or cleans the output directory if everything should be rebuilt.
-     * Uses the {@link BuildContext} API to detect changes in source files, compiler options and plugin
+     * Uses the {@link IncrementalContext} API to detect changes in source files, compiler options and plugin
      * classpath since the last build. When the build context detects a configuration change (mojo parameters
      * or plugin classpath), it <em>escalates</em> — treating all inputs as modified and forcing a full rebuild.
      *
-     * <p>Source files are registered as {@link BuildContext} inputs. After compilation,
+     * <p>Source files are registered as {@link IncrementalContext} inputs. After compilation,
      * {@link #associateOutputs()} associates each compiled source with its output class files
      * (including inner classes) so that the build context can clean up stale outputs when
      * sources are removed.</p>
@@ -384,7 +384,7 @@ public class ToolExecutor {
         final boolean checkSources = incrementalBuildConfig.contains(Aspect.SOURCES);
         final boolean checkClasses = incrementalBuildConfig.contains(Aspect.CLASSES);
         final boolean checkDepends = incrementalBuildConfig.contains(Aspect.DEPENDENCIES);
-        // Note: OPTIONS and plugin classpath changes are handled automatically by BuildContext's
+        // Note: OPTIONS and plugin classpath changes are handled automatically by IncrementalContext's
         // MojoConfigurationDigester and ClasspathDigester — they trigger escalation when changed.
         if (!(checkSources | checkClasses | checkDepends | incrementalBuildConfig.contains(Aspect.OPTIONS))) {
             incrementalBuildConfig.clear();
@@ -394,7 +394,7 @@ public class ToolExecutor {
         final boolean rebuildOnChange = incrementalBuildConfig.contains(Aspect.REBUILD_ON_CHANGE);
 
         /*
-         * Register all source files with BuildContext. Each file is individually registered so
+         * Register all source files with IncrementalContext. Each file is individually registered so
          * we respect the filtering already applied by PathFilter (includes/excludes, file kind).
          * The Metadata provides the change status relative to the previous build.
          */
@@ -407,7 +407,7 @@ public class ToolExecutor {
 
         /*
          * Check dependency changes if the DEPENDENCIES aspect is active.
-         * Register JAR dependencies as BuildContext inputs so their content changes
+         * Register JAR dependencies as IncrementalContext inputs so their content changes
          * are tracked across builds. Directory dependencies are treated conservatively.
          */
         boolean dependencyChanged = false;
@@ -425,7 +425,7 @@ public class ToolExecutor {
         }
 
         /*
-         * Determine what needs to be rebuilt. BuildContext escalation (from config or classpath
+         * Determine what needs to be rebuilt. IncrementalContext escalation (from config or classpath
          * change) reports all inputs as NEW or MODIFIED, which naturally leads to a full rebuild.
          */
         boolean hasNew = false;
@@ -442,10 +442,10 @@ public class ToolExecutor {
         boolean fullRebuild = dependencyChanged || (rebuildOnChange && hasModified) || (rebuildOnAdd && hasNew);
 
         /*
-         * If BuildContext reports processing required but no current inputs are changed,
+         * If IncrementalContext reports processing required but no current inputs are changed,
          * this indicates either removed source files or some other state change.
          * In either case, a full rebuild is warranted for correctness (remaining sources
-         * might reference the deleted classes). BuildContext's finalizeContext() will
+         * might reference the deleted classes). IncrementalContext's finalizeContext() will
          * automatically clean up stale outputs from removed inputs.
          */
         if (!hasChanged && buildContext.isProcessingRequired()) {
@@ -503,12 +503,12 @@ public class ToolExecutor {
         }
 
         /*
-         * Process inputs with BuildContext and build the map for output association.
+         * Process inputs with IncrementalContext and build the map for output association.
          * This step is deferred until after we confirm compilation will actually happen,
          * because processing inputs prevents markSkipExecution() from being called later.
          * For a full rebuild, all inputs are processed. For a partial rebuild, only
          * changed inputs are processed — unchanged inputs' associations from the
-         * previous build are carried over automatically by BuildContext.
+         * previous build are carried over automatically by IncrementalContext.
          */
         processedInputs = new HashMap<>();
         for (Metadata<Input> meta : allInputs) {
@@ -1114,7 +1114,7 @@ public class ToolExecutor {
             throw e.getCause();
         }
 
-        // Performs post-compilation tasks such as logging and associating outputs with BuildContext.
+        // Performs post-compilation tasks such as logging and associating outputs with IncrementalContext.
         if (listener instanceof DiagnosticLogger diagnostic) {
             diagnostic.logSummary();
         }

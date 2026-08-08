@@ -64,7 +64,7 @@ import org.apache.maven.api.Toolchain;
 import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
-import org.apache.maven.api.build.context.BuildContext;
+import org.apache.maven.api.build.incremental.IncrementalContext;
 import org.apache.maven.api.di.Inject;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.Mojo;
@@ -704,13 +704,39 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Amends the configuration of incremental compilation for the presence of annotation processors.
      *
+     * <p>When annotation processors are detected, the default behavior is to add
+     * {@link Aspect#REBUILD_ON_ADD} and {@link Aspect#REBUILD_ON_CHANGE} so that any source
+     * change triggers a full rebuild. However, if all processors on the annotation processor
+     * path declare themselves as {@linkplain IncrementalProcessorType#ISOLATING isolating} via
+     * a {@code META-INF/gradle/incremental.annotation.processors} or
+     * {@code META-INF/maven/incremental.annotation.processors} descriptor, per-file incremental
+     * compilation is preserved — only changed sources are recompiled.</p>
+     *
      * @param aspects the configuration to amend if an annotation processor is found
-     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
+     * @param dependencies the resolved dependencies map (path types → JAR paths)
      */
-    final void amendincrementalCompilation(EnumSet<Aspect> aspects, Set<PathType> dependencyTypes) {
-        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
-            aspects.add(Aspect.REBUILD_ON_ADD);
-            aspects.add(Aspect.REBUILD_ON_CHANGE);
+    final void amendincrementalCompilation(EnumSet<Aspect> aspects, Map<PathType, Collection<Path>> dependencies) {
+        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencies.keySet())) {
+            // Collect processor JARs from explicit processor path entries
+            var processorPaths = new java.util.ArrayList<Path>();
+            Collection<Path> processorClasses = dependencies.get(JavaPathType.PROCESSOR_CLASSES);
+            if (processorClasses != null) {
+                processorPaths.addAll(processorClasses);
+            }
+            Collection<Path> processorModules = dependencies.get(JavaPathType.PROCESSOR_MODULES);
+            if (processorModules != null) {
+                processorPaths.addAll(processorModules);
+            }
+
+            IncrementalProcessorType processorType = new IncrementalProcessorScanner(logger).scan(processorPaths);
+
+            if (processorType == IncrementalProcessorType.ISOLATING) {
+                logger.info(
+                        "All annotation processors are isolating" + " — per-file incremental compilation preserved.");
+            } else {
+                aspects.add(Aspect.REBUILD_ON_ADD);
+                aspects.add(Aspect.REBUILD_ON_CHANGE);
+            }
         }
     }
 
@@ -943,7 +969,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * because all classes are up to date or there are no sources to compile.
      */
     @Inject
-    protected BuildContext buildContext;
+    protected IncrementalContext buildContext;
 
     /**
      * The logger for reporting information or warnings to the user.

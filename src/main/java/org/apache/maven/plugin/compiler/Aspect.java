@@ -25,7 +25,7 @@ import java.util.Set;
 /**
  * Elements to take in consideration when deciding whether to recompile a file.
  * The actual change detection, state persistence, and stale output cleanup are handled by the
- * {@link org.apache.maven.api.build.context.BuildContext BuildContext} API. This enumeration
+ * {@link org.apache.maven.api.build.incremental.IncrementalContext IncrementalContext} API. This enumeration
  * configures which kinds of changes should be tracked and how they affect the rebuild decision
  * (partial vs. full).
  *
