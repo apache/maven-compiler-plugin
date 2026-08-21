@@ -19,10 +19,12 @@
 package org.apache.maven.plugin.compiler;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -30,6 +32,7 @@ import org.apache.maven.api.plugin.testing.InjectMojo;
 import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -203,5 +206,27 @@ class TestCompilerMojoTest {
     @MethodSource
     void olderThanJDK9(String version, boolean expected) {
         assertEquals(expected, TestCompilerMojo.isOlderThanJDK9(version));
+    }
+
+    @Test
+    void shouldSelectApplicableModuleDescriptor(@TempDir Path temporaryDirectory) throws Exception {
+        Path outputDirectory = temporaryDirectory.resolve("classes");
+        Path version9 = Files.createDirectories(outputDirectory.resolve("META-INF/versions/9"));
+        Path version11 = Files.createDirectories(outputDirectory.resolve("META-INF/versions/11"));
+        Files.createDirectories(outputDirectory.resolve("META-INF/versions/17"));
+
+        Path version9Descriptor = Files.createFile(version9.resolve("module-info.class"));
+        Path version11Descriptor = Files.createFile(version11.resolve("module-info.class"));
+        Path rootDescriptor = Files.createFile(outputDirectory.resolve("module-info.class"));
+
+        List<File> outputDirectories = AbstractCompilerMojo.getProjectOutputDirectories(outputDirectory.toFile(), 11);
+        assertEquals(Arrays.asList(version11.toFile(), version9.toFile(), outputDirectory.toFile()), outputDirectories);
+        assertEquals(version11Descriptor.toFile(), TestCompilerMojo.getModuleDescriptor(outputDirectories));
+
+        Files.delete(version11Descriptor);
+        assertEquals(version9Descriptor.toFile(), TestCompilerMojo.getModuleDescriptor(outputDirectories));
+
+        Files.delete(version9Descriptor);
+        assertEquals(rootDescriptor.toFile(), TestCompilerMojo.getModuleDescriptor(outputDirectories));
     }
 }

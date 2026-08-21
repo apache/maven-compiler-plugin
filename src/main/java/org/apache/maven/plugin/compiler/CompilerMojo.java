@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -262,6 +263,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
         // assert compilePath != null;
 
         Optional<Path> moduleDeclaration = getModuleDeclaration(sourceFiles);
+        List<File> projectOutputDirectories = getProjectOutputDirectories(getProject());
 
         if (moduleDeclaration.isPresent()) {
             // For now only allow named modules. Once we can create a graph with ASM we can specify exactly the modules
@@ -274,7 +276,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
             ResolvePathsResult<File> resolvePathsResult;
             try {
-                Collection<File> dependencyArtifacts = getCompileClasspathElements(getProject());
+                Collection<File> dependencyArtifacts =
+                        getCompileClasspathElements(getProject(), projectOutputDirectories);
 
                 ResolvePathsRequest<File> request = ResolvePathsRequest.ofFiles(dependencyArtifacts)
                         .setIncludeStatic(true)
@@ -312,13 +315,15 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
                 for (File file : resolvePathsResult.getClasspathElements()) {
                     classpathElements.add(file.getPath());
+                }
 
-                    if (multiReleaseOutput) {
-                        if (getOutputDirectory().toPath().startsWith(file.getPath())) {
-                            compilerArgs.add("--patch-module");
-                            compilerArgs.add(String.format("%s=%s", moduleDescriptor.name(), file.getPath()));
-                        }
+                if (multiReleaseOutput) {
+                    StringJoiner patchPath = new StringJoiner(PS);
+                    for (File directory : projectOutputDirectories) {
+                        patchPath.add(directory.getPath());
                     }
+                    compilerArgs.add("--patch-module");
+                    compilerArgs.add(moduleDescriptor.name() + '=' + patchPath);
                 }
 
                 for (File file : resolvePathsResult.getModulepathElements().keySet()) {
@@ -334,7 +339,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             }
         } else {
             classpathElements = new ArrayList<>();
-            for (File element : getCompileClasspathElements(getProject())) {
+            for (File element : getCompileClasspathElements(getProject(), projectOutputDirectories)) {
                 classpathElements.add(element.getPath());
             }
             modulepathElements = Collections.emptyList();
@@ -367,23 +372,23 @@ public class CompilerMojo extends AbstractCompilerMojo {
         }
     }
 
-    private List<File> getCompileClasspathElements(MavenProject project) {
-        // 3 is outputFolder + 2 preserved for multirelease
-        List<File> list = new ArrayList<>(project.getArtifacts().size() + 3);
+    /**
+     * Returns the project output directories visible to the current compilation. For a multi-release output, existing
+     * earlier release directories are returned in descending order before the base output directory.
+     */
+    private List<File> getProjectOutputDirectories(MavenProject project) {
+        File outputDirectory = new File(project.getBuild().getOutputDirectory());
 
         if (multiReleaseOutput) {
-            File versionsFolder = new File(project.getBuild().getOutputDirectory(), "META-INF/versions");
-
-            // in reverse order
-            for (int version = Integer.parseInt(getRelease()) - 1; version >= 9; version--) {
-                File versionSubFolder = new File(versionsFolder, String.valueOf(version));
-                if (versionSubFolder.exists()) {
-                    list.add(versionSubFolder);
-                }
-            }
+            return getProjectOutputDirectories(outputDirectory, getJavaMajorVersion(getRelease()) - 1);
         }
 
-        list.add(new File(project.getBuild().getOutputDirectory()));
+        return Collections.singletonList(outputDirectory);
+    }
+
+    private List<File> getCompileClasspathElements(MavenProject project, List<File> projectOutputDirectories) {
+        List<File> list = new ArrayList<>(project.getArtifacts().size() + projectOutputDirectories.size());
+        list.addAll(projectOutputDirectories);
 
         for (Artifact a : project.getArtifacts()) {
             if (a.getArtifactHandler().isAddedToClasspath()) {

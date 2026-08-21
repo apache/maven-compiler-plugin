@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -240,11 +242,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     protected void preparePaths(Set<File> sourceFiles) {
         File mainOutputDirectory = new File(getProject().getBuild().getOutputDirectory());
 
-        File mainModuleDescriptorClassFile = new File(mainOutputDirectory, "module-info.class");
+        List<File> mainOutputDirectories =
+                getProjectOutputDirectories(mainOutputDirectory, getEffectiveTestJavaVersion());
+        File mainModuleDescriptorClassFile = getModuleDescriptor(mainOutputDirectories);
         JavaModuleDescriptor mainModuleDescriptor = null;
 
         File testModuleDescriptorJavaFile = new File("module-info.java");
         JavaModuleDescriptor testModuleDescriptor = null;
+        List<String> effectiveTestPath = testPath;
 
         // Go through the source files to respect includes/excludes
         for (File sourceFile : sourceFiles) {
@@ -256,11 +261,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         }
 
         // Get additional information from the main module descriptor, if available
-        if (mainModuleDescriptorClassFile.exists()) {
+        if (mainModuleDescriptorClassFile != null) {
             ResolvePathsResult<String> result;
 
             try {
-                ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(testPath)
+                // LocationManager needs the directory containing the selected descriptor to recognize the main module.
+                effectiveTestPath = replacePathElement(
+                        testPath, mainOutputDirectory, mainModuleDescriptorClassFile.getParentFile());
+                ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(effectiveTestPath)
                         .setIncludeStatic(true)
                         .setMainModuleDescriptor(mainModuleDescriptorClassFile.getAbsolutePath());
 
@@ -299,7 +307,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             ResolvePathsResult<String> result;
 
             try {
-                ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(testPath)
+                ResolvePathsRequest<String> request = ResolvePathsRequest.ofStrings(effectiveTestPath)
                         .setMainModuleDescriptor(testModuleDescriptorJavaFile.getAbsolutePath());
 
                 Toolchain toolchain = getToolchain();
@@ -336,7 +344,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         }
 
         if (testModuleDescriptor != null) {
-            modulepathElements = testPath;
+            modulepathElements = effectiveTestPath;
             classpathElements = Collections.emptyList();
 
             if (mainModuleDescriptor != null) {
@@ -347,23 +355,22 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 }
 
                 if (testModuleDescriptor.name().equals(mainModuleDescriptor.name())) {
-                    if (compilerArgs == null) {
-                        compilerArgs = new ArrayList<>();
-                    }
-                    compilerArgs.add("--patch-module");
-
-                    StringBuilder patchModuleValue = new StringBuilder();
-                    patchModuleValue.append(testModuleDescriptor.name());
-                    patchModuleValue.append('=');
-
+                    List<String> mainSourceRoots = new ArrayList<>();
                     for (String root : getProject().getCompileSourceRoots()) {
                         if (Files.exists(Paths.get(root))) {
-                            patchModuleValue.append(root).append(PS);
+                            mainSourceRoots.add(root);
                         }
                     }
 
-                    compilerArgs.add(patchModuleValue.toString());
+                    // Tests in the main module need the layered MR-JAR output and the main sources as one patch.
+                    List<File> outputPatches =
+                            mainOutputDirectories.size() > 1 ? mainOutputDirectories : Collections.emptyList();
+                    addPatchModule(testModuleDescriptor.name(), outputPatches, mainSourceRoots);
                 } else {
+                    // Patch all output layers in multirelease lookup order so newer classes shadow older ones.
+                    if (mainOutputDirectories.size() > 1) {
+                        addPatchModule(mainModuleDescriptor.name(), mainOutputDirectories, Collections.emptyList());
+                    }
                     getLog().debug("Black-box testing - all is ready to compile");
                 }
             } else {
@@ -380,20 +387,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             }
         } else {
             if (mainModuleDescriptor != null) {
-                if (compilerArgs == null) {
-                    compilerArgs = new ArrayList<>();
-                }
-                compilerArgs.add("--patch-module");
-
-                StringBuilder patchModuleValue = new StringBuilder(mainModuleDescriptor.name())
-                        .append('=')
-                        .append(mainOutputDirectory)
-                        .append(PS);
-                for (String root : compileSourceRoots) {
-                    patchModuleValue.append(root).append(PS);
-                }
-
-                compilerArgs.add(patchModuleValue.toString());
+                // Unnamed tests are compiled as a patch of the layered main module.
+                addPatchModule(mainModuleDescriptor.name(), mainOutputDirectories, compileSourceRoots);
 
                 compilerArgs.add("--add-reads");
                 compilerArgs.add(mainModuleDescriptor.name() + "=ALL-UNNAMED");
@@ -402,6 +397,57 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 classpathElements = testPath;
             }
         }
+    }
+
+    private int getEffectiveTestJavaVersion() {
+        String version = StringUtils.isNotEmpty(getRelease()) ? getRelease() : getTarget();
+        return getJavaMajorVersion(version);
+    }
+
+    static File getModuleDescriptor(List<File> outputDirectories) {
+        for (File outputDirectory : outputDirectories) {
+            File descriptor = new File(outputDirectory, "module-info.class");
+            if (descriptor.isFile()) {
+                return descriptor;
+            }
+        }
+        return null;
+    }
+
+    private static List<String> replacePathElement(List<String> path, File element, File replacement) {
+        List<String> result = new ArrayList<>(path.size());
+        Path elementPath = element.toPath().toAbsolutePath().normalize();
+        boolean replaced = false;
+
+        for (String value : path) {
+            if (Paths.get(value).toAbsolutePath().normalize().equals(elementPath)) {
+                result.add(replacement.getAbsolutePath());
+                replaced = true;
+            } else {
+                result.add(value);
+            }
+        }
+        if (!replaced) {
+            result.add(0, replacement.getAbsolutePath());
+        }
+        return result;
+    }
+
+    private void addPatchModule(String moduleName, List<File> outputDirectories, Collection<String> sourceRoots) {
+        if (compilerArgs == null) {
+            compilerArgs = new ArrayList<>();
+        }
+
+        StringJoiner patchPath = new StringJoiner(PS);
+        for (File dir : outputDirectories) {
+            patchPath.add(dir.getPath());
+        }
+        for (String sourceRoot : sourceRoots) {
+            patchPath.add(sourceRoot);
+        }
+
+        compilerArgs.add("--patch-module");
+        compilerArgs.add(moduleName + '=' + patchPath);
     }
 
     protected SourceInclusionScanner getSourceInclusionScanner(int staleMillis) {
@@ -443,11 +489,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     static boolean isOlderThanJDK9(String version) {
-        if (version.startsWith("1.")) {
-            return Integer.parseInt(version.substring(2)) < 9;
-        }
-
-        return Integer.parseInt(version) < 9;
+        return getJavaMajorVersion(version) < 9;
     }
 
     protected String getSource() {
