@@ -18,344 +18,309 @@
  */
 package org.apache.maven.plugin.compiler;
 
-import javax.lang.model.SourceVersion;
-import javax.tools.DiagnosticListener;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileManager;
-import javax.tools.JavaFileObject;
-import javax.tools.OptionChecker;
-import javax.tools.ToolProvider;
+import javax.inject.Inject;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StreamTokenizer;
-import java.io.StringWriter;
-import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
-import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.ServiceLoader;
+import java.util.Properties;
 import java.util.Set;
-import java.util.StringJoiner;
-import java.util.jar.Attributes;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.maven.api.JavaPathType;
-import org.apache.maven.api.Language;
-import org.apache.maven.api.PathScope;
-import org.apache.maven.api.PathType;
-import org.apache.maven.api.Project;
-import org.apache.maven.api.ProjectScope;
-import org.apache.maven.api.Session;
-import org.apache.maven.api.SourceRoot;
-import org.apache.maven.api.Toolchain;
-import org.apache.maven.api.Type;
-import org.apache.maven.api.annotations.Nonnull;
-import org.apache.maven.api.annotations.Nullable;
-import org.apache.maven.api.di.Inject;
-import org.apache.maven.api.plugin.Log;
-import org.apache.maven.api.plugin.Mojo;
-import org.apache.maven.api.plugin.MojoException;
-import org.apache.maven.api.plugin.annotations.Parameter;
-import org.apache.maven.api.services.ArtifactManager;
-import org.apache.maven.api.services.DependencyResolver;
-import org.apache.maven.api.services.DependencyResolverRequest;
-import org.apache.maven.api.services.DependencyResolverResult;
-import org.apache.maven.api.services.MavenException;
-import org.apache.maven.api.services.MessageBuilder;
-import org.apache.maven.api.services.MessageBuilderFactory;
-import org.apache.maven.api.services.PathMatcherFactory;
-import org.apache.maven.api.services.ProjectManager;
-import org.apache.maven.api.services.ToolchainManager;
-
-import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
-import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
+import org.apache.maven.RepositoryUtils;
+import org.apache.maven.artifact.handler.ArtifactHandler;
+import org.apache.maven.artifact.handler.manager.ArtifactHandlerManager;
+import org.apache.maven.execution.MavenExecutionRequest;
+import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.DependencyManagement;
+import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecution;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
+import org.apache.maven.shared.incremental.IncrementalBuildHelper;
+import org.apache.maven.shared.incremental.IncrementalBuildHelperRequest;
+import org.apache.maven.shared.utils.StringUtils;
+import org.apache.maven.shared.utils.logging.MessageBuilder;
+import org.apache.maven.shared.utils.logging.MessageUtils;
+import org.apache.maven.toolchain.Toolchain;
+import org.apache.maven.toolchain.ToolchainManager;
+import org.codehaus.plexus.compiler.Compiler;
+import org.codehaus.plexus.compiler.CompilerConfiguration;
+import org.codehaus.plexus.compiler.CompilerException;
+import org.codehaus.plexus.compiler.CompilerMessage;
+import org.codehaus.plexus.compiler.CompilerOutputStyle;
+import org.codehaus.plexus.compiler.CompilerResult;
+import org.codehaus.plexus.compiler.manager.CompilerManager;
+import org.codehaus.plexus.compiler.manager.NoSuchCompilerException;
+import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
+import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
+import org.codehaus.plexus.compiler.util.scan.mapping.SingleTargetSourceMapping;
+import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
+import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
+import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
+import org.codehaus.plexus.languages.java.version.JavaVersion;
+import org.codehaus.plexus.util.FileUtils;
+import org.eclipse.aether.RepositorySystem;
+import org.eclipse.aether.artifact.Artifact;
+import org.eclipse.aether.artifact.ArtifactTypeRegistry;
+import org.eclipse.aether.artifact.DefaultArtifact;
+import org.eclipse.aether.collection.CollectRequest;
+import org.eclipse.aether.graph.Exclusion;
+import org.eclipse.aether.resolution.DependencyRequest;
+import org.eclipse.aether.resolution.DependencyResult;
+import org.eclipse.aether.util.artifact.JavaScopes;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
 /**
- * Base class of Mojos compiling Java source code.
- * This plugin uses the {@link JavaCompiler} interface from JDK 6+.
- * Each instance shall be used only once, then discarded.
+ * TODO: At least one step could be optimized, currently the plugin will do two
+ * scans of all the source code if the compiler has to have the entire set of
+ * sources. This is currently the case for at least the C# compiler and most
+ * likely all the other .NET compilers too.
  *
- * <h2>Thread-safety</h2>
- * This class is not thread-safe. If this class is used in a multi-thread context,
- * users are responsible for synchronizing all accesses to this <abbr>MOJO</abbr> instance.
- * However, the executor returned by {@link #createExecutor(DiagnosticListener)} can safely
- * launch the compilation in a background thread.
- *
- * @author <a href="mailto:trygvis@inamo.no">Trygve Laugstøl</a>
- * @author Martin Desruisseaux
+ * @author others
+ * @author <a href="mailto:trygvis@inamo.no">Trygve Laugst&oslash;l</a>
  * @since 2.0
  */
-public abstract class AbstractCompilerMojo implements Mojo {
-    /**
-     * Whether to support legacy (and often deprecated) behavior.
-     * This is currently hard-coded to {@code true} for compatibility reason.
-     * TODO: consider making configurable.
-     */
-    static final boolean SUPPORT_LEGACY = true;
+public abstract class AbstractCompilerMojo extends AbstractMojo {
+    protected static final String PS = File.pathSeparator;
 
-    /**
-     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
-     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
-     * Used for detecting if {@code module-info.class} needs to be patched for reproducible builds.
-     */
-    private static final String RELEASE_22 = "RELEASE_22";
+    private static final String INPUT_FILES_LST_FILENAME = "inputFiles.lst";
 
-    /**
-     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
-     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
-     * Used for determining the default value of the {@code -proc} compiler option.
-     */
-    private static final String RELEASE_23 = "RELEASE_23";
+    static final String DEFAULT_SOURCE = "1.8";
 
-    /**
-     * The executable to use by default if nine is specified.
-     */
-    private static final String DEFAULT_EXECUTABLE = "javac";
-
-    /**
-     * The quote character for filenames in shell scripts.
-     * Shall not be used with {@link javax.tools.JavaFileManager}.
-     */
-    static final char QUOTE = '"';
+    static final String DEFAULT_TARGET = "1.8";
 
     // ----------------------------------------------------------------------
     // Configurables
     // ----------------------------------------------------------------------
 
     /**
-     * The {@code --module-version} argument for the Java compiler.
-     * This is ignored if not applicable, e.g., in non-modular projects.
+     * Indicates whether the build will continue even if there are compilation errors.
      *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-module-version">javac --module-version</a>
-     * @since 4.0.0
+     * @since 2.0.2
      */
-    @Parameter(property = "maven.compiler.moduleVersion", defaultValue = "${project.version}")
-    protected String moduleVersion;
+    @Parameter(property = "maven.compiler.failOnError", defaultValue = "true")
+    private boolean failOnError = true;
 
     /**
-     * The {@code -encoding} argument for the Java compiler.
+     * Indicates whether the build will continue even if there are compilation warnings.
      *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-encoding">javac -encoding</a>
-     * @since 2.1
+     * @since 3.6
      */
-    @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
-    protected String encoding;
+    @Parameter(property = "maven.compiler.failOnWarning", defaultValue = "false")
+    private boolean failOnWarning;
 
     /**
-     * {@return the character set used for decoding bytes, or null for the platform default}
-     * No warning is emitted in the latter case because as of Java 18, the default is UTF-8,
-     * i.e. the encoding is no longer platform-dependent.
+     * Set to <code>true</code> to include debugging information in the compiled class files.
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac -g</a>
+     * @see #debuglevel
      */
-    final Charset charset() {
-        if (encoding != null) {
-            try {
-                return Charset.forName(encoding);
-            } catch (UnsupportedCharsetException e) {
-                throw new CompilationFailureException("Invalid 'encoding' option: " + encoding, e);
-            }
-        }
-        return null;
-    }
+    @Parameter(property = "maven.compiler.debug", defaultValue = "true")
+    private boolean debug = true;
 
     /**
-     * The {@code --source} argument for the Java compiler.
-     * <p><b>Notes:</b></p>
-     * <ul>
-     *   <li>Since 3.8.0 the default value has changed from 1.5 to 1.6.</li>
-     *   <li>Since 3.9.0 the default value has changed from 1.6 to 1.7.</li>
-     *   <li>Since 3.11.0 the default value has changed from 1.7 to 1.8.</li>
-     *   <li>Since 4.0.0-beta-2 the default value has been removed.
-     *       As of Java 9, the {@link #release} parameter is preferred.</li>
-     * </ul>
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-source">javac --source</a>
+     * Set to <code>true</code> to generate metadata for reflection on method parameters.
+     * @since 3.6.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-parameters">javac -parameters</a>
      */
-    @Parameter(property = "maven.compiler.source")
+    @Parameter(property = "maven.compiler.parameters", defaultValue = "false")
+    private boolean parameters;
+
+    /**
+     * Set to <code>true</code> to enable preview language features of the java compiler
+     * @since 3.10.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-enable-preview">javac --enable-preview</a>
+     */
+    @Parameter(property = "maven.compiler.enablePreview", defaultValue = "false")
+    private boolean enablePreview;
+
+    /**
+     * Set to <code>true</code> to show messages about what the compiler is doing.
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac -verbose</a>
+     */
+    @Parameter(property = "maven.compiler.verbose", defaultValue = "false")
+    private boolean verbose;
+
+    /**
+     * Sets whether to show source locations where deprecated APIs are used.
+     */
+    @Parameter(property = "maven.compiler.showDeprecation", defaultValue = "false")
+    private boolean showDeprecation;
+
+    /**
+     * Set to <code>true</code> to optimize the compiled code using the compiler's optimization methods.
+     * @deprecated This property is a no-op in {@code javac}.
+     */
+    @Deprecated
+    @Parameter(property = "maven.compiler.optimize", defaultValue = "false")
+    private boolean optimize;
+
+    /**
+     * Set to <code>false</code> to disable warnings during compilation.
+     */
+    @Parameter(property = "maven.compiler.showWarnings", defaultValue = "true")
+    private boolean showWarnings;
+
+    /**
+     * <p>The {@code -source} argument for the Java compiler.</p>
+     *
+     * <p><b>NOTE: </b></p>
+     * <p>Since 3.8.0 the default value has changed from 1.5 to 1.6</p>
+     * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
+     * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-source">javac -source</a>
+     */
+    @Parameter(property = "maven.compiler.source", defaultValue = DEFAULT_SOURCE)
     protected String source;
 
     /**
-     * The {@code --target} argument for the Java compiler.
-     * <p><b>Notes:</b></p>
-     * <ul>
-     *   <li>Since 3.8.0 the default value has changed from 1.5 to 1.6.</li>
-     *   <li>Since 3.9.0 the default value has changed from 1.6 to 1.7.</li>
-     *   <li>Since 3.11.0 the default value has changed from 1.7 to 1.8.</li>
-     *   <li>Since 4.0.0-beta-2 the default value has been removed.
-     *       As of Java 9, the {@link #release} parameter is preferred.</li>
-     * </ul>
+     * <p>The {@code -target} argument for the Java compiler.</p>
      *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-target">javac --target</a>
+     * <p><b>NOTE: </b></p>
+     * <p>Since 3.8.0 the default value has changed from 1.5 to 1.6</p>
+     * <p>Since 3.9.0 the default value has changed from 1.6 to 1.7</p>
+     * <p>Since 3.11.0 the default value has changed from 1.7 to 1.8</p>
+     *
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-target">javac -target</a>
      */
-    @Parameter(property = "maven.compiler.target")
+    @Parameter(property = "maven.compiler.target", defaultValue = DEFAULT_TARGET)
     protected String target;
 
     /**
-     * The {@code --release} argument for the Java compiler when the sources do not declare this version.
-     * The suggested way to declare the target Java release is to specify it with the sources like below:
+     * The {@code -release} argument for the Java compiler, supported since Java9
      *
-     * <pre>{@code
-     * <build>
-     *   <sources>
-     *     <source>
-     *       <directory>src/main/java</directory>
-     *       <targetVersion>17</targetVersion>
-     *     </source>
-     *   </sources>
-     * </build>}</pre>
-     *
-     * If such {@code <targetVersion>} element is found, it has precedence over this {@code release} property.
-     * If a source does not declare a target Java version, then the value of this {@code release} property is
-     * used as a fallback.
-     * If omitted, the compiler will generate bytecodes for the Java version running the compiler.
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-release">javac --release</a>
      * @since 3.6
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-release">javac -release</a>
      */
     @Parameter(property = "maven.compiler.release")
     protected String release;
 
     /**
-     * Whether {@link #target} or {@link #release} has a non-blank value.
-     * Used for logging a warning if no target Java version was specified.
+     * The {@code -encoding} argument for the Java compiler.
+     *
+     * @since 2.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-encoding">javac -encoding</a>
      */
-    private boolean targetOrReleaseSet;
+    @Parameter(property = "encoding", defaultValue = "${project.build.sourceEncoding}")
+    private String encoding;
 
     /**
-     * The highest version supported by the compiler, or {@code null} if not yet determined.
-     *
-     * @see #isVersionEqualOrNewer(String)
+     * Sets the granularity in milliseconds of the last modification
+     * date for testing whether a source needs recompilation.
      */
-    private SourceVersion supportedVersion;
+    @Parameter(property = "lastModGranularityMs", defaultValue = "0")
+    private int staleMillis;
 
     /**
-     * Whether to enable preview language features of the java compiler.
-     * If {@code true}, then the {@code --enable-preview} option will be added to compiler arguments.
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-enable-preview">javac --enable-preview</a>
-     * @since 3.10.1
+     * The compiler id of the compiler to use. See this
+     * <a href="non-javac-compilers.html">guide</a> for more information.
      */
-    @Parameter(property = "maven.compiler.enablePreview", defaultValue = "false")
-    protected boolean enablePreview;
+    @Parameter(property = "maven.compiler.compilerId", defaultValue = "javac")
+    private String compilerId;
 
     /**
-     * The root directories containing the source files to be compiled. If {@code null} or empty,
-     * the directories will be obtained from the {@code <Source>} elements declared in the project.
-     * If non-empty, the project {@code <Source>} elements are ignored. This configuration option
-     * should be used only when there is a need to override the project configuration.
-     *
-     * @deprecated Replaced by the project-wide {@code <sources>} element.
+     * Version of the compiler to use, ex. "1.3", "1.5", if {@link #fork} is set to <code>true</code>.
+     * @deprecated This parameter is no longer evaluated by the underlying compilers, instead the actual
+     * version of the {@code javac} binary is automatically retrieved.
      */
-    @Parameter
-    @Deprecated(since = "4.0.0")
-    protected List<String> compileSourceRoots;
+    @Deprecated
+    @Parameter(property = "maven.compiler.compilerVersion")
+    private String compilerVersion;
 
     /**
-     * Additional arguments to be passed verbatim to the Java compiler. This parameter can be used when
-     * the Maven compiler plugin does not provide a parameter for a Java compiler option. It may happen,
-     * for example, for new or preview Java features which are not yet handled by this compiler plugin.
-     *
-     * <p>If an option has a value, the option and the value shall be specified in two separated {@code <arg>}
-     * elements. For example, the {@code -Xmaxerrs 1000} option (for setting the maximal number of errors to
-     * 1000) can be specified as below (together with other options):</p>
-     *
-     * <pre>{@code
-     * <compilerArgs>
-     *   <arg>-Xlint</arg>
-     *   <arg>-Xmaxerrs</arg>
-     *   <arg>1000</arg>
-     *   <arg>J-Duser.language=en_us</arg>
-     * </compilerArgs>}</pre>
-     *
-     * Note that {@code -J} options should be specified only if {@link #fork} is set to {@code true}.
-     * Other options can be specified regardless the {@link #fork} value.
-     * The compiler plugin does not verify whether the arguments given through this parameter are valid.
-     * For this reason, the other parameters provided by the compiler plugin should be preferred when
-     * they exist, because the plugin checks whether the corresponding options are supported.
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
-     * @since 3.1
+     * Allows running the compiler in a separate process.
+     * If <code>false</code> it uses the built in compiler, while if <code>true</code> it will use an executable.
      */
-    @Parameter
-    protected List<String> compilerArgs;
+    @Parameter(property = "maven.compiler.fork", defaultValue = "false")
+    private boolean fork;
 
     /**
-     * The single argument string to be passed to the compiler. To pass multiple arguments such as
-     * {@code -Xmaxerrs 1000} (which are actually two arguments), {@link #compilerArgs} is preferred.
+     * Initial size, in megabytes, of the memory allocation pool, ex. "64", "64m"
+     * if {@link #fork} is set to <code>true</code>.
      *
-     * <p>Note that {@code -J} options should be specified only if {@link #fork} is set to {@code true}.</p>
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
-     *
-     * @deprecated Use {@link #compilerArgs} instead.
+     * @since 2.0.1
      */
-    @Parameter
-    @Deprecated(since = "4.0.0")
-    protected String compilerArgument;
+    @Parameter(property = "maven.compiler.meminitial")
+    private String meminitial;
 
     /**
-     * Configures if annotation processing and/or compilation are performed by the compiler.
-     * If set, the value will be appended to the {@code -proc:} compiler option.
+     * Sets the maximum size, in megabytes, of the memory allocation pool, ex. "128", "128m"
+     * if {@link #fork} is set to <code>true</code>.
      *
-     * Possible values are:
+     * @since 2.0.1
+     */
+    @Parameter(property = "maven.compiler.maxmem")
+    private String maxmem;
+
+    /**
+     * Sets the executable of the compiler to use when {@link #fork} is <code>true</code>.
+     */
+    @Parameter(property = "maven.compiler.executable")
+    private String executable;
+
+    /**
+     * <p>
+     * Sets whether annotation processing is performed or not. Only applies to JDK 1.6+
+     * If not set, both compilation and annotation processing are performed at the same time.
+     * </p>
+     * <p>Allowed values are:</p>
      * <ul>
-     *   <li>{@code none} – no annotation processing is performed, only compilation is done.</li>
-     *   <li>{@code only} – only annotation processing is done, no compilation.</li>
-     *   <li>{@code full} – annotation processing followed by compilation is done.</li>
+     * <li><code>none</code> - no annotation processing is performed.</li>
+     * <li><code>only</code> - only annotation processing is done, no compilation.</li>
+     * <li><code>full</code> - annotation processing and compilation.</li>
      * </ul>
      *
-     * The default value depends on the JDK used for the build.
-     * Prior to Java 23, the default was {@code full},
-     * so annotation processing and compilation were executed without explicit configuration.
+     * <code>full</code> is the default. Starting with JDK 21, this option must be set explicitly.
      *
-     * For security reasons, starting with Java 23 no annotation processing is done if neither
-     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set,
-     * or either {@code only} or {@code full} is set.
-     * So literally the default is {@code none}.
-     * It is recommended to always list the annotation processors you want to execute
-     * instead of using the {@code proc} configuration,
-     * to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
-     *
-     * @see #annotationProcessors
-     * @see <a href="https://inside.java/2024/06/18/quality-heads-up/">Inside Java 2024-06-18 Quality Heads up</a>
+     * @since 2.2
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-proc">javac -proc</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
-     * @since 2.2
      */
     @Parameter(property = "maven.compiler.proc")
-    protected String proc;
-    // Reminder: if above list of legal values is modified, update also addComaSeparated("-proc", …)
+    private String proc;
 
     /**
-     * Class names of annotation processors to run.
+     * <p>
+     * Names of annotation processors to run. Only applies to JDK 1.6+
      * If not set, the default annotation processors discovery process applies.
-     * If set, the value will be appended to the {@code -processor} compiler option.
+     * </p>
      *
-     * @see #proc
      * @since 2.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor">javac -processor</a>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
      */
     @Parameter
-    protected String[] annotationProcessors;
+    private String[] annotationProcessors;
 
     /**
+     * <p>
      * Classpath elements to supply as annotation processor path. If specified, the compiler will detect annotation
-     * processors only in those classpath elements. If omitted (and {@code proc} is set to {@code only} or {@code full}), the default classpath is used to detect annotation
-     * processors. The detection itself depends on the configuration of {@link #annotationProcessors}.
-     * Since JDK 23 by default no annotation processing is performed as long as no processors is listed for security reasons.
-     * Therefore, you should always list the desired processors using this configuration element or {@code annotationProcessorPaths}.
-     *
+     * processors only in those classpath elements. If omitted, the default classpath is used to detect annotation
+     * processors. The detection itself depends on the configuration of {@code annotationProcessors}.
+     * </p>
      * <p>
      * Each classpath element is specified using their Maven coordinates (groupId, artifactId, version, classifier,
      * type). Transitive dependencies are added automatically. Exclusions are supported as well. Example:
@@ -383,20 +348,19 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * <b>Note:</b> Exclusions are supported from version 3.11.0.
      *
+     * @since 3.5
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor-path">javac -processorpath</a>
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#annotation-processing">javac Annotation Processing</a>
-     * @since 3.5
      *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
-     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
     @Parameter
-    @Deprecated(since = "4.0.0")
-    protected List<DependencyCoordinate> annotationProcessorPaths;
+    private List<DependencyCoordinate> annotationProcessorPaths;
 
     /**
+     * <p>
      * Whether to use the Maven dependency management section when resolving transitive dependencies of annotation
      * processor paths.
+     * </p>
      * <p>
      * This flag does not enable / disable the ability to resolve the version of annotation processor paths
      * from dependency management section. It only influences the resolution of transitive dependencies of those
@@ -404,361 +368,123 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </p>
      *
      * @since 3.12.0
-     *
-     * @deprecated This flag is ignored.
-     * Replaced by ordinary dependencies with {@code <type>} element set to
-     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
      */
-    @Deprecated(since = "4.0.0")
     @Parameter(defaultValue = "false")
-    protected boolean annotationProcessorPathsUseDepMgmt;
+    private boolean annotationProcessorPathsUseDepMgmt;
 
     /**
-     * Whether to generate {@code package-info.class} even when empty.
-     * By default, package info source files that only contain javadoc and no annotation
-     * on the package can lead to no class file being generated by the compiler.
-     * It may cause a file miss on build systems that check for file existence in order to decide what to recompile.
+     * <p>
+     * Sets the arguments to be passed to the compiler (prepending a dash).
+     * </p>
+     * <p>
+     * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
+     * </p>
+     * <p>
+     * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
+     * </p>
+     * <p>
+     * To pass <code>-Xmaxerrs 1000 -Xlint -Xlint:-path -Averbose=true</code> you should include the following:
+     * </p>
      *
-     * <p>If {@code true}, the {@code -Xpkginfo:always} compiler option is added if the compiler supports that
-     * extra option. If the extra option is not supported, then a warning is logged and no option is added to
-     * the compiler arguments.</p>
+     * <pre>
+     * &lt;compilerArguments&gt;
+     *   &lt;Xmaxerrs&gt;1000&lt;/Xmaxerrs&gt;
+     *   &lt;Xlint/&gt;
+     *   &lt;Xlint:-path/&gt;
+     *   &lt;Averbose&gt;true&lt;/Averbose&gt;
+     * &lt;/compilerArguments&gt;
+     * </pre>
      *
-     * @see #incrementalCompilation
-     * @since 3.10
-     */
-    @Parameter(property = "maven.compiler.createMissingPackageInfoClass", defaultValue = "false")
-    protected boolean createMissingPackageInfoClass;
-
-    /**
-     * Whether to generate class files for implicitly referenced files.
-     * If set, the value will be appended to the {@code -implicit:} compiler option.
-     * Standard values are:
-     * <ul>
-     *   <li>{@code class} – automatically generates class files.</li>
-     *   <li>{@code none}  – suppresses class file generation.</li>
-     * </ul>
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-implicit">javac -implicit</a>
-     * @since 3.10.2
-     */
-    @Parameter(property = "maven.compiler.implicit")
-    protected String implicit;
-    // Reminder: if above list of legal values is modified, update also addComaSeparated("-implicit", …)
-
-    /**
-     * Whether to generate metadata for reflection on method parameters.
-     * If {@code true}, the {@code -parameters} option will be added to compiler arguments.
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-parameters">javac -parameters</a>
-     * @since 3.6.2
-     */
-    @Parameter(property = "maven.compiler.parameters", defaultValue = "false")
-    protected boolean parameters;
-
-    /**
-     * Whether to include debugging information in the compiled class files.
-     * The amount of debugging information to include is specified by the {@link #debuglevel} parameter.
-     * If this {@code debug} flag is {@code true}, then the {@code -g} option may be added to compiler arguments
-     * with a value determined by the {@link #debuglevel} argument. If this {@code debug} flag is {@code false},
-     * then the {@code -g:none} option will be added to the compiler arguments.
-     *
-     * @see #debuglevel
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g">javac -g</a>
-     *
-     * @deprecated Setting this flag to {@code false} is replaced by {@code <debuglevel>none</debuglevel>}.
-     */
-    @Deprecated(since = "4.0.0")
-    @Parameter(property = "maven.compiler.debug", defaultValue = "true")
-    protected boolean debug = true;
-
-    /**
-     * Kinds of debugging information to include in the compiled class files.
-     * Legal values are {@code lines}, {@code vars}, {@code source}, {@code all} and {@code none}.
-     * Values other than {@code all} and {@code none} can be combined in a comma-separated list.
-     *
-     * <p>If debug level is not specified, then the {@code -g} option will <em>not</em> be added,
-     * which means that the default debugging information will be generated
-     * (typically {@code lines} and {@code source} but not {@code vars}).</p>
-     *
-     * <p>If debug level is {@code all}, then only the {@code -g} option is added,
-     * which means that all debugging information will be generated.
-     * If debug level is anything else, then the comma-separated list of keywords
-     * is appended to the {@code -g} command-line switch.</p>
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac -g:[lines,vars,source]</a>
-     * @since 2.1
-     */
-    @Parameter(property = "maven.compiler.debuglevel")
-    protected String debuglevel;
-    // Reminder: if above list of legal values is modified, update also addComaSeparated("-g", …)
-
-    /**
-     * Whether to optimize the compiled code using the compiler's optimization methods.
-     * @deprecated This property is ignored.
-     */
-    @Deprecated(forRemoval = true)
-    @Parameter(property = "maven.compiler.optimize")
-    protected Boolean optimize;
-
-    /**
-     * Whether to show messages about what the compiler is doing.
-     * If {@code true}, then the {@code -verbose} option will be added to compiler arguments.
-     * In addition, files such as {@code target/javac.args} will be generated even on successful compilation.
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac -verbose</a>
-     */
-    @Parameter(property = "maven.compiler.verbose", defaultValue = "false")
-    protected boolean verbose;
-
-    /**
-     * Whether to provide more details about why a module is rebuilt.
-     * This is used only if {@link #incrementalCompilation} is set to something else than {@code "none"}.
-     *
-     * @see #incrementalCompilation
-     */
-    @Parameter(property = "maven.compiler.showCompilationChanges", defaultValue = "false")
-    protected boolean showCompilationChanges;
-
-    /**
-     * Whether to show source locations where deprecated APIs are used.
-     * If {@code true}, then the {@code -deprecation} option will be added to compiler arguments.
-     * That option is itself a shorthand for {@code -Xlint:deprecation}.
-     *
-     * @see #showWarnings
-     * @see #failOnWarning
-     */
-    @Parameter(property = "maven.compiler.showDeprecation", defaultValue = "false")
-    protected boolean showDeprecation;
-
-    /**
-     * Whether to show compilation warnings.
-     * If {@code false}, then the {@code -nowarn} option will be added to compiler arguments.
-     * That option is itself a shorthand for {@code -Xlint:none}.
-     *
-     * @see #showDeprecation
-     * @see #failOnWarning
-     */
-    @Parameter(property = "maven.compiler.showWarnings", defaultValue = "true")
-    protected boolean showWarnings = true;
-
-    /**
-     * Whether the build will stop if there are compilation warnings.
-     * If {@code true}, then the {@code -Werror} option will be added to compiler arguments.
-     *
-     * @see #showWarnings
-     * @see #showDeprecation
-     * @since 3.6
-     */
-    @Parameter(property = "maven.compiler.failOnWarning", defaultValue = "false")
-    protected boolean failOnWarning;
-
-    /**
-     * Whether the build will stop if there are compilation errors.
-     *
-     * @see #failOnWarning
-     * @since 2.0.2
-     */
-    @Parameter(property = "maven.compiler.failOnError", defaultValue = "true")
-    protected boolean failOnError = true;
-
-    /**
-     * Sets the name of the output file when compiling a set of sources to a single file.
-     *
-     * <p>expression="${project.build.finalName}"</p>
-     *
-     * @deprecated Bundling many class files into a single file should be done by other plugins.
+     * @since 2.0.1
+     * @deprecated use {@link #compilerArgs} instead.
      */
     @Parameter
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    protected String outputFileName;
+    @Deprecated
+    protected Map<String, String> compilerArguments;
 
     /**
-     * Timestamp for reproducible output archive entries. It can be either formatted as ISO 8601
-     * {@code yyyy-MM-dd'T'HH:mm:ssXXX} or as an int representing seconds since the epoch (like
-     * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
-     *
-     * @since 3.12.0
-     *
-     * @deprecated Not used by the compiler plugin since it does not generate archive.
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    @Parameter(defaultValue = "${project.build.outputTimestamp}")
-    protected String outputTimestamp;
-
-    /**
-     * The algorithm to use for selecting which files to compile.
-     * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
-     * {@code rebuild-on-add}, {@code modules} or {@code none}.
-     *
-     * <p><b>{@code options}:</b>
-     * recompile all source files if the compiler options changed.
-     * Changes are detected on a <i>best-effort</i> basis only.</p>
-     *
-     * <p><b>{@code dependencies}:</b>
-     * recompile all source files if at least one dependency (JAR file) changed since the last build.
-     * This check is based on the last modification times of JAR files.</p>
-     *
-     * <p><b>{@code sources}:</b>
-     * recompile source files modified since the last build.
-     * In addition, if a source file has been deleted, then all source files are recompiled.
-     * This check is based on the modification times of source files
-     * rather than the modification times of the {@code *.class} files.</p>
-     *
-     * <p><b>{@code classes}:</b>
-     * recompile source files ({@code *.java}) associated to no output file ({@code *.class})
-     * or associated to an output file older than the source. This algorithm does not check
-     * if a source file has been removed, potentially leaving non-recompiled classes with
-     * references to classes that no longer exist.</p>
-     *
-     * <p>The {@code sources} and {@code classes} values are partially redundant,
-     * doing the same work in different ways. It is usually not necessary to specify those two values.</p>
-     *
-     * <p><b>{@code modules}:</b>
-     * recompile modules and let the compiler decides which individual files to recompile.
-     * The compiler plugin does not enumerate the source files to recompile (actually, it does not scan at all the
-     * source directories). Instead, it only specifies the module to recompile using the {@code --module} option.
-     * The Java compiler will scan the source directories itself and compile only those source files that are newer
-     * than the corresponding files in the output directory.</p>
-     *
-     * <p><b>{@code rebuild-on-add}:</b>
-     * modifier for recompiling all source files when the addition of a new file is detected.
-     * This flag is effective only when used together with {@code sources} or {@code classes}.
-     * When used with {@code classes}, it provides a way to detect class renaming
-     * (this is not needed with {@code sources} for detecting renaming).</p>
-     *
-     * <p><b>{@code rebuild-on-change}:</b>
-     * modifier for recompiling all source files when a change is detected in at least one source file.
-     * This flag is effective only when used together with {@code sources} or {@code classes}.
-     * It does not rebuild when a new source file is added without change in other files,
-     * unless {@code rebuild-on-add} is also specified.</p>
-     *
-     * <p><b>{@code none}:</b>
-     * the compiler plugin unconditionally specifies all sources to the Java compiler.
-     * This option is mutually exclusive with all other incremental compilation options.</p>
-     *
-     * <h4>Limitations</h4>
-     * In all cases, the current compiler-plugin does not detect structural changes other than file addition or removal.
-     * For example, the plugin does not detect whether a method has been removed in a class.
-     *
-     * <h4>Default value</h4>
-     * The default value depends on the context.
-     * If there is no annotation processor, then the default is {@code "options,dependencies,sources"}.
-     * It means that a full rebuild will be done if the compiler options or the dependencies changed,
-     * or if a source file has been deleted. Otherwise, only the modified source files will be recompiled.
-     *
-     * <p>If an annotation processor is present (e.g., {@link #proc} set to a value other than {@code "none"}),
-     * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
-     * It means that a full rebuild will be done if any kind of change is detected.</p>
-     *
-     * <p>Whether an annotation processor is considered present depends on the Java version when {@link #proc} is unset,
-     * because {@code javac} enables annotation processing by default before Java 23 ({@code -proc:full})
-     * but disables it since Java 23 ({@code -proc:none} unless a processor is configured).
-     * Consequently, on Java versions prior to 23 the plugin conservatively assumes that a processor may be present
-     * — since {@code javac} would discover processors on the compile classpath —
-     * and therefore applies {@code "rebuild-on-add,rebuild-on-change"} by default,
-     * doing a full rebuild on any change even when no processor is actually present.
-     * Projects on Java &lt; 23 that use no annotation processor can restore per-file recompilation
-     * by setting {@link #proc} to {@code "none"} (or by setting this {@code incrementalCompilation} property explicitly).</p>
-     *
-     * @see #staleMillis
-     * @see #fileExtensions
-     * @see #showCompilationChanges
-     * @see #createMissingPackageInfoClass
-     * @since 4.0.0
-     */
-    @Parameter(property = "maven.compiler.incrementalCompilation")
-    protected String incrementalCompilation;
-
-    /**
-     * Whether to enable/disable incremental compilation feature.
+     * <p>
+     * Sets the arguments to be passed to the compiler.
+     * </p>
+     * <p>
+     * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
+     * </p>
+     * Example:
+     * <pre>
+     * &lt;compilerArgs&gt;
+     *   &lt;arg&gt;-Xmaxerrs&lt;/arg&gt;
+     *   &lt;arg&gt;1000&lt;/arg&gt;
+     *   &lt;arg&gt;-Xlint&lt;/arg&gt;
+     *   &lt;arg&gt;-J-Duser.language=en_us&lt;/arg&gt;
+     * &lt;/compilerArgs&gt;
+     * </pre>
      *
      * @since 3.1
-     *
-     * @deprecated Replaced by {@link #incrementalCompilation}.
-     * A value of {@code true} in this old property is equivalent to {@code "dependencies,sources,rebuild-on-add"}
-     * in the new property, and a value of {@code false} is equivalent to {@code "classes"}.
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
      */
-    @Deprecated(since = "4.0.0")
-    @Parameter(property = "maven.compiler.useIncrementalCompilation")
-    protected Boolean useIncrementalCompilation;
+    @Parameter
+    protected List<String> compilerArgs;
 
     /**
-     * Returns the configuration of the incremental compilation.
-     * If the argument is null or blank, then this method applies
-     * the default values documented in {@link #incrementalCompilation} javadoc.
-     *
-     * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
+     * <p>
+     * Sets the unformatted single argument string to be passed to the compiler. To pass multiple arguments such as
+     * <code>-Xmaxerrs 1000</code> (which are actually two arguments) you have to use {@link #compilerArgs}.
+     * </p>
+     * <p>
+     * This is because the list of valid arguments passed to a Java compiler varies based on the compiler version.
+     * </p>
+     * <p>
+     * Note that {@code -J} options are only passed through if {@link #fork} is set to {@code true}.
+     * </p>
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-J">javac -J</a>
      */
-    final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
-        if (isAbsent(incrementalCompilation)) {
-            if (useIncrementalCompilation != null) {
-                return useIncrementalCompilation
-                        ? EnumSet.of(
-                                IncrementalBuild.Aspect.DEPENDENCIES,
-                                IncrementalBuild.Aspect.SOURCES,
-                                IncrementalBuild.Aspect.REBUILD_ON_ADD)
-                        : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
-            }
-            return EnumSet.of(
-                    IncrementalBuild.Aspect.OPTIONS,
-                    IncrementalBuild.Aspect.DEPENDENCIES,
-                    IncrementalBuild.Aspect.SOURCES);
-        }
-        return IncrementalBuild.Aspect.parse(incrementalCompilation);
-    }
+    @Parameter
+    protected String compilerArgument;
 
     /**
-     * Amends the configuration of incremental compilation for the presence of annotation processors.
-     *
-     * @param aspects the configuration to amend if an annotation processor is found
-     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
+     * Sets the name of the output file when compiling a set of
+     * sources to a single file.
+     * <p/>
+     * expression="${project.build.finalName}"
      */
-    final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
-        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
-        }
-    }
+    @Parameter
+    private String outputFileName;
 
     /**
-     * File extensions to check timestamp for incremental build.
-     * Default contains only {@code class} and {@code jar}.
+     * Keyword list to be appended to the <code>-g</code> command-line switch. Legal values are none or a
+     * comma-separated list of the following keywords: <code>lines</code>, <code>vars</code>, and <code>source</code>.
+     * If debug level is not specified, by default, nothing will be appended to <code>-g</code>.
+     * If {@link #debug} is not turned on, this attribute will be ignored.
      *
-     * TODO: Rename with a name making clearer that this parameter is about incremental build.
-     *
-     * @see #incrementalCompilation
-     * @since 3.1
+     * @since 2.1
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-g-custom">javac -G:[lines,vars,source]</a>
      */
-    @Parameter(defaultValue = "class,jar")
-    protected List<String> fileExtensions;
+    @Parameter(property = "maven.compiler.debuglevel")
+    private String debuglevel;
 
     /**
-     * The granularity in milliseconds of the last modification
-     * date for testing whether a source needs recompilation.
+     * Keyword to be appended to the <code>-implicit:</code> command-line switch.
      *
-     * @see #incrementalCompilation
+     * @since 3.10.2
+     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-implicit">javac -implicit</a>
      */
-    @Parameter(property = "lastModGranularityMs", defaultValue = "0")
-    protected int staleMillis;
+    @Parameter(property = "maven.compiler.implicit")
+    private String implicit;
 
     /**
-     * Allows running the compiler in a separate process.
-     * If {@code false}, the plugin uses the built-in compiler, while if {@code true} it will use an executable.
      *
-     * @see #executable
-     * @see #compilerId
-     * @see #meminitial
-     * @see #maxmem
      */
-    @Parameter(property = "maven.compiler.fork", defaultValue = "false")
-    protected boolean fork;
+    @Inject
+    private ToolchainManager toolchainManager;
 
     /**
-     * Requirements for this JDK toolchain for using a different {@code javac} than the one of the JDK used by Maven.
-     * This overrules the toolchain selected by the
+     * <p>
+     * Specify the requirements for this jdk toolchain for using a different {@code javac} than the one of the JRE used
+     * by Maven. This overrules the toolchain selected by the
      * <a href="https://maven.apache.org/plugins/maven-toolchains-plugin/">maven-toolchain-plugin</a>.
-     * See <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html"> Guide to Toolchains</a>
-     * for more info.
+     * </p>
+     * (see <a href="https://maven.apache.org/guides/mini/guide-using-toolchains.html"> Guide to Toolchains</a> for more
+     * info)
      *
      * <pre>
      * &lt;configuration&gt;
@@ -776,125 +502,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *   ...
      * &lt;/configuration&gt;
      * </pre>
+     * <strong>note:</strong> requires at least Maven 3.3.1
      *
-     * @see #fork
-     * @see #executable
      * @since 3.6
      */
     @Parameter
-    protected Map<String, String> jdkToolchain;
-
-    /**
-     * Identifier of the compiler to use. This identifier shall match the identifier of a compiler known
-     * to the {@linkplain #jdkToolchain JDK tool chain}, or the {@linkplain JavaCompiler#name() name} of
-     * a {@link JavaCompiler} instance registered as a service findable by {@link ServiceLoader}.
-     * See this <a href="non-javac-compilers.html">guide</a> for more information.
-     * If unspecified, then the {@linkplain ToolProvider#getSystemJavaCompiler() system Java compiler} is used.
-     * The identifier of the system Java compiler is usually {@code javac}.
-     *
-     * @see #fork
-     * @see #executable
-     * @see JavaCompiler#name()
-     */
-    @Parameter(property = "maven.compiler.compilerId")
-    protected String compilerId;
-
-    /**
-     * Version of the compiler to use if {@link #fork} is set to {@code true}.
-     * Examples! "1.3", "1.5".
-     *
-     * @deprecated This parameter is no longer used by the underlying compilers.
-     *
-     * @see #fork
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    @Parameter(property = "maven.compiler.compilerVersion")
-    protected String compilerVersion;
-
-    /**
-     * Whether to use the legacy {@code com.sun.tools.javac} API instead of {@code javax.tools} API.
-     *
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">New API</a>
-     * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">Legacy API</a>
-     * @since 3.13
-     *
-     * @deprecated Ignored because the compiler plugin now always use the {@code javax.tools} API.
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    @Parameter(property = "maven.compiler.forceLegacyJavacApi")
-    protected Boolean forceLegacyJavacApi;
-
-    /**
-     * Whether to use legacy compiler API.
-     *
-     * @since 3.0
-     *
-     * @deprecated Ignored because {@code java.lang.Compiler} has been deprecated and removed from the JDK.
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    @Parameter(property = "maven.compiler.forceJavacCompilerUse")
-    protected Boolean forceJavacCompilerUse;
-
-    /**
-     * Strategy to re use {@code javacc} class created. Legal values are:
-     * <ul>
-     *   <li>{@code reuseCreated} (default) – will reuse already created but in case of multi-threaded builds,
-     *       each thread will have its own instance.</li>
-     *   <li>{@code reuseSame} – the same Javacc class will be used for each compilation even
-     *       for multi-threaded build.</li>
-     *   <li>{@code alwaysNew} – a new Javacc class will be created for each compilation.</li>
-     * </ul>
-     * Note this parameter value depends on the OS/JDK you are using, but the default value should work on most of env.
-     *
-     * @since 2.5
-     *
-     * @deprecated Not supported anymore. The reuse of {@link JavaFileManager} instance is plugin implementation details.
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    @Parameter(property = "maven.compiler.compilerReuseStrategy")
-    protected String compilerReuseStrategy;
-
-    /**
-     * @since 2.5
-     *
-     * @deprecated Deprecated as a consequence of {@link #compilerReuseStrategy} deprecation.
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    @Parameter(property = "maven.compiler.skipMultiThreadWarning")
-    protected Boolean skipMultiThreadWarning;
-
-    /**
-     * Executable of the compiler to use when {@link #fork} is {@code true}.
-     * If this parameter is specified, then the {@link #jdkToolchain} is ignored.
-     *
-     * @see #jdkToolchain
-     * @see #fork
-     * @see #compilerId
-     */
-    @Parameter(property = "maven.compiler.executable")
-    protected String executable;
-
-    /**
-     * Initial size, in megabytes, of the memory allocation pool if {@link #fork} is set to {@code true}.
-     * Examples: "64", "64M". Suffixes "k" (for kilobytes) and "G" (for gigabytes) are also accepted.
-     * If no suffix is provided, "M" is assumed.
-     *
-     * @see #fork
-     * @since 2.0.1
-     */
-    @Parameter(property = "maven.compiler.meminitial")
-    protected String meminitial;
-
-    /**
-     * Maximum size, in megabytes, of the memory allocation pool if {@link #fork} is set to {@code true}.
-     * Examples: "128", "128M". Suffixes "k" (for kilobytes) and "G" (for gigabytes) are also accepted.
-     * If no suffix is provided, "M" is assumed.
-     *
-     * @see #fork
-     * @since 2.0.1
-     */
-    @Parameter(property = "maven.compiler.maxmem")
-    protected String maxmem;
+    private Map<String, String> jdkToolchain;
 
     // ----------------------------------------------------------------------
     // Read-only parameters
@@ -903,1022 +516,1416 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * The directory to run the compiler from if fork is true.
      */
-    @Parameter(defaultValue = "${project.basedir}", required = true, readonly = true)
-    protected Path basedir;
+    @Parameter(defaultValue = "${basedir}", required = true, readonly = true)
+    private File basedir;
 
     /**
-     * Path to a file where to cache information about the last incremental build.
-     * This is used when "incremental" builds are enabled for detecting additions
-     * or removals of source files, or changes in plugin configuration.
-     * This file should be in the output directory and can be deleted at any time
+     * The target directory of the compiler if fork is true.
      */
-    @Parameter(
-            defaultValue =
-                    "${project.build.directory}/maven-status/${mojo.plugin.descriptor.artifactId}/${mojo.executionId}.cache",
-            required = true,
-            readonly = true)
-    protected Path mojoStatusPath;
+    @Parameter(defaultValue = "${project.build.directory}", required = true, readonly = true)
+    private File buildDirectory;
 
     /**
-     * The current build session instance.
+     * Plexus compiler manager.
      */
     @Inject
-    protected Session session;
+    private CompilerManager compilerManager;
 
     /**
-     * The current project instance.
+     * The current build session instance. This is used for toolchain manager API calls.
+     */
+    @Parameter(defaultValue = "${session}", readonly = true, required = true)
+    private MavenSession session;
+
+    /**
+     * The current project instance. This is used for propagating generated-sources paths as compile/testCompile source
+     * roots.
+     */
+    @Parameter(defaultValue = "${project}", readonly = true, required = true)
+    private MavenProject project;
+
+    /**
+     * Strategy to re use javacc class created:
+     * <ul>
+     * <li><code>reuseCreated</code> (default): will reuse already created but in case of multi-threaded builds, each
+     * thread will have its own instance</li>
+     * <li><code>reuseSame</code>: the same Javacc class will be used for each compilation even for multi-threaded build
+     * </li>
+     * <li><code>alwaysNew</code>: a new Javacc class will be created for each compilation</li>
+     * </ul>
+     * Note this parameter value depends on the os/jdk you are using, but the default value should work on most of env.
+     *
+     * @since 2.5
+     */
+    @Parameter(defaultValue = "${reuseCreated}", property = "maven.compiler.compilerReuseStrategy")
+    private String compilerReuseStrategy = "reuseCreated";
+
+    /**
+     * @since 2.5
+     */
+    @Parameter(defaultValue = "false", property = "maven.compiler.skipMultiThreadWarning")
+    private boolean skipMultiThreadWarning;
+
+    /**
+     * Legacy parameter name of {@link #forceLegacyJavacApi}. Only considered if {@link #forceLegacyJavacApi} is
+     * not set or {@code false}.
+     * @since 3.0
+     * @deprecated Use {@link #forceLegacyJavacApi} instead
+     */
+    @Deprecated
+    @Parameter(defaultValue = "false", property = "maven.compiler.forceJavacCompilerUse")
+    private boolean forceJavacCompilerUse;
+
+    /**
+     * The underlying compiler now uses <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.compiler/javax/tools/package-summary.html">{@code javax.tools} API</a>
+     * if available in your current JDK.
+     * Set this to {@code true} to always use the legacy <a href="https://docs.oracle.com/en/java/javase/17/docs/api/jdk.compiler/com/sun/tools/javac/package-summary.html">
+     * {@code com.sun.tools.javac} API</a> instead.
+     * <p>
+     * <em>This only has an effect for {@link #compilerId} being {@code javac} and {@link #fork} being {@code false}</em>.
+     *
+     * @since 3.13
+     */
+    @Parameter(defaultValue = "false", property = "maven.compiler.forceLegacyJavacApi")
+    private boolean forceLegacyJavacApi;
+
+    /**
+     * @since 3.0 needed for storing the status for the incremental build support.
+     */
+    @Parameter(defaultValue = "${mojoExecution}", readonly = true, required = true)
+    private MojoExecution mojoExecution;
+
+    /**
+     * File extensions to check timestamp for incremental build.
+     *
+     * @since 3.1
+     */
+    @Parameter(defaultValue = "class,jar")
+    private Set<String> fileExtensions;
+
+    /**
+     * <p>to enable/disable incremental compilation feature.</p>
+     * <p>This leads to two different modes depending on the underlying compiler. The default javac compiler does the
+     * following:</p>
+     * <ul>
+     * <li>true <strong>(default)</strong> in this mode the compiler plugin determines whether any JAR files the
+     * current module depends on have changed in the current build run; or any source file was added, removed or
+     * changed since the last compilation. If this is the case, the compiler plugin recompiles all sources.</li>
+     * <li>false <strong>(not recommended)</strong> this only compiles source files which are newer than their
+     * corresponding class files, namely which have changed since the last compilation. This does not
+     * recompile other classes which use the changed class, potentially leaving them with references to methods that no
+     * longer exist, leading to errors at runtime.</li>
+     * </ul>
+     *
+     * @since 3.1
+     */
+    @Parameter(defaultValue = "true", property = "maven.compiler.useIncrementalCompilation")
+    private boolean useIncrementalCompilation = true;
+
+    /**
+     * Package info source files that only contain javadoc and no annotation on the package
+     * can lead to no class file being generated by the compiler.  This causes a file miss
+     * on the next compilations and forces an unnecessary recompilation. The default value
+     * of <code>true</code> causes an empty class file to be generated.  This behavior can
+     * be changed by setting this parameter to <code>false</code>.
+     *
+     * @since 3.10
+     */
+    @Parameter(defaultValue = "true", property = "maven.compiler.createMissingPackageInfoClass")
+    private boolean createMissingPackageInfoClass = true;
+
+    @Parameter(defaultValue = "false", property = "maven.compiler.showCompilationChanges")
+    private boolean showCompilationChanges = false;
+
+    /**
+     * Timestamp for reproducible output archive entries, either formatted as ISO 8601
+     * <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like
+     * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
+     * @since 3.12.0
+     */
+    @Parameter(defaultValue = "${project.build.outputTimestamp}")
+    private String outputTimestamp;
+
+    /**
+     * Resolves the artifacts needed.
      */
     @Inject
-    protected Project project;
-
-    @Inject
-    protected ProjectManager projectManager;
-
-    @Inject
-    protected ArtifactManager artifactManager;
-
-    @Inject
-    protected ToolchainManager toolchainManager;
+    private RepositorySystem repositorySystem;
 
     /**
-     * The service to use for creating include and exclude filters.
+     * Artifact handler manager.
      */
     @Inject
-    protected PathMatcherFactory matcherFactory;
+    private ArtifactHandlerManager artifactHandlerManager;
 
-    @Inject
-    protected MessageBuilderFactory messageBuilderFactory;
+    protected abstract SourceInclusionScanner getSourceInclusionScanner(int staleMillis);
 
-    /**
-     * The logger for reporting information or warnings to the user.
-     * Currently, this is also used for console output.
-     *
-     * <h4>Thread safety</h4>
-     * This logger should be thread-safe if the {@link ToolExecutor} is executed in a background thread.
-     */
-    @Inject
-    protected Log logger;
+    protected abstract SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding);
 
-    /**
-     * Cached value for writing replacement proposal when a deprecated option is used.
-     * This is set to a non-null value when first needed. An empty string means that
-     * this information couldn't be fetched.
-     *
-     * @see #writePlugin(MessageBuilder, String, String)
-     */
-    private String mavenCompilerPluginVersion;
+    protected abstract List<String> getClasspathElements();
 
-    /**
-     * A tip about how to launch the Java compiler from the command-line.
-     * The command-line may have {@code -J} options before the argument file.
-     * This is non-null if the compilation failed or if Maven is executed in debug mode.
-     */
-    private String tipForCommandLineCompilation;
+    protected abstract List<String> getModulepathElements();
 
-    /**
-     * {@code MAIN_COMPILE} if this MOJO is for compiling the main code,
-     * or {@code TEST_COMPILE} if compiling the tests.
-     */
-    final PathScope compileScope;
+    protected abstract Map<String, JavaModuleDescriptor> getPathElements();
 
-    /**
-     * Creates a new MOJO.
-     *
-     * @param compileScope {@code MAIN_COMPILE} or {@code TEST_COMPILE}
-     */
-    protected AbstractCompilerMojo(PathScope compileScope) {
-        this.compileScope = compileScope;
-    }
+    protected abstract List<String> getCompileSourceRoots();
 
-    /**
-     * {@return the inclusion filters for the compiler, or an empty list for all Java source files}
-     * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
-     * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
-     * behavior of Maven 3.
-     */
-    protected abstract Set<String> getIncludes();
+    protected abstract void preparePaths(Set<File> sourceFiles);
 
-    /**
-     * {@return the exclusion filters for the compiler, or an empty list if none}
-     * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
-     * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
-     * behavior of Maven 3.
-     */
-    protected abstract Set<String> getExcludes();
+    protected abstract File getOutputDirectory();
 
-    /**
-     * {@return the exclusion filters for the incremental calculation}
-     * Updated source files, if excluded by this filter, will not cause the project to be rebuilt.
-     *
-     * @see SourceFile#ignoreModification
-     */
-    protected abstract Set<String> getIncrementalExcludes();
+    protected abstract String getSource();
 
-    /**
-     * {@return whether all includes/excludes matchers specified in the plugin configuration are empty}
-     * This method checks only the plugin configuration. It does not check the {@code <source>} elements.
-     */
-    final boolean hasNoFileMatchers() {
-        return getIncludes().isEmpty()
-                && getExcludes().isEmpty()
-                && getIncrementalExcludes().isEmpty();
-    }
+    protected abstract String getTarget();
 
-    /**
-     * {@return the destination directory (or class output directory) for class files}
-     * This directory will be given to the {@code -d} Java compiler option.
-     */
-    @Nonnull
-    protected abstract Path getOutputDirectory();
+    protected abstract String getRelease();
 
-    /**
-     * {@return the {@code --source} argument for the Java compiler}
-     * The default implementation returns the {@link #source} value.
-     */
-    @Nullable
-    protected String getSource() {
-        return source;
-    }
+    protected abstract String getCompilerArgument();
 
-    /**
-     * {@return the {@code --target} argument for the Java compiler}
-     * The default implementation returns the {@link #target} value.
-     */
-    @Nullable
-    protected String getTarget() {
-        return target;
-    }
+    protected abstract Map<String, String> getCompilerArguments();
 
-    /**
-     * {@return the {@code --release} argument for the Java compiler}
-     * The default implementation returns the {@link #release} value.
-     */
-    @Nullable
-    protected String getRelease() {
-        return release;
-    }
+    protected abstract File getGeneratedSourcesDirectory();
 
-    /**
-     * {@return the root directories of Java source code for the given scope}
-     * This method ignores the deprecated {@link #compileSourceRoots} element.
-     *
-     * @param scope whether to get the directories for main code or for the test code
-     */
-    final Stream<SourceRoot> getSourceRoots(ProjectScope scope) {
-        return projectManager.getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY);
-    }
-
-    /**
-     * {@return the root directories of the Java source files to compile, excluding empty directories}
-     * The list needs to be modifiable for allowing the addition of generated source directories.
-     * This is determined from the {@link #compileSourceRoots} plugin configuration if non-empty,
-     * or from {@code <source>} elements otherwise.
-     *
-     * @param outputDirectory the directory where to store the compilation results
-     * @throws IOException if this method needs to walk through directories and that operation failed
-     */
-    final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) throws IOException {
-        if (isAbsent(compileSourceRoots)) {
-            Stream<SourceRoot> roots = getSourceRoots(compileScope.projectScope());
-            return SourceDirectory.fromProject(roots, getRelease(), outputDirectory);
-        } else {
-            return SourceDirectory.fromPluginConfiguration(
-                    compileSourceRoots, moduleOfPreviousExecution(), getRelease(), outputDirectory);
-        }
-    }
-
-    /**
-     * {@return the path where to place generated source files created by annotation processing}
-     */
-    @Nullable
-    protected abstract Path getGeneratedSourcesDirectory();
-
-    /**
-     * Returns the module which is being patched in a multi-release project, or {@code null} if none.
-     * This is used when the {@link CompilerMojo#multiReleaseOutput} deprecated flag is {@code true}.
-     * This module name is handled in a special way because, contrarily to the case where the project
-     * uses the recommended {@code <sources>} elements (in which case all target releases are compiled
-     * in a single Maven Compiler Plugin execution), the Maven Compiler Plugin does not know what have
-     * been compiled for the other releases, because each target release is compiled with an execution
-     * of {@link CompilerMojo} separated from other executions.
-     *
-     * @return the module name in a previous execution of the compiler plugin, or {@code null} if none
-     * @throws IOException if this method needs to walk through directories and that operation failed
-     *
-     * @see CompilerMojo#addImplicitDependencies(ToolExecutor)
-     *
-     * @deprecated For compatibility with the previous way to build multi-release JAR file.
-     *             May be removed after we drop support of the old way to do multi-release.
-     */
-    @Deprecated(since = "4.0.0")
-    String moduleOfPreviousExecution() throws IOException {
-        return null;
-    }
-
-    /**
-     * {@return whether the sources contain at least one {@code module-info.java} file}
-     * Note that the sources may contain more than one {@code module-info.java} file
-     * if compiling a project with Module Source Hierarchy.
-     *
-     * <p>If the user explicitly specified a modular or classpath project, then the
-     * {@code module-info.java} is assumed to exist or not without verification.</p>
-     *
-     * <p>The test compiler overrides this method for checking the existence of the
-     * the {@code module-info.class} file in the main output directory instead.</p>
-     *
-     * @param roots root directories of the sources to compile
-     * @throws IOException if this method needed to read a module descriptor and failed
-     */
-    boolean hasModuleDeclaration(final List<SourceDirectory> roots) throws IOException {
-        return switch (project.getPackaging().type().id()) {
-            case Type.CLASSPATH_JAR -> false;
-            case Type.MODULAR_JAR -> true;
-            default -> {
-                for (SourceDirectory root : roots) {
-                    if (root.getModuleInfo().isPresent()) {
-                        yield true;
-                    }
-                }
-                yield false;
-            }
-        };
-    }
-
-    /**
-     * {@return the file where to dump the command-line when debug logging is enabled or when the compilation failed}
-     * For example, if the value is {@code "javac"}, then the Java compiler can be launched
-     * from the command-line by typing {@code javac @target/javac.args}.
-     * The debug file will contain the compiler options together with the list of source files to compile.
-     *
-     * <p>Note: debug logging should not be confused with the {@link #debug} flag.</p>
-     *
-     * @see CompilerMojo#debugFileName
-     * @see TestCompilerMojo#debugFileName
-     */
-    @Nullable
     protected abstract String getDebugFileName();
 
-    /**
-     * {@return the debug file name with its path, or null if none}
-     * This method does not check if the debug file will be written, as the compilation result is not yet known.
-     */
-    final Path getDebugFilePath() {
-        String filename = getDebugFileName();
-        if (isAbsent(filename)) {
-            return null;
+    protected final MavenProject getProject() {
+        return project;
+    }
+
+    protected final Optional<Path> getModuleDeclaration(final Set<File> sourceFiles) {
+        for (File sourceFile : sourceFiles) {
+            if ("module-info.java".equals(sourceFile.getName())) {
+                return Optional.of(sourceFile.toPath());
+            }
         }
-        // Do not use `this.getOutputDirectory()` because it may be deeper in `classes/META-INF/versions/`.
-        return Path.of(project.getBuild().getOutputDirectory()).resolveSibling(filename);
+        return Optional.empty();
     }
 
-    /**
-     * Returns whether the debug file should be written after a successful build.
-     * By default, debug files are written only if the build failed.
-     * However, some options can change this behavior.
-     */
-    final boolean shouldWriteDebugFile() {
-        return verbose || logger.isDebugEnabled();
-    }
+    private boolean targetOrReleaseSet;
 
-    /**
-     * Runs the Java compiler. This method performs the following steps:
-     *
-     * <ol>
-     *   <li>Get a Java compiler by a call to {@link #compiler()}.</li>
-     *   <li>Get the options to give to the compiler by a call to {@link #parseParameters(OptionChecker)}.</li>
-     *   <li>Get an executor with {@link #createExecutor(DiagnosticListener)} with the default listener.</li>
-     *   <li>{@linkplain ToolExecutor#applyIncrementalBuild Apply the incremental build} if enabled.</li>
-     *   <li>{@linkplain ToolExecutor#compile Execute the compilation}.</li>
-     *   <li>Shows messages in the {@linkplain #logger}.</li>
-     * </ol>
-     *
-     * @throws MojoException if the compiler cannot be run
-     */
     @Override
-    public void execute() throws MojoException {
-        JavaCompiler compiler = compiler();
-        for (SourceVersion version : compiler.getSourceVersions()) {
-            if (supportedVersion == null || version.compareTo(supportedVersion) >= 0) {
-                supportedVersion = version;
-            }
-        }
-        Options configuration = parseParameters(compiler);
+    public void execute() throws MojoExecutionException, CompilationFailureException {
         try {
-            compile(compiler, configuration);
-        } catch (RuntimeException e) {
-            String message = e.getLocalizedMessage();
-            if (message == null) {
-                message = e.getClass().getSimpleName();
-            } else if (e instanceof MojoException) {
-                int s = message.indexOf(System.lineSeparator());
-                if (s >= 0) {
-                    message = message.substring(0, s); // Log only the first line.
-                }
-            }
-            MessageBuilder mb = messageBuilderFactory
-                    .builder()
-                    .strong("COMPILATION ERROR: ")
-                    .a(message);
-            logger.error(mb.toString(), verbose ? e : null);
-            if (tipForCommandLineCompilation != null) {
-                logger.info(tipForCommandLineCompilation);
-                tipForCommandLineCompilation = null;
-            }
-            if (failOnError) {
-                throw e;
-            }
-        } catch (IOException e) {
-            logger.error("I/O error while compiling the project.", e);
-            throw new CompilationFailureException("I/O error while compiling the project.", e);
+            executeReal();
+        } finally {
+            addGeneratedSourcesToProject();
         }
     }
 
-    /**
-     * Creates a new task by taking a snapshot of the current configuration of this <abbr>MOJO</abbr>.
-     * This method creates the {@linkplain ToolExecutor#outputDirectory output directory} if it does not already exist.
-     *
-     * <h4>Multi-threading</h4>
-     * This method and the returned objects are not thread-safe.
-     * However, this method takes a snapshot of the configuration of this <abbr>MOJO</abbr>.
-     * Changes in this <abbr>MOJO</abbr> after this method call will not affect the returned executor.
-     * Therefore, the executor can safely be executed in a background thread,
-     * provided that the {@link #logger} is thread-safe.
-     *
-     * @param listener where to send compilation warnings, or {@code null} for the Maven logger
-     * @return the task to execute for compiling the project using the configuration in this <abbr>MOJO</abbr>
-     * @throws MojoException if this method identifies an invalid parameter in this <abbr>MOJO</abbr>
-     * @throws IOException if an error occurred while creating the output directory or scanning the source directories
-     * @throws MavenException if an error occurred while fetching dependencies
-     */
-    public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
-        var executor = new ToolExecutor(this, listener);
-        if (!(targetOrReleaseSet || executor.isReleaseSpecifiedForAll())) {
-            MessageBuilder mb = messageBuilderFactory
-                    .builder()
-                    .a("No explicit value set for --release or --target. "
-                            + "To ensure the same result in different environments, please add")
-                    .newline()
-                    .newline();
-            writePlugin(mb, "release", String.valueOf(Runtime.version().feature()));
-            logger.warn(mb.build());
+    private void addGeneratedSourcesToProject() {
+        File generatedSourcesDirectory = getGeneratedSourcesDirectory();
+        if (generatedSourcesDirectory == null) {
+            return;
         }
-        return executor;
+
+        String generatedSourcesPath = generatedSourcesDirectory.getAbsolutePath();
+
+        if (isTestCompile()) {
+            getLog().debug("Adding " + generatedSourcesPath
+                    + " to the project test-compile source roots but NOT the actual test-compile source roots:\n  "
+                    + String.join("\n  ", project.getTestCompileSourceRoots()));
+
+            project.addTestCompileSourceRoot(generatedSourcesPath);
+        } else {
+            getLog().debug("Adding " + generatedSourcesPath
+                    + " to the project compile source roots but NOT the actual compile source roots:\n  "
+                    + String.join("\n  ", project.getCompileSourceRoots()));
+
+            project.addCompileSourceRoot(generatedSourcesPath);
+        }
     }
 
-    /**
-     * {@return the compiler to use for compiling the code}
-     * If {@link #fork} is {@code true}, the returned compiler will be a wrapper for a command line.
-     * Otherwise, it will be the compiler identified by {@link #compilerId} if a value was supplied,
-     * or the standard compiler provided with the Java platform otherwise.
-     *
-     * @throws MojoException if no compiler was found
-     */
-    public JavaCompiler compiler() throws MojoException {
-        /*
-         * Use the `compilerId` as identifier for toolchains.
-         * I.e, we assume that `compilerId` is also the name of the executable binary.
-         */
-        getToolchain().ifPresent((tc) -> {
-            logger.info("Toolchain in maven-compiler-plugin is \"" + tc + "\".");
+    @SuppressWarnings("checkstyle:MethodLength")
+    private void executeReal() throws MojoExecutionException, CompilationFailureException {
+        // ----------------------------------------------------------------------
+        // Look up the compiler. This is done before other code than can
+        // cause the mojo to return before the lookup is done possibly resulting
+        // in misconfigured POMs still building.
+        // ----------------------------------------------------------------------
+
+        Compiler compiler;
+
+        getLog().debug("Using compiler '" + compilerId + "'.");
+
+        try {
+            compiler = compilerManager.getCompiler(compilerId);
+        } catch (NoSuchCompilerException e) {
+            throw new MojoExecutionException("No such compiler '" + e.getCompilerId() + "'.", e);
+        }
+
+        // -----------toolchains start here ----------------------------------
+        // use the compilerId as identifier for toolchains as well.
+        Toolchain tc = getToolchain();
+        if (tc != null) {
+            getLog().info("Toolchain in maven-compiler-plugin: " + tc);
             if (executable != null) {
-                logger.warn(
-                        "Toolchains are ignored because the 'executable' parameter is set to \"" + executable + "\".");
+                getLog().warn("Toolchains are ignored, 'executable' parameter is set to " + executable);
             } else {
                 fork = true;
-                if (compilerId == null) {
-                    compilerId = DEFAULT_EXECUTABLE;
-                }
                 // TODO somehow shaky dependency between compilerId and tool executable.
                 executable = tc.findTool(compilerId);
             }
-        });
-        if (fork) {
-            if (executable == null) {
-                executable = DEFAULT_EXECUTABLE;
-            }
-            return new ForkedCompiler(this);
         }
-        /*
-         * Search a `javax.tools.JavaCompiler` having a name matching the specified `compilerId`.
-         * This is done before other code that can cause the mojo to return before the lookup is
-         * done, possibly resulting in misconfigured POMs still building. If no `compilerId` was
-         * specified, then the Java compiler bundled with the JDK is used (it may be absent).
-         */
-        if (logger.isDebugEnabled()) {
-            logger.debug(
-                    "Using " + (compilerId != null ? ("compiler \"" + compilerId + '"') : "system compiler") + '.');
-        }
-        if (compilerId == null) {
-            compilerId = DEFAULT_EXECUTABLE;
-            final JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-            if (compiler != null) {
-                return compiler;
-            }
-        } else {
-            for (JavaCompiler t : ServiceLoader.load(JavaCompiler.class)) {
-                if (compilerId.equals(t.name())) {
-                    return t;
-                }
-            }
-        }
-        throw new CompilationFailureException("No such \"" + compilerId + "\" compiler.");
-    }
+        // ----------------------------------------------------------------------
+        //
+        // ----------------------------------------------------------------------
 
-    /**
-     * Parses the parameters declared in the <abbr>MOJO</abbr>.
-     * The {@link #release} parameter is excluded because it is handled in a special way
-     * in order to support the compilation of multi-version projects.
-     *
-     * @param  compiler  the tools to use for verifying the validity of options
-     * @return the options after validation
-     */
-    public Options parseParameters(final OptionChecker compiler) {
-        /*
-         * Options to provide to the compiler, excluding all kinds of path (source files, destination directory,
-         * class-path, module-path, etc.). Some options are validated by Maven in addition of being validated by
-         * the compiler. In those cases, the validation by the compiler is done before the validation by Maven.
-         * For example, Maven will check for illegal values in the "-g" option only if the compiler rejected
-         * the fully formatted option (e.g. "-g:vars,lines") that we provided to it.
-         */
-        final var configuration = new Options(compiler, logger);
-        configuration.addIfNonBlank("--source", getSource());
-        targetOrReleaseSet = configuration.addIfNonBlank("--target", getTarget());
-        targetOrReleaseSet |= configuration.setRelease(getRelease());
-        configuration.addIfTrue("--enable-preview", enablePreview);
-        configuration.addComaSeparated("-proc", proc, List.of("none", "only", "full"), null);
-        if (annotationProcessors != null) {
-            var list = new StringJoiner(",");
-            for (String p : annotationProcessors) {
-                list.add(p);
-            }
-            configuration.addIfNonBlank("-processor", list.toString());
-        }
-        configuration.addComaSeparated("-implicit", implicit, List.of("none", "class"), null);
-        configuration.addIfTrue("-parameters", parameters);
-        configuration.addIfTrue("-Xpkginfo:always", createMissingPackageInfoClass);
-        if (debug) {
-            configuration.addComaSeparated(
-                    "-g",
-                    debuglevel,
-                    List.of("lines", "vars", "source", "all", "none"),
-                    (options) -> Arrays.asList(options).contains("all") ? new String[0] : options);
-        } else {
-            configuration.addIfTrue("-g:none", true);
-        }
-        configuration.addIfNonBlank("--module-version", moduleVersion);
-        configuration.addIfTrue("-deprecation", showDeprecation);
-        configuration.addIfTrue("-nowarn", !showWarnings);
-        configuration.addIfTrue("-Werror", failOnWarning);
-        configuration.addIfTrue("-verbose", verbose);
-        if (fork) {
-            configuration.addMemoryValue("-J-Xms", "meminitial", meminitial, SUPPORT_LEGACY);
-            configuration.addMemoryValue("-J-Xmx", "maxmem", maxmem, SUPPORT_LEGACY);
-        }
-        return configuration;
-    }
+        List<String> compileSourceRoots = removeEmptyCompileSourceRoots(getCompileSourceRoots());
 
-    /**
-     * Runs the compiler, then shows the result in the Maven logger.
-     *
-     * @param compiler the compiler
-     * @param configuration options to provide to the compiler
-     * @throws IOException if an input file cannot be read
-     * @throws MojoException if the compilation failed
-     */
-    @SuppressWarnings("UseSpecificCatch")
-    private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
-        final ToolExecutor executor = createExecutor(null);
-        if (!executor.applyIncrementalBuild(this, configuration)) {
+        if (compileSourceRoots.isEmpty()) {
+            getLog().info("No sources to compile");
+
             return;
         }
-        Throwable failureCause = null;
-        final var compilerOutput = new StringWriter();
-        boolean success;
-        try {
-            success = executor.compile(compiler, configuration, compilerOutput);
-        } catch (Exception | NoClassDefFoundError e) {
-            // `NoClassDefFoundError` may happen if a dependency of an annotation processor is missing.
-            success = false;
-            failureCause = e;
+
+        // Verify that target or release is set
+        if (!targetOrReleaseSet) {
+            MessageBuilder mb = MessageUtils.buffer()
+                    .a("No explicit value set for target or release! ")
+                    .a("To ensure the same result even after upgrading this plugin, please add ")
+                    .newline()
+                    .newline();
+
+            writePlugin(mb);
+
+            getLog().warn(mb.build());
         }
-        /*
-         * The compilation errors or warnings should have already been reported by `DiagnosticLogger`.
-         * However, the compiler may have other messages not associated to a particular source file.
-         * For example, `ForkedCompiler` uses this writer if the compilation has been interrupted.
-         */
-        String additionalMessage = compilerOutput.toString();
-        if (!additionalMessage.isBlank()) {
-            if (success || failureCause != null) { // Keep the error level for the exception message.
-                logger.warn(additionalMessage);
-            } else {
-                logger.error(additionalMessage);
+
+        // ----------------------------------------------------------------------
+        // Create the compiler configuration
+        // ----------------------------------------------------------------------
+
+        CompilerConfiguration compilerConfiguration = new CompilerConfiguration();
+
+        compilerConfiguration.setOutputLocation(getOutputDirectory().getAbsolutePath());
+
+        compilerConfiguration.setOptimize(optimize);
+
+        compilerConfiguration.setDebug(debug);
+
+        compilerConfiguration.setDebugFileName(getDebugFileName());
+
+        compilerConfiguration.setImplicitOption(implicit);
+
+        if (debug && (debuglevel != null && !debuglevel.isEmpty())) {
+            String[] split = StringUtils.split(debuglevel, ",");
+            for (String aSplit : split) {
+                if (!(aSplit.equalsIgnoreCase("none")
+                        || aSplit.equalsIgnoreCase("lines")
+                        || aSplit.equalsIgnoreCase("vars")
+                        || aSplit.equalsIgnoreCase("source"))) {
+                    throw new IllegalArgumentException("The specified debug level: '" + aSplit + "' is unsupported. "
+                            + "Legal values are 'none', 'lines', 'vars', and 'source'.");
+                }
+            }
+            compilerConfiguration.setDebugLevel(debuglevel);
+        }
+
+        compilerConfiguration.setParameters(parameters);
+
+        compilerConfiguration.setEnablePreview(enablePreview);
+
+        compilerConfiguration.setVerbose(verbose);
+
+        compilerConfiguration.setShowWarnings(showWarnings);
+
+        compilerConfiguration.setFailOnWarning(failOnWarning);
+
+        if (failOnWarning && !showWarnings) {
+            getLog().warn("The property failOnWarning is set to true, but showWarnings is set to false.");
+            getLog().warn("With compiler's warnings silenced the failOnWarning has no effect.");
+        }
+
+        compilerConfiguration.setShowDeprecation(showDeprecation);
+
+        compilerConfiguration.setSourceVersion(getSource());
+
+        compilerConfiguration.setTargetVersion(getTarget());
+
+        compilerConfiguration.setReleaseVersion(getRelease());
+
+        compilerConfiguration.setProc(proc);
+
+        File generatedSourcesDirectory = getGeneratedSourcesDirectory();
+        compilerConfiguration.setGeneratedSourcesDirectory(
+                generatedSourcesDirectory != null ? generatedSourcesDirectory.getAbsoluteFile() : null);
+
+        if (generatedSourcesDirectory != null) {
+            if (!generatedSourcesDirectory.exists()) {
+                generatedSourcesDirectory.mkdirs();
             }
         }
-        if (failureCause != null) {
-            String message = failureCause.getMessage();
-            if (message != null) {
-                logger.error(message);
-            } else {
-                logger.error(failureCause);
+
+        compilerConfiguration.setSourceLocations(compileSourceRoots);
+
+        compilerConfiguration.setAnnotationProcessors(annotationProcessors);
+
+        compilerConfiguration.setProcessorPathEntries(resolveProcessorPathEntries());
+
+        compilerConfiguration.setSourceEncoding(encoding);
+
+        compilerConfiguration.setFork(fork);
+
+        if (fork) {
+            if (!(meminitial == null || meminitial.isEmpty())) {
+                String value = getMemoryValue(meminitial);
+
+                if (value != null) {
+                    compilerConfiguration.setMeminitial(value);
+                } else {
+                    getLog().info("Invalid value for meminitial '" + meminitial + "'. Ignoring this option.");
+                }
+            }
+
+            if (!(maxmem == null || maxmem.isEmpty())) {
+                String value = getMemoryValue(maxmem);
+
+                if (value != null) {
+                    compilerConfiguration.setMaxmem(value);
+                } else {
+                    getLog().info("Invalid value for maxmem '" + maxmem + "'. Ignoring this option.");
+                }
             }
         }
-        /*
-         * In case of failure, or if debugging is enabled, dump the options to a file.
-         * By default, the file will have the ".args" extension.
-         */
-        if (!success || shouldWriteDebugFile()) {
-            IOException suppressed = null;
+
+        compilerConfiguration.setExecutable(executable);
+
+        compilerConfiguration.setWorkingDirectory(basedir);
+
+        compilerConfiguration.setBuildDirectory(buildDirectory);
+
+        compilerConfiguration.setOutputFileName(outputFileName);
+
+        if (CompilerConfiguration.CompilerReuseStrategy.AlwaysNew.getStrategy().equals(this.compilerReuseStrategy)) {
+            compilerConfiguration.setCompilerReuseStrategy(CompilerConfiguration.CompilerReuseStrategy.AlwaysNew);
+        } else if (CompilerConfiguration.CompilerReuseStrategy.ReuseSame.getStrategy()
+                .equals(this.compilerReuseStrategy)) {
+            if (getRequestThreadCount() > 1) {
+                if (!skipMultiThreadWarning) {
+                    getLog().warn("You are in a multi-thread build and compilerReuseStrategy is set to reuseSame."
+                            + " This can cause issues in some environments (os/jdk)!"
+                            + " Consider using reuseCreated strategy."
+                            + System.lineSeparator()
+                            + "If your env is fine with reuseSame, you can skip this warning with the "
+                            + "configuration field skipMultiThreadWarning "
+                            + "or -Dmaven.compiler.skipMultiThreadWarning=true");
+                }
+            }
+            compilerConfiguration.setCompilerReuseStrategy(CompilerConfiguration.CompilerReuseStrategy.ReuseSame);
+        } else {
+
+            compilerConfiguration.setCompilerReuseStrategy(CompilerConfiguration.CompilerReuseStrategy.ReuseCreated);
+        }
+
+        getLog().debug("CompilerReuseStrategy: "
+                + compilerConfiguration.getCompilerReuseStrategy().getStrategy());
+
+        compilerConfiguration.setForceJavacCompilerUse(forceLegacyJavacApi || forceJavacCompilerUse);
+
+        boolean canUpdateTarget;
+
+        IncrementalBuildHelper incrementalBuildHelper = new IncrementalBuildHelper(mojoExecution, session);
+
+        final Set<File> sources;
+
+        IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
+
+        if (useIncrementalCompilation) {
+            getLog().debug("useIncrementalCompilation enabled");
             try {
-                writeDebugFile(executor, configuration, success);
-                if (success && tipForCommandLineCompilation != null) {
-                    logger.debug(tipForCommandLineCompilation);
-                    tipForCommandLineCompilation = null;
+                canUpdateTarget = compiler.canUpdateTarget(compilerConfiguration);
+
+                sources = getCompileSources(compiler, compilerConfiguration);
+
+                preparePaths(sources);
+
+                incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
+
+                // Strategies used to detect modifications.
+                String immutableOutputFile = (compiler.getCompilerOutputStyle()
+                                        .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                                && !canUpdateTarget)
+                        ? "immutable single output file"
+                        : null;
+                String dependencyChanged = isDependencyChanged() ? "changed dependency" : null;
+                String sourceChanged = isSourceChanged(compilerConfiguration, compiler) ? "changed source code" : null;
+                String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
+                        ? "added or removed source files"
+                        : null;
+
+                // Get the first cause for the rebuild compilation detection.
+                String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse(null);
+
+                if (cause != null) {
+                    getLog().info("Recompiling the module because of "
+                            + MessageUtils.buffer().strong(cause) + ".");
+                    compilerConfiguration.setSourceFiles(sources);
+                } else {
+                    getLog().info("Nothing to compile - all classes are up to date.");
+                    return;
                 }
-            } catch (IOException e) {
-                suppressed = e;
+            } catch (CompilerException e) {
+                throw new MojoExecutionException("Error while computing stale sources.", e);
             }
-            if (!success) {
-                var message = new StringBuilder(100)
-                        .append("Cannot compile ")
-                        .append(project.getId())
-                        .append(' ')
-                        .append(compileScope.projectScope().id())
-                        .append(" classes.");
-                if (executor.listener instanceof DiagnosticLogger diagnostic) {
-                    diagnostic
-                            .firstError(failureCause)
-                            .ifPresent((c) -> message.append(System.lineSeparator())
-                                    .append("The first error is: ")
-                                    .append(c));
+        } else {
+            getLog().debug("useIncrementalCompilation disabled");
+
+            Set<File> staleSources;
+            try {
+                staleSources =
+                        computeStaleSources(compilerConfiguration, compiler, getSourceInclusionScanner(staleMillis));
+
+                canUpdateTarget = compiler.canUpdateTarget(compilerConfiguration);
+
+                if (compiler.getCompilerOutputStyle().equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
+                        && !canUpdateTarget) {
+                    getLog().info("RESCANNING!");
+                    // TODO: This second scan for source files is sub-optimal
+                    String inputFileEnding = compiler.getInputFileEnding(compilerConfiguration);
+
+                    staleSources = computeStaleSources(
+                            compilerConfiguration, compiler, getSourceInclusionScanner(inputFileEnding));
                 }
-                var failure = new CompilationFailureException(message.toString(), failureCause);
-                if (suppressed != null) {
-                    failure.addSuppressed(suppressed);
+
+            } catch (CompilerException e) {
+                throw new MojoExecutionException("Error while computing stale sources.", e);
+            }
+
+            if (staleSources.isEmpty()) {
+                getLog().info("Nothing to compile - all classes are up to date.");
+                return;
+            }
+
+            staleSources = filterSourceFiles(staleSources);
+            compilerConfiguration.setSourceFiles(staleSources);
+
+            try {
+                // MCOMPILER-366: if sources contain the module-descriptor it must be used to define the modulepath
+                sources = getCompileSources(compiler, compilerConfiguration);
+
+                if (getLog().isDebugEnabled()) {
+                    getLog().debug("#sources: " + sources.size());
+                    for (File file : sources) {
+                        getLog().debug(file.getPath());
+                    }
                 }
-                throw failure;
-            }
-            if (suppressed != null) {
-                throw suppressed;
+
+                preparePaths(sources);
+            } catch (CompilerException e) {
+                throw new MojoExecutionException("Error while computing stale sources.", e);
             }
         }
-        /*
-         * Workaround for MCOMPILER-542, needed only if a modular project is compiled with a JDK older than Java 22.
-         * Note: a previous version used as an heuristic way to detect if Reproducible Build was enabled. This check
-         * has been removed because Reproducible Build are enabled by default in Maven now.
-         */
-        if (!isVersionEqualOrNewer(RELEASE_22)) {
-            Path moduleDescriptor = executor.outputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
-            if (Files.isRegularFile(moduleDescriptor)) {
-                byte[] oridinal = Files.readAllBytes(moduleDescriptor);
-                byte[] modified = ByteCodeTransformer.patchJdkModuleVersion(oridinal, getRelease(), logger);
-                if (modified != null) {
-                    Files.write(moduleDescriptor, modified);
+
+        // Dividing pathElements of classPath and modulePath is based on sourceFiles
+        compilerConfiguration.setClasspathEntries(getClasspathElements());
+
+        compilerConfiguration.setModulepathEntries(getModulepathElements());
+
+        compilerConfiguration.setIncludes(getIncludes());
+
+        compilerConfiguration.setExcludes(getExcludes());
+
+        Map<String, String> effectiveCompilerArguments = getCompilerArguments();
+
+        String effectiveCompilerArgument = getCompilerArgument();
+
+        if ((effectiveCompilerArguments != null) || (effectiveCompilerArgument != null) || (compilerArgs != null)) {
+            if (effectiveCompilerArguments != null) {
+                for (Map.Entry<String, String> me : effectiveCompilerArguments.entrySet()) {
+                    String key = me.getKey();
+                    String value = me.getValue();
+                    if (!key.startsWith("-")) {
+                        key = "-" + key;
+                    }
+
+                    if (key.startsWith("-A") && (value != null && !value.isEmpty())) {
+                        compilerConfiguration.addCompilerCustomArgument(key + "=" + value, null);
+                    } else {
+                        compilerConfiguration.addCompilerCustomArgument(key, value);
+                    }
+                }
+            }
+            if (!(effectiveCompilerArgument == null || effectiveCompilerArgument.isEmpty())) {
+                compilerConfiguration.addCompilerCustomArgument(effectiveCompilerArgument, null);
+            }
+            if (compilerArgs != null) {
+                for (String arg : compilerArgs) {
+                    compilerConfiguration.addCompilerCustomArgument(arg, null);
                 }
             }
         }
-    }
 
-    /**
-     * Returns whether the compiler supports the given source version or newer versions.
-     * The specified source version shall be the name of one of the {@link SourceVersion} enumeration values.
-     * Note that a return value of {@code true} does not mean that the compiler supports that exact version,
-     * as it may supports only newer versions.
-     */
-    private boolean isVersionEqualOrNewer(String sourceVersion) {
-        final SourceVersion requested;
-        try {
-            requested = SourceVersion.valueOf(sourceVersion);
-        } catch (IllegalArgumentException e) {
-            // The current tool is from a JDK older than the one for the requested source release.
-            return false;
-        }
-        if (supportedVersion == null) {
-            supportedVersion = SourceVersion.latestSupported();
-        }
-        return supportedVersion.compareTo(requested) >= 0;
-    }
+        // ----------------------------------------------------------------------
+        // Dump configuration
+        // ----------------------------------------------------------------------
+        if (getLog().isDebugEnabled()) {
+            getLog().debug("Classpath:");
 
-    /**
-     * Returns whether the given string is null or empty, ignoring spaces.
-     * This is a convenience for a frequent check, and also for clarity.
-     */
-    private static boolean isAbsent(String c) {
-        return (c == null) || c.isBlank();
-    }
+            for (String s : getClasspathElements()) {
+                getLog().debug(" " + s);
+            }
 
-    /**
-     * Returns whether the given array is null or empty.
-     * Defined as a complement of {@link #isAbsent(Collection)}.
-     */
-    private static boolean isAbsent(Object[] c) {
-        return (c == null) || c.length == 0;
-    }
+            if (!getModulepathElements().isEmpty()) {
+                getLog().debug("Modulepath:");
+                for (String s : getModulepathElements()) {
+                    getLog().debug(" " + s);
+                }
+            }
 
-    /**
-     * Returns whether the given collection is null or empty.
-     * This is a convenience for a frequent check, and also for clarity.
-     */
-    static boolean isAbsent(Collection<?> c) {
-        return (c == null) || c.isEmpty();
-    }
+            getLog().debug("Source roots:");
 
-    /**
-     * {@return the tool chain specified by the user in plugin parameters}
-     */
-    private Optional<Toolchain> getToolchain() {
-        if (jdkToolchain != null) {
-            List<Toolchain> tcs = toolchainManager.getToolchains(session, "jdk", jdkToolchain);
-            if (!isAbsent(tcs)) {
-                return Optional.of(tcs.get(0));
+            for (String root : getCompileSourceRoots()) {
+                getLog().debug(" " + root);
+            }
+
+            try {
+                if (fork) {
+                    if (compilerConfiguration.getExecutable() != null) {
+                        getLog().debug("Executable: ");
+                        getLog().debug(" " + compilerConfiguration.getExecutable());
+                    }
+                }
+
+                String[] cl = compiler.createCommandLine(compilerConfiguration);
+                if (cl != null && cl.length > 0) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(cl[0]);
+                    for (int i = 1; i < cl.length; i++) {
+                        sb.append(" ");
+                        sb.append(cl[i]);
+                    }
+                    getLog().debug("Command line options:");
+                    getLog().debug(sb);
+                }
+            } catch (CompilerException ce) {
+                getLog().debug(ce);
             }
         }
-        return toolchainManager.getToolchainFromBuildContext(session, "jdk");
-    }
 
-    /**
-     * Returns the module name as declared in the given {@code module-info.java} source file.
-     * This approach is less reliable than reading the compiled {@code module-info.class} file,
-     * but is sometime needed when the compiled file is not yet available.
-     *
-     * @param source the source file to parse (may be null or not exist)
-     * @return the module name, or {@code null} if not found
-     *
-     * @deprecated This is invoked only by other deprecated methods.
-     */
-    @Deprecated(since = "4.0.0")
-    final String parseModuleInfoName(Path source) throws IOException {
-        if (source != null && Files.exists(source)) {
-            Charset charset = charset();
-            try (BufferedReader in =
-                    (charset != null) ? Files.newBufferedReader(source, charset) : Files.newBufferedReader(source)) {
-                var tokenizer = new StreamTokenizer(in);
-                tokenizer.slashSlashComments(true);
-                tokenizer.slashStarComments(true);
-                int t;
-                while ((t = tokenizer.nextToken()) != StreamTokenizer.TT_EOF) {
-                    if (t == StreamTokenizer.TT_WORD && "module".equals(tokenizer.sval)) {
-                        do {
-                            t = tokenizer.nextToken();
-                        } while (t == StreamTokenizer.TT_EOL);
-                        if (t == StreamTokenizer.TT_WORD) {
-                            return tokenizer.sval;
+        List<String> jpmsLines = new ArrayList<>();
+
+        // See http://openjdk.java.net/jeps/261
+        final List<String> runtimeArgs = Arrays.asList(
+                "--upgrade-module-path", "--add-exports", "--add-reads", "--add-modules", "--limit-modules");
+
+        // Custom arguments are all added as keys to an ordered Map
+        Iterator<Map.Entry<String, String>> entryIter =
+                compilerConfiguration.getCustomCompilerArgumentsEntries().iterator();
+        while (entryIter.hasNext()) {
+            Map.Entry<String, String> entry = entryIter.next();
+
+            if (runtimeArgs.contains(entry.getKey())) {
+                jpmsLines.add(entry.getKey());
+
+                String value = entry.getValue();
+                if (value == null) {
+                    entry = entryIter.next();
+                    value = entry.getKey();
+                }
+                jpmsLines.add(value);
+            } else if ("--patch-module".equals(entry.getKey())) {
+                String value = entry.getValue();
+                if (value == null) {
+                    entry = entryIter.next();
+                    value = entry.getKey();
+                }
+
+                String[] values = value.split("=");
+
+                StringBuilder patchModule = new StringBuilder(values[0]);
+                patchModule.append('=');
+
+                Set<String> patchModules = new LinkedHashSet<>();
+                Set<Path> sourceRoots = new HashSet<>(getCompileSourceRoots().size());
+                for (String sourceRoot : getCompileSourceRoots()) {
+                    sourceRoots.add(Paths.get(sourceRoot));
+                }
+
+                String[] files = values[1].split(PS);
+
+                for (String file : files) {
+                    Path filePath = Paths.get(file);
+                    if (getOutputDirectory().toPath().equals(filePath)) {
+                        patchModules.add("_"); // this jar
+                    } else if (getOutputDirectory().toPath().startsWith(filePath)) {
+                        // multirelease, can be ignored
+                        continue;
+                    } else if (sourceRoots.contains(filePath)) {
+                        patchModules.add("_"); // this jar
+                    } else {
+                        JavaModuleDescriptor descriptor = getPathElements().get(file);
+
+                        if (descriptor == null) {
+                            if (Files.isDirectory(filePath)) {
+                                patchModules.add(file);
+                            } else {
+                                getLog().warn("Can't locate " + file);
+                            }
+                        } else if (!values[0].equals(descriptor.name())) {
+                            patchModules.add(descriptor.name());
                         }
-                        break; // Found a "module" keyword followed by something that we didn't recognized.
+                    }
+                }
+
+                StringBuilder sb = new StringBuilder();
+
+                if (!patchModules.isEmpty()) {
+                    for (String mod : patchModules) {
+                        if (sb.length() > 0) {
+                            sb.append(", ");
+                        }
+                        // use 'invalid' separator to ensure values are transformed
+                        sb.append(mod);
+                    }
+
+                    jpmsLines.add("--patch-module");
+                    jpmsLines.add(patchModule + sb.toString());
+                }
+            }
+        }
+
+        if (!jpmsLines.isEmpty()) {
+            Path jpmsArgs = Paths.get(getOutputDirectory().getAbsolutePath(), "META-INF/jpms.args");
+            try {
+                Files.createDirectories(jpmsArgs.getParent());
+
+                Files.write(jpmsArgs, jpmsLines, Charset.defaultCharset());
+            } catch (IOException e) {
+                getLog().warn(e.getMessage());
+            }
+        }
+
+        // ----------------------------------------------------------------------
+        // Compile!
+        // ----------------------------------------------------------------------
+
+        if (StringUtils.isEmpty(compilerConfiguration.getSourceEncoding())) {
+            getLog().warn("File encoding has not been set, using platform encoding "
+                    + MessageUtils.buffer().strong(Charset.defaultCharset())
+                    + ", i.e. build is platform dependent!");
+        }
+
+        CompilerResult compilerResult;
+
+        if (useIncrementalCompilation) {
+            incrementalBuildHelperRequest.outputDirectory(getOutputDirectory());
+
+            // MCOMPILER-333: Cleanup the generated source files created by annotation processing
+            // to avoid issues with `javac` compiler when the source code is rebuild.
+            if (getGeneratedSourcesDirectory() != null) {
+                try (Stream<Path> walk =
+                        Files.walk(getGeneratedSourcesDirectory().toPath())) {
+                    walk.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+                    // MCOMPILER-567: The directory must already exist because javac does not create it.
+                    Files.createDirectories(getGeneratedSourcesDirectory().toPath());
+                } catch (IOException ex) {
+                    getLog().warn("I/O error deleting the annotation processing generated files: " + ex.getMessage());
+                }
+            }
+
+            incrementalBuildHelper.beforeRebuildExecution(incrementalBuildHelperRequest);
+
+            getLog().debug("incrementalBuildHelper#beforeRebuildExecution");
+        }
+
+        try {
+            compilerResult = compiler.performCompile(compilerConfiguration);
+        } catch (Exception e) {
+            // TODO: don't catch Exception
+            throw new MojoExecutionException("Fatal error compiling", e);
+        }
+
+        if (createMissingPackageInfoClass
+                && compilerResult.isSuccess()
+                && compiler.getCompilerOutputStyle() == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE) {
+            try {
+                SourceMapping sourceMapping = getSourceMapping(compilerConfiguration, compiler);
+                createMissingPackageInfoClasses(compilerConfiguration, sourceMapping, sources);
+            } catch (Exception e) {
+                getLog().warn("Error creating missing package info classes", e);
+            }
+        }
+
+        if (outputTimestamp != null
+                && !outputTimestamp.isEmpty()
+                && (outputTimestamp.length() > 1 || Character.isDigit(outputTimestamp.charAt(0)))) {
+            // if Reproducible Builds mode, apply workaround
+            patchJdkModuleVersion(compilerResult, sources);
+        }
+
+        if (useIncrementalCompilation) {
+            if (incrementalBuildHelperRequest.getOutputDirectory().exists()) {
+                getLog().debug("incrementalBuildHelper#afterRebuildExecution");
+                // now scan the same directory again and create a diff
+                incrementalBuildHelper.afterRebuildExecution(incrementalBuildHelperRequest);
+            } else {
+                getLog().debug(
+                                "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist");
+            }
+        }
+
+        List<CompilerMessage> warnings = new ArrayList<>();
+        List<CompilerMessage> errors = new ArrayList<>();
+        List<CompilerMessage> others = new ArrayList<>();
+        for (CompilerMessage message : compilerResult.getCompilerMessages()) {
+            switch (message.getKind()) {
+                case ERROR:
+                    errors.add(message);
+                    break;
+                case WARNING:
+                case MANDATORY_WARNING:
+                    warnings.add(message);
+                    break;
+                default:
+                    others.add(message);
+                    break;
+            }
+        }
+
+        if (failOnError && !compilerResult.isSuccess()) {
+            for (CompilerMessage message : others) {
+                assert message.getKind() != CompilerMessage.Kind.ERROR
+                        && message.getKind() != CompilerMessage.Kind.WARNING
+                        && message.getKind() != CompilerMessage.Kind.MANDATORY_WARNING;
+                getLog().info(message.toString());
+            }
+            if (!warnings.isEmpty()) {
+                getLog().info("-------------------------------------------------------------");
+                getLog().warn("COMPILATION WARNING : ");
+                getLog().info("-------------------------------------------------------------");
+                for (CompilerMessage warning : warnings) {
+                    getLog().warn(warning.toString());
+                }
+                getLog().info(warnings.size() + ((warnings.size() > 1) ? " warnings " : " warning"));
+                getLog().info("-------------------------------------------------------------");
+            }
+
+            if (!errors.isEmpty()) {
+                getLog().info("-------------------------------------------------------------");
+                getLog().error("COMPILATION ERROR : ");
+                getLog().info("-------------------------------------------------------------");
+                for (CompilerMessage error : errors) {
+                    getLog().error(error.toString());
+                }
+                getLog().info(errors.size() + ((errors.size() > 1) ? " errors " : " error"));
+                getLog().info("-------------------------------------------------------------");
+            }
+
+            if (!errors.isEmpty()) {
+                throw new CompilationFailureException(errors);
+            } else {
+                throw new CompilationFailureException(warnings);
+            }
+        } else {
+            for (CompilerMessage message : compilerResult.getCompilerMessages()) {
+                switch (message.getKind()) {
+                    case NOTE:
+                    case OTHER:
+                        getLog().info(message.toString());
+                        break;
+                    case ERROR:
+                        getLog().error(message.toString());
+                        break;
+                    case MANDATORY_WARNING:
+                    case WARNING:
+                    default:
+                        getLog().warn(message.toString());
+                        break;
+                }
+            }
+        }
+    }
+
+    private void createMissingPackageInfoClasses(
+            CompilerConfiguration compilerConfiguration, SourceMapping sourceMapping, Set<File> sources)
+            throws InclusionScanException, IOException {
+        for (File source : sources) {
+            String path = source.toString();
+            if (path.endsWith(File.separator + "package-info.java")) {
+                for (String root : getCompileSourceRoots()) {
+                    root = root + File.separator;
+                    if (path.startsWith(root)) {
+                        String rel = path.substring(root.length());
+                        Set<File> files = sourceMapping.getTargetFiles(getOutputDirectory(), rel);
+                        for (File file : files) {
+                            if (!file.exists()) {
+                                File parentFile = file.getParentFile();
+
+                                if (!parentFile.exists()) {
+                                    Files.createDirectories(parentFile.toPath());
+                                }
+
+                                byte[] bytes = generatePackage(compilerConfiguration, rel);
+                                Files.write(file.toPath(), bytes);
+                            }
+                        }
                     }
                 }
             }
         }
-        return null;
+    }
+
+    private byte[] generatePackage(CompilerConfiguration compilerConfiguration, String javaFile) {
+        int version = getOpcode(compilerConfiguration);
+        String internalPackageName = javaFile.substring(0, javaFile.length() - ".java".length());
+        if (File.separatorChar != '/') {
+            internalPackageName = internalPackageName.replace(File.separatorChar, '/');
+        }
+        ClassWriter cw = new ClassWriter(0);
+        cw.visit(
+                version,
+                Opcodes.ACC_SYNTHETIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE,
+                internalPackageName,
+                null,
+                "java/lang/Object",
+                null);
+        cw.visitSource("package-info.java", null);
+        return cw.toByteArray();
+    }
+
+    private int getOpcode(CompilerConfiguration compilerConfiguration) {
+        String version = compilerConfiguration.getReleaseVersion();
+        if (version == null) {
+            version = compilerConfiguration.getTargetVersion();
+            if (version == null) {
+                version = "1.5";
+            }
+        }
+        if (version.startsWith("1.")) {
+            version = version.substring(2);
+        }
+        int iVersion = Integer.parseInt(version);
+        if (iVersion < 2) {
+            throw new IllegalArgumentException("Unsupported java version '" + version + "'");
+        }
+        return iVersion - 2 + Opcodes.V1_2;
+    }
+
+    protected boolean isTestCompile() {
+        return false;
     }
 
     /**
-     * {@return all dependencies grouped by the path types where to place them}
-     * If the module-path contains any filename-based dependency and this <abbr>MOJO</abbr>
-     * is compiling the main code, then a warning will be logged.
-     *
-     * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path.
-     * @throws IOException if an I/O error occurred while fetching dependencies
-     * @throws MavenException if an error occurred while fetching dependencies for a reason other than I/O.
+     * @return all source files for the compiler
      */
-    final DependencyResolverResult resolveDependencies(boolean hasModuleDeclaration) throws IOException {
-        DependencyResolver resolver = session.getService(DependencyResolver.class);
-        if (resolver == null) { // Null value happen during tests, depending on the mock used.
-            return null;
+    private Set<File> getCompileSources(Compiler compiler, CompilerConfiguration compilerConfiguration)
+            throws MojoExecutionException, CompilerException {
+        String inputFileEnding = compiler.getInputFileEnding(compilerConfiguration);
+        if (inputFileEnding == null || inputFileEnding.isEmpty()) {
+            // see MCOMPILER-199 GroovyEclipseCompiler doesn't set inputFileEnding
+            // so we can presume it's all files from the source directory
+            inputFileEnding = ".*";
         }
-        var allowedTypes = EnumSet.of(JavaPathType.CLASSES, JavaPathType.PROCESSOR_CLASSES);
-        if (hasModuleDeclaration) {
-            allowedTypes.add(JavaPathType.MODULES);
-            allowedTypes.add(JavaPathType.PROCESSOR_MODULES);
-        }
-        DependencyResolverResult dependencies = resolver.resolve(DependencyResolverRequest.builder()
-                .session(session)
-                .project(project)
-                .requestType(DependencyResolverRequest.RequestType.RESOLVE)
-                .pathScope(compileScope)
-                .pathTypeFilter(allowedTypes)
-                .build());
-        /*
-         * Report errors or warnings. If possible, we rethrow the first exception directly without
-         * wrapping in a `MojoException` for making the stack-trace a little bit easier to analyze.
-         */
-        Exception exception = null;
-        for (Exception cause : dependencies.getExceptions()) {
-            if (exception != null) {
-                exception.addSuppressed(cause);
-            } else if (cause instanceof UncheckedIOException e) {
-                exception = e.getCause();
-            } else if (cause instanceof RuntimeException || cause instanceof IOException) {
-                exception = cause;
-            } else {
-                exception = new CompilationFailureException("Cannot collect the compile-time dependencies.", cause);
-            }
-        }
-        if (exception != null) {
-            if (exception instanceof IOException e) {
-                throw e;
-            } else {
-                throw (RuntimeException) exception; // A ClassCastException here would be a bug in above loop.
-            }
-        }
-        if (ProjectScope.MAIN.equals(compileScope.projectScope())) {
-            String warning = dependencies.warningForFilenameBasedAutomodules().orElse(null);
-            if (warning != null) { // Do not use Optional.ifPresent(…) for avoiding confusing source class name.
-                logger.warn(warning);
-            }
-        }
-        return dependencies;
-    }
+        SourceInclusionScanner scanner = getSourceInclusionScanner(inputFileEnding);
 
-    /**
-     * Adds paths to the annotation processor dependencies. Paths are added to the list associated
-     * to the {@link JavaPathType#PROCESSOR_CLASSES} entry of given map, which should be modifiable.
-     *
-     * @param addTo the modifiable map and lists where to append more paths to annotation processor dependencies
-     * @throws MojoException if an error occurred while resolving the dependencies
-     *
-     * @deprecated Replaced by ordinary dependencies with {@code <type>} element set to
-     * {@code processor}, {@code classpath-processor} or {@code modular-processor}.
-     */
-    @Deprecated(since = "4.0.0")
-    @SuppressWarnings("UseSpecificCatch")
-    final void resolveProcessorPathEntries(Map<PathType, Collection<Path>> addTo) throws MojoException {
-        List<DependencyCoordinate> dependencies = annotationProcessorPaths;
-        if (!isAbsent(dependencies)) {
+        SourceMapping mapping = getSourceMapping(compilerConfiguration, compiler);
+
+        scanner.addSourceMapping(mapping);
+
+        Set<File> compileSources = new HashSet<>();
+
+        for (String sourceRoot : getCompileSourceRoots()) {
+            File rootFile = new File(sourceRoot);
+
+            if (!rootFile.isDirectory()
+                    || rootFile.getAbsoluteFile().equals(compilerConfiguration.getGeneratedSourcesDirectory())) {
+                continue;
+            }
+
             try {
-                List<org.apache.maven.api.DependencyCoordinates> coords = dependencies.stream()
-                        .map((coord) -> coord.toCoordinate(project, session))
-                        .toList();
-                Session sessionWithRepo =
-                        session.withRemoteRepositories(projectManager.getRemoteProjectRepositories(project));
-                addTo.merge(
-                        JavaPathType.PROCESSOR_CLASSES,
-                        sessionWithRepo
-                                .getService(DependencyResolver.class)
-                                .resolve(DependencyResolverRequest.builder()
-                                        .session(sessionWithRepo)
-                                        .dependencies(coords)
-                                        .managedDependencies(project.getManagedDependencies())
-                                        .requestType(DependencyResolverRequest.RequestType.RESOLVE)
-                                        .pathScope(PathScope.MAIN_RUNTIME)
-                                        .build())
-                                .getPaths(),
-                        (oldPaths, newPaths) -> {
-                            oldPaths.addAll(newPaths);
-                            return oldPaths;
-                        });
-            } catch (MojoException e) {
-                throw e;
-            } catch (Exception e) {
-                throw new CompilationFailureException(
-                        "Resolution of annotationProcessorPath dependencies failed: " + e.getMessage(), e);
+                compileSources.addAll(scanner.getIncludedSources(rootFile, null));
+            } catch (InclusionScanException e) {
+                throw new MojoExecutionException(
+                        "Error scanning source root: '" + sourceRoot + "' for stale files to recompile.", e);
             }
         }
+
+        return compileSources;
+    }
+
+    protected abstract Set<String> getIncludes();
+
+    protected abstract Set<String> getExcludes();
+
+    /**
+     * @param compilerConfiguration
+     * @param compiler
+     * @return {@code true} if at least a single source file is newer than it's class file
+     */
+    private boolean isSourceChanged(CompilerConfiguration compilerConfiguration, Compiler compiler) {
+        Set<File> staleSources = Collections.emptySet();
+        try {
+            staleSources = computeStaleSources(compilerConfiguration, compiler, getSourceInclusionScanner(staleMillis));
+        } catch (MojoExecutionException | CompilerException ex) {
+            // we cannot detect Stale Sources, so don't do anything beside logging
+            getLog().warn("Cannot detect stale sources.");
+            return false;
+        }
+
+        if (getLog().isDebugEnabled() || showCompilationChanges) {
+            for (File f : staleSources) {
+                getLog().info("\tStale source detected: " + f.getAbsolutePath());
+            }
+        }
+        return !staleSources.isEmpty();
     }
 
     /**
-     * {@return whether an annotation processor seems to be present}
+     * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependent
      *
-     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
-     *
-     * @see #incrementalCompilation
+     * @return number of thread for this build or 1 if not multi-thread build
      */
-    private boolean hasAnnotationProcessor(final Set<PathType> dependencyTypes) {
-        if (isAbsent(proc)) {
-            /*
-             * If the `proc` parameter was not specified, its default value depends on the Java version.
-             * It was "full" prior Java 23 and become "none if no other processor option" since Java 23.
-             */
-            if (isVersionEqualOrNewer(RELEASE_23)) {
-                if (isAbsent(annotationProcessors) && isAbsent(annotationProcessorPaths)) {
-                    return dependencyTypes.contains(JavaPathType.PROCESSOR_CLASSES)
-                            || dependencyTypes.contains(JavaPathType.PROCESSOR_MODULES);
-                }
+    protected int getRequestThreadCount() {
+        return session.getRequest().getDegreeOfConcurrency();
+    }
+
+    protected Date getBuildStartTime() {
+        return getBuildStartTimeInstant().map(Date::from).orElseGet(Date::new);
+    }
+
+    private Optional<Instant> getBuildStartTimeInstant() {
+        return Optional.ofNullable(session.getRequest())
+                .map(MavenExecutionRequest::getStartTime)
+                .map(Date::toInstant)
+                .map(i -> i.truncatedTo(ChronoUnit.MILLIS));
+    }
+
+    private String getMemoryValue(String setting) {
+        String value = null;
+
+        // Allow '128' or '128m'
+        if (isDigits(setting)) {
+            value = setting + "m";
+        } else if ((isDigits(setting.substring(0, setting.length() - 1)))
+                && (setting.toLowerCase().endsWith("m"))) {
+            value = setting;
+        }
+        return value;
+    }
+
+    protected final Toolchain getToolchain() {
+        Toolchain tc = null;
+
+        if (jdkToolchain != null) {
+            List<Toolchain> tcs = toolchainManager.getToolchains(session, "jdk", jdkToolchain);
+            if (tcs != null && !tcs.isEmpty()) {
+                tc = tcs.get(0);
             }
-        } else if (proc.equalsIgnoreCase("none")) {
-            return false;
+        }
+
+        if (tc == null) {
+            tc = toolchainManager.getToolchainFromBuildContext("jdk", session);
+        }
+
+        return tc;
+    }
+
+    private boolean isDigits(String string) {
+        for (int i = 0; i < string.length(); i++) {
+            if (!Character.isDigit(string.charAt(i))) {
+                return false;
+            }
         }
         return true;
     }
 
-    /**
-     * Ensures that the directory for generated sources exists, and adds it to the list of source directories
-     * known to the project manager. This is used for adding the output of annotation processor.
-     * The returned set is either empty or a singleton.
-     *
-     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
-     * @return the added directory in a singleton set, or an empty set if none
-     * @throws IOException if the directory cannot be created
-     */
-    final Set<Path> addGeneratedSourceDirectory(final Set<PathType> dependencyTypes) throws IOException {
-        Path generatedSourcesDirectory = getGeneratedSourcesDirectory();
-        if (generatedSourcesDirectory == null) {
-            return Set.of();
+    private Set<File> computeStaleSources(
+            CompilerConfiguration compilerConfiguration, Compiler compiler, SourceInclusionScanner scanner)
+            throws MojoExecutionException, CompilerException {
+        SourceMapping mapping = getSourceMapping(compilerConfiguration, compiler);
+
+        File outputDirectory;
+        CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
+        if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES) {
+            outputDirectory = buildDirectory;
+        } else {
+            outputDirectory = getOutputDirectory();
         }
-        /*
-         * Do not create an empty directory if this plugin is not going to generate new source files.
-         * However, if a directory already exists, use it because maybe its content was generated by
-         * another plugin executed before the compiler plugin.
-         */
-        if (hasAnnotationProcessor(dependencyTypes)) {
-            // `createDirectories(Path)` does nothing if the directory already exists.
-            generatedSourcesDirectory = Files.createDirectories(generatedSourcesDirectory);
-        } else if (Files.notExists(generatedSourcesDirectory)) {
-            return Set.of();
+
+        scanner.addSourceMapping(mapping);
+
+        Set<File> staleSources = new HashSet<>();
+
+        for (String sourceRoot : getCompileSourceRoots()) {
+            File rootFile = new File(sourceRoot);
+
+            if (!rootFile.isDirectory()) {
+                continue;
+            }
+
+            try {
+                staleSources.addAll(scanner.getIncludedSources(rootFile, outputDirectory));
+            } catch (InclusionScanException e) {
+                throw new MojoExecutionException(
+                        "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e);
+            }
         }
-        ProjectScope scope = compileScope.projectScope();
-        projectManager.addSourceRoot(project, scope, Language.JAVA_FAMILY, generatedSourcesDirectory.toAbsolutePath());
-        if (logger.isDebugEnabled()) {
-            var sb = new StringBuilder("Adding \"")
-                    .append(generatedSourcesDirectory)
-                    .append("\" to ")
-                    .append(scope.id())
-                    .append("-compile source roots. New roots are:");
-            projectManager
-                    .getEnabledSourceRoots(project, scope, Language.JAVA_FAMILY)
-                    .forEach((p) -> {
-                        sb.append(System.lineSeparator()).append("    ").append(p.directory());
-                    });
-            logger.debug(sb.toString());
+
+        return staleSources;
+    }
+
+    private SourceMapping getSourceMapping(CompilerConfiguration compilerConfiguration, Compiler compiler)
+            throws CompilerException, MojoExecutionException {
+        CompilerOutputStyle outputStyle = compiler.getCompilerOutputStyle();
+
+        SourceMapping mapping;
+        if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE) {
+            mapping = new SuffixMapping(
+                    compiler.getInputFileEnding(compilerConfiguration),
+                    compiler.getOutputFileEnding(compilerConfiguration));
+        } else if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES) {
+            mapping = new SingleTargetSourceMapping(
+                    compiler.getInputFileEnding(compilerConfiguration), compiler.getOutputFile(compilerConfiguration));
+
+        } else {
+            throw new MojoExecutionException("Unknown compiler output style: '" + outputStyle + "'.");
         }
-        return Set.of(generatedSourcesDirectory);
+        return mapping;
     }
 
     /**
-     * Formats the {@code <plugin>} block of code for configuring this plugin with the given option.
-     *
-     * @param mb the message builder where to format the block of code
-     * @param option name of the XML sub-element of {@code <configuration>} for the option
-     * @param value the option value, or {@code null} if none
+     * @todo also in ant plugin. This should be resolved at some point so that it does not need to
+     * be calculated continuously - or should the plugins accept empty source roots as is?
      */
-    private void writePlugin(MessageBuilder mb, String option, String value) {
-        if (mavenCompilerPluginVersion == null) {
-            try (InputStream is = AbstractCompilerMojo.class.getResourceAsStream("/" + JarFile.MANIFEST_NAME)) {
-                if (is != null) {
-                    mavenCompilerPluginVersion =
-                            new Manifest(is).getMainAttributes().getValue(Attributes.Name.IMPLEMENTATION_VERSION);
+    private static List<String> removeEmptyCompileSourceRoots(List<String> compileSourceRootsList) {
+        List<String> newCompileSourceRootsList = new ArrayList<>();
+        if (compileSourceRootsList != null) {
+            // copy as I may be modifying it
+            for (String srcDir : compileSourceRootsList) {
+                if (!newCompileSourceRootsList.contains(srcDir) && new File(srcDir).exists()) {
+                    newCompileSourceRootsList.add(srcDir);
                 }
-            } catch (IOException e) {
-                // noop
-            }
-            if (mavenCompilerPluginVersion == null) {
-                mavenCompilerPluginVersion = "";
             }
         }
+        return newCompileSourceRootsList;
+    }
+
+    /**
+     * We just compare the timestamps of all local dependency files (inter-module dependency classpath) and the own
+     * generated classes and if we got a file which is &gt;= the build-started timestamp, then we caught a file which
+     * got changed during this build.
+     *
+     * @return {@code true} if at least one single dependency has changed.
+     */
+    protected boolean isDependencyChanged() {
+        final Instant buildStartTime = getBuildStartTimeInstant().orElse(null);
+        if (buildStartTime == null) {
+            // we just cannot determine it, so don't do anything beside logging
+            getLog().debug("Cannot determine build start time, skipping incremental build detection.");
+            return false;
+        }
+
+        if (fileExtensions == null || fileExtensions.isEmpty()) {
+            fileExtensions = new HashSet<>(Arrays.asList("class", "jar"));
+        }
+
+        List<String> pathElements = new ArrayList<>();
+        pathElements.addAll(getClasspathElements());
+        pathElements.addAll(getModulepathElements());
+
+        for (String pathElement : pathElements) {
+            Path artifactPath = Paths.get(pathElement);
+
+            // Search files only on dependencies (other modules), not on the current project,
+            if (Files.isDirectory(artifactPath)
+                    && !artifactPath.equals(getOutputDirectory().toPath())) {
+                try (Stream<Path> walk = Files.walk(artifactPath)) {
+                    if (walk.anyMatch(p -> hasNewFile(p, buildStartTime))) {
+                        return true;
+                    }
+                } catch (IOException ex) {
+                    // we just cannot determine it, so don't do anything beside logging
+                    getLog().warn("I/O error walking the path: " + ex.getMessage());
+                    return false;
+                }
+            } else if (hasNewFile(artifactPath, buildStartTime)) {
+                return true;
+            }
+        }
+
+        // obviously there was no new file detected.
+        return false;
+    }
+
+    /**
+     * @param file entry to check
+     * @param buildStartTime time build start
+     * @return if any changes occurred
+     */
+    private boolean hasNewFile(Path file, Instant buildStartTime) {
+        if (Files.isRegularFile(file)
+                && fileExtensions.contains(
+                        FileUtils.extension(file.getFileName().toString()))) {
+            try {
+                Instant lastModifiedTime = Files.getLastModifiedTime(file)
+                        .toInstant()
+                        .minusMillis(staleMillis)
+                        .truncatedTo(ChronoUnit.MILLIS);
+                boolean hasChanged = lastModifiedTime.isAfter(buildStartTime);
+                if (hasChanged && (getLog().isDebugEnabled() || showCompilationChanges)) {
+                    getLog().info("\tNew dependency detected: " + file.toAbsolutePath());
+                }
+                return hasChanged;
+            } catch (IOException ex) {
+                // we just cannot determine it, so don't do anything beside logging
+                getLog().warn("I/O error reading the lastModifiedTime: " + ex.getMessage());
+            }
+        }
+
+        return false;
+    }
+
+    private List<String> resolveProcessorPathEntries() throws MojoExecutionException {
+        if (annotationProcessorPaths == null || annotationProcessorPaths.isEmpty()) {
+            return null;
+        }
+
+        try {
+            List<org.eclipse.aether.graph.Dependency> dependencies = convertToDependencies(annotationProcessorPaths);
+            List<org.eclipse.aether.graph.Dependency> managedDependencies =
+                    getManagedDependenciesForAnnotationProcessorPaths();
+            CollectRequest collectRequest =
+                    new CollectRequest(dependencies, managedDependencies, project.getRemoteProjectRepositories());
+            DependencyRequest dependencyRequest = new DependencyRequest();
+            dependencyRequest.setCollectRequest(collectRequest);
+            DependencyResult dependencyResult =
+                    repositorySystem.resolveDependencies(session.getRepositorySession(), dependencyRequest);
+
+            return dependencyResult.getArtifactResults().stream()
+                    .map(resolved -> resolved.getArtifact().getFile().getAbsolutePath())
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new MojoExecutionException(
+                    "Resolution of annotationProcessorPath dependencies failed: " + e.getLocalizedMessage(), e);
+        }
+    }
+
+    private List<org.eclipse.aether.graph.Dependency> convertToDependencies(
+            List<DependencyCoordinate> annotationProcessorPaths) throws MojoExecutionException {
+        List<org.eclipse.aether.graph.Dependency> dependencies = new ArrayList<>();
+        for (DependencyCoordinate annotationProcessorPath : annotationProcessorPaths) {
+            ArtifactHandler handler = artifactHandlerManager.getArtifactHandler(annotationProcessorPath.getType());
+            String version = getAnnotationProcessorPathVersion(annotationProcessorPath);
+            Artifact artifact = new DefaultArtifact(
+                    annotationProcessorPath.getGroupId(),
+                    annotationProcessorPath.getArtifactId(),
+                    annotationProcessorPath.getClassifier(),
+                    handler.getExtension(),
+                    version);
+            Set<Exclusion> exclusions = convertToAetherExclusions(annotationProcessorPath.getExclusions());
+            dependencies.add(new org.eclipse.aether.graph.Dependency(artifact, JavaScopes.RUNTIME, false, exclusions));
+        }
+        return dependencies;
+    }
+
+    private String getAnnotationProcessorPathVersion(DependencyCoordinate annotationProcessorPath)
+            throws MojoExecutionException {
+        String configuredVersion = annotationProcessorPath.getVersion();
+        if (configuredVersion != null) {
+            return configuredVersion;
+        } else {
+            List<Dependency> managedDependencies = getProjectManagedDependencies();
+            return findManagedVersion(annotationProcessorPath, managedDependencies)
+                    .orElseThrow(() -> new MojoExecutionException(String.format(
+                            "Cannot find version for annotation processor path '%s'. The version needs to be either"
+                                    + " provided directly in the plugin configuration or via dependency management.",
+                            annotationProcessorPath)));
+        }
+    }
+
+    private Optional<String> findManagedVersion(
+            DependencyCoordinate dependencyCoordinate, List<Dependency> managedDependencies) {
+        return managedDependencies.stream()
+                .filter(dep -> Objects.equals(dep.getGroupId(), dependencyCoordinate.getGroupId())
+                        && Objects.equals(dep.getArtifactId(), dependencyCoordinate.getArtifactId())
+                        && Objects.equals(dep.getClassifier(), dependencyCoordinate.getClassifier())
+                        && Objects.equals(dep.getType(), dependencyCoordinate.getType()))
+                .findAny()
+                .map(org.apache.maven.model.Dependency::getVersion);
+    }
+
+    private List<org.eclipse.aether.graph.Dependency> getManagedDependenciesForAnnotationProcessorPaths() {
+        if (!annotationProcessorPathsUseDepMgmt) {
+            return Collections.emptyList();
+        }
+        List<Dependency> projectManagedDependencies = getProjectManagedDependencies();
+        ArtifactTypeRegistry artifactTypeRegistry =
+                session.getRepositorySession().getArtifactTypeRegistry();
+
+        return projectManagedDependencies.stream()
+                .map(dep -> RepositoryUtils.toDependency(dep, artifactTypeRegistry))
+                .collect(Collectors.toList());
+    }
+
+    private List<Dependency> getProjectManagedDependencies() {
+        DependencyManagement dependencyManagement = project.getDependencyManagement();
+        if (dependencyManagement == null || dependencyManagement.getDependencies() == null) {
+            return Collections.emptyList();
+        }
+        return dependencyManagement.getDependencies();
+    }
+
+    private Set<Exclusion> convertToAetherExclusions(Set<DependencyExclusion> exclusions) {
+        if (exclusions == null || exclusions.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<Exclusion> aetherExclusions = new HashSet<>();
+        for (DependencyExclusion exclusion : exclusions) {
+            Exclusion aetherExclusion = new Exclusion(
+                    exclusion.getGroupId(),
+                    exclusion.getArtifactId(),
+                    exclusion.getClassifier(),
+                    exclusion.getExtension());
+            aetherExclusions.add(aetherExclusion);
+        }
+        return aetherExclusions;
+    }
+
+    private void writePlugin(MessageBuilder mb) {
         mb.a("    <plugin>").newline();
         mb.a("      <groupId>org.apache.maven.plugins</groupId>").newline();
         mb.a("      <artifactId>maven-compiler-plugin</artifactId>").newline();
-        if (!isAbsent(mavenCompilerPluginVersion)) {
-            mb.a("      <version>")
-                    .a(mavenCompilerPluginVersion)
-                    .a("</version>")
-                    .newline();
+
+        String version = getMavenCompilerPluginVersion();
+        if (version != null) {
+            mb.a("      <version>").a(version).a("</version>").newline();
         }
-        mb.a("      <configuration>").newline();
-        mb.a("        <").a(option).a('>').a(value).a("</").a(option).a('>').newline();
-        mb.a("      </configuration>").newline();
+        writeConfig(mb);
+
         mb.a("    </plugin>").newline();
     }
 
-    /**
-     * Dumps the compiler options together with the list of source files into a debug file.
-     * This is invoked in case of compilation failure, or if debug is enabled.
-     *
-     * <h4>Syntax</h4>
-     * The arguments within a file can be separated by spaces or new line characters.
-     * If a file name contains embedded spaces, then the whole file name must be between double quotation marks.
-     * The -J options are not supported.
-     *
-     * @param executor the executor that compiled the classes
-     * @param configuration options provided to the compiler
-     * @param showBaseVersion whether the tip shown to user suggests the base Java release instead of the last one
-     * @throws IOException if an error occurred while writing the debug file
-     */
-    private void writeDebugFile(final ToolExecutor executor, final Options configuration, final boolean showBaseVersion)
-            throws IOException {
-        final Path debugFilePath = getDebugFilePath();
-        if (debugFilePath == null) {
-            logger.warn("The <debugFileName> parameter should not be empty.");
-            return;
+    private void writeConfig(MessageBuilder mb) {
+        mb.a("      <configuration>").newline();
+
+        if (release != null) {
+            mb.a("        <release>").a(release).a("</release>").newline();
+        } else if (JavaVersion.JAVA_VERSION.isAtLeast("9")) {
+            String rls = target.replaceAll(".\\.", "");
+            // when using Java9+, motivate to use release instead of source/target
+            mb.a("        <release>").a(rls).a("</release>").newline();
+        } else {
+            mb.a("        <source>").a(source).a("</source>").newline();
+            mb.a("        <target>").a(target).a("</target>").newline();
         }
-        final var commandLine = new StringBuilder("For trying to compile from the command-line, use:");
-        Path dir = basedir;
-        if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
+        mb.a("      </configuration>").newline();
+    }
+
+    private String getMavenCompilerPluginVersion() {
+        Properties pomProperties = new Properties();
+
+        try (InputStream is = AbstractCompilerMojo.class.getResourceAsStream(
+                "/META-INF/maven/org.apache.maven.plugins/maven-compiler-plugin/pom.properties")) {
+            if (is != null) {
+                pomProperties.load(is);
+            }
+        } catch (IOException e) {
+            // noop
+        }
+
+        return pomProperties.getProperty("version");
+    }
+
+    private boolean hasInputFileTreeChanged(IncrementalBuildHelper ibh, Set<File> inputFiles) {
+        Path mojoConfigBase;
+        try {
+            mojoConfigBase = ibh.getMojoStatusDirectory().toPath();
+        } catch (MojoExecutionException e) {
+            // we cannot get the mojo status dir, so don't do anything beside logging
+            getLog().warn("Error reading mojo status directory.");
+            return false;
+        }
+        Path mojoConfigFile = mojoConfigBase.resolve(INPUT_FILES_LST_FILENAME);
+
+        Set<String> oldInputFiles = Collections.emptySet();
+        if (Files.isRegularFile(mojoConfigFile)) {
             try {
-                dir = Path.of(System.getProperty("user.dir")).relativize(dir);
-            } catch (IllegalArgumentException e) {
-                // Ignore, keep the absolute path.
-            }
-            String chdir = dir.toString();
-            if (!chdir.isEmpty()) {
-                boolean isWindows = (File.separatorChar == '\\');
-                commandLine
-                        .append(System.lineSeparator())
-                        .append("    ")
-                        .append(isWindows ? "chdir " : "cd ")
-                        .append(chdir);
+                oldInputFiles = new HashSet<>(Files.readAllLines(mojoConfigFile));
+            } catch (IOException e) {
+                // we cannot read the mojo config file, so don't do anything beside logging
+                getLog().warn("Error while reading old mojo status: " + mojoConfigFile);
+                return false;
             }
         }
-        commandLine.append(System.lineSeparator()).append("    ").append(executable != null ? executable : compilerId);
-        Path pathForRelease = debugFilePath;
-        /*
-         * The following loop will iterate over all groups of source files compiled for the same Java release,
-         * starting with the base release. If the project is not a multi-release project, it iterates only once.
-         * If the compilation failed, the loop will stop after the first Java release for which an error occurred.
-         */
-        final int count = executor.sourcesForDebugFile.size();
-        final int indexToShow = showBaseVersion ? 0 : count - 1;
-        for (int i = 0; i < count; i++) {
-            final SourcesForRelease sources = executor.sourcesForDebugFile.get(i);
-            if (i != 0) {
-                String version = sources.outputForRelease.getFileName().toString();
-                String filename = debugFilePath.getFileName().toString();
-                int s = filename.lastIndexOf('.');
-                if (s >= 0) {
-                    filename = filename.substring(0, s) + '-' + version + filename.substring(s);
-                } else {
-                    filename = filename + '-' + version;
-                }
-                pathForRelease = debugFilePath.resolveSibling(filename);
+
+        Set<String> newInputFiles = inputFiles.stream()
+                .sorted()
+                .map(File::getAbsolutePath)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        try {
+            Files.write(mojoConfigFile, newInputFiles);
+        } catch (IOException e) {
+            // we cannot write the mojo config file, so don't do anything beside logging
+            getLog().warn("Error while writing new mojo status: " + mojoConfigFile);
+            return false;
+        }
+
+        DeltaList<String> inputTreeChanges = new DeltaList<>(oldInputFiles, newInputFiles);
+        if (getLog().isDebugEnabled() || showCompilationChanges) {
+            for (String fileAdded : inputTreeChanges.getAdded()) {
+                getLog().info("\tInput tree files (+): " + fileAdded);
             }
-            /*
-             * Write the `javac.args` or `javac-<version>.args` file where `<version>` is the targeted Java release.
-             * The `-J` options need to be on the command line rather than in the file, and therefore can be written
-             * only once.
-             */
-            try (BufferedWriter out = Files.newBufferedWriter(pathForRelease)) {
-                configuration.setRelease(sources.getReleaseString());
-                configuration.format((i == indexToShow) ? commandLine : null, out);
-                for (Map.Entry<PathType, Collection<Path>> entry : sources.dependencySnapshot.entrySet()) {
-                    writeOption(out, entry.getKey(), entry.getValue());
-                }
-                for (Map.Entry<String, Set<Path>> root : sources.roots.entrySet()) {
-                    String moduleName = root.getKey();
-                    writeOption(out, SourcePathType.valueOf(moduleName), root.getValue());
-                }
-                out.write("-d " + QUOTE);
-                out.write(relativize(sources.outputForRelease).toString());
-                out.write(QUOTE);
-                out.newLine();
-                for (final Path file : sources.files) {
-                    out.write(QUOTE);
-                    out.write(relativize(file).toString());
-                    out.write(QUOTE);
-                    out.newLine();
-                }
+            for (String fileRemoved : inputTreeChanges.getRemoved()) {
+                getLog().info("\tInput tree files (-): " + fileRemoved);
             }
         }
-        Path path = relativize(showBaseVersion ? debugFilePath : pathForRelease);
-        tipForCommandLineCompilation = commandLine.append(" @").append(path).toString();
+
+        return inputTreeChanges.hasChanged();
+    }
+
+    public void setTarget(String target) {
+        this.target = target;
+        targetOrReleaseSet = true;
+    }
+
+    public void setRelease(String release) {
+        this.release = release;
+        targetOrReleaseSet = true;
+    }
+
+    private Set<File> filterSourceFiles(Set<File> sourceFiles) {
+        final File generatedSources = getGeneratedSourcesDirectory();
+        if (generatedSources == null) {
+            return sourceFiles;
+        }
+        final String generatedSourcesPath = generatedSources.getAbsolutePath();
+        return sourceFiles.stream()
+                .filter(x -> !x.getAbsolutePath().startsWith(generatedSourcesPath))
+                .collect(Collectors.toSet());
+    }
+
+    final String getImplicit() {
+        return implicit;
     }
 
     /**
-     * Writes the paths for the given Java compiler option.
-     * Used for the {@code *.args} debug file, because files will be written between quotes.
+     * JDK-8318913 workaround: Patch module-info.class to set the java release version for java/jdk modules.
      *
-     * @param out where to write
-     * @param type the type of path to write as a compiler option
-     * @param files the paths associated to the specified option
-     * @throws IOException in an error occurred while writing to the output
-     */
-    private void writeOption(BufferedWriter out, PathType type, Collection<Path> files) throws IOException {
-        if (!files.isEmpty()) {
-            files = files.stream().map(this::relativize).toList();
-            String[] options = type.option(files);
-            for (int i = 0; i < options.length; i++) {
-                String element = options[i];
-                if (i == 0) {
-                    out.write(element);
-                } else {
-                    out.write(' ');
-                    out.write(QUOTE);
-                    out.write(element);
-                    out.write(QUOTE);
-                }
-            }
-            out.newLine();
-        }
-    }
-
-    /**
-     * Makes the given file relative to the base directory if the path is inside the project directory tree.
-     * The check for the project directory tree (starting from the root of all sub-projects) is for avoiding
-     * to relativize the paths to JAR files in the Maven local repository for example.
+     * @param compilerResult should succeed.
+     * @param sources the list of the source files to check for the "module-info.java"
      *
-     * @param  file  the path to make relative to the base directory
-     * @return the given path, potentially relative to the base directory
+     * @see <a href="https://issues.apache.org/jira/browse/MCOMPILER-542">MCOMPILER-542</a>
+     * @see <a href="https://bugs.openjdk.org/browse/JDK-8318913">JDK-8318913</a>
      */
-    private Path relativize(Path file) {
-        final Path dir = basedir;
-        if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
-            Path root = project.getRootDirectory();
-            if (root != null && file.startsWith(root)) {
+    private void patchJdkModuleVersion(CompilerResult compilerResult, Set<File> sources) throws MojoExecutionException {
+        if (compilerResult.isSuccess() && getModuleDeclaration(sources).isPresent()) {
+            Path moduleDescriptor = getOutputDirectory().toPath().resolve("module-info.class");
+            if (Files.isRegularFile(moduleDescriptor)) {
                 try {
-                    file = dir.relativize(file);
-                } catch (IllegalArgumentException e) {
-                    // Ignore, keep the absolute path.
+                    final byte[] descriptorOriginal = Files.readAllBytes(moduleDescriptor);
+                    final byte[] descriptorMod =
+                            ModuleInfoTransformer.transform(descriptorOriginal, getRelease(), getLog());
+                    if (descriptorMod != null) {
+                        Files.write(moduleDescriptor, descriptorMod);
+                    }
+                } catch (IOException ex) {
+                    throw new MojoExecutionException("Error reading or writing module-info.class", ex);
                 }
             }
         }
-        return file;
     }
 }
