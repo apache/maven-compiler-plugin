@@ -980,19 +980,20 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                                 && !canUpdateTarget)
                         ? "immutable single output file"
                         : null;
-                String dependencyChanged = DependencyState.hasChanged(
-                                incrementalBuildHelper,
-                                getOutputDirectory(),
-                                getClasspathElements(),
-                                getModulepathElements(),
-                                new DependencyState.Configuration(
-                                        fileExtensions,
-                                        getBuildStartTimeInstant().orElse(null),
-                                        staleMillis,
-                                        getLog(),
-                                        showCompilationChanges))
-                        ? "changed dependency"
-                        : null;
+                String dependencyChanged = null;
+                if (DependencyState.hasChanged(
+                        incrementalBuildHelper,
+                        getOutputDirectory(),
+                        getClasspathElements(),
+                        getModulepathElements(),
+                        new DependencyState.Configuration(
+                                fileExtensions,
+                                getBuildStartTimeInstant().orElse(null),
+                                staleMillis,
+                                getLog(),
+                                showCompilationChanges))) {
+                    dependencyChanged = "changed dependency";
+                }
                 String sourceChanged = isSourceChanged(compilerConfiguration, compiler) ? "changed source code" : null;
                 String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
                         ? "added or removed source files"
