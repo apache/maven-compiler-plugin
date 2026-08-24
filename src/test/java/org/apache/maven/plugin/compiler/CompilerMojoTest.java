@@ -35,6 +35,7 @@ import static org.apache.maven.api.plugin.testing.MojoExtension.getVariableValue
 import static org.apache.maven.api.plugin.testing.MojoExtension.setVariableValueToObject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenProject;
 import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -78,6 +79,27 @@ class CompilerMojoTest {
         verify(log).warn(startsWith("No explicit value set for target or release!"));
 
         assertTrue(testClass::exists);
+    }
+
+    @Test
+    @InjectMojo(goal = COMPILE, pom = "classpath:/unit/compiler-empty-annotation-processors-test/plugin-config.xml")
+    void testCompilerEmptyAnnotationProcessors(CompilerMojo compilerMojo) throws Exception {
+        setUpCompilerMojoTestEnv(compilerMojo);
+
+        compilerMojo.execute();
+
+        File testClass = new File(compilerMojo.getOutputDirectory(), "TestCompile.class");
+        assertTrue(testClass::exists);
+    }
+
+    @Test
+    void testNormalizeAnnotationProcessors() {
+        assertNull(AbstractCompilerMojo.normalizeAnnotationProcessors(null));
+        assertNull(AbstractCompilerMojo.normalizeAnnotationProcessors(new String[] {"", " "}));
+        assertArrayEquals(
+                new String[] {"com.example.First", "com.example.Second"},
+                AbstractCompilerMojo.normalizeAnnotationProcessors(
+                        new String[] {"", "com.example.First", " ", "com.example.Second"}));
     }
 
     @Test
