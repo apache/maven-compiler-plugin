@@ -956,6 +956,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         final Set<File> sources;
 
+        Set<Path> outputs = Collections.emptySet();
+        String compilerExecution = mojoExecution.getGoal() + '@' + mojoExecution.getExecutionId();
+
         IncrementalBuildHelperRequest incrementalBuildHelperRequest = null;
 
         if (useIncrementalCompilation) {
@@ -966,6 +969,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 sources = getCompileSources(compiler, compilerConfiguration);
 
                 preparePaths(sources);
+
+                // Expected output paths let us detect overwrites that IncrementalBuildHelper cannot see.
+                outputs = getOutputPaths(compilerConfiguration, compiler, sources);
 
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
 
@@ -980,9 +986,18 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
                         ? "added or removed source files"
                         : null;
+                // A different execution may have overwritten an otherwise up-to-date output.
+                String outputChanged = hasPreviouslyCompiledOutput(compilerExecution, outputs)
+                        ? "output from another compiler execution"
+                        : null;
 
                 // Get the first cause for the rebuild compilation detection.
-                String cause = Stream.of(immutableOutputFile, dependencyChanged, sourceChanged, inputFileTreeChanged)
+                String cause = Stream.of(
+                                immutableOutputFile,
+                                dependencyChanged,
+                                sourceChanged,
+                                inputFileTreeChanged,
+                                outputChanged)
                         .filter(Objects::nonNull)
                         .findFirst()
                         .orElse(null);
@@ -1293,6 +1308,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 getLog().debug(
                                 "skip incrementalBuildHelper#afterRebuildExecution as the output directory doesn't exist");
             }
+            // Make these outputs visible to later compiler executions in this Maven session.
+            recordCompiledOutputs(compilerExecution, outputs);
         }
 
         List<CompilerMessage> warnings = new ArrayList<>();
@@ -1615,6 +1632,56 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
 
         return staleSources;
+    }
+
+    /**
+     * Maps selected sources to their expected compiler outputs.
+     *
+     * @param compilerConfiguration the compiler configuration
+     * @param compiler the selected compiler
+     * @param sources sources selected by the current execution
+     * @return normalized absolute output paths
+     */
+    private Set<Path> getOutputPaths(CompilerConfiguration compilerConfiguration, Compiler compiler, Set<File> sources)
+            throws CompilerException, MojoExecutionException {
+        SourceMapping mapping = getSourceMapping(compilerConfiguration, compiler);
+
+        File outputDirectory =
+                compiler.getCompilerOutputStyle() == CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES
+                        ? buildDirectory
+                        : getOutputDirectory();
+        try {
+            return CompilationOutputRegistry.mapOutputs(mapping, outputDirectory, getCompileSourceRoots(), sources);
+        } catch (InclusionScanException e) {
+            throw new MojoExecutionException("Error mapping sources to their outputs.", e);
+        }
+    }
+
+    /**
+     * Checks whether a different compiler execution last processed an expected output.
+     *
+     * @param compilerExecution the current execution
+     * @param outputs expected outputs of the current execution
+     * @return whether an output overlaps with another execution
+     */
+    private boolean hasPreviouslyCompiledOutput(String compilerExecution, Set<Path> outputs) {
+        Optional<Path> output = CompilationOutputRegistry.find(getPluginContext(), compilerExecution, outputs);
+        if (output.isPresent() && showCompilationChanges) {
+            getLog().info("\tOutput from another compiler execution: " + output.get());
+        } else if (output.isPresent()) {
+            getLog().debug("\tOutput from another compiler execution: " + output.get());
+        }
+        return output.isPresent();
+    }
+
+    /**
+     * Registers the current execution as the last processor of its expected outputs.
+     *
+     * @param compilerExecution the current execution
+     * @param outputs expected outputs of the current execution
+     */
+    private void recordCompiledOutputs(String compilerExecution, Set<Path> outputs) {
+        CompilationOutputRegistry.register(getPluginContext(), compilerExecution, outputs);
     }
 
     private SourceMapping getSourceMapping(CompilerConfiguration compilerConfiguration, Compiler compiler)
