@@ -1585,8 +1585,30 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
 
             try {
-                staleSources.addAll(scanner.getIncludedSources(rootFile, outputDirectory));
-            } catch (InclusionScanException e) {
+                Set<File> includedSources = scanner.getIncludedSources(rootFile, outputDirectory);
+                // The stale source scanner assumes that every source produces an output file. Filter its result only
+                // when the compiler provides an individual source-to-output mapping; aggregate outputs are ambiguous.
+                if (outputStyle == CompilerOutputStyle.ONE_OUTPUT_FILE_PER_INPUT_FILE) {
+                    for (File source : includedSources) {
+                        if (Files.size(source.toPath()) != 0) {
+                            staleSources.add(source);
+                        } else {
+                            String relativePath = rootFile.toPath()
+                                    .relativize(source.toPath())
+                                    .toString();
+                            boolean outputExists = mapping.getTargetFiles(outputDirectory, relativePath).stream()
+                                    .anyMatch(File::exists);
+                            // A zero-byte compilation unit legitimately produces no class. Keep it stale if an output
+                            // exists, however, so that truncating an existing source is still detected as a change.
+                            if (outputExists) {
+                                staleSources.add(source);
+                            }
+                        }
+                    }
+                } else {
+                    staleSources.addAll(includedSources);
+                }
+            } catch (InclusionScanException | IOException e) {
                 throw new MojoExecutionException(
                         "Error scanning source root: \'" + sourceRoot + "\' for stale files to recompile.", e);
             }
