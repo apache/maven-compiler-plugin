@@ -211,9 +211,11 @@ final class DependencyState {
     private static String toHexString(byte[] bytes) {
         StringBuilder buffer = new StringBuilder(bytes.length * 2);
         for (byte value : bytes) {
-            int unsigned = value & 0xFF;
-            buffer.append(Character.forDigit(unsigned >>> 4, 16));
-            buffer.append(Character.forDigit(unsigned & 0x0F, 16));
+            String hex = Integer.toHexString(value & 0xFF);
+            if (hex.length() == 1) {
+                buffer.append('0');
+            }
+            buffer.append(hex);
         }
         return buffer.toString();
     }
