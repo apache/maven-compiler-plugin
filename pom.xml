@@ -28,7 +28,7 @@ under the License.
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>4.0.0-beta-5</version>
+  <version>4.0.0-beta-6-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
@@ -62,7 +62,7 @@ under the License.
   <scm>
     <connection>scm:git:https://github.com/apache/maven-compiler-plugin.git</connection>
     <developerConnection>scm:git:https://github.com/apache/maven-compiler-plugin.git</developerConnection>
-    <tag>maven-compiler-plugin-4.0.0-beta-5</tag>
+    <tag>HEAD</tag>
     <url>https://github.com/apache/maven-compiler-plugin/tree/${project.scm.tag}</url>
   </scm>
   <issueManagement>
@@ -92,7 +92,7 @@ under the License.
 
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
 
-    <project.build.outputTimestamp>2026-08-26T21:49:35Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-08-26T21:49:52Z</project.build.outputTimestamp>
 
     <!-- 4.x publish -->
     <maven.site.path.suffix>LATEST-4.x</maven.site.path.suffix>
