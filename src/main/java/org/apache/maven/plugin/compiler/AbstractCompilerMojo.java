@@ -471,9 +471,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     @Parameter(property = "maven.compiler.implicit")
     private String implicit;
 
-    /**
-     *
-     */
     @Inject
     private ToolchainManager toolchainManager;
 
@@ -513,21 +510,15 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     // Read-only parameters
     // ----------------------------------------------------------------------
 
-    /**
-     * The directory to run the compiler from if fork is true.
-     */
+    /** The directory to run the compiler from if fork is true. */
     @Parameter(defaultValue = "${basedir}", required = true, readonly = true)
     private File basedir;
 
-    /**
-     * The target directory of the compiler if fork is true.
-     */
+    /** The target directory of the compiler if fork is true. */
     @Parameter(defaultValue = "${project.build.directory}", required = true, readonly = true)
     private File buildDirectory;
 
-    /**
-     * Plexus compiler manager.
-     */
+    /** Plexus compiler manager. */
     @Inject
     private CompilerManager compilerManager;
 
@@ -638,23 +629,16 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     private boolean showCompilationChanges = false;
 
     /**
-     * Timestamp for reproducible output archive entries, either formatted as ISO 8601
-     * <code>yyyy-MM-dd'T'HH:mm:ssXXX</code> or as an int representing seconds since the epoch (like
-     * <a href="https://reproducible-builds.org/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>).
-     * @since 3.12.0
+     * Timestamp for reproducible output archive entries, either ISO 8601 {@code yyyy-MM-dd'T'HH:mm:ssXXX} or seconds since the epoch (see SOURCE_DATE_EPOCH). @since 3.12.0
      */
     @Parameter(defaultValue = "${project.build.outputTimestamp}")
     private String outputTimestamp;
 
-    /**
-     * Resolves the artifacts needed.
-     */
+    /** Resolves the artifacts needed. */
     @Inject
     private RepositorySystem repositorySystem;
 
-    /**
-     * Artifact handler manager.
-     */
+    /** Artifact handler manager. */
     @Inject
     private ArtifactHandlerManager artifactHandlerManager;
 
@@ -763,12 +747,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     @SuppressWarnings("checkstyle:MethodLength")
     private void executeReal() throws MojoExecutionException, CompilationFailureException {
-        // ----------------------------------------------------------------------
-        // Look up the compiler. This is done before other code than can
-        // cause the mojo to return before the lookup is done possibly resulting
-        // in misconfigured POMs still building.
-        // ----------------------------------------------------------------------
-
+        // Look up the compiler before other code that can cause the mojo to return early,
+        // otherwise misconfigured POMs might still build.
         Compiler compiler;
 
         getLog().debug("Using compiler '" + compilerId + "'.");
@@ -779,7 +759,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             throw new MojoExecutionException("No such compiler '" + e.getCompilerId() + "'.", e);
         }
 
-        // -----------toolchains start here ----------------------------------
         // use the compilerId as identifier for toolchains as well.
         Toolchain tc = getToolchain();
         if (tc != null) {
@@ -792,9 +771,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 executable = tc.findTool(compilerId);
             }
         }
-        // ----------------------------------------------------------------------
-        //
-        // ----------------------------------------------------------------------
 
         List<String> compileSourceRoots = removeEmptyCompileSourceRoots(getCompileSourceRoots());
 
@@ -1453,9 +1429,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return false;
     }
 
-    /**
-     * @return all source files for the compiler
-     */
     private Set<File> getCompileSources(Compiler compiler, CompilerConfiguration compilerConfiguration)
             throws MojoExecutionException, CompilerException {
         String inputFileEnding = compiler.getInputFileEnding(compilerConfiguration);
@@ -1495,11 +1468,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     protected abstract Set<String> getExcludes();
 
-    /**
-     * @param compilerConfiguration
-     * @param compiler
-     * @return {@code true} if at least a single source file is newer than it's class file
-     */
     private boolean isSourceChanged(CompilerConfiguration compilerConfiguration, Compiler compiler) {
         Set<File> staleSources = Collections.emptySet();
         try {
@@ -1519,9 +1487,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     }
 
     /**
-     * try to get thread count if a Maven 3 build, using reflection as the plugin must not be maven3 api dependent
-     *
-     * @return number of thread for this build or 1 if not multi-thread build
+     * Try to get the thread count of a multi-threaded build, or 1 otherwise.
      */
     protected int getRequestThreadCount() {
         return session.getRequest().getDegreeOfConcurrency();
@@ -1615,8 +1581,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                                     .toString();
                             boolean outputExists = mapping.getTargetFiles(outputDirectory, relativePath).stream()
                                     .anyMatch(File::exists);
-                            // A zero-byte compilation unit legitimately produces no class. Keep it stale if an output
-                            // exists, however, so that truncating an existing source is still detected as a change.
+                            // A zero-byte source produces no class; keep it stale if an output exists so truncating a
+                            // source is detected.
                             if (outputExists) {
                                 staleSources.add(source);
                             }
@@ -1634,14 +1600,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return staleSources;
     }
 
-    /**
-     * Maps selected sources to their expected compiler outputs.
-     *
-     * @param compilerConfiguration the compiler configuration
-     * @param compiler the selected compiler
-     * @param sources sources selected by the current execution
-     * @return normalized absolute output paths
-     */
+    /** Maps selected sources to their expected compiler outputs. */
     private Set<Path> getOutputPaths(CompilerConfiguration compilerConfiguration, Compiler compiler, Set<File> sources)
             throws CompilerException, MojoExecutionException {
         SourceMapping mapping = getSourceMapping(compilerConfiguration, compiler);
@@ -1657,13 +1616,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         }
     }
 
-    /**
-     * Checks whether a different compiler execution last processed an expected output.
-     *
-     * @param compilerExecution the current execution
-     * @param outputs expected outputs of the current execution
-     * @return whether an output overlaps with another execution
-     */
+    /** Checks whether another compiler execution already processed an expected output. */
     private boolean hasPreviouslyCompiledOutput(String compilerExecution, Set<Path> outputs) {
         Optional<Path> output = CompilationOutputRegistry.find(getPluginContext(), compilerExecution, outputs);
         if (output.isPresent() && showCompilationChanges) {
@@ -1674,12 +1627,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return output.isPresent();
     }
 
-    /**
-     * Registers the current execution as the last processor of its expected outputs.
-     *
-     * @param compilerExecution the current execution
-     * @param outputs expected outputs of the current execution
-     */
+    /** Registers the current execution as the last processor of its expected outputs. */
     private void recordCompiledOutputs(String compilerExecution, Set<Path> outputs) {
         CompilationOutputRegistry.register(getPluginContext(), compilerExecution, outputs);
     }
@@ -1703,10 +1651,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return mapping;
     }
 
-    /**
-     * @todo also in ant plugin. This should be resolved at some point so that it does not need to
-     * be calculated continuously - or should the plugins accept empty source roots as is?
-     */
+    /** @todo also in ant plugin; resolve so it need not be calculated each build. */
     private static List<String> removeEmptyCompileSourceRoots(List<String> compileSourceRootsList) {
         List<String> newCompileSourceRootsList = new ArrayList<>();
         if (compileSourceRootsList != null) {
@@ -1720,12 +1665,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         return newCompileSourceRootsList;
     }
 
-    /**
-     * Removes blank annotation processor names.
-     *
-     * @param processors the configured annotation processor names, or {@code null}.
-     * @return the non-blank annotation processor names, or {@code null} if none remain.
-     */
+    /** Removes blank annotation processor names, or returns {@code null} if none remain. */
     static String[] normalizeAnnotationProcessors(String[] processors) {
         if (processors != null) {
             processors = Arrays.stream(processors)
@@ -1736,11 +1676,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
     }
 
     /**
-     * We just compare the timestamps of all local dependency files (inter-module dependency classpath) and the own
-     * generated classes and if we got a file which is &gt;= the build-started timestamp, then we caught a file which
-     * got changed during this build.
-     *
-     * @return {@code true} if at least one single dependency has changed.
+     * Compared to the build start time, whether any local dependency file (inter-module classpath) changed.
      */
     protected boolean isDependencyChanged() {
         final Instant buildStartTime = getBuildStartTimeInstant().orElse(null);
@@ -1769,7 +1705,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                         return true;
                     }
                 } catch (IOException ex) {
-                    // we just cannot determine it, so don't do anything beside logging
                     getLog().warn("I/O error walking the path: " + ex.getMessage());
                     return false;
                 }
@@ -1778,15 +1713,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
 
-        // obviously there was no new file detected.
         return false;
     }
 
-    /**
-     * @param file entry to check
-     * @param buildStartTime time build start
-     * @return if any changes occurred
-     */
     private boolean hasNewFile(Path file, Instant buildStartTime) {
         if (Files.isRegularFile(file)
                 && fileExtensions.contains(
@@ -1802,7 +1731,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 }
                 return hasChanged;
             } catch (IOException ex) {
-                // we just cannot determine it, so don't do anything beside logging
                 getLog().warn("I/O error reading the lastModifiedTime: " + ex.getMessage());
             }
         }
