@@ -32,13 +32,12 @@
 
   <dependencies>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.2</version>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>5.14.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
   <build>
     <plugins>
       <plugin>
@@ -50,12 +49,6 @@
             <id>default-compile</id>
             <!-- compile everything to ensure module-info contains right entries -->
             <configuration>
-              <jdkToolchain>
-                <version>1.9</version>
-              </jdkToolchain>
-              <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
-              <source />
-              <target />
               <release>17</release>
             </configuration>
           </execution>
@@ -68,9 +61,7 @@
               <excludes>
                 <exclude>module-info.java</exclude>
               </excludes>
-              <!-- ideally this would be 1.5, but with CI's it is hard to have a proper toolchains.xml in place -->
-              <source>8</source>
-              <target>8</target>
+              <release>16</release>
             </configuration>
           </execution>
         </executions>

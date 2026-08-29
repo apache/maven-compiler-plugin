@@ -80,8 +80,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     /**
      * A set of exclusion filters for the compiler.
+     * Excluding a source file only prevents the plugin from passing it explicitly to the compiler.
+     * The compiler may still find it on the source path and generate a class file for it.
+     * This can happen with {@code module-info.java}.
      *
      * @see CompilerMojo#excludes
+     * @see #implicit
      */
     @Parameter
     protected Set<String> testExcludes;
@@ -198,7 +202,10 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      * <p>This field exists in this class only for transferring this information
      * to {@link ToolExecutorForTest#hasTestModuleInfo}, which is the class that
      * needs this information.</p>
+     *
+     * @deprecated Avoid {@code module-info.java} in tests.
      */
+    @Deprecated(since = "4.0.0")
     transient boolean hasTestModuleInfo;
 
     /**
@@ -207,17 +214,14 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     private transient boolean hasMainModuleInfo;
 
     /**
-     * Path to the {@code module-info.class} file of the main code, or {@code null} if that file does not exist.
-     * This field exists only for transferring this information to {@link ToolExecutorForTest#mainModulePath},
-     * and should be {@code null} the rest of the time.
-     */
-    transient Path mainModulePath;
-
-    /**
      * The file where to dump the command-line when debug is activated or when the compilation failed.
      * For example, if the value is {@code "javac-test"}, then the Java compiler can be launched
      * from the command-line by typing {@code javac @target/javac-test.args}.
      * The debug file will contain the compiler options together with the list of source files to compile.
+     *
+     * <p>By default, this debug file is written only if the compilation of test code failed.
+     * The writing of the debug files can be forced by setting the {@link #verbose} flag to {@code true}
+     * or by specifying the {@code --verbose} option to Maven on the command-line.</p>
      *
      * @see CompilerMojo#debugFileName
      * @since 3.10.0
@@ -258,8 +262,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     @SuppressWarnings("deprecation")
     public Options parseParameters(final OptionChecker compiler) {
         Options configuration = super.parseParameters(compiler);
-        configuration.addUnchecked(
-                testCompilerArgs == null || testCompilerArgs.isEmpty() ? compilerArgs : testCompilerArgs);
+        configuration.addUnchecked(isAbsent(testCompilerArgs) ? compilerArgs : testCompilerArgs);
         if (testCompilerArguments != null) {
             for (Map.Entry<String, String> entry : testCompilerArguments.entrySet()) {
                 configuration.addUnchecked(List.of(entry.getKey(), entry.getValue()));
@@ -270,7 +273,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation processing on the test classes}.
+     * {@return the path where to place generated source files created by annotation processing on the test classes}
      */
     @Nullable
     @Override
@@ -279,7 +282,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}.
+     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}
      */
     @Override
     protected Set<String> getIncludes() {
@@ -287,7 +290,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the compiler, or an empty set if none}.
+     * {@return the exclusion filters for the compiler, or an empty set if none}
      */
     @Override
     protected Set<String> getExcludes() {
@@ -295,7 +298,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the incremental calculation, or an empty set if none}.
+     * {@return the exclusion filters for the incremental calculation, or an empty set if none}
      */
     @Override
     protected Set<String> getIncrementalExcludes() {
@@ -339,7 +342,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the destination directory for test class files}.
+     * {@return the destination directory for test class files}
      */
     @Nonnull
     @Override
@@ -348,7 +351,9 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}.
+     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}
+     *
+     * @see #debugFileName
      */
     @Nullable
     @Override
@@ -357,28 +362,34 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the module name declared in the test sources}. We have to parse the source instead
-     * of the {@code module-info.class} file because the classes may not have been compiled yet.
-     * This is not very reliable, but putting a {@code module-info.java} file in the tests is
-     * deprecated anyway.
+     * {@return the module name found in the package hierarchy of given sources}
+     * We have to parse the source instead of the {@code module-info.class} file
+     * because the classes may not have been compiled yet. This is not reliable,
+     * but the use of package hierarchy for modular project should be avoided in
+     * Maven 4.
+     *
+     * @deprecated Declare modules in {@code <source>} elements instead.
      */
-    final String getTestModuleName(List<SourceDirectory> compileSourceRoots) throws IOException {
+    @Deprecated(since = "4.0.0")
+    final String moduleNameFromPackageHierarchy(List<SourceDirectory> compileSourceRoots) throws IOException {
         for (SourceDirectory directory : compileSourceRoots) {
-            if (directory.moduleName != null) {
-                return directory.moduleName;
-            }
-            String name = parseModuleInfoName(directory.getModuleInfo().orElse(null));
-            if (name != null) {
-                return name;
+            if (directory.moduleName == null) {
+                String name = parseModuleInfoName(directory.getModuleInfo().orElse(null));
+                if (name != null) {
+                    return name;
+                }
             }
         }
         return null;
     }
 
     /**
-     * {@return whether the project has at least one {@code module-info.class} file}.
+     * {@return whether the project has at least one {@code module-info.class} file}
+     * The {@code module-info.class} should be located in the main source code.
+     * However, this method checks also in the test source code for compatibility with Maven 3,
+     * but this practice is deprecated.
      *
-     * @param roots root directories of the sources to compile
+     * @param roots root directories of the source files of the test classes to compile
      * @throws IOException if this method needed to read a module descriptor and failed
      */
     @Override
@@ -395,10 +406,8 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
             message.a("Overwriting the ")
                     .warning(MODULE_INFO + JAVA_FILE_SUFFIX)
                     .a(" file in the test directory is deprecated. Use ")
-                    .info("--add-reads")
-                    .a(", ")
-                    .info("--add-modules")
-                    .a(" and related options instead.");
+                    .info(ModuleInfoPatch.FILENAME)
+                    .a(" instead.");
             logger.warn(message.toString());
             if (SUPPORT_LEGACY) {
                 return useModulePath;
@@ -417,18 +426,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
      */
     @Override
     public ToolExecutor createExecutor(DiagnosticListener<? super JavaFileObject> listener) throws IOException {
-        try {
-            Path file = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
-            if (Files.isRegularFile(file)) {
-                mainModulePath = file;
-                hasMainModuleInfo = true;
-            }
-            return new ToolExecutorForTest(this, listener);
-        } finally {
-            // Reset the fields that were used only for transfering information to `ToolExecutorForTest`.
-            hasTestModuleInfo = false;
-            hasMainModuleInfo = false;
+        Path mainModulePath = mainOutputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
+        if (Files.isRegularFile(mainModulePath)) {
+            hasMainModuleInfo = true;
+        } else {
             mainModulePath = null;
         }
+        return new ToolExecutorForTest(this, listener, mainModulePath);
     }
 }

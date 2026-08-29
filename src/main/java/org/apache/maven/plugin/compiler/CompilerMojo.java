@@ -83,6 +83,11 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * A set of exclusion filters for the compiler.
+     * Excluding a source file only prevents the plugin from passing it explicitly to the compiler.
+     * The compiler may still find it on the source path and generate a class file for it.
+     * This can happen with {@code module-info.java}.
+     *
+     * @see #implicit
      */
     @Parameter
     protected Set<String> excludes;
@@ -135,6 +140,10 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * For example, if the value is {@code "javac"}, then the Java compiler can be launched from the
      * command-line by typing {@code javac @target/javac.args}.
      * The debug file will contain the compiler options together with the list of source files to compile.
+     *
+     * <p>By default, this debug file is written only if the compilation of main code failed.
+     * The writing of the debug files can be forced by setting the {@link #verbose} flag to {@code true}
+     * or by specifying the {@code --verbose} option to Maven on the command-line.</p>
      *
      * @since 3.10.0
      */
@@ -221,7 +230,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation processing on the main classes}.
+     * {@return the path where to place generated source files created by annotation processing on the main classes}
      */
     @Nullable
     @Override
@@ -230,7 +239,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}.
+     * {@return the inclusion filters for the compiler, or an empty set for all Java source files}
      */
     @Override
     protected Set<String> getIncludes() {
@@ -238,7 +247,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the compiler, or an empty set if none}.
+     * {@return the exclusion filters for the compiler, or an empty set if none}
      */
     @Override
     protected Set<String> getExcludes() {
@@ -246,7 +255,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the exclusion filters for the incremental calculation, or an empty set if none}.
+     * {@return the exclusion filters for the incremental calculation, or an empty set if none}
      */
     @Override
     protected Set<String> getIncrementalExcludes() {
@@ -254,7 +263,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the destination directory for main class files}.
+     * {@return the destination directory for main class files}
      * If {@link #multiReleaseOutput} is true <em>(deprecated)</em>,
      * the output will be in a {@code META-INF/versions} subdirectory.
      */
@@ -262,13 +271,17 @@ public class CompilerMojo extends AbstractCompilerMojo {
     @Override
     protected Path getOutputDirectory() {
         if (SUPPORT_LEGACY && multiReleaseOutput && release != null) {
-            return SourceDirectory.outputDirectoryForReleases(outputDirectory).resolve(release);
+            return DirectoryHierarchy.PACKAGE
+                    .outputDirectoryForReleases(outputDirectory)
+                    .resolve(release);
         }
         return outputDirectory;
     }
 
     /**
-     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}.
+     * {@return the file where to dump the command-line when debug is activated or when the compilation failed}
+     *
+     * @see #debugFileName
      */
     @Nullable
     @Override
@@ -294,7 +307,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return whether the project has at least one module-info file}.
+     * {@return whether the project has at least one module-info file}
      * If no such file is found in the code to be compiled by this <abbr>MOJO</abbr> execution,
      * then this method searches in the multi-release codes compiled by previous executions.
      *
@@ -322,7 +335,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the output directory of each target Java version}.
+     * {@return the output directory of each target Java version}
      * By convention, {@link SourceVersion#RELEASE_0} stands for the base version.
      *
      * @throws IOException if this method needs to walk through directories and that operation failed
@@ -331,32 +344,34 @@ public class CompilerMojo extends AbstractCompilerMojo {
      */
     @Deprecated(since = "4.0.0")
     private TreeMap<SourceVersion, Path> getOutputDirectoryPerVersion() throws IOException {
-        final Path root = SourceDirectory.outputDirectoryForReleases(outputDirectory);
+        final Path root = DirectoryHierarchy.PACKAGE.outputDirectoryForReleases(outputDirectory);
         if (Files.notExists(root)) {
             return null;
         }
         final var paths = new TreeMap<SourceVersion, Path>();
-        Files.walk(root, 1).forEach((path) -> {
-            SourceVersion version;
-            if (path.equals(root)) {
-                path = outputDirectory;
-                version = SourceVersion.RELEASE_0;
-            } else {
-                try {
-                    version = SourceVersion.valueOf("RELEASE_" + path.getFileName());
-                } catch (IllegalArgumentException e) {
-                    throw new CompilationFailureException("Invalid version number for " + path, e);
+        try (Stream<Path> stream = Files.walk(root, 1)) {
+            stream.forEach((path) -> {
+                SourceVersion version;
+                if (path.equals(root)) {
+                    path = outputDirectory;
+                    version = SourceVersion.RELEASE_0;
+                } else {
+                    try {
+                        version = SourceVersion.valueOf("RELEASE_" + path.getFileName());
+                    } catch (IllegalArgumentException e) {
+                        throw new CompilationFailureException("Invalid version number for " + path, e);
+                    }
                 }
-            }
-            if (paths.put(version, path) != null) {
-                throw new CompilationFailureException("Duplicated version number for " + path);
-            }
-        });
+                if (paths.put(version, path) != null) {
+                    throw new CompilationFailureException("Duplicated version number for " + path);
+                }
+            });
+        }
         return paths;
     }
 
     /**
-     * Adds the compilation outputs of previous Java releases to the class-path ot module-path.
+     * Adds the compilation outputs of previous Java releases to the class-path of module-path.
      * This method should be invoked only when compiling a multi-release <abbr>JAR</abbr> in the
      * old deprecated way.
      *
@@ -395,7 +410,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             final Stream<Path> sourceDirectories;
             if (executor != null) {
                 sourceDirectories = executor.sourceDirectories.stream().map(dir -> dir.root);
-            } else if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+            } else if (isAbsent(compileSourceRoots)) {
                 sourceDirectories = getSourceRoots(compileScope.projectScope()).map(SourceRoot::directory);
             } else {
                 sourceDirectories = compileSourceRoots.stream().map(Path::of);
@@ -427,7 +442,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
     }
 
     /**
-     * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}.
+     * {@return the module name in a previous execution of the compiler plugin, or {@code null} if none}
      *
      * @deprecated for compatibility with the previous way to build multi-release JAR file.
      *             May be removed after we drop support of the old way to do multi-release.

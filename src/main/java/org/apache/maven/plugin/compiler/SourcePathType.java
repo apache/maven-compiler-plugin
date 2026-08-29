@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 
@@ -95,19 +96,35 @@ final class SourcePathType implements PathType {
     }
 
     /**
-     * {@return the option followed by a string representation of the given path elements}.
+     * {@return the option followed by a string representation of the given path elements}
      *
      * @param paths the path elements to format
      */
     @Override
     public String[] option(Iterable<? extends Path> paths) {
-        var joiner = new StringJoiner(File.pathSeparator, (moduleName != null) ? moduleName + "=\"" : "\"", "\"");
+        var joiner = new StringJoiner(File.pathSeparator, (moduleName != null) ? moduleName + '=' : "", "");
         paths.forEach((path) -> joiner.add(path.toString()));
         return new String[] {option().get(), joiner.toString()};
     }
 
     /**
-     * {@return a string representation for debugging purposes}.
+     * {@return a hash code value based on the module name}
+     */
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(moduleName) + 17;
+    }
+
+    /**
+     * {@return whether the given object represents the same source path as this object}
+     */
+    @Override
+    public boolean equals(Object obj) {
+        return (obj instanceof SourcePathType) && Objects.equals(moduleName, ((SourcePathType) obj).moduleName);
+    }
+
+    /**
+     * {@return a string representation for debugging purposes}
      */
     @Override
     public String toString() {

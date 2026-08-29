@@ -23,12 +23,12 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>45</version>
+    <version>49</version>
     <relativePath />
   </parent>
 
   <artifactId>maven-compiler-plugin</artifactId>
-  <version>4.0.0-beta-3-SNAPSHOT</version>
+  <version>4.0.0-beta-6-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
 
   <name>Apache Maven Compiler Plugin</name>
@@ -82,24 +82,26 @@ under the License.
 
   <properties>
     <javaVersion>17</javaVersion>
-    <mavenVersion>4.0.0-rc-4</mavenVersion>
+    <mavenVersion>4.0.0-rc-6</mavenVersion>
 
-    <asmVersion>9.8</asmVersion>
-    <guiceVersion>6.0.0</guiceVersion>
-    <mockitoVersion>5.19.0</mockitoVersion>
+    <asmVersion>9.10.1</asmVersion>
+    <mockitoVersion>5.23.0</mockitoVersion>
     <eclipseCompilerVersion>3.42.0</eclipseCompilerVersion>
-    <version.maven-plugin-tools-3.x>3.13.1</version.maven-plugin-tools-3.x>
-    <version.maven-plugin-tools>4.0.0-beta-1</version.maven-plugin-tools>
+    <version.maven-plugin-tools-3.x>3.15.2</version.maven-plugin-tools-3.x>
+    <version.maven-plugin-tools>4.0.0-beta-2</version.maven-plugin-tools>
 
     <invoker.junitPackageName>org.apache.maven.plugins.compiler.its</invoker.junitPackageName>
-    <maven.it.failure.ignore>false</maven.it.failure.ignore>
 
-    <project.build.outputTimestamp>2025-02-17T20:52:52Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-08-26T21:49:52Z</project.build.outputTimestamp>
 
-    <!-- TODO remove with next parent -->
-    <maven4x.site.path>plugins-archives/${project.artifactId}-LATEST-4.x</maven4x.site.path>
     <!-- 4.x publish -->
-    <maven.site.path>${maven4x.site.path}</maven.site.path>
+    <maven.site.path.suffix>LATEST-4.x</maven.site.path.suffix>
+
+    <!-- The minimal Maven version that can build this plugin. The same as in prerequisites -->
+    <minimalMavenBuildVersion>${mavenVersion}</minimalMavenBuildVersion>
+
+    <!-- fail if dependencies are not declared or not used -->
+    <enforce.dependency.declarations>true</enforce.dependency.declarations>
   </properties>
 
   <dependencies>
@@ -136,12 +138,6 @@ under the License.
 
     <dependency>
       <groupId>org.apache.maven</groupId>
-      <artifactId>maven-core</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
       <artifactId>maven-impl</artifactId>
       <version>${mavenVersion}</version>
       <scope>test</scope>
@@ -150,18 +146,6 @@ under the License.
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-testing</artifactId>
       <version>${mavenVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.maven</groupId>
-      <artifactId>maven-xml</artifactId>
-      <version>${mavenVersion}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.google.inject</groupId>
-      <artifactId>guice</artifactId>
-      <version>${guiceVersion}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -180,13 +164,6 @@ under the License.
   <build>
     <pluginManagement>
       <plugins>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <configuration>
-            <release>${javaVersion}</release>
-          </configuration>
-        </plugin>
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
@@ -238,18 +215,12 @@ under the License.
                       <pomInclude>extras/*/pom.xml</pomInclude>
                       <pomInclude>multirelease-patterns/*/pom.xml</pomInclude>
                     </pomIncludes>
-                    <!--
-                      ! Unfortunately we can't define an execution order.
-                      ! https://issues.apache.org/jira/browse/MINVOKER-174
-                      -->
                     <setupIncludes>
                       <setupInclude>setup*/pom.xml</setupInclude>
                     </setupIncludes>
                     <postBuildHookScript>verify</postBuildHookScript>
                     <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
                     <settingsFile>src/it/settings.xml</settingsFile>
-                    <ignoreFailures>${maven.it.failure.ignore}</ignoreFailures>
-                    <streamLogsOnFailures>true</streamLogsOnFailures>
                     <goals>
                       <goal>clean</goal>
                       <goal>test-compile</goal>

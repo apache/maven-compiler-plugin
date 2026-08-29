@@ -69,7 +69,7 @@ or configure the plugin directly:
 **Note:** Merely setting the `target` option does not guarantee that your code actually runs on a JDK with the specified version.
 The pitfall is unintended usage of APIs that only exist in later JDKs which would make your code fail at runtime with a linkage error.
 To avoid this issue, you can either configure the compiler's boot classpath to match the target JDK,
-or use the [Animal Sniffer Maven Plugin](http://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/)
+or use the [Animal Sniffer Maven Plugin](https://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/)
 to verify your code doesn't use unintended APIs,
 or better yet use the [release](./set-compiler-release.html) option.
 

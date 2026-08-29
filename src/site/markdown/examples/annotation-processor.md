@@ -22,7 +22,9 @@ under the License.
 [Annotation processing](https://docs.oracle.com/en/java/javase/23/docs/specs/man/javac.html#annotation-processing) is used to let the compiler generate source code based on annotations.
 For example, the [Hibernate Processor](https://hibernate.org/orm/processor/) provides an annotation processor to generate the JPA metamodel.
 
+
 ## Recommended way to activate annotation processing
+
 Up to JDK 23, the compiler automatically scanned the classpath for annotation processors and executed all found by default.
 For security reasons, this got disabled by default since JDK 23 and annotation processing needs to be activated explicitly.
 The recommended way for this is to list all desired processors using either the `<annotationProcessors>` plugin configuration
@@ -31,7 +33,9 @@ Only those processors will get executed by the compiler.
 
 The following example shows how to activate the Hibernate Processor.
 
+
 ### Maven 3
+
 When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the following configuration.
 
 ```xml
@@ -59,7 +63,9 @@ When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the f
 </project>
 ```
 
+
 ### Maven 4
+
 With Maven 4 and Maven Compiler Plugin 4.x the way described above got deprecated and will be removed in a future version of the plugin.
 Configuration now makes use of the new `processor` dependency type to shorten the configuration,
 give control over the placement on class-path or module-path, and make the information available to other plugins.

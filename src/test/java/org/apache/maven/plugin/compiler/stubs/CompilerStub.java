@@ -93,7 +93,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     public CompilerStub() {}
 
     /**
-     * {@return the compiler idenitifer of this stub}.
+     * {@return the compiler idenitifer of this stub}
      */
     @Override
     public String name() {
@@ -101,7 +101,8 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return an arbitrary Java release number}. This is not used by the tests.
+     * {@return an arbitrary Java release number}
+     * This is not used by the tests.
      */
     @Override
     public Set<SourceVersion> getSourceVersions() {
@@ -109,7 +110,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the number of arguments expected by the given option}.
+     * {@return the number of arguments expected by the given option}
      * This method is implemented by a hard-coded list of options that
      * are known to be used in some tests.
      */
@@ -127,7 +128,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the object where source and destination directories will be specified by the Maven compiler plugin}.
+     * {@return the object where source and destination directories will be specified by the Maven compiler plugin}
      */
     @Override
     public StandardJavaFileManager getStandardFileManager(
@@ -136,7 +137,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return whether the two given objects are for the same file}.
+     * {@return whether the two given objects are for the same file}
      * This method is not seriously implemented, as it is not needed for the tests.
      */
     @Override
@@ -159,7 +160,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}.
+     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}
      */
     @Override
     public Iterable<? extends JavaFileObject> getJavaFileObjectsFromFiles(Iterable<? extends File> files) {
@@ -169,7 +170,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}.
+     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}
      */
     @Override
     public Iterable<? extends JavaFileObject> getJavaFileObjects(File... files) {
@@ -177,7 +178,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}.
+     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}
      */
     @Override
     public Iterable<? extends JavaFileObject> getJavaFileObjectsFromStrings(Iterable<String> names) {
@@ -187,7 +188,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}.
+     * {@return the given files or directories wrapped in a dummy implementation of {@code FileObject}}
      */
     @Override
     public Iterable<? extends JavaFileObject> getJavaFileObjects(String... names) {
@@ -195,7 +196,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return whether the given location is known to this file manager}.
+     * {@return whether the given location is known to this file manager}
      */
     @Override
     public boolean hasLocation(Location location) {
@@ -221,7 +222,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the directory for the given type of location}.
+     * {@return the directory for the given type of location}
      */
     @Override
     public Iterable<? extends File> getLocation(Location location) {
@@ -298,7 +299,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return a compilation task}.
+     * {@return a compilation task}
      */
     @Override
     public CompilationTask getTask(
@@ -350,7 +351,7 @@ public class CompilerStub implements JavaCompiler, StandardJavaFileManager {
     }
 
     /**
-     * {@return the options given to the compiler when the compilation tasks was created}.
+     * {@return the options given to the compiler when the compilation tasks was created}
      */
     public static List<String> getOptions() {
         var options = new ArrayList<String>();

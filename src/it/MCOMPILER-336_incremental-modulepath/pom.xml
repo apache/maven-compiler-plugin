@@ -37,10 +37,6 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
-          <source />
-          <target />
-          <release>17</release>
           <useIncrementalCompilation>false</useIncrementalCompilation>
           <!-- https://issues.apache.org/jira/browse/MCOMPILER-209 -->
         </configuration>

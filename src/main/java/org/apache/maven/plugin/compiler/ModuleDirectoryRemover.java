@@ -31,6 +31,9 @@ import java.nio.file.Path;
  *
  * <p>The code in this class is useful only when {@link AbstractCompilerMojo#SUPPORT_LEGACY} is true.
  * This class can be fully deleted if a future version permanently set above-cited flag to false.</p>
+ *
+ * @see CompilerMojo#directoryLevelToRemove
+ * @see ToolExecutorForTest#directoryLevelToRemove
  */
 final class ModuleDirectoryRemover implements Closeable {
     /**

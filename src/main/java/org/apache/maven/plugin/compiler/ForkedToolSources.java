@@ -62,48 +62,55 @@ final class ForkedToolSources implements StandardJavaFileManager {
      * Option for source files. These options are not declared in
      * {@link JavaPathType} because they are not about dependencies.
      */
-    private enum OtherPathType implements PathType {
+    private record OtherPathType(String name, String optionString, String moduleName) implements PathType {
+        /**
+         * An option for the directory of source files of a module.
+         *
+         * @param   moduleName  name of the module
+         * @return  option for the directory of source files of the specified module
+         */
+        static OtherPathType moduleSources(String moduleName) {
+            return new OtherPathType("MODULE_SOURCE_PATH", "--module-source-path", moduleName);
+        }
+
         /**
          * The option for the directory of source files.
          */
-        SOURCES("--source-path"),
+        static final OtherPathType SOURCES = new OtherPathType("SOURCES", "--source-path", null);
 
         /**
          * The option for the directory of generated sources.
          */
-        GENERATED_SOURCES("-s"),
+        static final OtherPathType GENERATED_SOURCES = new OtherPathType("GENERATED_SOURCES", "-s", null);
 
         /**
          * The option for the directory of compiled class files.
          */
-        OUTPUT("-d");
-
-        /**
-         * The Java option for this enumeration value.
-         */
-        private final String option;
-
-        OtherPathType(String option) {
-            this.option = option;
-        }
+        static final OtherPathType OUTPUT = new OtherPathType("OUTPUT", "-d", null);
 
         @Override
         public String id() {
-            return name();
+            return name;
         }
 
         @Override
         public Optional<String> option() {
-            return Optional.of(option);
+            return Optional.of(optionString);
         }
 
+        /**
+         * Formats the option with the paths, <em>without quotes</em>.
+         * The quotes are omitted because the paths will be given to
+         * {@link java.lang.ProcessBuilder}, not to a command-line.
+         */
         @Override
         public String[] option(Iterable<? extends Path> paths) {
-            var builder = new StringJoiner(File.pathSeparator);
+            String prefix = (moduleName == null) ? "" : (moduleName + '=');
+            var builder = new StringJoiner(File.pathSeparator, prefix, "");
             paths.forEach((path) -> builder.add(path.toString()));
-            return new String[] {option, builder.toString()};
+            return new String[] {optionString, builder.toString()};
         }
-    };
+    }
 
     /**
      * Search paths associated to locations.
@@ -419,11 +426,40 @@ final class ForkedToolSources implements StandardJavaFileManager {
                 throw new IllegalArgumentException("Unsupported location: " + location);
             }
         }
-        if (paths == null || paths.isEmpty()) {
+        if (isAbsent(paths)) {
             locations.remove(type);
         } else {
             locations.put(type, paths);
         }
+    }
+
+    /**
+     * Associates the given search paths for a module with the given location.
+     * Any previous value will be discarded.
+     */
+    @Override
+    public void setLocationForModule(Location location, String moduleName, Collection<? extends Path> paths)
+            throws IOException {
+        PathType type;
+        if (location == StandardLocation.PATCH_MODULE_PATH) {
+            type = JavaPathType.patchModule(moduleName);
+        } else if (location == StandardLocation.MODULE_SOURCE_PATH) {
+            type = OtherPathType.moduleSources(moduleName);
+        } else {
+            throw new IllegalArgumentException("Unsupported location: " + location);
+        }
+        if (isAbsent(paths)) {
+            locations.remove(type);
+        } else {
+            locations.put(type, paths);
+        }
+    }
+
+    /**
+     * Returns whether the given collection is null or empty.
+     */
+    private static boolean isAbsent(Collection<?> c) {
+        return (c == null) || c.isEmpty();
     }
 
     /**
@@ -450,9 +486,7 @@ final class ForkedToolSources implements StandardJavaFileManager {
      */
     void addAllLocations(List<String> command) {
         for (Map.Entry<PathType, Collection<? extends Path>> entry : locations.entrySet()) {
-            for (String element : entry.getKey().option(entry.getValue())) {
-                command.add(element);
-            }
+            command.addAll(Arrays.asList(entry.getKey().option(entry.getValue())));
         }
     }
 

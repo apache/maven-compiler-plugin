@@ -33,11 +33,13 @@ import java.nio.charset.Charset;
 import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -45,7 +47,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Stream;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
@@ -119,6 +120,16 @@ public class ToolExecutor {
     protected final boolean hasModuleDeclaration;
 
     /**
+     * How the source code of the project is organized, or {@code null} if not yet determined.
+     * <a href="https://docs.oracle.com/en/java/javase/25/docs/specs/man/javac.html#directory-hierarchies">Directory
+     * hierarchies</a> are <i>package hierarchy</i>, <i>module hierarchy</i> and <i>module source hierarchy</i>, but
+     * for the purpose of the compiler plugin we do not distinguish between the two latter.
+     *
+     * @see #determineDirectoryHierarchy(Collection)
+     */
+    private DirectoryHierarchy directoryHierarchy;
+
+    /**
      * The result of resolving the dependencies, or {@code null} if not available or not needed.
      * For example, this field may be null if the constructor found no file to compile,
      * so there is no need to fetch dependencies.
@@ -130,16 +141,16 @@ public class ToolExecutor {
      * The path type can be the class-path, module-path, annotation processor path, patched path, <i>etc.</i>
      * Some path types include a module name.
      *
+     * <h4>Modifications during the build of multi-release project</h4>
+     * When building a multi-release project, values associated to {@code --class-path}, {@code --module-path}
+     * or {@code --patch-module} options are modified every time that {@code ToolExecutor} compiles for a new
+     * Java release. The output directories for the previous Java releases are inserted as the first elements
+     * of their lists, or new entries are created if no list existed previously for an option.
+     *
      * @see #dependencies(PathType)
+     * @see #prependDependency(PathType, Path)
      */
-    protected final Map<PathType, List<Path>> dependencies;
-
-    /**
-     * The classpath given to the compiler. Stored for making possible to prepend the paths
-     * of the compilation results of previous versions in a multi-version JAR file.
-     * This list needs to be modifiable.
-     */
-    private List<Path> classpath;
+    private final Map<PathType, Collection<Path>> dependencies;
 
     /**
      * The destination directory (or class output directory) for class files.
@@ -189,6 +200,13 @@ public class ToolExecutor {
     protected final Log logger;
 
     /**
+     * The sources to write in the {@code target/javac.args} debug files.
+     * This list contains only the sources for which the compiler has been executed, successfully or not.
+     * If a compilation error occurred, the last element in the list contains the sources where the error occurred.
+     */
+    final List<SourcesForRelease> sourcesForDebugFile;
+
+    /**
      * Creates a new task by taking a snapshot of the current configuration of the given <abbr>MOJO</abbr>.
      * This constructor creates the {@linkplain #outputDirectory output directory} if it does not already exist.
      *
@@ -205,8 +223,8 @@ public class ToolExecutor {
 
         logger = mojo.logger;
         if (listener == null) {
-            listener =
-                    new DiagnosticLogger(logger, mojo.messageBuilderFactory, LOCALE, mojo.project.getRootDirectory());
+            Path root = mojo.project.getRootDirectory();
+            listener = new DiagnosticLogger(logger, mojo.messageBuilderFactory, LOCALE, root);
         }
         this.listener = listener;
         encoding = mojo.charset();
@@ -214,6 +232,7 @@ public class ToolExecutor {
         outputDirectory = Files.createDirectories(mojo.getOutputDirectory());
         sourceDirectories = mojo.getSourceDirectories(outputDirectory);
         dependencies = new LinkedHashMap<>();
+        sourcesForDebugFile = new ArrayList<>();
         /*
          * Get the source files and whether they include or are assumed to include `module-info.java`.
          * Note that we perform this step after processing compiler arguments, because this block may
@@ -249,34 +268,74 @@ public class ToolExecutor {
                 return;
             }
         }
-        generatedSourceDirectories = mojo.addGeneratedSourceDirectory();
         /*
          * Get the dependencies. If the module-path contains any automatic (filename-based)
          * dependency and the MOJO is compiling the main code, then a warning will be logged.
-         *
-         * NOTE: this code assumes that the map and the list values are modifiable.
-         * This code performs a deep copies for safety. They are unnecessary copies when
-         * the implementation is `org.apache.maven.impl.DefaultDependencyResolverResult`,
-         * but we assume for now that it is not worth an optimization. The copies also
-         * protect `dependencyResolution` from changes in `dependencies`.
          */
         dependencyResolution = mojo.resolveDependencies(hasModuleDeclaration);
         if (dependencyResolution != null) {
             dependencies.putAll(dependencyResolution.getDispatchedPaths());
-            dependencies.entrySet().forEach((e) -> e.setValue(new ArrayList<>(e.getValue())));
         }
         mojo.resolveProcessorPathEntries(dependencies);
+        mojo.amendincrementalCompilation(incrementalBuildConfig, dependencies.keySet());
+        generatedSourceDirectories = mojo.addGeneratedSourceDirectory(dependencies.keySet());
+        copyDependencyValues();
     }
 
     /**
-     * {@return the source files to compile}.
+     * Copies all values of the dependency map in unmodifiable lists.
+     * This is used for creating a snapshot of the current state of the dependency map.
      */
-    public Stream<Path> getSourceFiles() {
-        return sourceFiles.stream().map((s) -> s.file);
+    private void copyDependencyValues() {
+        dependencies.entrySet().forEach((entry) -> entry.setValue(List.copyOf(entry.getValue())));
     }
 
     /**
-     * {@return whether a release version is specified for all sources}.
+     * Returns the output directory of the main classes if they were compiled in a previous Maven phase.
+     * This method shall always return {@code null} when compiling to main code. The return value can be
+     * non-null only when compiling the test classes, in which case the returned path is the directory to
+     * prepend to the class-path or module-path before to compile the classes managed by this executor.
+     *
+     * @return the directory to prepend to the class-path or module-path, or {@code null} if none
+     */
+    Path getOutputDirectoryOfPreviousPhase() {
+        return null;
+    }
+
+    /**
+     * Returns the directory of the classes compiled for the specified module.
+     * If the project is multi-release, this method returns the directory for the base version.
+     *
+     * <p>This is normally a sub-directory of the same name as the module name.
+     * However, when building tests for a project which is both multi-release and multi-module,
+     * the directory may exist only for a target Java version higher than the base version.</p>
+     *
+     * @param outputDirectory the output directory which is the root of modules
+     * @param moduleName the name of the module for which the class directory is desired
+     * @return directories of classes for the given module
+     */
+    Path resolveModuleOutputDirectory(Path outputDirectory, String moduleName) {
+        return outputDirectory.resolve(moduleName);
+    }
+
+    /**
+     * Name of the module when using package hierarchy, or {@code null} if not applicable.
+     * This is used for setting {@code --patch-module} option during compilation of tests.
+     * This field is null in a class-path project or in a multi-module project.
+     *
+     * <p>This information is used for compatibility with the Maven 3 way to build a modular project.
+     * It is recommended to use the {@code <sources>} element instead. We may remove this method in a
+     * future version if we abandon compatibility with the Maven 3 way to build modular projects.</p>
+     *
+     * @deprecated Declare modules in {@code <source>} elements instead.
+     */
+    @Deprecated(since = "4.0.0")
+    String moduleNameFromPackageHierarchy() {
+        return null;
+    }
+
+    /**
+     * {@return whether a release version is specified for all sources}
      */
     final boolean isReleaseSpecifiedForAll() {
         for (SourceDirectory source : sourceDirectories) {
@@ -329,7 +388,7 @@ public class ToolExecutor {
             }
             if (causeOfRebuild != null) {
                 if (!sourceFiles.isEmpty()) { // Avoid misleading message such as "all sources changed".
-                    logger.info(causeOfRebuild);
+                    logger.debug(causeOfRebuild);
                 }
             } else {
                 isPartialBuild = true;
@@ -345,7 +404,12 @@ public class ToolExecutor {
                     if (n > 1) {
                         sb.append('s'); // Make plural.
                     }
-                    logger.info(sb.append('.'));
+                    sb.append('.');
+                    if (incrementalBuild.showCompilationChanges) {
+                        logger.info(sb);
+                    } else {
+                        logger.debug(sb);
+                    }
                 }
             }
             if (!(checkSources | checkDepends | checkOptions)) {
@@ -358,14 +422,37 @@ public class ToolExecutor {
     }
 
     /**
-     * {@return a modifiable list of paths to all dependencies of the given type}.
-     * The returned list is intentionally live: elements can be added or removed
-     * from the list for changing the state of this executor.
+     * Writes the incremental build cache into the {@code target/maven-status/maven-compiler-plugin/} directory.
+     * This method should be invoked only once. Next invocations after the first one have no effect.
+     *
+     * @throws IOException if an error occurred while writing the cache
+     */
+    private void saveIncrementalBuild() throws IOException {
+        if (incrementalBuild != null) {
+            incrementalBuild.writeCache();
+            incrementalBuild = null;
+        }
+    }
+
+    /**
+     * {@return a modifiable collection of paths to all dependencies of the given type}
+     * The returned collection is intentionally live: elements can be added or removed
+     * from the collection for changing the state of this executor.
      *
      * @param pathType  type of path for which to get the dependencies
      */
-    protected List<Path> dependencies(PathType pathType) {
-        return dependencies.computeIfAbsent(pathType, (key) -> new ArrayList<>());
+    protected Deque<Path> dependencies(PathType pathType) {
+        return (Deque<Path>) dependencies.compute(pathType, (key, paths) -> {
+            if (paths == null) {
+                return new ArrayDeque<>();
+            } else if (paths instanceof ArrayDeque<Path> deque) {
+                return deque;
+            } else {
+                var copy = new ArrayDeque<Path>(paths.size() + 4); // Anticipate the addition of new elements.
+                copy.addAll(paths);
+                return copy;
+            }
+        });
     }
 
     /**
@@ -376,8 +463,8 @@ public class ToolExecutor {
      */
     private void setDependencyPaths(final StandardJavaFileManager fileManager) throws IOException {
         final var unresolvedPaths = new ArrayList<Path>();
-        for (Map.Entry<PathType, List<Path>> entry : dependencies.entrySet()) {
-            List<Path> paths = entry.getValue();
+        for (Map.Entry<PathType, Collection<Path>> entry : dependencies.entrySet()) {
+            Collection<Path> paths = entry.getValue();
             PathType key = entry.getKey();
             if (key instanceof JavaPathType type) {
                 /*
@@ -388,8 +475,6 @@ public class ToolExecutor {
                 if (location.isPresent()) { // Cannot use `Optional.ifPresent(…)` because of checked IOException.
                     var value = location.get();
                     if (value == StandardLocation.CLASS_PATH) {
-                        classpath = new ArrayList<>(paths); // Need a modifiable list.
-                        paths = classpath;
                         if (isPartialBuild && !hasModuleDeclaration) {
                             /*
                              * From https://docs.oracle.com/en/java/javase/24/docs/specs/man/javac.html:
@@ -398,9 +483,11 @@ public class ToolExecutor {
                              * When not compiling for modules, for backwards compatibility, the directory is not
                              * automatically checked for previously compiled classes, and so it is recommended to
                              * specify the class output directory as one of the locations on the user class path,
-                             * using the --class-path option  or one of its alternate forms."
+                             * using the --class-path option or one of its alternate forms."
                              */
+                            paths = new ArrayDeque<>(paths);
                             paths.add(outputDirectory);
+                            entry.setValue(paths);
                         }
                     }
                     fileManager.setLocationFromPaths(value, paths);
@@ -408,19 +495,12 @@ public class ToolExecutor {
                 }
             } else if (key instanceof JavaPathType.Modular type) {
                 /*
-                 * Source code of test classes, handled as a "dependency".
+                 * Main code to be tested by the test classes. This is handled as a "dependency".
                  * Placed on: --patch-module-path.
                  */
                 Optional<JavaFileManager.Location> location = type.rawType().location();
                 if (location.isPresent()) {
-                    try {
-                        fileManager.setLocationForModule(location.get(), type.moduleName(), paths);
-                    } catch (UnsupportedOperationException e) { // Happen with `PATCH_MODULE_PATH`.
-                        var it = Arrays.asList(type.option(paths)).iterator();
-                        if (!fileManager.handleOption(it.next(), it) || it.hasNext()) {
-                            throw new CompilationFailureException("Cannot handle " + type, e);
-                        }
-                    }
+                    fileManager.setLocationForModule(location.get(), type.moduleName(), paths);
                     continue;
                 }
             }
@@ -433,6 +513,24 @@ public class ToolExecutor {
             }
             logger.warn(sb);
         }
+    }
+
+    /**
+     * Inserts the given path as the first element of the list of paths of the given type.
+     * The main purpose of this method is during the build of a multi-release project,
+     * for adding the output directory of the code targeting the previous Java release
+     * before to compile the code targeting the next Java release. In this context,
+     * the {@code type} argument usually identifies a {@code --class-path},
+     * {@code --module-path} or {@code --patch-module} option.
+     *
+     * @param  pathType type of path for which to add an element
+     * @param  first the path to put first
+     * @return the new paths for the given type, as a modifiable list
+     */
+    protected Deque<Path> prependDependency(final PathType pathType, final Path first) {
+        Deque<Path> paths = dependencies(pathType);
+        paths.addFirst(first);
+        return paths;
     }
 
     /**
@@ -487,25 +585,18 @@ public class ToolExecutor {
     }
 
     /**
-     * Runs the compilation task.
+     * Checks if there are no sources to compile and handles that case.
+     * When there are no sources, this method cleans up the output directory and logs a message.
      *
-     * @param compiler the compiler
-     * @param configuration the options to give to the Java compiler
-     * @param otherOutput where to write additional output from the compiler
-     * @return whether the compilation succeeded
-     * @throws IOException if an error occurred while reading or writing a file
-     * @throws MojoException if the compilation failed for a reason identified by this method
-     * @throws RuntimeException if any other kind of  error occurred
+     * @return {@code true} if there are no sources to compile, {@code false} if there are sources
+     * @throws IOException if an error occurred while deleting the empty output directory
      */
-    @SuppressWarnings("checkstyle:MagicNumber")
-    public boolean compile(final JavaCompiler compiler, final Options configuration, final Writer otherOutput)
-            throws IOException {
-        /*
-         * Announce what the compiler is about to do.
-         */
+    private boolean noSourcesToCompile() throws IOException {
+        sourcesForDebugFile.clear();
         if (sourceFiles.isEmpty()) {
             String message = "No sources to compile.";
             try {
+                // The directory must exist since it was created in the constructor.
                 Files.delete(outputDirectory);
             } catch (DirectoryNotEmptyException e) {
                 message += " However, the output directory is not empty.";
@@ -522,126 +613,393 @@ public class ToolExecutor {
             }
             logger.debug(sb);
         }
+        return false;
+    }
+
+    /**
+     * Determines the directory hierarchy by scanning all compilation units.
+     * Also validates that there are no conflicting directory hierarchies
+     * and performs the necessary remapping for Maven 3 compatibility.
+     * This should be called once before processing any units.
+     *
+     * @param units all compilation units to scan
+     * @throws CompilationFailureException if both explicit and detected module names are present
+     */
+    private void determineDirectoryHierarchy(final Collection<SourcesForRelease> units) {
+        final String moduleNameFromPackageHierarchy = moduleNameFromPackageHierarchy();
+        for (SourcesForRelease unit : units) {
+            for (String moduleName : unit.roots.keySet()) {
+                DirectoryHierarchy detected;
+                if (moduleName.isEmpty()) {
+                    if (moduleNameFromPackageHierarchy == null) {
+                        detected = DirectoryHierarchy.PACKAGE;
+                    } else {
+                        detected = DirectoryHierarchy.PACKAGE_WITH_MODULE;
+                    }
+                } else {
+                    if (moduleNameFromPackageHierarchy == null) {
+                        detected = DirectoryHierarchy.MODULE_SOURCE;
+                    } else {
+                        // Mix of package hierarchy and module source hierarchy.
+                        throw new CompilationFailureException(
+                                "The \"%s\" module must be declared in a <module> element of <sources>."
+                                        .formatted(moduleNameFromPackageHierarchy));
+                    }
+                }
+                if (directoryHierarchy == null) {
+                    directoryHierarchy = detected;
+                } else if (directoryHierarchy != detected) {
+                    throw new CompilationFailureException(
+                            "Mix of %s and %s hierarchies.".formatted(directoryHierarchy, detected));
+                }
+            }
+        }
         /*
-         * Create a `JavaFileManager`, configure all paths (dependencies and sources), then run the compiler.
-         * The Java file manager has a cache, so it needs to be disposed after the compilation is completed.
-         * The same `JavaFileManager` may be reused for many compilation units (e.g. multi-release) before
-         * disposal in order to reuse its cache.
+         * The following adjustment is for the case when the project is a Java module, but nevertheless organized
+         * in a package hierarchy instead of a module source hierarchy. Update the `unit.roots` map for compiling
+         * the module as if module source hiearchy was used. It will require moving the output directory after
+         * compilation, which is done by `ModuleDirectoryRemover`.
          */
+        if (moduleNameFromPackageHierarchy != null) {
+            for (SourcesForRelease unit : units) {
+                Set<Path> paths = unit.roots.remove("");
+                if (paths != null) {
+                    unit.roots.put(moduleNameFromPackageHierarchy, paths);
+                }
+            }
+        }
+    }
+
+    /**
+     * Manager of class-path or module-paths specified to a {@link StandardJavaFileManager}.
+     * This base class assumes {@link DirectoryHierarchy#PACKAGE}, and a subclass is defined
+     * for the {@link DirectoryHierarchy#MODULE_SOURCE} case.
+     */
+    private class PathManager {
+        /**
+         * The file manager to configure for class-path or module-paths.
+         */
+        protected final StandardJavaFileManager fileManager;
+
+        /**
+         * The output directory of the previous compilation phase or version.
+         * For test compilation, this is the main output directory.
+         * For multi-release, this is the output of the previous Java version.
+         */
+        protected Path latestOutputDirectory;
+
+        /**
+         * Whether we are compiling a version after the base version.
+         *
+         * @see #markVersioned()
+         */
+        private boolean isVersioned;
+
+        /**
+         * Creates a new path manager for the given file manager.
+         *
+         * @param fileManager the file manager to configure for class-path or module-paths
+         */
+        protected PathManager(StandardJavaFileManager fileManager) {
+            this.fileManager = fileManager;
+            latestOutputDirectory = getOutputDirectoryOfPreviousPhase();
+        }
+
+        /**
+         * Merges all the given sets into a single set. We use our own loop instead of streams
+         * because the given collection should always contain exactly one {@code Set<Path>},
+         * so we can return that set directly without copying its content in a new set.
+         * The merge is a paranoiac safety as we could also throw an exception instead.
+         */
+        private static Set<Path> merge(final Collection<Set<Path>> directories) {
+            Set<Path> allSources = Set.of();
+            for (Set<Path> more : directories) {
+                if (allSources.isEmpty()) {
+                    allSources = more;
+                } else {
+                    // Should never happen, but merge anyway by safety.
+                    allSources = new LinkedHashSet<>(allSources);
+                    allSources.addAll(more);
+                }
+            }
+            return allSources;
+        }
+
+        /**
+         * Configures source directories for all roots in a compilation unit.
+         * Also configures the class-path or module-paths with the output directories
+         * of previous compilation units (if any).
+         *
+         * <h4>Default implementation</h4>
+         * The default implementation configures source directories and class-path for package hierarchy
+         * without {@code module-info}. Sub-classes need to override this method if the project is modular.
+         *
+         * @param roots map of module names to source paths
+         * @throws IOException if an error occurred while setting locations
+         */
+        protected void configureSourcePaths(final Map<String, Set<Path>> roots) throws IOException {
+            fileManager.setLocationFromPaths(StandardLocation.SOURCE_PATH, merge(roots.values()));
+
+            // For multi-release builds, add previous version's output to class-path.
+            if (latestOutputDirectory != null) {
+                Deque<Path> paths = prependDependency(JavaPathType.CLASSES, latestOutputDirectory);
+                fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, paths);
+            }
+        }
+
+        /**
+         * Sets up the output directory for a compilation unit.
+         *
+         * @param unit the compilation unit
+         * @throws IOException if an error occurred while creating directories or setting locations
+         */
+        final void setupOutputDirectory(final SourcesForRelease unit) throws IOException {
+            Path outputForRelease = outputDirectory;
+            if (isVersioned) {
+                outputForRelease = Files.createDirectories(
+                        directoryHierarchy.outputDirectoryForReleases(outputForRelease, unit.release));
+            }
+            fileManager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, Set.of(outputForRelease));
+            // Records that a compilation unit completed, updating the baseline for the next phase.
+            latestOutputDirectory = outputForRelease;
+            unit.outputForRelease = outputForRelease;
+            sourcesForDebugFile.add(unit);
+        }
+
+        /**
+         * Marks that subsequent iterations are for versions after the base version.
+         */
+        final void markVersioned() {
+            isVersioned = true;
+        }
+    }
+
+    /**
+     * Manager of module-paths specified to a {@link StandardJavaFileManager}.
+     * This subclass handles the {@link DirectoryHierarchy#MODULE_SOURCE} case.
+     *
+     * <h2>Implementation details</h2>
+     * The fields in this class are used for patching, i.e. when compiling test classes or a non-base version
+     * of a multi-release project. The output directory of the previous Java version needs to be added to the
+     * class-path or module-path. However, in the case of a modular project, we can add to the module path only
+     * once and all other additions must be done as patches.
+     */
+    private final class ModulePathManager extends PathManager {
+        /**
+         * Whether we can add output directories to the module-path.
+         * For modular projects, we can only add to module-path once.
+         * Subsequent additions must use {@code --patch-module}.
+         */
+        private boolean canAddOutputToModulePath;
+
+        /**
+         * Tracks modules from previous versions that may not be present in the current version.
+         * Keys are module names, values indicate whether cleanup is needed.
+         */
+        private final Map<String, Boolean> modulesNotPresentInNewVersion;
+
+        /**
+         * Tracks how many source directories were added as patches per module.
+         * Keys are module names, values are the count of source directories.
+         * Used to remove these source entries and replace them with compiled output.
+         *
+         * <h4>Purpose</h4>
+         * When patching a module, the source directories of the compilation unit are declared as a patch applied
+         * over the output directories of previous compilation units. But after the compilation, if there are more
+         * units to compile, we will need to replace the sources in {@code --patch-module} by the compilation output
+         * before to declare the source directories of the next compilation unit.
+         */
+        private final Map<String, Integer> modulesWithSourcesAsPatches;
+
+        /**
+         * Creates a new path manager for the given file manager.
+         *
+         * @param fileManager  the  file manager to configure for class-path or module-paths
+         */
+        ModulePathManager(StandardJavaFileManager fileManager) {
+            super(fileManager);
+            canAddOutputToModulePath = true;
+            modulesNotPresentInNewVersion = new LinkedHashMap<>();
+            modulesWithSourcesAsPatches = new HashMap<>();
+        }
+
+        /**
+         * Configures module source paths for all roots in a compilation unit.
+         * If the project uses package hierarchy with a {@code module-info} file,
+         * the module names in the keys of the {@code roots} map must have been resolved by
+         * {@link #determineDirectoryHierarchy(Collection)} before to invoke this method.</p>
+         *
+         * <p>Configures also the {@code --patch-module} options for a module being compiled for
+         * a newer Java version. The patch consists of (in order, highest priority first):</p>
+         * <ol>
+         *   <li>Current source paths (so the compiler sees the new version's sources).</li>
+         *   <li>Output from previous Java version (compiled classes to inherit).</li>
+         *   <li>Existing patch-module dependencies.</li>
+         * </ol>
+         *
+         * @param roots map of module names to source paths
+         * @throws IOException if an error occurred while setting locations
+         */
+        @Override
+        protected void configureSourcePaths(final Map<String, Set<Path>> roots) throws IOException {
+            for (var entry : roots.entrySet()) {
+                final String moduleName = entry.getKey();
+                final Set<Path> sourcePaths = entry.getValue();
+                fileManager.setLocationForModule(StandardLocation.MODULE_SOURCE_PATH, moduleName, sourcePaths);
+                modulesNotPresentInNewVersion.put(moduleName, Boolean.FALSE);
+                /*
+                 * When compiling for the base Java version, the configuration for current module is finished.
+                 * The remaining of this loop is executed only for target Java versions after the base version.
+                 * In those cases, we need to add the paths to the classes compiled for the previous version.
+                 * A non-modular project would always add the paths to the class-path. For a modular project,
+                 * add the paths to the module-path only the first time. After, we need to use patch-module.
+                 */
+                if (latestOutputDirectory != null) {
+                    if (canAddOutputToModulePath) {
+                        canAddOutputToModulePath = false;
+                        Deque<Path> paths = prependDependency(JavaPathType.MODULES, latestOutputDirectory);
+                        fileManager.setLocationFromPaths(StandardLocation.MODULE_PATH, paths);
+                    }
+                    /*
+                     * For a modular project, following block can be executed an arbitrary number of times
+                     * We need to declare that the sources that we are compiling are for patching a module.
+                     * But we also need to remember that these sources will need to be removed in the next
+                     * iteration, because they will be replaced by the compiled classes (the above block).
+                     */
+                    final Deque<Path> paths = dependencies(JavaPathType.patchModule(moduleName));
+                    removeFirsts(paths, modulesWithSourcesAsPatches.put(moduleName, sourcePaths.size()));
+                    Path latestOutput = resolveModuleOutputDirectory(latestOutputDirectory, moduleName);
+                    if (Files.exists(latestOutput)) {
+                        paths.addFirst(latestOutput);
+                    }
+                    sourcePaths.forEach(paths::addFirst);
+                    fileManager.setLocationForModule(StandardLocation.PATCH_MODULE_PATH, moduleName, paths);
+                }
+            }
+            omitSourcelessModulesInNewVersion();
+        }
+
+        /**
+         * Removes from compilation the modules that were present in previous version but not in the current version.
+         * This clears the source paths and updates patch-module for leftover modules.
+         * This method has no effect when compiling for the base Java version.
+         *
+         * @throws IOException if an error occurred while setting locations
+         */
+        private void omitSourcelessModulesInNewVersion() throws IOException {
+            for (var iterator = modulesNotPresentInNewVersion.entrySet().iterator(); iterator.hasNext(); ) {
+                Map.Entry<String, Boolean> entry = iterator.next();
+                if (entry.getValue()) {
+                    String moduleName = entry.getKey();
+                    Deque<Path> paths = dependencies(JavaPathType.patchModule(moduleName));
+                    if (removeFirsts(paths, modulesWithSourcesAsPatches.remove(moduleName))) {
+                        paths.addFirst(latestOutputDirectory.resolve(moduleName));
+                    } else if (paths.isEmpty()) {
+                        // Not sure why the following is needed, but it has been observed in real projects.
+                        paths.add(outputDirectory.resolve(moduleName));
+                    }
+                    fileManager.setLocationForModule(StandardLocation.PATCH_MODULE_PATH, moduleName, paths);
+                    fileManager.setLocationForModule(StandardLocation.MODULE_SOURCE_PATH, moduleName, Set.of());
+                    iterator.remove();
+                } else {
+                    entry.setValue(Boolean.TRUE); // For compilation of next target version (if any).
+                }
+            }
+        }
+
+        /**
+         * Removes the first <var>n</var> elements of the given collection.
+         * This is used for removing {@code --patch-module} items that were added as source directories.
+         * The callers should replace the removed items by the output directory of these source files.
+         *
+         * @param paths  the paths from which to remove the first elements
+         * @param count  number of elements to remove, or {@code null} if none
+         * @return whether at least one item has been removed
+         */
+        private static boolean removeFirsts(Deque<Path> paths, Integer count) {
+            boolean changed = false;
+            if (count != null) {
+                for (int i = count; --i >= 0; ) {
+                    changed |= (paths.removeFirst() != null);
+                }
+            }
+            return changed;
+        }
+    }
+
+    /**
+     * Runs the compilation task.
+     *
+     * @param compiler the compiler
+     * @param configuration the options to give to the Java compiler
+     * @param otherOutput where to write additional output from the compiler
+     * @return whether the compilation succeeded
+     * @throws IOException if an error occurred while reading or writing a file
+     * @throws MojoException if the compilation failed for a reason identified by this method
+     * @throws RuntimeException if any other kind of  error occurred
+     */
+    public boolean compile(JavaCompiler compiler, final Options configuration, final Writer otherOutput)
+            throws IOException {
+
+        if (noSourcesToCompile()) {
+            return true;
+        }
+
+        // Determine project type once from all units before processing.
+        final Collection<SourcesForRelease> units = groupByReleaseAndModule();
+        determineDirectoryHierarchy(units);
+
+        // Workaround for a `javax.tools` method which seems not yet supported on all compilers.
+        if (WorkaroundForPatchModule.ENABLED && hasModuleDeclaration && !(compiler instanceof ForkedTool)) {
+            compiler = new WorkaroundForPatchModule(compiler);
+        }
         boolean success = true;
         try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(listener, LOCALE, encoding)) {
             setDependencyPaths(fileManager);
             if (!generatedSourceDirectories.isEmpty()) {
                 fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, generatedSourceDirectories);
             }
-            boolean isVersioned = false;
-            Path latestOutputDirectory = null;
-            /*
-             * More than one compilation unit may exist in the case of a multi-release project.
-             * Units are compiled in the order of the release version, with base compiled first.
-             * At the beginning of each new iteration, `latestOutputDirectory` is the path to
-             * the compiled classes of the previous version.
-             */
-            compile:
-            for (final SourcesForRelease unit : groupByReleaseAndModule()) {
-                Path outputForRelease = null;
-                boolean isClasspathProject = false;
-                boolean isModularProject = false;
+            final PathManager pathManager =
+                    switch (directoryHierarchy) {
+                        case PACKAGE -> new PathManager(fileManager);
+                        case PACKAGE_WITH_MODULE, MODULE_SOURCE -> new ModulePathManager(fileManager);
+                    };
+
+            // Compile each release version in order (base version first for multi-release projects).
+            for (final SourcesForRelease unit : units) {
                 configuration.setRelease(unit.getReleaseString());
-                for (final Map.Entry<String, Set<Path>> root : unit.roots.entrySet()) {
-                    final String moduleName = inferModuleNameIfMissing(root.getKey());
-                    if (moduleName.isEmpty()) {
-                        isClasspathProject = true;
-                    } else {
-                        isModularProject = true;
-                    }
-                    if (isClasspathProject & isModularProject) {
-                        throw new CompilationFailureException("Mix of modular and non-modular sources.");
-                    }
-                    final Set<Path> sourcePaths = root.getValue();
-                    if (isClasspathProject) {
-                        fileManager.setLocationFromPaths(StandardLocation.SOURCE_PATH, sourcePaths);
-                    } else {
-                        fileManager.setLocationForModule(StandardLocation.MODULE_SOURCE_PATH, moduleName, sourcePaths);
-                    }
-                    outputForRelease = outputDirectory; // Modified below if compiling a non-base release.
-                    if (isVersioned) {
-                        if (isClasspathProject) {
-                            /*
-                             * For a non-modular project, this block is executed at most once par compilation unit.
-                             * Add the paths to the classes compiled for previous versions.
-                             */
-                            if (classpath == null) {
-                                classpath = new ArrayList<>();
-                            }
-                            classpath.add(0, latestOutputDirectory);
-                            fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, classpath);
-                            outputForRelease = Files.createDirectories(
-                                    SourceDirectory.outputDirectoryForReleases(outputForRelease, unit.release));
-                        } else {
-                            /*
-                             * For a modular project, this block can be executed an arbitrary number of times
-                             * (once per module).
-                             * TODO: need to provide --patch-module. Difficulty is that we can specify only once.
-                             */
-                            throw new UnsupportedOperationException(
-                                    "Multi-versions of a modular project is not yet implemented.");
-                        }
-                    } else {
-                        /*
-                         * This addition is for allowing AbstractCompilerMojo.writeDebugFile(…) to show those paths.
-                         * It has no effect on the compilation performed in this method, because the dependencies
-                         * have already been set by the call to `setDependencyPaths(fileManager)`.
-                         */
-                        if (!sourcePaths.isEmpty()) {
-                            dependencies.put(SourcePathType.valueOf(moduleName), List.copyOf(sourcePaths));
-                        }
-                    }
-                }
-                fileManager.setLocationFromPaths(StandardLocation.CLASS_OUTPUT, Set.of(outputForRelease));
-                latestOutputDirectory = outputForRelease;
-                /*
-                 * Compile the source files now. The following loop should be executed exactly once.
-                 * It may be executed twice when compiling test classes overwriting the `module-info`,
-                 * in which case the `module-info` needs to be compiled separately from other classes.
-                 * However, this is a deprecated practice.
-                 */
-                JavaCompiler.CompilationTask task;
-                for (CompilationTaskSources c : toCompilationTasks(unit)) {
-                    Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(c.files);
+                pathManager.configureSourcePaths(unit.roots);
+
+                // Snapshot dependencies for debug file
+                copyDependencyValues();
+                unit.dependencySnapshot = new LinkedHashMap<>(dependencies);
+
+                // Set up output directory and compile (only if there are files).
+                pathManager.setupOutputDirectory(unit);
+
+                // Compile the source files now.
+                if (!unit.files.isEmpty()) {
+                    Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(unit.files);
+                    JavaCompiler.CompilationTask task;
                     task = compiler.getTask(otherOutput, fileManager, listener, configuration.options, null, sources);
-                    success = c.compile(task);
+                    success = task.call();
                     if (!success) {
-                        break compile;
+                        break;
                     }
                 }
-                isVersioned = true; // Any further iteration is for a version after the base version.
-            }
-            /*
-             * Post-compilation.
-             */
-            if (listener instanceof DiagnosticLogger diagnostic) {
-                diagnostic.logSummary();
+                pathManager.markVersioned();
             }
         } catch (UncheckedIOException e) {
             throw e.getCause();
         }
-        if (success && incrementalBuild != null) {
-            incrementalBuild.writeCache();
-            incrementalBuild = null;
+
+        // Performs post-compilation tasks such as logging and writing incremental build cache.
+        if (listener instanceof DiagnosticLogger diagnostic) {
+            diagnostic.logSummary();
+        }
+        if (success) {
+            saveIncrementalBuild();
         }
         return success;
-    }
-
-    /**
-     * Subdivides a compilation unit into one or more compilation tasks.
-     * This is a workaround for deprecated practices such as overwriting the main {@code module-info} in the tests.
-     * In the latter case, we need to compile the test {@code module-info} separately, before the other test classes.
-     */
-    CompilationTaskSources[] toCompilationTasks(final SourcesForRelease unit) {
-        if (unit.files.isEmpty()) {
-            return new CompilationTaskSources[0];
-        }
-        return new CompilationTaskSources[] {new CompilationTaskSources(unit.files)};
     }
 }

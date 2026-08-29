@@ -24,7 +24,6 @@ import javax.tools.JavaCompiler;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.OptionChecker;
-import javax.tools.Tool;
 import javax.tools.ToolProvider;
 
 import java.io.BufferedReader;
@@ -40,6 +39,7 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -76,6 +76,7 @@ import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
+import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
 
@@ -106,9 +107,29 @@ public abstract class AbstractCompilerMojo implements Mojo {
     static final boolean SUPPORT_LEGACY = true;
 
     /**
+     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
+     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
+     * Used for detecting if {@code module-info.class} needs to be patched for reproducible builds.
+     */
+    private static final String RELEASE_22 = "RELEASE_22";
+
+    /**
+     * Name of a {@link SourceVersion} enumeration value for a version above 17 (the current Maven target).
+     * The {@code SourceVersion} value cannot be referenced directly because it does not exist in Java 17.
+     * Used for determining the default value of the {@code -proc} compiler option.
+     */
+    private static final String RELEASE_23 = "RELEASE_23";
+
+    /**
      * The executable to use by default if nine is specified.
      */
     private static final String DEFAULT_EXECUTABLE = "javac";
+
+    /**
+     * The quote character for filenames in shell scripts.
+     * Shall not be used with {@link javax.tools.JavaFileManager}.
+     */
+    static final char QUOTE = '"';
 
     // ----------------------------------------------------------------------
     // Configurables
@@ -134,7 +155,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String encoding;
 
     /**
-     * {@return the character set used for decoding bytes, or null for the platform default}.
+     * {@return the character set used for decoding bytes, or null for the platform default}
      * No warning is emitted in the latter case because as of Java 18, the default is UTF-8,
      * i.e. the encoding is no longer platform-dependent.
      */
@@ -213,6 +234,13 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private boolean targetOrReleaseSet;
 
     /**
+     * The highest version supported by the compiler, or {@code null} if not yet determined.
+     *
+     * @see #isVersionEqualOrNewer(String)
+     */
+    private SourceVersion supportedVersion;
+
+    /**
      * Whether to enable preview language features of the java compiler.
      * If {@code true}, then the {@code --enable-preview} option will be added to compiler arguments.
      *
@@ -288,12 +316,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * </ul>
      *
      * The default value depends on the JDK used for the build.
-     * Prior to Java 22, the default was {@code full}, so annotation processing and compilation were executed without explicit configuration.
+     * Prior to Java 23, the default was {@code full},
+     * so annotation processing and compilation were executed without explicit configuration.
      *
      * For security reasons, starting with Java 23 no annotation processing is done if neither
-     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set, or either {@code only} or {@code full} is set.
+     * any {@code -processor}, {@code -processor path} or {@code -processor module} are set,
+     * or either {@code only} or {@code full} is set.
      * So literally the default is {@code none}.
-     * It is recommended to always list the annotation processors you want to execute instead of using the {@code proc} configuration, to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
+     * It is recommended to always list the annotation processors you want to execute
+     * instead of using the {@code proc} configuration,
+     * to ensure that only desired processors are executed and not any "hidden" (and maybe malicious).
      *
      * @see #annotationProcessors
      * @see <a href="https://inside.java/2024/06/18/quality-heads-up/">Inside Java 2024-06-18 Quality Heads up</a>
@@ -468,6 +500,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Whether to show messages about what the compiler is doing.
      * If {@code true}, then the {@code -verbose} option will be added to compiler arguments.
+     * In addition, files such as {@code target/javac.args} will be generated even on successful compilation.
      *
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-verbose">javac -verbose</a>
      */
@@ -613,6 +646,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
      * It means that a full rebuild will be done if any kind of change is detected.</p>
      *
+     * <p>Whether an annotation processor is considered present depends on the Java version when {@link #proc} is unset,
+     * because {@code javac} enables annotation processing by default before Java 23 ({@code -proc:full})
+     * but disables it since Java 23 ({@code -proc:none} unless a processor is configured).
+     * Consequently, on Java versions prior to 23 the plugin conservatively assumes that a processor may be present
+     * — since {@code javac} would discover processors on the compile classpath —
+     * and therefore applies {@code "rebuild-on-add,rebuild-on-change"} by default,
+     * doing a full rebuild on any change even when no processor is actually present.
+     * Projects on Java &lt; 23 that use no annotation processor can restore per-file recompilation
+     * by setting {@link #proc} to {@code "none"} (or by setting this {@code incrementalCompilation} property explicitly).</p>
+     *
      * @see #staleMillis
      * @see #fileExtensions
      * @see #showCompilationChanges
@@ -642,7 +685,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
     final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
-        if (incrementalCompilation == null || incrementalCompilation.isBlank()) {
+        if (isAbsent(incrementalCompilation)) {
             if (useIncrementalCompilation != null) {
                 return useIncrementalCompilation
                         ? EnumSet.of(
@@ -651,17 +694,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
                                 IncrementalBuild.Aspect.REBUILD_ON_ADD)
                         : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
             }
-            var aspects = EnumSet.of(
+            return EnumSet.of(
                     IncrementalBuild.Aspect.OPTIONS,
                     IncrementalBuild.Aspect.DEPENDENCIES,
                     IncrementalBuild.Aspect.SOURCES);
-            if (hasAnnotationProcessor()) {
-                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
-            }
-            return aspects;
-        } else {
-            return IncrementalBuild.Aspect.parse(incrementalCompilation);
+        }
+        return IncrementalBuild.Aspect.parse(incrementalCompilation);
+    }
+
+    /**
+     * Amends the configuration of incremental compilation for the presence of annotation processors.
+     *
+     * @param aspects the configuration to amend if an annotation processor is found
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
+     */
+    final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
+        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
+            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
+            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
         }
     }
 
@@ -880,6 +930,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @Inject
     protected ToolchainManager toolchainManager;
 
+    /**
+     * The service to use for creating include and exclude filters.
+     */
+    @Inject
+    protected PathMatcherFactory matcherFactory;
+
     @Inject
     protected MessageBuilderFactory messageBuilderFactory;
 
@@ -925,7 +981,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the inclusion filters for the compiler, or an empty list for all Java source files}.
+     * {@return the inclusion filters for the compiler, or an empty list for all Java source files}
      * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
      * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
      * behavior of Maven 3.
@@ -933,7 +989,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Set<String> getIncludes();
 
     /**
-     * {@return the exclusion filters for the compiler, or an empty list if none}.
+     * {@return the exclusion filters for the compiler, or an empty list if none}
      * The filter patterns are described in {@link java.nio.file.FileSystem#getPathMatcher(String)}.
      * If no syntax is specified, the default syntax is a derivative of "glob" compatible with the
      * behavior of Maven 3.
@@ -941,7 +997,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Set<String> getExcludes();
 
     /**
-     * {@return the exclusion filters for the incremental calculation}.
+     * {@return the exclusion filters for the incremental calculation}
      * Updated source files, if excluded by this filter, will not cause the project to be rebuilt.
      *
      * @see SourceFile#ignoreModification
@@ -949,7 +1005,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected abstract Set<String> getIncrementalExcludes();
 
     /**
-     * {@return whether all includes/excludes matchers specified in the plugin configuration are empty}.
+     * {@return whether all includes/excludes matchers specified in the plugin configuration are empty}
      * This method checks only the plugin configuration. It does not check the {@code <source>} elements.
      */
     final boolean hasNoFileMatchers() {
@@ -959,14 +1015,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the destination directory (or class output directory) for class files}.
+     * {@return the destination directory (or class output directory) for class files}
      * This directory will be given to the {@code -d} Java compiler option.
      */
     @Nonnull
     protected abstract Path getOutputDirectory();
 
     /**
-     * {@return the {@code --source} argument for the Java compiler}.
+     * {@return the {@code --source} argument for the Java compiler}
      * The default implementation returns the {@link #source} value.
      */
     @Nullable
@@ -975,7 +1031,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the {@code --target} argument for the Java compiler}.
+     * {@return the {@code --target} argument for the Java compiler}
      * The default implementation returns the {@link #target} value.
      */
     @Nullable
@@ -984,7 +1040,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the {@code --release} argument for the Java compiler}.
+     * {@return the {@code --release} argument for the Java compiler}
      * The default implementation returns the {@link #release} value.
      */
     @Nullable
@@ -993,7 +1049,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the root directories of Java source code for the given scope}.
+     * {@return the root directories of Java source code for the given scope}
      * This method ignores the deprecated {@link #compileSourceRoots} element.
      *
      * @param scope whether to get the directories for main code or for the test code
@@ -1003,7 +1059,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the root directories of the Java source files to compile, excluding empty directories}.
+     * {@return the root directories of the Java source files to compile, excluding empty directories}
      * The list needs to be modifiable for allowing the addition of generated source directories.
      * This is determined from the {@link #compileSourceRoots} plugin configuration if non-empty,
      * or from {@code <source>} elements otherwise.
@@ -1012,7 +1068,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws IOException if this method needs to walk through directories and that operation failed
      */
     final List<SourceDirectory> getSourceDirectories(final Path outputDirectory) throws IOException {
-        if (compileSourceRoots == null || compileSourceRoots.isEmpty()) {
+        if (isAbsent(compileSourceRoots)) {
             Stream<SourceRoot> roots = getSourceRoots(compileScope.projectScope());
             return SourceDirectory.fromProject(roots, getRelease(), outputDirectory);
         } else {
@@ -1022,7 +1078,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the path where to place generated source files created by annotation processing}.
+     * {@return the path where to place generated source files created by annotation processing}
      */
     @Nullable
     protected abstract Path getGeneratedSourcesDirectory();
@@ -1048,7 +1104,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return whether the sources contain at least one {@code module-info.java} file}.
+     * {@return whether the sources contain at least one {@code module-info.java} file}
      * Note that the sources may contain more than one {@code module-info.java} file
      * if compiling a project with Module Source Hierarchy.
      *
@@ -1077,26 +1133,39 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the file where to dump the command-line when debug logging is enabled or when the compilation failed}.
+     * {@return the file where to dump the command-line when debug logging is enabled or when the compilation failed}
      * For example, if the value is {@code "javac"}, then the Java compiler can be launched
      * from the command-line by typing {@code javac @target/javac.args}.
      * The debug file will contain the compiler options together with the list of source files to compile.
      *
      * <p>Note: debug logging should not be confused with the {@link #debug} flag.</p>
+     *
+     * @see CompilerMojo#debugFileName
+     * @see TestCompilerMojo#debugFileName
      */
     @Nullable
     protected abstract String getDebugFileName();
 
     /**
-     * {@return the debug file name with its path, or null if none}.
+     * {@return the debug file name with its path, or null if none}
+     * This method does not check if the debug file will be written, as the compilation result is not yet known.
      */
     final Path getDebugFilePath() {
         String filename = getDebugFileName();
-        if (filename == null || filename.isBlank()) {
+        if (isAbsent(filename)) {
             return null;
         }
         // Do not use `this.getOutputDirectory()` because it may be deeper in `classes/META-INF/versions/`.
         return Path.of(project.getBuild().getOutputDirectory()).resolveSibling(filename);
+    }
+
+    /**
+     * Returns whether the debug file should be written after a successful build.
+     * By default, debug files are written only if the build failed.
+     * However, some options can change this behavior.
+     */
+    final boolean shouldWriteDebugFile() {
+        return verbose || logger.isDebugEnabled();
     }
 
     /**
@@ -1116,6 +1185,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @Override
     public void execute() throws MojoException {
         JavaCompiler compiler = compiler();
+        for (SourceVersion version : compiler.getSourceVersions()) {
+            if (supportedVersion == null || version.compareTo(supportedVersion) >= 0) {
+                supportedVersion = version;
+            }
+        }
         Options configuration = parseParameters(compiler);
         try {
             compile(compiler, configuration);
@@ -1180,7 +1254,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return the compiler to use for compiling the code}.
+     * {@return the compiler to use for compiling the code}
      * If {@link #fork} is {@code true}, the returned compiler will be a wrapper for a command line.
      * Otherwise, it will be the compiler identified by {@link #compilerId} if a value was supplied,
      * or the standard compiler provided with the Java platform otherwise.
@@ -1299,17 +1373,19 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @throws IOException if an input file cannot be read
      * @throws MojoException if the compilation failed
      */
+    @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;
         }
-        Exception failureCause = null;
+        Throwable failureCause = null;
         final var compilerOutput = new StringWriter();
         boolean success;
         try {
             success = executor.compile(compiler, configuration, compilerOutput);
-        } catch (Exception e) {
+        } catch (Exception | NoClassDefFoundError e) {
+            // `NoClassDefFoundError` may happen if a dependency of an annotation processor is missing.
             success = false;
             failureCause = e;
         }
@@ -1338,10 +1414,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * In case of failure, or if debugging is enabled, dump the options to a file.
          * By default, the file will have the ".args" extension.
          */
-        if (!success || verbose || logger.isDebugEnabled()) {
+        if (!success || shouldWriteDebugFile()) {
             IOException suppressed = null;
             try {
-                writeDebugFile(executor, configuration);
+                writeDebugFile(executor, configuration, success);
                 if (success && tipForCommandLineCompilation != null) {
                     logger.debug(tipForCommandLineCompilation);
                     tipForCommandLineCompilation = null;
@@ -1357,9 +1433,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
                         .append(compileScope.projectScope().id())
                         .append(" classes.");
                 if (executor.listener instanceof DiagnosticLogger diagnostic) {
-                    diagnostic.firstError(failureCause).ifPresent((c) -> message.append(System.lineSeparator())
-                            .append("The first error is: ")
-                            .append(c));
+                    diagnostic
+                            .firstError(failureCause)
+                            .ifPresent((c) -> message.append(System.lineSeparator())
+                                    .append("The first error is: ")
+                                    .append(c));
                 }
                 var failure = new CompilationFailureException(message.toString(), failureCause);
                 if (suppressed != null) {
@@ -1376,7 +1454,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * Note: a previous version used as an heuristic way to detect if Reproducible Build was enabled. This check
          * has been removed because Reproducible Build are enabled by default in Maven now.
          */
-        if (!isVersionEqualOrNewer(compiler, "RELEASE_22")) {
+        if (!isVersionEqualOrNewer(RELEASE_22)) {
             Path moduleDescriptor = executor.outputDirectory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX);
             if (Files.isRegularFile(moduleDescriptor)) {
                 byte[] oridinal = Files.readAllBytes(moduleDescriptor);
@@ -1389,12 +1467,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Returns whether the given tool (usually the compiler) supports the given source version or newer versions.
+     * Returns whether the compiler supports the given source version or newer versions.
      * The specified source version shall be the name of one of the {@link SourceVersion} enumeration values.
-     * Note that a return value of {@code true} does not mean that the tool support that version,
-     * as it may be too old. This method is rather for checking whether a tool need to be patched.
+     * Note that a return value of {@code true} does not mean that the compiler supports that exact version,
+     * as it may supports only newer versions.
      */
-    private static boolean isVersionEqualOrNewer(Tool tool, String sourceVersion) {
+    private boolean isVersionEqualOrNewer(String sourceVersion) {
         final SourceVersion requested;
         try {
             requested = SourceVersion.valueOf(sourceVersion);
@@ -1402,16 +1480,43 @@ public abstract class AbstractCompilerMojo implements Mojo {
             // The current tool is from a JDK older than the one for the requested source release.
             return false;
         }
-        return tool.getSourceVersions().stream().anyMatch((v) -> v.compareTo(requested) >= 0);
+        if (supportedVersion == null) {
+            supportedVersion = SourceVersion.latestSupported();
+        }
+        return supportedVersion.compareTo(requested) >= 0;
     }
 
     /**
-     * {@return the tool chain specified by the user in plugin parameters}.
+     * Returns whether the given string is null or empty, ignoring spaces.
+     * This is a convenience for a frequent check, and also for clarity.
+     */
+    private static boolean isAbsent(String c) {
+        return (c == null) || c.isBlank();
+    }
+
+    /**
+     * Returns whether the given array is null or empty.
+     * Defined as a complement of {@link #isAbsent(Collection)}.
+     */
+    private static boolean isAbsent(Object[] c) {
+        return (c == null) || c.length == 0;
+    }
+
+    /**
+     * Returns whether the given collection is null or empty.
+     * This is a convenience for a frequent check, and also for clarity.
+     */
+    static boolean isAbsent(Collection<?> c) {
+        return (c == null) || c.isEmpty();
+    }
+
+    /**
+     * {@return the tool chain specified by the user in plugin parameters}
      */
     private Optional<Toolchain> getToolchain() {
         if (jdkToolchain != null) {
             List<Toolchain> tcs = toolchainManager.getToolchains(session, "jdk", jdkToolchain);
-            if (tcs != null && !tcs.isEmpty()) {
+            if (!isAbsent(tcs)) {
                 return Optional.of(tcs.get(0));
             }
         }
@@ -1425,7 +1530,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param source the source file to parse (may be null or not exist)
      * @return the module name, or {@code null} if not found
+     *
+     * @deprecated This is invoked only by other deprecated methods.
      */
+    @Deprecated(since = "4.0.0")
     final String parseModuleInfoName(Path source) throws IOException {
         if (source != null && Files.exists(source)) {
             Charset charset = charset();
@@ -1452,8 +1560,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return all dependencies grouped by the path types where to place them}. If the module-path contains
-     * any filename-based dependency and this MOJO is compiling the main code, then a warning will be logged.
+     * {@return all dependencies grouped by the path types where to place them}
+     * If the module-path contains any filename-based dependency and this <abbr>MOJO</abbr>
+     * is compiling the main code, then a warning will be logged.
      *
      * @param hasModuleDeclaration whether to allow placement of dependencies on the module-path
      * @throws IOException if an I/O error occurred while fetching dependencies
@@ -1512,20 +1621,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * Adds paths to the annotation processor dependencies. Paths are added to the list associated
      * to the {@link JavaPathType#PROCESSOR_CLASSES} entry of given map, which should be modifiable.
      *
-     * <h4>Implementation note</h4>
-     * We rely on the fact that {@link org.apache.maven.impl.DefaultDependencyResolverResult} creates
-     * modifiable instances of map and lists. This is a fragile assumption, but this method is deprecated anyway
-     * and may be removed in a future version.
-     *
      * @param addTo the modifiable map and lists where to append more paths to annotation processor dependencies
      * @throws MojoException if an error occurred while resolving the dependencies
      * @deprecated replaced by ordinary dependencies with {@code <type>} element set to
      * {@code processor}, {@code classpath-processor} or {@code modular-processor}
      */
     @Deprecated(since = "4.0.0")
-    final void resolveProcessorPathEntries(Map<PathType, List<Path>> addTo) throws MojoException {
+    @SuppressWarnings("UseSpecificCatch")
+    final void resolveProcessorPathEntries(Map<PathType, Collection<Path>> addTo) throws MojoException {
         List<DependencyCoordinate> dependencies = annotationProcessorPaths;
-        if (dependencies != null && !dependencies.isEmpty()) {
+        if (!isAbsent(dependencies)) {
             try {
                 List<org.apache.maven.api.DependencyCoordinates> coords = dependencies.stream()
                         .map((coord) -> coord.toCoordinate(project, session))
@@ -1558,39 +1663,26 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * {@return whether an annotation processor seems to be present}.
-     * This method is invoked if the user did not specified explicit incremental compilation options.
+     * {@return whether an annotation processor seems to be present}
+     *
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      *
      * @see #incrementalCompilation
      */
-    private boolean hasAnnotationProcessor() {
-        if ("none".equalsIgnoreCase(proc)) {
-            return false;
-        }
-        if (proc == null || proc.isBlank()) {
+    private boolean hasAnnotationProcessor(final Set<PathType> dependencyTypes) {
+        if (isAbsent(proc)) {
             /*
              * If the `proc` parameter was not specified, its default value depends on the Java version.
-             * It was "full" prior Java 21 and become "none if no other processor option" since Java 21.
-             * Since even the full" case may do nothing, always check if a processor is declared.
+             * It was "full" prior Java 23 and become "none if no other processor option" since Java 23.
              */
-            if (annotationProcessors == null || annotationProcessors.length == 0) {
-                if (annotationProcessorPaths == null || annotationProcessorPaths.isEmpty()) {
-                    DependencyResolver resolver = session.getService(DependencyResolver.class);
-                    if (resolver == null) { // Null value happen during tests, depending on the mock used.
-                        return false;
-                    }
-                    var allowedTypes = EnumSet.of(JavaPathType.PROCESSOR_CLASSES, JavaPathType.PROCESSOR_MODULES);
-                    DependencyResolverResult dependencies = resolver.resolve(DependencyResolverRequest.builder()
-                            .session(session)
-                            .project(project)
-                            .requestType(DependencyResolverRequest.RequestType.COLLECT)
-                            .pathScope(compileScope)
-                            .pathTypeFilter(allowedTypes)
-                            .build());
-
-                    return !dependencies.getDependencies().isEmpty();
+            if (isVersionEqualOrNewer(RELEASE_23)) {
+                if (isAbsent(annotationProcessors) && isAbsent(annotationProcessorPaths)) {
+                    return dependencyTypes.contains(JavaPathType.PROCESSOR_CLASSES)
+                            || dependencyTypes.contains(JavaPathType.PROCESSOR_MODULES);
                 }
             }
+        } else if (proc.equalsIgnoreCase("none")) {
+            return false;
         }
         return true;
     }
@@ -1600,10 +1692,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * known to the project manager. This is used for adding the output of annotation processor.
      * The returned set is either empty or a singleton.
      *
+     * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      * @return the added directory in a singleton set, or an empty set if none
      * @throws IOException if the directory cannot be created
      */
-    final Set<Path> addGeneratedSourceDirectory() throws IOException {
+    final Set<Path> addGeneratedSourceDirectory(final Set<PathType> dependencyTypes) throws IOException {
         Path generatedSourcesDirectory = getGeneratedSourcesDirectory();
         if (generatedSourcesDirectory == null) {
             return Set.of();
@@ -1612,14 +1705,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
          * Do not create an empty directory if this plugin is not going to generate new source files.
          * However, if a directory already exists, use it because maybe its content was generated by
          * another plugin executed before the compiler plugin.
-         *
-         * TODO: "none" become the default starting with Java 23.
          */
-        if ("none".equalsIgnoreCase(proc) && Files.notExists(generatedSourcesDirectory)) {
-            return Set.of();
-        } else {
+        if (hasAnnotationProcessor(dependencyTypes)) {
             // `createDirectories(Path)` does nothing if the directory already exists.
             generatedSourcesDirectory = Files.createDirectories(generatedSourcesDirectory);
+        } else if (Files.notExists(generatedSourcesDirectory)) {
+            return Set.of();
         }
         ProjectScope scope = compileScope.projectScope();
         projectManager.addSourceRoot(project, scope, Language.JAVA_FAMILY, generatedSourcesDirectory.toAbsolutePath());
@@ -1663,7 +1754,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         mb.a("    <plugin>").newline();
         mb.a("      <groupId>org.apache.maven.plugins</groupId>").newline();
         mb.a("      <artifactId>maven-compiler-plugin</artifactId>").newline();
-        if (mavenCompilerPluginVersion != null && !mavenCompilerPluginVersion.isBlank()) {
+        if (!isAbsent(mavenCompilerPluginVersion)) {
             mb.a("      <version>")
                     .a(mavenCompilerPluginVersion)
                     .a("</version>")
@@ -1686,60 +1777,113 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param executor the executor that compiled the classes
      * @param configuration options provided to the compiler
+     * @param showBaseVersion whether the tip shown to user suggests the base Java release instead of the last one
      * @throws IOException if an error occurred while writing the debug file
      */
-    private void writeDebugFile(final ToolExecutor executor, final Options configuration) throws IOException {
-        final Path path = getDebugFilePath();
-        if (path == null) {
+    private void writeDebugFile(final ToolExecutor executor, final Options configuration, final boolean showBaseVersion)
+            throws IOException {
+        final Path debugFilePath = getDebugFilePath();
+        if (debugFilePath == null) {
             logger.warn("The <debugFileName> parameter should not be empty.");
             return;
         }
         final var commandLine = new StringBuilder("For trying to compile from the command-line, use:");
-        final var chdir =
-                Path.of(System.getProperty("user.dir")).relativize(basedir).toString();
-        if (!chdir.isEmpty()) {
-            boolean isWindows = (File.separatorChar == '\\');
-            commandLine
-                    .append(System.lineSeparator())
-                    .append("    ")
-                    .append(isWindows ? "chdir " : "cd ")
-                    .append(chdir);
+        Path dir = basedir;
+        if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
+            try {
+                dir = Path.of(System.getProperty("user.dir")).relativize(dir);
+            } catch (IllegalArgumentException e) {
+                // Ignore, keep the absolute path.
+            }
+            String chdir = dir.toString();
+            if (!chdir.isEmpty()) {
+                boolean isWindows = (File.separatorChar == '\\');
+                commandLine
+                        .append(System.lineSeparator())
+                        .append("    ")
+                        .append(isWindows ? "chdir " : "cd ")
+                        .append(chdir);
+            }
         }
         commandLine.append(System.lineSeparator()).append("    ").append(executable != null ? executable : compilerId);
-        try (BufferedWriter out = Files.newBufferedWriter(path)) {
-            configuration.format(commandLine, out);
-            for (Map.Entry<PathType, List<Path>> entry : executor.dependencies.entrySet()) {
-                List<Path> files = entry.getValue();
-                files = files.stream().map(this::relativize).toList();
-                String separator = "";
-                for (String element : entry.getKey().option(files)) {
-                    out.write(separator);
-                    out.write(element);
-                    separator = " ";
+        Path pathForRelease = debugFilePath;
+        /*
+         * The following loop will iterate over all groups of source files compiled for the same Java release,
+         * starting with the base release. If the project is not a multi-release project, it iterates only once.
+         * If the compilation failed, the loop will stop after the first Java release for which an error occurred.
+         */
+        final int count = executor.sourcesForDebugFile.size();
+        final int indexToShow = showBaseVersion ? 0 : count - 1;
+        for (int i = 0; i < count; i++) {
+            final SourcesForRelease sources = executor.sourcesForDebugFile.get(i);
+            if (i != 0) {
+                String version = sources.outputForRelease.getFileName().toString();
+                String filename = debugFilePath.getFileName().toString();
+                int s = filename.lastIndexOf('.');
+                if (s >= 0) {
+                    filename = filename.substring(0, s) + '-' + version + filename.substring(s);
+                } else {
+                    filename = filename + '-' + version;
                 }
-                out.newLine();
+                pathForRelease = debugFilePath.resolveSibling(filename);
             }
-            out.write("-d \"");
-            out.write(relativize(getOutputDirectory()).toString());
-            out.write('"');
-            out.newLine();
-            try {
-                executor.getSourceFiles().forEach((file) -> {
-                    try {
-                        out.write('"');
-                        out.write(relativize(file).toString());
-                        out.write('"');
-                        out.newLine();
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
+            /*
+             * Write the `javac.args` or `javac-<version>.args` file where `<version>` is the targeted Java release.
+             * The `-J` options need to be on the command line rather than in the file, and therefore can be written
+             * only once.
+             */
+            try (BufferedWriter out = Files.newBufferedWriter(pathForRelease)) {
+                configuration.setRelease(sources.getReleaseString());
+                configuration.format((i == indexToShow) ? commandLine : null, out);
+                for (Map.Entry<PathType, Collection<Path>> entry : sources.dependencySnapshot.entrySet()) {
+                    writeOption(out, entry.getKey(), entry.getValue());
+                }
+                for (Map.Entry<String, Set<Path>> root : sources.roots.entrySet()) {
+                    String moduleName = root.getKey();
+                    writeOption(out, SourcePathType.valueOf(moduleName), root.getValue());
+                }
+                out.write("-d " + QUOTE);
+                out.write(relativize(sources.outputForRelease).toString());
+                out.write(QUOTE);
+                out.newLine();
+                for (final Path file : sources.files) {
+                    out.write(QUOTE);
+                    out.write(relativize(file).toString());
+                    out.write(QUOTE);
+                    out.newLine();
+                }
             }
         }
-        tipForCommandLineCompilation =
-                commandLine.append(" @").append(relativize(path)).toString();
+        Path path = relativize(showBaseVersion ? debugFilePath : pathForRelease);
+        tipForCommandLineCompilation = commandLine.append(" @").append(path).toString();
+    }
+
+    /**
+     * Writes the paths for the given Java compiler option.
+     * Used for the {@code *.args} debug file, because files will be written between quotes.
+     *
+     * @param out where to write
+     * @param type the type of path to write as a compiler option
+     * @param files the paths associated to the specified option
+     * @throws IOException in an error occurred while writing to the output
+     */
+    private void writeOption(BufferedWriter out, PathType type, Collection<Path> files) throws IOException {
+        if (!files.isEmpty()) {
+            files = files.stream().map(this::relativize).toList();
+            String[] options = type.option(files);
+            for (int i = 0; i < options.length; i++) {
+                String element = options[i];
+                if (i == 0) {
+                    out.write(element);
+                } else {
+                    out.write(' ');
+                    out.write(QUOTE);
+                    out.write(element);
+                    out.write(QUOTE);
+                }
+            }
+            out.newLine();
+        }
     }
 
     /**
@@ -1751,12 +1895,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @return the given path, potentially relative to the base directory
      */
     private Path relativize(Path file) {
-        Path root = project.getRootDirectory();
-        if (root != null && file.startsWith(root)) {
-            try {
-                file = basedir.relativize(file);
-            } catch (IllegalArgumentException e) {
-                // Ignore, keep the absolute path.
+        final Path dir = basedir;
+        if (dir != null) { // Should never be null, but it has been observed with some Maven versions.
+            Path root = project.getRootDirectory();
+            if (root != null && file.startsWith(root)) {
+                try {
+                    file = dir.relativize(file);
+                } catch (IllegalArgumentException e) {
+                    // Ignore, keep the absolute path.
+                }
             }
         }
         return file;

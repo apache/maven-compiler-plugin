@@ -34,6 +34,9 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 
+import org.apache.maven.api.annotations.Nonnull;
+import org.apache.maven.api.services.PathMatcherFactory;
+
 /**
  * Applies inclusion and exclusion filters on paths, and builds a list of files in a directory tree.
  * The set of allowed syntax contains at least "glob" and "regex".
@@ -80,10 +83,22 @@ final class PathFilter extends SimpleFileVisitor<Path> {
     private final String[] excludes;
 
     /**
-     * Combination of include and exclude filters. This is an instance of {@link PathSelector},
-     * unless the includes/excludes can be simplified to a single standard matcher instance.
+     * The service to use for creating include and exclude filters.
+     * Used for setting a value to {@link #fileMatcher}, {@link #directoryMatcher},
+     * and {@link #incrementalExcludeMatchers}.
      */
-    private PathMatcher matchers;
+    @Nonnull
+    private final PathMatcherFactory matcherFactory;
+
+    /**
+     * Combination of include and exclude filters applied on files.
+     */
+    private PathMatcher fileMatcher;
+
+    /**
+     * Combination of include and exclude filters applied on directories.
+     */
+    private PathMatcher directoryMatcher;
 
     /**
      * All exclusion filters for incremental build calculation, or an empty list if none.
@@ -93,7 +108,7 @@ final class PathFilter extends SimpleFileVisitor<Path> {
 
     /**
      * The matchers for exclusion filters for incremental build calculation.
-     * May be an instance of {@link PathSelector}, or {@code null} if none.
+     * This is {@code null} if none.
      */
     private PathMatcher incrementalExcludeMatchers;
 
@@ -117,6 +132,7 @@ final class PathFilter extends SimpleFileVisitor<Path> {
      * @param mojo the <abbr>MOJO</abbr> from which to take the includes/excludes configuration
      */
     PathFilter(AbstractCompilerMojo mojo) {
+        matcherFactory = mojo.matcherFactory;
         Collection<String> specified = mojo.getIncludes();
         useDefaultInclude = specified.isEmpty();
         if (useDefaultInclude) {
@@ -137,7 +153,7 @@ final class PathFilter extends SimpleFileVisitor<Path> {
      */
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        if (matchers.matches(file)) {
+        if (fileMatcher.matches(file)) {
             sourceFiles.add(new SourceFile(
                     sourceRoot,
                     file,
@@ -149,15 +165,17 @@ final class PathFilter extends SimpleFileVisitor<Path> {
 
     /**
      * Invoked for a directory before entries in the directory are visited.
-     * If the directory is hidden, then it is skipped.
+     * If the directory is hidden or is certain to contain no matching files, then it is skipped.
      */
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-        return Files.isHidden(dir) ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
+        return !Files.isHidden(dir) && directoryMatcher.matches(dir)
+                ? FileVisitResult.CONTINUE
+                : FileVisitResult.SKIP_SUBTREE;
     }
 
     /**
-     * {@return all source files found in the given root directories}.
+     * {@return all source files found in the given root directories}
      * The include and exclude filters specified at construction time are applied.
      * Hidden directories are ignored, and symbolic links are followed.
      *
@@ -170,7 +188,8 @@ final class PathFilter extends SimpleFileVisitor<Path> {
             sourceFiles = result;
             for (SourceDirectory directory : rootDirectories) {
                 if (!incrementalExcludes.isEmpty()) {
-                    incrementalExcludeMatchers = new PathSelector(directory.root, incrementalExcludes, null).simplify();
+                    incrementalExcludeMatchers =
+                            matcherFactory.createPathMatcher(directory.root, incrementalExcludes, null);
                 }
                 String[] includesOrDefault = includes;
                 if (useDefaultInclude) {
@@ -181,11 +200,11 @@ final class PathFilter extends SimpleFileVisitor<Path> {
                     }
                 }
                 sourceRoot = directory;
-                matchers = new PathSelector(
-                                directory.root,
-                                concat(directory.includes, includesOrDefault),
-                                concat(directory.excludes, excludes))
-                        .simplify();
+                fileMatcher = matcherFactory.createPathMatcher(
+                        directory.root,
+                        concat(directory.includes, includesOrDefault),
+                        concat(directory.excludes, excludes));
+                directoryMatcher = matcherFactory.deriveDirectoryMatcher(fileMatcher);
                 Files.walkFileTree(directory.root, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, this);
             }
         } catch (UncheckedIOException e) {
@@ -193,7 +212,9 @@ final class PathFilter extends SimpleFileVisitor<Path> {
         } finally {
             sourceRoot = null;
             sourceFiles = null;
-            matchers = null;
+            fileMatcher = null;
+            directoryMatcher = null;
+            incrementalExcludeMatchers = null;
         }
         return result;
     }

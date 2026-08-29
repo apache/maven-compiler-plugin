@@ -50,10 +50,6 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
-          <source />
-          <target />
-          <release>17</release>
           <!--
             Normally, the following arguments should not be provided. Instead, an automatic module name
             should be used in the `module-info.java` file. However, this is not possible for the JAR in

@@ -18,13 +18,7 @@
  */
 def log = new File( basedir, 'build.log').text
 
-assert log.count( "[INFO] Toolchain in maven-compiler-plugin: JDK" ) == 1
-
-assert log.count( "[INFO] Recompiling the module because of changed source code." ) == 1
-assert log.count( "[INFO] Recompiling the module because of added or removed source files." ) == 1
-assert log.count( "[INFO] Recompiling the module because of changed dependency." ) == 1
-
-// major_version: 52 = java8 -> execution id "base-compile"
-assert new File( basedir, 'target/classes/com/foo/MyClass.class' ).bytes[7] == 52
-// major_version: 53 = java9 -> execution id "default-compile"
-assert new File( basedir, 'target/classes/module-info.class' ).bytes[7] == 53
+// major_version: 60 = java 16 -> execution id "base-compile"
+assert new File( basedir, 'target/classes/com/foo/MyClass.class' ).bytes[7] == 60
+// major_version: 61 = java 17 -> execution id "default-compile"
+assert new File( basedir, 'target/classes/module-info.class' ).bytes[7] == 61

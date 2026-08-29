@@ -29,7 +29,7 @@
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
       <includes>
-        <include>multirelease:multirelease-base</include>
+        <include>org.apache.maven.plugins.compiler.it:multirelease-base</include>
       </includes>
       <binaries>
         <unpack>true</unpack>
@@ -39,7 +39,7 @@
     <moduleSet>
       <useAllReactorProjects>true</useAllReactorProjects>
       <includes>
-        <include>multirelease:multirelease-nine</include>
+        <include>org.apache.maven.plugins.compiler.it:multirelease-nine</include>
       </includes>
       <binaries>
         <outputDirectory>META-INF/versions/9</outputDirectory>

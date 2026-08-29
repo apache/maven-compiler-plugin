@@ -19,7 +19,8 @@
   -->
 <project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
   <modelVersion>4.1.0</modelVersion>
-  <groupId>org.apache.maven.plugins</groupId>
+
+  <groupId>org.apache.maven.plugins.compiler.it</groupId>
   <artifactId>modular-sources</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -40,31 +41,26 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <version>@project.version@</version>
-        <configuration>
-          <!-- TODO: remove source and target after we identified where Maven inherits those values. -->
-          <source />
-          <target />
-        </configuration>
       </plugin>
     </plugins>
 
     <sources>
       <source>
         <module>org.foo</module>
-        <directory>src/java/org.foo/main</directory>
+        <directory>src/org.foo/main/java</directory>
       </source>
       <source>
         <module>org.foo</module>
-        <directory>src/java/org.foo/test</directory>
+        <directory>src/org.foo/test/java</directory>
         <scope>test</scope>
       </source>
       <source>
         <module>org.bar</module>
-        <directory>src/java/org.bar/main</directory>
+        <directory>src/org.bar/main/java</directory>
       </source>
       <source>
         <module>org.bar</module>
-        <directory>src/java/org.bar/test</directory>
+        <directory>src/org.bar/test/java</directory>
         <scope>test</scope>
       </source>
     </sources>

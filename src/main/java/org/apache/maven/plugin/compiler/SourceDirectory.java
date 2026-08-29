@@ -140,9 +140,9 @@ final class SourceDirectory {
      * This is the MOJO output directory with sub-directories appended according the following rules, in that order:
      *
      * <ol>
-     *   <li>If {@link #moduleName} is non-null, then the module name is appended.</li>
-     *   <li>If {@link #isVersioned} is {@code true}, then the next elements in the paths are
+     *   <li>If {@link #isVersioned} is {@code true}, then the relative part of the path starts with
      *       {@code "META-INF/versions/<n>"} where {@code <n>} is the release number.</li>
+     *   <li>If {@link #moduleName} is non-null, then the module name is appended.</li>
      * </ol>
      *
      * @see #getOutputDirectory()
@@ -194,6 +194,8 @@ final class SourceDirectory {
      * Potentially adds the {@code META-INF/versions/} part of the path to the output directory.
      * This method can be invoked only after the base version has been determined, which happens
      * after all other source directories have been built.
+     *
+     * @param baseVersion the Java release target by the non-versioned classes
      */
     private void completeIfVersioned(SourceVersion baseVersion) {
         @SuppressWarnings("LocalVariableHidesMemberVariable")
@@ -204,36 +206,13 @@ final class SourceDirectory {
                 release = SourceVersion.latestSupported();
                 // `this.release` intentionally left to null.
             }
-            outputDirectory = outputDirectoryForReleases(outputDirectory, release);
+            var hierarchy = (moduleName != null) ? DirectoryHierarchy.MODULE_SOURCE : DirectoryHierarchy.PACKAGE;
+            outputDirectory = hierarchy.outputDirectoryForReleases(outputDirectory, release);
         }
     }
 
     /**
-     * Returns the directory where to write the compilation for a specific Java release.
-     *
-     * @param outputDirectory usually the value of {@link #outputDirectory}
-     * @param release the release, or {@code null} for the default release
-     */
-    static Path outputDirectoryForReleases(Path outputDirectory, SourceVersion release) {
-        if (release == null) {
-            release = SourceVersion.latestSupported();
-        }
-        String version = release.name(); // TODO: replace by runtimeVersion() in Java 18.
-        version = version.substring(version.lastIndexOf('_') + 1);
-        return outputDirectoryForReleases(outputDirectory).resolve(version);
-    }
-
-    /**
-     * Returns the directory where to write the compilation for a specific Java release.
-     * The caller shall add the version number to the returned path.
-     */
-    static Path outputDirectoryForReleases(Path outputDirectory) {
-        // TODO: use Path.resolve(String, String...) with Java 22.
-        return outputDirectory.resolve("META-INF").resolve("versions");
-    }
-
-    /**
-     * {@return the target version as an object from the Java tools API}.
+     * {@return the target version as an object from the Java tools API}
      *
      * @param root the source directory for which to get the target version
      * @throws UnsupportedVersionException if the version string cannot be parsed
@@ -251,7 +230,7 @@ final class SourceDirectory {
      * @return the parsed version, or {@code null} if the given string was null or empty
      * @throws UnsupportedVersionException if the version string cannot be parsed
      */
-    private static SourceVersion parse(final String version) {
+    static SourceVersion parse(final String version) {
         if (version == null || version.isBlank()) {
             return null;
         }
@@ -368,7 +347,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return the Java version of the sources in this directory if different than the base version}.
+     * {@return the Java version of the sources in this directory if different than the base version}
      * The value returned by this method is related to the {@code META-INF/versions/} subdirectory in
      * the path returned by {@link #getOutputDirectory()}. If this method returns an empty value, then
      * there is no such subdirectory (which doesn't mean that the user did not specified a Java version).
@@ -379,7 +358,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return the directory where to store the compilation results}.
+     * {@return the directory where to store the compilation results}
      * This is the <abbr>MOJO</abbr> output directory potentially completed with
      * sub-directories for module name and {@code META-INF/versions} versioning.
      */
@@ -409,7 +388,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return a hash code value for this root directory}.
+     * {@return a hash code value for this root directory}
      */
     @Override
     public int hashCode() {
@@ -417,7 +396,7 @@ final class SourceDirectory {
     }
 
     /**
-     * {@return a string representation of this root directory for debugging purposes}.
+     * {@return a string representation of this root directory for debugging purposes}
      */
     @Override
     public String toString() {

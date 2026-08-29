@@ -32,6 +32,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -76,7 +77,7 @@ final class IncrementalBuild {
          * not on the existence or modification times of the {@code *.class} files.
          *
          * <p>It is usually not needed to specify both {@code SOURCES} and {@link #CLASSES}.
-         * But doing so it not forbidden.</p>
+         * But doing so is not forbidden.</p>
          *
          * <h4>Implementation note</h4>
          * The checks use information about the previous build saved in {@code target/…/*.cache} files.
@@ -91,7 +92,7 @@ final class IncrementalBuild {
          * references to classes that no longer exist.
          *
          * <p>It is usually not needed to specify both {@link #SOURCES} and {@code CLASSES}.
-         * But doing so it not forbidden.</p>
+         * But doing so is not forbidden.</p>
          *
          * <h4>Implementation note</h4>
          * This check does not use or generate any {@code *.cache} file.
@@ -222,9 +223,9 @@ final class IncrementalBuild {
     private static final byte NEW_SOURCE_DIRECTORY = 1, NEW_TARGET_DIRECTORY = 2;
 
     /**
-     * Flag in the binary output file telling that the output file of a source is different
-     * than the one inferred by heuristic rules. For performance reason, we store the output
-     * files explicitly only when it cannot be inferred.
+     * Flag in the binary output file indicating that the output file of a source is different
+     * from the one inferred by heuristic rules. For performance reasons, we store the output
+     * file explicitly only when it cannot be inferred.
      *
      * @see javax.tools.JavaFileManager#getFileForOutput
      */
@@ -317,7 +318,7 @@ final class IncrementalBuild {
     /**
      * Whether to provide more details about why a module is rebuilt.
      */
-    private final boolean showCompilationChanges;
+    final boolean showCompilationChanges;
 
     /**
      * Creates a new helper for an incremental build.
@@ -325,7 +326,7 @@ final class IncrementalBuild {
      * @param mojo the MOJO which is compiling source code
      * @param sourceFiles all source files
      * @param saveSourceList whether to save the list of source files in the cache
-     * @param options the compiler options
+     * @param configuration the compiler options
      * @param aspects result of {@link Aspect#parse(String)}
      * @throws IOException if the parent directory cannot be created
      */
@@ -338,8 +339,11 @@ final class IncrementalBuild {
             throws IOException {
         this.sourceFiles = sourceFiles;
         this.saveSourceList = saveSourceList;
-        Path file = mojo.mojoStatusPath;
-        cacheFile = Files.createDirectories(file.getParent()).resolve(file.getFileName());
+        cacheFile = mojo.mojoStatusPath;
+        if (cacheFile != null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            Files.createDirectories(cacheFile.getParent());
+        }
         showCompilationChanges = mojo.showCompilationChanges;
         buildTime = System.currentTimeMillis();
         previousBuildTime = buildTime;
@@ -355,7 +359,10 @@ final class IncrementalBuild {
      * @throws IOException if an error occurred while deleting the file
      */
     public void deleteCache() throws IOException {
-        Files.deleteIfExists(cacheFile);
+        if (cacheFile != null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            Files.deleteIfExists(cacheFile);
+        }
     }
 
     /**
@@ -377,15 +384,18 @@ final class IncrementalBuild {
      *   </ul></li>
      * </ul>
      *
-     * The "new source directory" flag is for avoiding to repeat the parent directory.
+     * The "new source directory" flag is to avoid repeating the parent directory.
      * If that flag is {@code false}, then only the filename is stored and the parent
      * is the same as the previous file.
      *
-     * @param sources whether to save also the list of source files
      * @throws IOException if an error occurred while writing the cache file
      */
     @SuppressWarnings({"checkstyle:InnerAssignment", "checkstyle:NeedBraces"})
     public void writeCache() throws IOException {
+        if (cacheFile == null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            return;
+        }
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(
                 cacheFile,
                 StandardOpenOption.WRITE,
@@ -432,6 +442,10 @@ final class IncrementalBuild {
      */
     @SuppressWarnings("checkstyle:NeedBraces")
     private Map<Path, SourceInfo> loadCache() throws IOException {
+        if (cacheFile == null) {
+            // Should never be null, but it has been observed to happen with some Maven versions.
+            return Collections.emptyMap(); // Not `Map.of()` because we need to allow `Map.remove(…)`.
+        }
         final Map<Path, SourceInfo> previousBuild;
         try (DataInputStream in = new DataInputStream(
                 new BufferedInputStream(Files.newInputStream(cacheFile, StandardOpenOption.READ)))) {
@@ -477,10 +491,10 @@ final class IncrementalBuild {
      * @param sourceDirectory root directory of the source file
      * @param outputDirectory output directory of the compiled file
      * @param outputFile the output file if it was explicitly specified, or {@code null} if it can be inferred
-     * @param omitted whether the output file has not be generated by the compiler (e.g. {@code package-info.class})
-     * @param lastModified last modification times of the source file during the previous build
+     * @param omitted whether the output file has not been generated by the compiler (e.g. {@code package-info.class})
+     * @param lastModified last modification time of the source file during the previous build
      */
-    private static record SourceInfo(
+    private record SourceInfo(
             Path sourceDirectory, Path outputDirectory, Path outputFile, boolean omitted, long lastModified) {
         /**
          * Deletes all output files associated to the given source file. If the output file is a {@code .class} file,
@@ -550,7 +564,7 @@ final class IncrementalBuild {
         }
         boolean rebuild = false;
         boolean allChanged = true;
-        List<Path> added = new ArrayList<>();
+        final var added = new ArrayList<Path>();
         for (SourceFile source : sourceFiles) {
             SourceInfo previous = previousBuild.remove(source.file);
             if (previous != null) {
@@ -623,20 +637,20 @@ final class IncrementalBuild {
      * Each given root can be either a regular file (typically a JAR file) or a directory.
      * Directories are scanned recursively.
      *
-     * @param directories files or directories to scan
+     * @param dependencies files or directories to scan
      * @param fileExtensions extensions of the file to check (usually "jar" and "class")
-     * @param changeTime the time at which a file is considered as changed
      * @return {@code null} if the project does not need to be rebuilt, otherwise a message saying why to rebuild
      * @throws IOException if an error occurred while scanning the directories
      * @see Aspect#DEPENDENCIES
      */
-    String dependencyChanges(Iterable<List<Path>> dependencies, Collection<String> fileExtensions) throws IOException {
+    String dependencyChanges(Iterable<Collection<Path>> dependencies, Collection<String> fileExtensions)
+            throws IOException {
         if (!cacheLoaded) {
             loadCache();
         }
         final FileTime changeTime = FileTime.fromMillis(previousBuildTime);
         final var updated = new ArrayList<Path>();
-        for (List<Path> roots : dependencies) {
+        for (Collection<Path> roots : dependencies) {
             for (Path root : roots) {
                 try (Stream<Path> files = Files.walk(root)) {
                     files.filter((f) -> {
@@ -754,13 +768,13 @@ final class IncrementalBuild {
     }
 
     /**
-     * {@return whether the given list of modified files should not cause a recompilation}.
-     * This method returns {@code true} if the given list is empty or contains only files
-     * with the {@link SourceFile#ignoreModification} set to {@code true}.
+     * {@return whether the given list of modified files should not cause a recompilation}
+     * This method returns {@code true} if the given list is empty or if
+     * {@link SourceFile#isEmptyOrIgnorable()} returns {@code true} for every file.
      *
      * @param sourceFiles return value of {@link #getModifiedSources()}
      */
     static boolean isEmptyOrIgnorable(List<SourceFile> sourceFiles) {
-        return !sourceFiles.stream().anyMatch((s) -> !s.ignoreModification);
+        return sourceFiles.stream().allMatch(SourceFile::isEmptyOrIgnorable);
     }
 }

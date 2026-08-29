@@ -18,9 +18,13 @@
  */
 package org.apache.maven.it0055;
 
-import junit.framework.TestCase;
+import org.junit.jupiter.api.Test;
 
-public class PersonTwoTest extends TestCase {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+public class PersonTwoTest {
+
+    @Test
     public void testPerson() {
         Person person = new Person();
 

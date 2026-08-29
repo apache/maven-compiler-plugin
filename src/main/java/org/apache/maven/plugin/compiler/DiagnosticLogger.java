@@ -97,12 +97,14 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * @return the given path, potentially relative to the base directory
      */
     private String relativize(String file) {
-        try {
-            return directory.relativize(Path.of(file)).toString();
-        } catch (IllegalArgumentException e) {
-            // Ignore, keep the absolute path.
-            return file;
+        if (directory != null) {
+            try {
+                return directory.relativize(Path.of(file)).toString();
+            } catch (IllegalArgumentException e) {
+                // Ignore, keep the absolute path.
+            }
         }
+        return file;
     }
 
     /**
@@ -181,7 +183,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      *
      * @param cause if compilation failed with an exception, the cause
      */
-    Optional<String> firstError(Exception cause) {
+    Optional<String> firstError(Throwable cause) {
         return Optional.ofNullable(cause != null && firstError == null ? cause.getMessage() : firstError);
     }
 
@@ -217,7 +219,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     }
 
     /**
-     * {@return the pattern for formatting the specified number followed by a label}.
+     * {@return the pattern for formatting the specified number followed by a label}
      * The given number should be the widest number to format.
      * A margin of 4 spaces is added at the beginning of the line.
      */

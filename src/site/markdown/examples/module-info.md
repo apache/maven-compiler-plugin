@@ -25,6 +25,8 @@ there is nothing special to do.
 
 # Java 8 projects with module-info
 
+## Using the maven-compiler-plugin
+
 Projects that want to be compatible with older versions of Java (i.e, 8 or below bytecode and API),
 but also want to provide a `module-info.java` for use on Java 9+ runtime,
 must be aware that they need to call `javac` twice:
@@ -95,3 +97,56 @@ can be replaced by:
                 <version>1.8</version>
               </jdkToolchain>
 ```
+
+## Using the moditect-maven-plugin
+
+A clean way to generate the `module-info.class` file without compiling the sources twice
+is to use the [moditect-maven-plugin](https://github.com/moditect/moditect).
+
+The goal that adds a module descriptor to the project jar is
+[`add-module-info`](https://github.com/moditect/moditect#adding-a-module-descriptor-to-the-project-jar).
+
+With this plugin you can keep the `maven.compiler.release` property set to `8`, i.e. the same Java version for the whole build.
+
+A minimal example looks like this:
+
+```xml
+<project>
+  <properties>
+    <maven.compiler.release>8</maven.compiler.release>
+    <project.package.name>com.example.project</project.package.name>
+  </properties>
+
+  <build>
+    <plugin>
+      <groupId>org.moditect</groupId>
+      <artifactId>moditect-maven-plugin</artifactId>
+      <version>1.3.0.Final</version>
+      <executions>
+        <execution>
+          <id>add-module-infos</id>
+          <phase>package</phase>
+          <goals>
+            <goal>add-module-info</goal>
+          </goals>
+          <configuration>
+            <module>
+              <moduleInfo>
+                <name>${project.package.name}</name>
+                <exports>
+                  ${project.package.name};
+                </exports>
+              </moduleInfo>
+            </module>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+  </build>
+</project>
+```
+
+## Summary
+
+* `maven-compiler-plugin` + two compiler runs – flexible but a bit cumbersome.
+* `moditect-maven-plugin` – creates `module‑info.class` in a single build pass, keeps the target Java version (e.g., `8`) unchanged, and reduces build‑time complexity.

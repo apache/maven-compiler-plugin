@@ -18,6 +18,7 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 
@@ -44,6 +45,11 @@ final class SourceFile {
      * The time this file object was last modified, in milliseconds since January 1, 1970.
      */
     final long lastModified;
+
+    /**
+     * Whether this source file is empty.
+     */
+    final boolean isEmpty;
 
     /**
      * Whether this source has been flagged as new or modified since the last build.
@@ -84,12 +90,13 @@ final class SourceFile {
         this.directory = directory;
         this.file = file;
         this.lastModified = attrs.lastModifiedTime().toMillis();
+        this.isEmpty = attrs.size() == 0;
         this.ignoreModification = ignoreModification;
         directory.visit(file);
     }
 
     /**
-     * {@return whether the output file is the same as the one that we would infer from heuristic rules}.
+     * {@return whether the output file is the same as the one that we would infer from heuristic rules}
      *
      * <p>TODO: this is not yet implemented. We need to clarify how to get the output file information
      * from the compiler, maybe via the {@link javax.tools.JavaFileManager#getFileForOutput} method.
@@ -99,6 +106,15 @@ final class SourceFile {
         // The constants below must match the ones in `IncrementalBuild.SourceInfo`.
         return SourceDirectory.JAVA_FILE_SUFFIX.equals(directory.fileKind.extension)
                 && SourceDirectory.CLASS_FILE_SUFFIX.equals(directory.outputFileKind.extension);
+    }
+
+    /**
+     * {@return whether changes in this source file should not cause a recompilation}
+     * A source file is ignorable if its modification is explicitly ignored,
+     * or if the source file is empty and no corresponding output file exists.
+     */
+    boolean isEmptyOrIgnorable() {
+        return ignoreModification || (isEmpty && Files.notExists(getOutputFile()));
     }
 
     /**
@@ -164,7 +180,7 @@ final class SourceFile {
     }
 
     /**
-     * {@return a hash code value for this file}.
+     * {@return a hash code value for this file}
      */
     @Override
     public int hashCode() {
@@ -172,7 +188,7 @@ final class SourceFile {
     }
 
     /**
-     * {@return a string representation of this source file for debugging purposes}.
+     * {@return a string representation of this source file for debugging purposes}
      * This string representation is shown in Maven output if debug logs are enabled.
      */
     @Override

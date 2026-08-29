@@ -18,30 +18,32 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.lang.model.SourceVersion;
 import javax.tools.DiagnosticListener;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaFileObject;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.lang.module.ModuleDescriptor;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.StringJoiner;
-
-import org.apache.maven.api.Dependency;
-import org.apache.maven.api.JavaPathType;
-import org.apache.maven.api.PathType;
-import org.apache.maven.api.ProjectScope;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import static org.apache.maven.plugin.compiler.AbstractCompilerMojo.SUPPORT_LEGACY;
+import static org.apache.maven.plugin.compiler.DirectoryHierarchy.META_INF;
+import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
+import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
 
 /**
  * A task which configures and executes the Java compiler for the test classes.
@@ -56,12 +58,13 @@ class ToolExecutorForTest extends ToolExecutor {
      *
      * @see TestCompilerMojo#mainOutputDirectory
      */
-    protected final Path mainOutputDirectory;
+    private final Path mainOutputDirectory;
 
     /**
-     * Path to the {@code module-info.class} file of the main code, or {@code null} if that file does not exist.
+     * The main output directory of each module. This is usually {@code mainOutputDirectory/<module>},
+     * except if some modules are defined only for some Java versions higher than the base version.
      */
-    private final Path mainModulePath;
+    private final Map<String, Path> mainOutputDirectoryForModules;
 
     /**
      * Whether to place the main classes on the module path when {@code module-info} is present.
@@ -69,39 +72,36 @@ class ToolExecutorForTest extends ToolExecutor {
      * in which case the main classes are placed on the class path, but this is deprecated.
      * This flag may be removed in a future version if we remove support of this practice.
      *
+     * @deprecated Use {@code "claspath-jar"} dependency type instead, and avoid {@code module-info.java} in tests.
+     *
      * @see TestCompilerMojo#useModulePath
      */
+    @Deprecated(since = "4.0.0")
     private final boolean useModulePath;
 
     /**
      * Whether a {@code module-info.java} file is defined in the test sources.
      * In such case, it has precedence over the {@code module-info.java} in main sources.
      * This is defined for compatibility with Maven 3, but not recommended.
+     *
+     * @deprecated Avoid {@code module-info.java} in tests.
      */
+    @Deprecated(since = "4.0.0")
     private final boolean hasTestModuleInfo;
 
     /**
-     * Whether the tests are declared in their own module. If {@code true},
-     * then the {@code module-info.java} file of the test declares a name
-     * different than the {@code module-info.java} file of the main code.
-     */
-    private boolean testInItsOwnModule;
-
-    /**
-     * Whether the {@code module-info} of the tests overwrites the main {@code module-info}.
-     * This is a deprecated practice, but is accepted if {@link #SUPPORT_LEGACY} is true.
-     */
-    private boolean overwriteMainModuleInfo;
-
-    /**
-     * Name of the main module to compile, or {@code null} if not yet determined.
-     * If the project is not modular, then this field contains an empty string.
+     * Name of the module when using package hierarchy, or {@code null} if not applicable.
+     * This is used for setting {@code --patch-module} option during compilation of tests.
+     * This field is null in a class-path project or in a multi-module project.
      *
-     * TODO: use "*" as a sentinel value for modular source hierarchy.
+     * <p>This field exists mostly for compatibility with the Maven 3 way to build a modular project.
+     * It is recommended to use the {@code <sources>} element instead. We may remove this field in a
+     * future version if we abandon compatibility with the Maven 3 way to build modular projects.</p>
      *
-     * @see #getMainModuleName()
+     * @deprecated Declare modules in {@code <source>} elements instead.
      */
-    private String moduleName;
+    @Deprecated(since = "4.0.0")
+    private String moduleNameFromPackageHierarchy;
 
     /**
      * Whether {@link #addModuleOptions(Options)} has already been invoked.
@@ -128,116 +128,176 @@ class ToolExecutorForTest extends ToolExecutor {
      *
      * @param mojo the <abbr>MOJO</abbr> from which to take a snapshot
      * @param listener where to send compilation warnings, or {@code null} for the Maven logger
+     * @param mainModulePath path to the {@code module-info.class} file of the main code, or {@code null} if none
+     * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      * @throws IOException if an error occurred while creating the output directory or scanning the source directories
      * @throws MojoException if this constructor identifies an invalid parameter in the <abbr>MOJO</abbr>
      */
     @SuppressWarnings("deprecation")
-    ToolExecutorForTest(TestCompilerMojo mojo, DiagnosticListener<? super JavaFileObject> listener) throws IOException {
+    ToolExecutorForTest(
+            final TestCompilerMojo mojo,
+            final DiagnosticListener<? super JavaFileObject> listener,
+            final Path mainModulePath)
+            throws IOException {
         super(mojo, listener);
-        mainOutputDirectory = mojo.mainOutputDirectory;
-        mainModulePath = mojo.mainModulePath;
+        /* Notable work done by the parent constructor (examples with default paths):
+         *
+         *  - Set `outputDirectory` to a single "target/test-classes".
+         *  - Set `sourceDirectories` to many "src/<module>/test/java".
+         *  - Set `sourceFiles` to the content of `sourceDirectories`.
+         *  - Set `dependencies` with class-path and module-path, but not including main output directory.
+         *
+         * We will need to add the main output directory to the class-path or module-path, but not here.
+         * It will be done by `ToolExecutor.compile(…)` if `getOutputDirectoryOfPreviousPhase()` returns
+         * a non-null value. */
         useModulePath = mojo.useModulePath;
         hasTestModuleInfo = mojo.hasTestModuleInfo;
+        mainOutputDirectory = mojo.mainOutputDirectory;
+        mainOutputDirectoryForModules = new HashMap<>();
+        if (Files.notExists(mainOutputDirectory)) {
+            return;
+        }
+        if (mainModulePath != null) {
+            try (InputStream in = Files.newInputStream(mainModulePath)) {
+                moduleNameFromPackageHierarchy = ModuleDescriptor.read(in).name();
+            }
+        }
+        // Following is non-null only for modular project using package hierarchy.
+        final String testModuleName = mojo.moduleNameFromPackageHierarchy(sourceDirectories);
+        if (testModuleName != null) {
+            moduleNameFromPackageHierarchy = testModuleName;
+        }
         /*
-         * If we are compiling the test classes of a modular project, add the `--patch-modules` options.
+         * If compiling the test classes of a modular project, we will need `--patch-modules` options.
          * In this case, the option values are directories of main class files of the patched module.
+         * This block only prepares an empty map for each module. Maps are filled in the next block.
          */
-        final var patchedModules = new LinkedHashMap<String, Set<Path>>();
+        final var patchedModules = new LinkedHashMap<String, NavigableMap<SourceVersion, Path>>();
         for (SourceDirectory dir : sourceDirectories) {
             String moduleToPatch = dir.moduleName;
             if (moduleToPatch == null) {
-                moduleToPatch = getMainModuleName();
-                if (moduleToPatch.isEmpty()) {
+                moduleToPatch = moduleNameFromPackageHierarchy;
+                if (moduleToPatch == null) {
                     continue; // No module-info found.
                 }
-                if (SUPPORT_LEGACY) {
-                    String testModuleName = mojo.getTestModuleName(sourceDirectories);
-                    if (testModuleName != null) {
-                        overwriteMainModuleInfo = testModuleName.equals(getMainModuleName());
-                        if (!overwriteMainModuleInfo) {
-                            testInItsOwnModule = true;
-                            continue; // The test classes are in their own module.
-                        }
-                    }
-                }
+                /*
+                 * Modular project using package hierarchy (Maven 3 way).
+                 * We will need to move directories after compilation for reproducing the Maven 3 output.
+                 */
                 directoryLevelToRemove = moduleToPatch;
             }
-            patchedModules.put(moduleToPatch, new LinkedHashSet<>()); // Signal that this module exists in the test.
+            if (testModuleName != null && !moduleToPatch.equals(testModuleName)) {
+                // Mix of package hierarchy and module source hierarchy.
+                throw new CompilationFailureException(
+                        "The \"" + testModuleName + "\" module must be declared in a <module> element of <sources>.");
+            }
+            patchedModules.put(moduleToPatch, new TreeMap<>()); // Signal that this module exists in the test.
+        }
+        // Shortcut for class-path projects.
+        if (patchedModules.isEmpty()) {
+            return;
         }
         /*
-         * The values of `patchedModules` are empty lists. Now, add the real paths to
-         * main class for each module that exists in both the main code and the test.
+         * The values of `patchedModules` are empty maps. Now, add the real paths to the
+         * main classes for each module that exists in both the main code and the tests.
+         * Note that a module may exist only in the `META-INF/versions-modular/` directory.
          */
-        mojo.getSourceRoots(ProjectScope.MAIN).forEach((root) -> {
-            root.module().ifPresent((moduleToPatch) -> {
-                Set<Path> paths = patchedModules.get(moduleToPatch);
-                if (paths != null) {
-                    Path path = root.targetPath().orElseGet(() -> Path.of(moduleToPatch));
-                    path = mainOutputDirectory.resolve(path);
-                    paths.add(path);
-                }
-            });
-        });
-        patchedModules.values().removeIf(Set::isEmpty);
-        patchedModules.forEach((moduleToPatch, paths) -> {
-            dependencies(JavaPathType.patchModule(moduleToPatch)).addAll(paths);
-        });
-        /*
-         * If there is no module to patch, we probably have a non-modular project.
-         * In such case, we need to put the main output directory on the classpath.
-         * It may also be a modular project not declared in the `<source>` element.
-         */
-        if (patchedModules.isEmpty() && Files.exists(mainOutputDirectory)) {
-            PathType pathType = JavaPathType.CLASSES;
-            if (hasModuleDeclaration) {
-                pathType = JavaPathType.MODULES;
-                if (!testInItsOwnModule) {
-                    String moduleToPatch = getMainModuleName();
-                    if (!moduleToPatch.isEmpty()) {
-                        pathType = JavaPathType.patchModule(moduleToPatch);
-                        directoryLevelToRemove = moduleToPatch;
-                    }
-                }
+        addDirectoryIfModule(
+                mainOutputDirectory, moduleNameFromPackageHierarchy, SourceVersion.RELEASE_0, patchedModules);
+        addModuleDirectories(mainOutputDirectory, SourceVersion.RELEASE_0, patchedModules);
+        Path versionsDirectory = DirectoryHierarchy.MODULE_SOURCE.outputDirectoryForReleases(mainOutputDirectory);
+        if (Files.exists(versionsDirectory)) {
+            List<Path> asList;
+            try (Stream<Path> paths = Files.list(versionsDirectory)) {
+                asList = paths.toList();
             }
-            dependencies(pathType).add(0, mainOutputDirectory);
+            for (Path path : asList) {
+                SourceVersion version;
+                try {
+                    version = SourceDirectory.parse(path.getFileName().toString());
+                } catch (UnsupportedVersionException e) {
+                    logger.debug(e);
+                    continue;
+                }
+                addModuleDirectories(path, version, patchedModules);
+            }
+        }
+        /* At this point, we finished to scan the main output directory for modules.
+         * Remembers the directories of each module. They are usually sub-directories
+         * of the main directory, but could also be in `META-INF/versions-modular/`. */
+        patchedModules.forEach((moduleToPatch, directories) -> {
+            Map.Entry<SourceVersion, Path> base = directories.firstEntry();
+            if (base != null) {
+                mainOutputDirectoryForModules.putIfAbsent(moduleToPatch, base.getValue());
+            }
+        });
+    }
+
+    /**
+     * Performs a shallow scan of the given directory for modules.
+     * This method searches for {@code module-info.class} files.
+     *
+     * <p>The keys of the {@code addTo} map are module names. Values are paths for all versions where
+     * {@code module-info.class} has been found. Note that this is not an exhaustive list of paths for
+     * all versions, because most {@code versions} directories do not have a {@code module-info.class} file.
+     * Therefore, the {@code SortedMap} will usually contain only the base directory. But we check versions
+     * anyway because sometime, a module does not exist in the base directory and is first defined only for
+     * a higher version.</p>
+     *
+     * <p>This method adds paths to existing entries only, and ignores modules that are not already in the map.
+     * This is done that way for collecting modules that are both in the main code and in the tests.</p>
+     *
+     * @param directory the directory to scan
+     * @param version target Java version of the directory to add
+     * @param addTo where to add the module paths
+     * @throws IOException if an error occurred while scanning the directories
+     */
+    private void addModuleDirectories(
+            Path directory, SourceVersion version, Map<String, NavigableMap<SourceVersion, Path>> addTo)
+            throws IOException {
+
+        try (Stream<Path> paths = Files.list(directory)) {
+            paths.forEach(
+                    (path) -> addDirectoryIfModule(path, path.getFileName().toString(), version, addTo));
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
     }
 
     /**
-     * {@return the module name of the main code, or an empty string if none}.
-     * This method reads the module descriptor when first needed and caches the result.
-     * This used if the user did not specified an explicit {@code <module>} element in the sources.
+     * Adds the given directory in {@code addTo} if the directory contains a {@code module-info.class} file.
      *
+<<<<<<< HEAD
      * @throws IOException if the module descriptor cannot be read
+=======
+     * @param directory the directory to scan
+     * @param moduleName name of the module to add
+     * @param version target Java version of the directory to add
+     * @param addTo where to add the module paths
+>>>>>>> master
      */
-    private String getMainModuleName() throws IOException {
-        if (moduleName == null) {
-            if (mainModulePath != null) {
-                try (InputStream in = Files.newInputStream(mainModulePath)) {
-                    moduleName = ModuleDescriptor.read(in).name();
-                }
-            } else {
-                moduleName = "";
-            }
+    private static void addDirectoryIfModule(
+            Path directory,
+            String moduleName,
+            SourceVersion version,
+            Map<String, NavigableMap<SourceVersion, Path>> addTo) {
+
+        NavigableMap<SourceVersion, Path> versions = addTo.get(moduleName);
+        if (versions != null && Files.isRegularFile(directory.resolve(MODULE_INFO + CLASS_FILE_SUFFIX))) {
+            versions.putIfAbsent(version, directory);
         }
-        return moduleName;
     }
 
     /**
-     * If the given module name is empty, tries to infer a default module name.
-     */
-    @Override
-    final String inferModuleNameIfMissing(String moduleName) throws IOException {
-        return (!testInItsOwnModule && moduleName.isEmpty()) ? getMainModuleName() : moduleName;
-    }
-
-    /**
-     * Generates the {@code --add-modules} and {@code --add-reads} options for the dependencies that are not
-     * in the main compilation. This method is invoked only if {@code hasModuleDeclaration} is {@code true}.
+     * Completes the given configuration with module options the first time that this method is invoked.
+     * If at least one {@value ModuleInfoPatch#FILENAME} file is found in a root directory of test sources,
+     * then these files are parsed and the options that they declare are added to the given configuration.
+     * Otherwise, if {@link #hasModuleDeclaration} is {@code true}, then this method generates the
+     * {@code --add-modules} and {@code --add-reads} options for dependencies that are not in the main compilation.
+     * If this method is invoked more than once, all invocations after the first one have no effect.
      *
-     * @param dependencyResolution the project dependencies
      * @param configuration where to add the options
-     * @throws IOException if the module information of a dependency cannot be read
+     * @throws IOException if the module information of a dependency or the module-info patch cannot be read
      */
     @SuppressWarnings({"checkstyle:MissingSwitchDefault", "fallthrough"})
     private void addModuleOptions(final Options configuration) throws IOException {
@@ -245,79 +305,80 @@ class ToolExecutorForTest extends ToolExecutor {
             return;
         }
         addedModuleOptions = true;
-        if (!hasModuleDeclaration || dependencyResolution == null) {
-            return;
-        }
-        if (SUPPORT_LEGACY && useModulePath && hasTestModuleInfo) {
-            /*
-             * Do not add any `--add-reads` parameters. The developers should put
-             * everything needed in the `module-info`, including test dependencies.
-             */
-            return;
-        }
-        final var done = new HashSet<String>(); // Added modules and their dependencies.
-        final var addModules = new StringJoiner(",");
-        StringJoiner addReads = null;
-        boolean hasUnnamed = false;
-        for (Map.Entry<Dependency, Path> entry :
-                dependencyResolution.getDependencies().entrySet()) {
-            boolean compile = false;
-            switch (entry.getKey().getScope()) {
-                case TEST:
-                case TEST_ONLY:
-                    compile = true;
-                    // Fall through
-                case TEST_RUNTIME:
-                    if (compile) {
-                        // Needs to be initialized even if `name` is null.
-                        if (addReads == null) {
-                            addReads = new StringJoiner(",");
-                        }
+        ModuleInfoPatch info = null;
+        ModuleInfoPatch defaultInfo = null;
+        final var patches = new LinkedHashMap<String, ModuleInfoPatch>();
+        for (SourceDirectory source : sourceDirectories) {
+            Path file = source.root.resolve(ModuleInfoPatch.FILENAME);
+            String moduleName;
+            if (Files.notExists(file)) {
+                if (SUPPORT_LEGACY && useModulePath && hasTestModuleInfo && hasModuleDeclaration) {
+                    /*
+                     * Do not add any `--add-reads` parameters. The developers should put
+                     * everything needed in the `module-info`, including test dependencies.
+                     */
+                    continue;
+                }
+                /*
+                 * No `patch-module-info` file. Generate a default module patch instance for the
+                 * `--add-modules TEST-MODULE-PATH` and `--add-reads TEST-MODULE-PATH` options.
+                 * We generate that patch only for the first module. If there is more modules
+                 * without `patch-module-info`, we will copy the `defaultInfo` instance.
+                 */
+                moduleName = source.moduleName;
+                if (moduleName == null) {
+                    moduleName = moduleNameFromPackageHierarchy;
+                    if (moduleName == null) {
+                        continue;
                     }
-                    Path path = entry.getValue();
-                    String name = dependencyResolution.getModuleName(path).orElse(null);
-                    if (name == null) {
-                        hasUnnamed = true;
-                    } else if (done.add(name)) {
-                        addModules.add(name);
-                        if (compile) {
-                            addReads.add(name);
-                        }
-                        /*
-                         * For making the options simpler, we do not add `--add-modules` or `--add-reads`
-                         * options for modules that are required by a module that we already added. This
-                         * simplification is not necessary, but makes the command-line easier to read.
-                         */
-                        dependencyResolution.getModuleDescriptor(path).ifPresent((descriptor) -> {
-                            for (ModuleDescriptor.Requires r : descriptor.requires()) {
-                                done.add(r.name());
-                            }
-                        });
-                    }
-                    break;
+                }
+                if (defaultInfo != null) {
+                    patches.putIfAbsent(moduleName, null); // Remember that we will need to compute a value later.
+                    continue;
+                }
+                defaultInfo = new ModuleInfoPatch(moduleName, info);
+                defaultInfo.setToDefaults();
+                info = defaultInfo;
+            } else {
+                info = new ModuleInfoPatch(moduleNameFromPackageHierarchy, info);
+                try (BufferedReader reader = Files.newBufferedReader(file)) {
+                    info.load(reader);
+                }
+                moduleName = info.getModuleName();
+            }
+            if (patches.put(moduleName, info) != null) {
+                throw new ModuleInfoPatchException(
+                        "\"module-info-patch " + moduleName + "\" is defined more than once.");
             }
         }
-        if (!done.isEmpty()) {
-            configuration.addIfNonBlank("--add-modules", addModules.toString());
-        }
-        if (addReads != null) {
-            if (hasUnnamed) {
-                addReads.add("ALL-UNNAMED");
+        /*
+         * Replace all occurrences of `TEST-MODULE-PATH` by the actual dependency paths.
+         * Add `--add-modules` and `--add-reads` options with default values equivalent to
+         * `TEST-MODULE-PATH` for every module that do not have a `module-info-patch` file.
+         */
+        for (Map.Entry<String, ModuleInfoPatch> entry : patches.entrySet()) {
+            info = entry.getValue();
+            if (info != null) {
+                info.replaceProjectModules(sourceDirectories);
+                info.replaceTestModulePath(dependencyResolution);
+            } else {
+                // `defaultInfo` cannot be null if this `info` value is null.
+                entry.setValue(defaultInfo.patchWithSameReads(entry.getKey()));
             }
-            String reads = addReads.toString();
-            addReads(configuration, getMainModuleName(), reads);
-            for (SourceDirectory root : sourceDirectories) {
-                addReads(configuration, root.moduleName, reads);
-            }
         }
-    }
-
-    /**
-     * Adds an {@code --add-reads} compiler option if the given module name is non-null and non-blank.
-     */
-    private static void addReads(Options configuration, String moduleName, String reads) {
-        if (moduleName != null && !moduleName.isBlank()) {
-            configuration.addIfNonBlank("--add-reads", moduleName + '=' + reads);
+        /*
+         * Write the runtime dependencies in the `META-INF/maven/module-info-patch.args` file.
+         * Note that we unconditionally write in the root output directory, not in the module directory,
+         * because a single option file applies to all modules.
+         */
+        if (!patches.isEmpty()) {
+            Path directory = // TODO: replace by Path.resolve(String, String...) with JDK22.
+                    Files.createDirectories(outputDirectory.resolve(META_INF).resolve("maven"));
+            try (BufferedWriter out = Files.newBufferedWriter(directory.resolve("module-info-patch.args"))) {
+                for (ModuleInfoPatch m : patches.values()) {
+                    m.writeTo(configuration, out);
+                }
+            }
         }
     }
 
@@ -342,48 +403,44 @@ class ToolExecutorForTest extends ToolExecutor {
     }
 
     /**
-     * Separates the compilation of {@code module-info} from other classes. This is needed when the
-     * {@code module-info} of the test classes overwrite the {@code module-info} of the main classes.
-     * In the latter case, we need to compile the test {@code module-info} first in order to substitute
-     * the main module-info by the test one before to compile the remaining test classes.
+     * Returns the output directory of the main classes. This is the directory to prepend to
+     * the class-path or module-path before to compile the classes managed by this executor.
+     *
+     * @return the directory to prepend to the class-path or module-path
      */
     @Override
-    final CompilationTaskSources[] toCompilationTasks(final SourcesForRelease unit) {
-        if (!(SUPPORT_LEGACY && useModulePath && hasTestModuleInfo && overwriteMainModuleInfo)) {
-            return super.toCompilationTasks(unit);
-        }
-        CompilationTaskSources moduleInfo = null;
-        final List<Path> files = unit.files;
-        for (int i = files.size(); --i >= 0; ) {
-            if (SourceDirectory.isModuleInfoSource(files.get(i))) {
-                moduleInfo = new CompilationTaskSources(List.of(files.remove(i)));
-                if (files.isEmpty()) {
-                    return new CompilationTaskSources[] {moduleInfo};
-                }
-                break;
+    Path getOutputDirectoryOfPreviousPhase() {
+        return mainOutputDirectory;
+    }
+
+    /**
+     * Returns the directory of the classes compiled for the specified module.
+     * If the project is multi-release, this method returns the directory for the base version.
+     *
+     * @param outputDirectory the output directory which is the root of modules
+     * @param moduleName the name of the module for which the class directory is desired
+     * @return directories of classes for the given module
+     */
+    @Override
+    Path resolveModuleOutputDirectory(Path outputDirectory, String moduleName) {
+        if (outputDirectory.equals(mainOutputDirectory)) {
+            Path path = mainOutputDirectoryForModules.get(moduleName);
+            if (path != null) {
+                return path;
             }
         }
-        if (files.isEmpty()) {
-            return new CompilationTaskSources[0];
-        }
-        var task = new CompilationTaskSources(files) {
-            /**
-             * Substitutes the main {@code module-info.class} by the test's one, compiles test classes,
-             * then restores the original {@code module-info.class}. The test {@code module-info.class}
-             * must have been compiled separately before this method is invoked.
-             */
-            @Override
-            boolean compile(JavaCompiler.CompilationTask task) throws IOException {
-                try (unit) {
-                    unit.substituteModuleInfos(mainOutputDirectory, outputDirectory);
-                    return super.compile(task);
-                }
-            }
-        };
-        if (moduleInfo != null) {
-            return new CompilationTaskSources[] {moduleInfo, task};
-        } else {
-            return new CompilationTaskSources[] {task};
-        }
+        return super.resolveModuleOutputDirectory(outputDirectory, moduleName);
+    }
+
+    /**
+     * Name of the module when using package hierarchy, or {@code null} if not applicable.
+     * This is null in a class-path project or in a multi-module project.
+     *
+     * @deprecated This information exists only for compatibility with the Maven 3 way to build a modular project.
+     */
+    @Override
+    @Deprecated(since = "4.0.0")
+    final String moduleNameFromPackageHierarchy() {
+        return moduleNameFromPackageHierarchy;
     }
 }

@@ -32,7 +32,7 @@ import java.util.function.UnaryOperator;
 import org.apache.maven.api.plugin.Log;
 
 /**
- * An helper class for preparing the options to pass to the tool (compiler or document generator).
+ * A helper class for preparing the options to pass to the tool (compiler or document generator).
  * It does <em>not</em> include the options related to paths (class-path, destination directory, <i>etc.</i>).
  * If an option is unsupported by the tool, a message is logged at the warning level.
  *
@@ -363,7 +363,8 @@ public final class Options {
      * This is used for user-specified arguments.
      *
      * @param arguments the arguments to add, or {@code null} if none
-     * @deprecated use {@link #addUnchecked(List)} instead. This method does not check for quoted strings.
+     *
+     * @deprecated Use {@link #addUnchecked(Iterable)} instead. This method does not check for quoted strings.
      */
     @Deprecated(since = "4.0.0")
     void addUnchecked(String arguments) {
@@ -386,10 +387,12 @@ public final class Options {
                 continue;
             }
             if (option.startsWith("-J")) {
-                if (commandLine.length() != 0) {
-                    commandLine.append(' ');
+                if (commandLine != null) {
+                    if (commandLine.length() != 0) {
+                        commandLine.append(' ');
+                    }
+                    commandLine.append(option);
                 }
-                commandLine.append(option);
                 continue;
             }
             if (hasOptions) {
@@ -401,11 +404,11 @@ public final class Options {
             }
             boolean needsQuote = option.indexOf(' ') >= 0;
             if (needsQuote) {
-                out.append('"');
+                out.append(AbstractCompilerMojo.QUOTE);
             }
             out.append(option);
             if (needsQuote) {
-                out.append('"');
+                out.append(AbstractCompilerMojo.QUOTE);
             }
             hasOptions = true;
         }
@@ -415,7 +418,7 @@ public final class Options {
     }
 
     /**
-     * {@return a string representatation of the options for debugging purposes}.
+     * {@return a string representation of the options for debugging purposes}
      */
     @Override
     public String toString() {

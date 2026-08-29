@@ -17,7 +17,7 @@
  * under the License.
  */
 module lib {
-    requires plexus.utils;
+    requires org.codehaus.plexus.util;
     requires plexus.resources;
 
     exports org.maven.test;
