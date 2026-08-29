@@ -99,8 +99,8 @@ When you know how the processor is intended to be used, declare a more explicit 
 This section applies to Maven 3 and Maven 4.
 
 If you do not want to provide a list of processors, set the value of the `<proc>` configuration to `only` or `full`.
-The first value scans the classpath for annotation processors and executes them. The second value also compiles the code afterward.
-Keep in mind that if you provide no list of desired annotation processors, the `<proc>` configuration executes the processors found on the classpath.
+`only`  scans the classpath for annotation processors and executes them. `full` also compiles the code afterward.
+If you do not provide a list of annotation processors, the `<proc>` configuration executes the processors found on the classpath.
 **This can execute hidden and possibly malicious processors.**
 Therefore, using only the `proc` configuration is not recommended.
 
