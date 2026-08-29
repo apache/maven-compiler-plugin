@@ -306,21 +306,22 @@ public final class Options {
      * If not, a warning is logged if {@code immediate} is {@code true}, or stored in the
      * {@link #warning} field if {@code immediate} is {@code false}.
      *
-     * <p>If a message is stored in {@link #warning}, then it will always end with a dot.
-     * This guarantee allows callers to delete the last character and replace it by a coma
+     * <p>The message stored in {@link #warning} always ends with a dot.
+     * This guarantee allows callers to delete the last character and replace it with a comma
      * for continuing the sentence.</p>
      *
      * @param option the option to validate
      * @param count the number of arguments that the caller wants to provide
      * @param immediate whether to log immediately or to store the message in {@link #warning}
-     * @return whether the given option is supported and accepts the specified number of arguments
+     * @return true if the given option is supported and accepts the specified number of arguments,
+     *     false otherwise
      */
     private boolean checkNumberOfArguments(String option, int count, boolean immediate) {
         int expected = checker.isSupportedOption(option);
         if (expected == count) {
             warning = null;
             return true;
-        } else if (expected < 1) {
+        } else if (expected < 0) {
             if (checker instanceof ForkedCompiler) {
                 return true; // That implementation actually knows nothing about which options are supported.
             }
