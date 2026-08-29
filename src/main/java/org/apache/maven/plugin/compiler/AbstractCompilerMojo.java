@@ -917,8 +917,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
         compilerConfiguration.setWorkingDirectory(basedir);
 
-        compilerConfiguration.setCompilerVersion(compilerVersion);
-
         compilerConfiguration.setBuildDirectory(buildDirectory);
 
         compilerConfiguration.setOutputFileName(outputFileName);
