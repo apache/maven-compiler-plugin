@@ -89,8 +89,8 @@ The following example shows this.
 Like ordinary dependencies, processors can be placed on the processor class-path or processor module-path.
 Each processor can be placed on one of these two kinds of path. Specify the
 `classpath-processor` or `modular-processor` dependency type respectively.
-If the specified type is only `processor`, then the Maven compiler plugin tries to guess on which path to place the processor.
-Note that this guess is not guaranteed to be correct.
+If the specified type is only `processor`, then the Maven compiler plugin guesses which path to place the processor on.
+This guess is not guaranteed to be correct.
 When you know how the processor is intended to be used, declare a more explicit type (for example `<type>classpath-processor</type>`).
 
 
