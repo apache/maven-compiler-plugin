@@ -66,7 +66,7 @@ or configure the plugin directly:```xml
 
 **Note:** Merely setting the `target` option does not guarantee that your code actually runs on a JDK with the specified version.
 The pitfall is unintended usage of APIs that only exist in later JDKs. This makes your code fail at runtime with a linkage error.
-To avoid this issue, you can configure the compiler's boot classpath to match the target JDK.
+To avoid this issue, configure the compiler's boot classpath to match the target JDK.
 You can also use the [Animal Sniffer Maven Plugin](https://www.mojohaus.org/animal-sniffer/animal-sniffer-maven-plugin/)
 to verify that your code does not use unintended APIs.
 Better yet, use the [release](./set-compiler-release.html) option.
