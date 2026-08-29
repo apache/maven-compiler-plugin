@@ -80,7 +80,6 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
-import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;
@@ -981,7 +980,20 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                                 && !canUpdateTarget)
                         ? "immutable single output file"
                         : null;
-                String dependencyChanged = isDependencyChanged() ? "changed dependency" : null;
+                String dependencyChanged = null;
+                if (DependencyState.hasChanged(
+                        incrementalBuildHelper,
+                        getOutputDirectory(),
+                        getClasspathElements(),
+                        getModulepathElements(),
+                        new DependencyState.Configuration(
+                                fileExtensions,
+                                getBuildStartTimeInstant().orElse(null),
+                                staleMillis,
+                                getLog(),
+                                showCompilationChanges))) {
+                    dependencyChanged = "changed dependency";
+                }
                 String sourceChanged = isSourceChanged(compilerConfiguration, compiler) ? "changed source code" : null;
                 String inputFileTreeChanged = hasInputFileTreeChanged(incrementalBuildHelper, sources)
                         ? "added or removed source files"
@@ -1733,81 +1745,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     .toArray(String[]::new);
         }
         return processors == null || processors.length == 0 ? null : processors;
-    }
-
-    /**
-     * We just compare the timestamps of all local dependency files (inter-module dependency classpath) and the own
-     * generated classes and if we got a file which is &gt;= the build-started timestamp, then we caught a file which
-     * got changed during this build.
-     *
-     * @return {@code true} if at least one single dependency has changed.
-     */
-    protected boolean isDependencyChanged() {
-        final Instant buildStartTime = getBuildStartTimeInstant().orElse(null);
-        if (buildStartTime == null) {
-            // we just cannot determine it, so don't do anything beside logging
-            getLog().debug("Cannot determine build start time, skipping incremental build detection.");
-            return false;
-        }
-
-        if (fileExtensions == null || fileExtensions.isEmpty()) {
-            fileExtensions = new HashSet<>(Arrays.asList("class", "jar"));
-        }
-
-        List<String> pathElements = new ArrayList<>();
-        pathElements.addAll(getClasspathElements());
-        pathElements.addAll(getModulepathElements());
-
-        for (String pathElement : pathElements) {
-            Path artifactPath = Paths.get(pathElement);
-
-            // Search files only on dependencies (other modules), not on the current project,
-            if (Files.isDirectory(artifactPath)
-                    && !artifactPath.equals(getOutputDirectory().toPath())) {
-                try (Stream<Path> walk = Files.walk(artifactPath)) {
-                    if (walk.anyMatch(p -> hasNewFile(p, buildStartTime))) {
-                        return true;
-                    }
-                } catch (IOException ex) {
-                    // we just cannot determine it, so don't do anything beside logging
-                    getLog().warn("I/O error walking the path: " + ex.getMessage());
-                    return false;
-                }
-            } else if (hasNewFile(artifactPath, buildStartTime)) {
-                return true;
-            }
-        }
-
-        // obviously there was no new file detected.
-        return false;
-    }
-
-    /**
-     * @param file entry to check
-     * @param buildStartTime time build start
-     * @return if any changes occurred
-     */
-    private boolean hasNewFile(Path file, Instant buildStartTime) {
-        if (Files.isRegularFile(file)
-                && fileExtensions.contains(
-                        FileUtils.extension(file.getFileName().toString()))) {
-            try {
-                Instant lastModifiedTime = Files.getLastModifiedTime(file)
-                        .toInstant()
-                        .minusMillis(staleMillis)
-                        .truncatedTo(ChronoUnit.MILLIS);
-                boolean hasChanged = lastModifiedTime.isAfter(buildStartTime);
-                if (hasChanged && (getLog().isDebugEnabled() || showCompilationChanges)) {
-                    getLog().info("\tNew dependency detected: " + file.toAbsolutePath());
-                }
-                return hasChanged;
-            } catch (IOException ex) {
-                // we just cannot determine it, so don't do anything beside logging
-                getLog().warn("I/O error reading the lastModifiedTime: " + ex.getMessage());
-            }
-        }
-
-        return false;
     }
 
     private List<String> resolveProcessorPathEntries() throws MojoExecutionException {
