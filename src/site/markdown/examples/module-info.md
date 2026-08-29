@@ -34,14 +34,14 @@ must call `javac` twice:
 1. Compile the `module-info.java` with `release` set to 9 or later,
 2. Compile the rest of the sources with the lower expected compatibility version of source/target.
 
-A way to do this is to have two execution blocks, as described below:
+A way to do this is to have two execution blocks, as described:
 
 1. The default `default-compile` execution with `release` set to 9 or later,
 2. An additional custom `base-compile` execution with the expected target compatibility.
 
 The following snippet gives an example.
 This snippet assumes that the JDK used by Maven supports the `--release 8` option.
-This is not the case for all JDKs. Newer JDKs can drop the support of Java versions that are too old.
+This is not the case for all JDKs. Newer JDKs can drop support for Java versions that are too old.
 
 ```xml
 <project>
