@@ -19,9 +19,9 @@ under the License.
 
 # Compile Using Memory Allocation Enhancements
 
-The Compiler Plugin accepts configurations for initial memory (`meminitial`)
-and maximum memory (`maxmem`).
-You can follow the example below to set the initial memory size to 128MB
+The Compiler Plugin accepts configurations for the initial memory (`meminitial`)
+and the maximum memory (`maxmem`).
+Follow the example below to set the initial memory size to 128MB
 and the maximum memory usage to 512MB:
 
 ```xml
@@ -47,5 +47,5 @@ and the maximum memory usage to 512MB:
 </project>
 ```
 
-Version 4 of the Maven compiler plugin additionally accepts the 'k', 'M' (upper-case)
+Version 4 of the Maven compiler plugin also accepts the 'k', 'M' (upper-case)
 and 'G' suffixes for kilobytes, megabytes and gigabytes respectively.

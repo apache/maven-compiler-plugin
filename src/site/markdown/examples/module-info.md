@@ -19,7 +19,7 @@ under the License.
 
 # Java 9+ projects with module-info
 
-If a project with a `module-info.java` file does not need to be compatible with Java 8 or earlier environment,
+If a project with a `module-info.java` file does not need to be compatible with Java 8 or an earlier environment,
 there is nothing special to do.
 
 
@@ -27,21 +27,21 @@ there is nothing special to do.
 
 ## Using the maven-compiler-plugin
 
-Projects that want to be compatible with older versions of Java (i.e, 8 or below bytecode and API),
-but also want to provide a `module-info.java` for use on Java 9+ runtime,
-must be aware that they need to call `javac` twice:
+Projects that want to be compatible with older versions of Java (that is, 8 or below bytecode and API),
+but also want to provide a `module-info.java` for use on a Java 9+ runtime,
+must call `javac` twice:
 
-1. the `module-info.java` must be compiled with `release` set to 9 or later,
-2. the rest of the sources must be compiled with the lower expected compatibility version of source/target.
+1. Compile the `module-info.java` with `release` set to 9 or later,
+2. Compile the rest of the sources with the lower expected compatibility version of source/target.
 
-A way to do this is by having two execution blocks, as described below:
+A way to do this is to have two execution blocks, as described below:
 
-1. default `default-compile` execution with `release` set to 9 or later,
-2. additional custom `base-compile` execution with expected target compatibility.
+1. The default `default-compile` execution with `release` set to 9 or later,
+2. An additional custom `base-compile` execution with the expected target compatibility.
 
 The following snippet gives an example.
 This snippet assumes that the JDK used by Maven supports the `--release 8` option.
-It may not be the case for all JDKs, as newer JDKs may drop the support of Java versions that are too old.
+This is not the case for all JDKs. Newer JDKs can drop the support of Java versions that are too old.
 
 ```xml
 <project>
@@ -80,9 +80,9 @@ It may not be the case for all JDKs, as newer JDKs may drop the support of Java 
 ```
 
 If the JDK used by Maven does not support the `--release 8` option,
-then projects which want to be compatible with old Java versions need to use two different JDKs for the two executions.
+then projects which want to be compatible with old Java versions need two different JDKs for the two executions.
 Using a [toolchains](/guides/mini/guide-using-toolchains.html) configuration, it is possible to achieve this, even if more complex.
-In above snippet, the following fragment:
+In the snippet above, the following fragment:
 
 ```xml
               <release>8</release>
@@ -101,12 +101,12 @@ can be replaced by:
 ## Using the moditect-maven-plugin
 
 A clean way to generate the `module-info.class` file without compiling the sources twice
-is to use the [moditect-maven-plugin](https://github.com/moditect/moditect).
+is the [moditect-maven-plugin](https://github.com/moditect/moditect).
 
 The goal that adds a module descriptor to the project jar is
 [`add-module-info`](https://github.com/moditect/moditect#adding-a-module-descriptor-to-the-project-jar).
 
-With this plugin you can keep the `maven.compiler.release` property set to `8`, i.e. the same Java version for the whole build.
+With this plugin you can keep the `maven.compiler.release` property set to `8`. This is the same Java version for the whole build.
 
 A minimal example looks like this:
 
@@ -148,5 +148,5 @@ A minimal example looks like this:
 
 ## Summary
 
-* `maven-compiler-plugin` + two compiler runs – flexible but a bit cumbersome.
-* `moditect-maven-plugin` – creates `module‑info.class` in a single build pass, keeps the target Java version (e.g., `8`) unchanged, and reduces build‑time complexity.
+* `maven-compiler-plugin` with two compiler runs. This is flexible but a bit cumbersome.
+* `moditect-maven-plugin`. It creates the `module-info.class` in a single build pass. It keeps the target Java version (for example, `8`) unchanged and reduces build-time complexity.

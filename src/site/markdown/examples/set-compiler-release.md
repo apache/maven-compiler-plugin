@@ -19,17 +19,17 @@ under the License.
 
 # Setting the `--release` of the Java Compiler
 
-Starting with JDK 9, the `javac` executable can accept the `--release` option
-to specify against which Java SE release you want to build the project.
+Starting with JDK 9, the `javac` executable can accept the `--release` option.
+This option specifies against which Java SE release you build the project.
 For example, you have JDK 17 installed and used by Maven,
 but you want to build the project against Java 11.
-The `--release` option ensures that the code is compiled following
-the rules of the programming language of the specified release,
-and that generated classes target the release as well as the public API of that release.
+The `--release` option ensures that the code compiles according to
+the rules of the programming language of the specified release.
+It ensures that the generated classes target that release and its public API.
 This means that, unlike the old `--source` and `--target` options,
-the compiler will detect and generate an error when using APIs that don't exist in previous releases of Java SE.
+the compiler detects and generates an error when you use APIs that do not exist in previous releases of Java SE.
 
-The preferred was to specify the release depends on the Maven version in use.
+The preferred way to specify the release depends on the Maven version in use.
 
 ## Maven 3
 Since version 3.6 of the Compiler Plugin, this option can be provided either via a property:
@@ -72,7 +72,6 @@ Since version 4 of the compiler plugin, which requires Maven 4,
 the preferred way to specify the release is together with the source declaration.
 This is the recommended way because it makes the creation of
 [multi-release](../multirelease.html) projects easier.
-
 ```xml
 <project>
   [...]
@@ -87,6 +86,6 @@ This is the recommended way because it makes the creation of
 
 **Note:** The value in the `release` parameter follows
 [Java's new Version-String Scheme (JEP 223)](https://openjdk.org/jeps/223) adopted since Java 9.
-As such, the release number does not start with 1.x anymore.
+As such, the release number no longer starts with 1.x.
 Also note that the supported `release` targets include the release of the currently used JDK
 plus a limited number of previous releases.
