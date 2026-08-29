@@ -80,7 +80,6 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
-import org.codehaus.plexus.util.FileUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;
@@ -1673,69 +1672,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                     .toArray(String[]::new);
         }
         return processors == null || processors.length == 0 ? null : processors;
-    }
-
-    /**
-     * Compared to the build start time, whether any local dependency file (inter-module classpath) changed.
-     */
-    protected boolean isDependencyChanged() {
-        final Instant buildStartTime = getBuildStartTimeInstant().orElse(null);
-        if (buildStartTime == null) {
-            // we just cannot determine it, so don't do anything beside logging
-            getLog().debug("Cannot determine build start time, skipping incremental build detection.");
-            return false;
-        }
-
-        if (fileExtensions == null || fileExtensions.isEmpty()) {
-            fileExtensions = new HashSet<>(Arrays.asList("class", "jar"));
-        }
-
-        List<String> pathElements = new ArrayList<>();
-        pathElements.addAll(getClasspathElements());
-        pathElements.addAll(getModulepathElements());
-
-        for (String pathElement : pathElements) {
-            Path artifactPath = Paths.get(pathElement);
-
-            // Search files only on dependencies (other modules), not on the current project,
-            if (Files.isDirectory(artifactPath)
-                    && !artifactPath.equals(getOutputDirectory().toPath())) {
-                try (Stream<Path> walk = Files.walk(artifactPath)) {
-                    if (walk.anyMatch(p -> hasNewFile(p, buildStartTime))) {
-                        return true;
-                    }
-                } catch (IOException ex) {
-                    getLog().warn("I/O error walking the path: " + ex.getMessage());
-                    return false;
-                }
-            } else if (hasNewFile(artifactPath, buildStartTime)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private boolean hasNewFile(Path file, Instant buildStartTime) {
-        if (Files.isRegularFile(file)
-                && fileExtensions.contains(
-                        FileUtils.extension(file.getFileName().toString()))) {
-            try {
-                Instant lastModifiedTime = Files.getLastModifiedTime(file)
-                        .toInstant()
-                        .minusMillis(staleMillis)
-                        .truncatedTo(ChronoUnit.MILLIS);
-                boolean hasChanged = lastModifiedTime.isAfter(buildStartTime);
-                if (hasChanged && (getLog().isDebugEnabled() || showCompilationChanges)) {
-                    getLog().info("\tNew dependency detected: " + file.toAbsolutePath());
-                }
-                return hasChanged;
-            } catch (IOException ex) {
-                getLog().warn("I/O error reading the lastModifiedTime: " + ex.getMessage());
-            }
-        }
-
-        return false;
     }
 
     private List<String> resolveProcessorPathEntries() throws MojoExecutionException {
