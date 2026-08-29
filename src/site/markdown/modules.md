@@ -176,4 +176,4 @@ patch-module org.foo.bar {            // Put here the name of the module to patc
 
 `SUBPROJECT-MODULES` is a Maven-specific keyword for exporting to all other Java modules
 in the Maven (sub)project being compiled. You can replace it with an explicit list of modules.
-That is all. You do not need to deploy or install a test JAR.
+You do not need to deploy or install a test JAR.
