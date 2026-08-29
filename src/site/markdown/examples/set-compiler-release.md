@@ -20,16 +20,16 @@ under the License.
 # Setting the `--release` of the Java Compiler
 
 Starting with JDK 9, the `javac` executable can accept the `--release` option.
-This option specifies against which Java SE release you build the project.
+This option specifies against which Java release you build the project.
 For example, you have JDK 17 installed and used by Maven,
-but you want to build the project against Java 11.
+but you want to build the project with Java 11.
 The `--release` option ensures that the code compiles according to
 the rules of the programming language of the specified release.
 It ensures that the generated classes target that release and its public API.
 This means that, unlike the old `--source` and `--target` options,
 the compiler detects and generates an error when you use APIs that do not exist in previous releases of Java SE.
 
-The preferred way to specify the release depends on the Maven version in use.
+The preferred way to specify the release depends on the Maven version.
 
 ## Maven 3
 Since version 3.6 of the Compiler Plugin, this option can be provided either via a property:
