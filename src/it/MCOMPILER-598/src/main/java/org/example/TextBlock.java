@@ -18,4 +18,9 @@
  */
 package org.example;
 
-public interface Service {}
+public class TextBlock {
+
+    private static final String URL = """
+            "http://freedesktop.org"
+            """;
+}

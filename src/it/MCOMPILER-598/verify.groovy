@@ -20,6 +20,4 @@
 File target = new File( basedir, "target" );
 assert target.isDirectory()
 
-assert new File( target, "classes/module-info.class" ).exists()
-assert new File( target, "classes/org/example/Service.class" ).exists()
-assert new File( target, "classes/org/example/ServiceImpl.class" ).exists()
+assert new File( target, "classes/org/example/TextBlock.class" ).exists()
