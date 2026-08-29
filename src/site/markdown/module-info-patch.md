@@ -56,7 +56,7 @@ The syntax is:
 * The same comment styles as Java (`/*` … `*/` and `//`) are accepted.
 * The first tokens, after comments, shall be `patch-module` followed by the name of the module to patch.
 * All keywords inside `patch-module` are Java compiler or Java launcher options without the leading `--` characters.
-* Each option value ends at the `;` character. This character is mandatory.
+* Each option value ends at the `;` character. This semicolon is mandatory.
 
 The accepted keywords are `add-modules`, `limit-modules`, `add-reads`, `add-exports` and `add-opens`.
 These options have package or module names as values, not paths to source or binary files.
