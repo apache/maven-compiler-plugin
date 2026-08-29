@@ -25,8 +25,8 @@ For example, the [Hibernate Processor](https://hibernate.org/orm/processor/) pro
 
 ## Recommended way to activate annotation processing
 
-Up to JDK 23, the compiler automatically scanned the classpath for annotation processors. It executed all processors found by default.
-For security reasons, this is disabled by default since JDK 23. You must activate annotation processing explicitly.
+Through JDK 23, the compiler automatically scans the classpath for annotation processors. It executed all processors found by default.
+For security reasons, this is disabled by default in JDK 24 and later. You must activate annotation processing explicitly.
 Use either the `<annotationProcessors>` plugin configuration or,
 when using Maven 4 and Maven Compiler Plugin version 4.x, declare the processors as dependencies of type `processor`, `classpath-processor`, or `modular-processor`.
 Only those processors are executed by the compiler.
