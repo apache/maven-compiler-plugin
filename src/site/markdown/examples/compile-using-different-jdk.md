@@ -21,26 +21,30 @@ under the License.
 
 ## Using Maven Toolchains
 
-The preferable way to use a different JDK is the toolchains mechanism.
-During the build of a project, Maven uses the JDK to perform various steps without toolchains.
-These steps include compiling the Java sources, generating the Javadoc, running unit tests or signing JARs.
-Each of those plugins needs a JDK tool to operate: `javac`, `javadoc`, `jarsigner`, etc.
-A toolchain specifies the path to the JDK for all of those plugins in a centralized manner.
-It is independent from the JDK that runs Maven itself.
+Maven is itself a Java application running in a JDK.
+By default the same JDK that runs Maven builds the code and runs the tests.
+However, sometimes you need different JDKs. For instance, recent versions of Maven require 
+Java 17 to run, but you might need to compile a project with Java 8.
+Toolchains are the preferred way to use different JDKs to run Maven and to build the project.
 
-To set this up, refer to the [Guide to Using Toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html).
-This guide uses the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolchains-plugin/).
+During the build, Maven uses the JDK to perform various steps.
+These steps include compiling the Java sources, generating the Javadoc, running unit tests, signing JARs, and more.
+Most core Maven plugins execute a JDK tool: `javac`, `javadoc`, `jarsigner`, etc.
+A toolchain specifies the path to the JDK where the plugin finds these tools.
+It is independent of the JDK that runs Maven itself.
 
-With the maven-toolchains-plugin you configure 1 default JDK toolchain for all related Maven plugins.
-Since maven-compiler-plugin 3.6.0, when used with Maven 3.3.1+, it is also possible to give the plugin its own toolchain.
-This is useful for a different JDK per execution block
-(for example, the test sources require a different compiler compared to the main sources).
+To set this up, refer to the [Guide to Using Toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html)
+and the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolchains-plugin/).
+
+With the maven-toolchains-plugin, you configure one default JDK toolchain for all related Maven plugins.
+Since maven-compiler-plugin 3.6.0, it is also possible assign different plugins different toolchains.
+For example, the test sources might require Java 8 but compilation requires Java 11.
 
 
 ## Configuring the Compiler Plugin
 
 Outside of a toolchain, it is still possible to tell the Compiler Plugin the specific JDK to use during compilation.
-Note that such configuration is specific to this plugin. It does not affect other plugins.
+Such configuration is specific to the compiler plugin. It does not affect other plugins.
 If the `fork` parameter is set to `true`, the compiler uses the executable at the specified path.
 The following example uses a `JAVA_11_HOME` property which each developer must set.
 The next paragraph discusses this property.
