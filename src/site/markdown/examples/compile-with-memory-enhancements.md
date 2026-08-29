@@ -21,7 +21,7 @@ under the License.
 
 The Compiler Plugin accepts configurations for the initial memory (`meminitial`)
 and the maximum memory (`maxmem`).
-Follow the example below to set the initial memory size to 128MB
+For example, this configuration sets the initial memory size to 128MB
 and the maximum memory usage to 512MB:
 
 ```xml
@@ -48,4 +48,4 @@ and the maximum memory usage to 512MB:
 ```
 
 Version 4 of the Maven compiler plugin also accepts the 'k', 'M' (upper-case)
-and 'G' suffixes for kilobytes, megabytes and gigabytes respectively.
+and 'G' suffixes for kilobytes, megabytes, and gigabytes respectively.
