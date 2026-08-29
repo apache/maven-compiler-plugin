@@ -19,7 +19,7 @@ under the License.
 
 # Annotation processors
 
-[Annotation processing](https://docs.oracle.com/en/java/javase/23/docs/specs/man/javac.html#annotation-processing) lets the compiler generate source code based on annotations.
+[Annotation processing](https://docs.oracle.com/en/java/javase/23/docs/specs/man/javac.html#annotation-processing) generates source code based on annotations.
 For example, the [Hibernate Processor](https://hibernate.org/orm/processor/) provides an annotation processor to generate the JPA metamodel.
 
 
