@@ -586,7 +586,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String outputTimestamp;
 
     /**
-     * The algorithm to use for selecting which files to compile.
+     * <b>Despite the word "incremental" in the name, this is <i>not</i> an incremental compiler
+     * in the sense of an IDE.</b> The plugin does not compile a single changed class and the classes
+     * that depend on it. It selects an algorithm used to <i>detect changes</i> and to decide whether
+     * to recompile the whole module or only some source files. In most configurations a change causes
+     * the whole module (all its source files) to be recompiled; see the {@code sources} and
+     * {@code classes} values below, which decide whether only the modified source files are recompiled
+     * or whether a change triggers a full rebuild. The plugin never performs dependency-based
+     * compilation of only the directly or transitively affected classes.
+     *
+     * <p>The algorithm to use for selecting which files to compile.
      * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
      * {@code rebuild-on-add}, {@code modules} or {@code none}.
      *
@@ -670,7 +679,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String incrementalCompilation;
 
     /**
-     * Whether to enable/disable incremental compilation feature.
+     * Whether to enable/disable the change detection that decides when to recompile the module.
+     *
+     * <p>Despite the word "incremental" in this property name, this does <i>not</i> enable an
+     * incremental compiler in the sense of an IDE. The plugin never compiles a single changed class
+     * together with the classes that depend on it. It only detects changes and, depending on the
+     * configuration, recompiles the whole module or only the modified source files.</p>
      *
      * @since 3.1
      *
