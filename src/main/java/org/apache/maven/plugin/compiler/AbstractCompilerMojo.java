@@ -680,11 +680,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Whether to enable/disable the change detection that decides when to recompile the module.
-     *
-     * <p>Despite the word "incremental" in this property name, this does <i>not</i> enable an
+     * Despite the word "incremental", this does not enable an
      * incremental compiler in the sense of an IDE. The plugin never compiles a single changed class
      * together with the classes that depend on it. It only detects changes and, depending on the
-     * configuration, recompiles the whole module or only the modified source files.</p>
+     * configuration, recompiles the whole module or only the modified source files.
      *
      * @since 3.1
      *
