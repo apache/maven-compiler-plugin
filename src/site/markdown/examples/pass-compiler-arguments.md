@@ -22,7 +22,6 @@ under the License.
 Sometimes, you need to pass compiler arguments that are not handled by the Compiler Plugin itself.
 For such arguments, use the Compiler Plugin's `compilerArgs` parameter.
 The following example passes compiler arguments to the `javac` compiler:
-
 ```xml
 <project>
   [...]

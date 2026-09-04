@@ -17,43 +17,41 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-The Compiler Plugin is used to compile the sources of your project.
-The default compiler used to compile Java sources is `javac`.
-If you want to use another compiler, refer to the [using Non-Javac Compilers](./examples/non-javac-compilers.html) page.
+The Compiler Plugin compiles the sources of your project.
+The default compiler for Java sources is `javac`.
+To use another compiler, read the [using Non-Javac Compilers](./examples/non-javac-compilers.html) page.
 
-**NOTE:** To know more about the JDK `javac`, please see the
+**NOTE:** For more information about the JDK `javac`, read the
 [tool guide](https://docs.oracle.com/en/java/javase/24/docs/specs/man/javac.html).
 
 # Goals Overview
 
 The Compiler Plugin has two goals.
-Both are already bound to their proper phases within the Maven Lifecycle and are therefore,
-automatically executed during their respective phases.
+Both goals bind to their phases in the Maven Lifecycle.
+Maven executes them automatically during these phases.
 
-* [compiler:compile](./compile-mojo.html) is bound to the compile phase and is used to compile the main source files.
-* [compiler:testCompile](./testCompile-mojo.html) is bound to the test-compile phase and is used to compile the test source files.
+* [compiler:compile](./compile-mojo.html) binds to the compile phase. It compiles the main source files.
+* [compiler:testCompile](./testCompile-mojo.html) binds to the test-compile phase. It compiles the test source files.
 
 # Usage
 
-General instructions on how to use the Compiler Plugin can be found on the [usage page](./usage.html).
-Some more specific use cases are described in the examples given below.
+You can find the general usage instructions on the [usage page](./usage.html).
+The examples below describe more specific use cases.
 
-In case you still have questions regarding the plugin's usage, please have a look at the [FAQ](./faq.html)
-and feel free to contact the [user mailing list](./mailing-lists.html).
-The posts to the mailing list are archived and could already contain the answer to your question as part of an older thread.
-Hence, it is also worth browsing/searching the [mail archive](./mailing-lists.html).
+If you have questions about the plugin, read the [FAQ](./faq.html) or contact the [user mailing list](./mailing-lists.html).
 
-If you feel the plugin is missing a feature or has a defect,
-you can file a feature request or bug report in our [issue tracker](./issue-management.html).
-When creating a new issue, please provide a comprehensive description of your concern.
-Especially for fixing bugs it is crucial that the developers can reproduce your problem.
-For this reason, entire debug logs, POMs or most preferably little demo projects attached to the issue are very much appreciated.
-Of course, patches are welcome, too.
-Contributors can check out the project from our [source repository](./scm.html) and will find supplementary information
-in the [guide to helping with Maven](https://maven.apache.org/guides/development/guide-helping.html).
+The mailing list archives can contain an answer from an older thread. You can also search the [mail archive](./mailing-lists.html).
+
+If the plugin lacks a feature or has a defect, create a feature request or a bug report. Submit the request in the [issue tracker](./issue-management.html).
+
+When you create a new issue, describe the problem completely. Attach complete debug logs, POMs, or small demo projects to the issue.
+
+The developers must reproduce the problem to fix the bug. Patches are welcome.
+
+Contributors can check out the project from the [source repository](./scm.html). They will find more information in the [guide to helping with Maven](https://maven.apache.org/guides/development/guide-helping.html).
 
 The following pages describe how to use the plugin beyond the default
-"one source directory, one module, one release" default configuration:
+"one source directory, one module, one release" configuration:
 
 * [Declaration of source directories](./sources.html)
 * [Multi-release project](./multirelease.html)
@@ -63,8 +61,7 @@ The following pages describe how to use the plugin beyond the default
 
 # Examples
 
-To provide you with better understanding on some usages of the Compiler Plugin,
-you can take a look into the following examples:
+To understand some usages of the Compiler Plugin, read the following examples:
 
 * [Annotation processors](./examples/annotation-processor.html)
 * [Arguments related to Java Platform Module System](./examples/jpms_args.html)

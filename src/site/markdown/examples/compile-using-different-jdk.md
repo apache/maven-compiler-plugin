@@ -21,29 +21,33 @@ under the License.
 
 ## Using Maven Toolchains
 
-The preferable way to use a different JDK is to use the toolchains mechanism.
-During the build of a project, Maven, without toolchains, will use the JDK to perform various steps,
-like compiling the Java sources, generate the Javadoc, run unit tests or sign JARs.
-Each of those plugins need a tool of the JDK to operate: `javac`, `javadoc`, `jarsigner`, etc.
-A toolchain is a way to specify the path to the JDK to use for all of those plugins in a centralized manner,
-independent from the one running Maven itself.
+Maven is itself a Java application running in a JDK.
+By default the same JDK that runs Maven builds the code and runs the tests.
+However, sometimes you need different JDKs. For instance, recent versions of Maven require 
+Java 17 to run, but you might need to compile a project with Java 8.
+Toolchains are the preferred way to use different JDKs to run Maven and to build the project.
 
-To set this up, refer to the [Guide to Using Toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html),
-which makes use of the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolchains-plugin/).
+During the build, Maven uses the JDK to perform various steps.
+These steps include compiling the Java sources, generating the Javadoc, running unit tests, signing JARs, and more.
+Most core Maven plugins execute a JDK tool: `javac`, `javadoc`, `jarsigner`, etc.
+A toolchain specifies the path to the JDK where the plugin finds these tools.
+It is independent of the JDK that runs Maven itself.
 
-With the maven-toolchains-plugin you configure 1 default JDK toolchain for all related maven-plugins.
-Since maven-compiler-plugin 3.6.0 when using with Maven 3.3.1+ it is also possible to give the plugin its own toolchain,
-which can be useful in case of different JDK calls per execution block
-(e.g. the test sources require a different compiler compared to the main sources).
+To set this up, refer to the [Guide to Using Toolchains](https://maven.apache.org/guides/mini/guide-using-toolchains.html)
+and the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolchains-plugin/).
+
+With the maven-toolchains-plugin, you configure one default JDK toolchain for all related Maven plugins.
+Since maven-compiler-plugin 3.6.0, it is also possible assign different plugins different toolchains.
+For example, the test sources might require Java 8 but compilation requires Java 11.
 
 
 ## Configuring the Compiler Plugin
 
 Outside of a toolchain, it is still possible to tell the Compiler Plugin the specific JDK to use during compilation.
-Note that such configuration will be specific to this plugin, and will not affect others.
-If the `fork` parameter is set to `true`, the executable at the specified path will be used.
-The following example uses a `JAVA_11_HOME` property which needs to be set by each developer,
-as discussed in the next paragraph.
+Such configuration is specific to the compiler plugin. It does not affect other plugins.
+If the `fork` parameter is set to `true`, the compiler uses the executable at the specified path.
+The following example uses a `JAVA_11_HOME` property which each developer must set.
+The next paragraph discusses this property.
 
 ```xml
 <project>
@@ -68,9 +72,9 @@ as discussed in the next paragraph.
 </project>
 ```
 
-The above example uses a `JAVA_11_HOME` property in order to avoid hard-coding a filesystem path for the executable.
+The example above uses a `JAVA_11_HOME` property to avoid hard-coding a filesystem path for the executable.
 Each developer defines this property in [settings.xml](https://maven.apache.org/ref/current/maven-settings/settings.html),
-or sets an environment variable, so that the build remains portable.
+or sets an environment variable, so that the build stays portable.
 
 ```xml
 <settings>
@@ -91,5 +95,5 @@ or sets an environment variable, so that the build remains portable.
 </settings>
 ```
 
-If you build with a different JDK, you may want to
+If you build with a different JDK, you can
 [customize the jar file manifest](https://maven.apache.org/plugins/maven-jar-plugin/examples/manifest-customization.html).

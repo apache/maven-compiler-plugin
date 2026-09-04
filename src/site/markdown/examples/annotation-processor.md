@@ -19,24 +19,24 @@ under the License.
 
 # Annotation processors
 
-[Annotation processing](https://docs.oracle.com/en/java/javase/23/docs/specs/man/javac.html#annotation-processing) is used to let the compiler generate source code based on annotations.
+[Annotation processing](https://docs.oracle.com/en/java/javase/23/docs/specs/man/javac.html#annotation-processing) generates source code based on annotations.
 For example, the [Hibernate Processor](https://hibernate.org/orm/processor/) provides an annotation processor to generate the JPA metamodel.
 
 
 ## Recommended way to activate annotation processing
 
-Up to JDK 23, the compiler automatically scanned the classpath for annotation processors and executed all found by default.
-For security reasons, this got disabled by default since JDK 23 and annotation processing needs to be activated explicitly.
-The recommended way for this is to list all desired processors using either the `<annotationProcessors>` plugin configuration
-or, when using Maven 4 and Maven Compiler Plugin version 4.x, by declaring the processors as dependencies of type `processor`. `classpath-processor` or `modular-processor`.
-Only those processors will get executed by the compiler.
+Through JDK 23, the compiler automatically scans the classpath for annotation processors. It executed all processors found by default.
+For security reasons, this is disabled by default in JDK 24 and later. You must activate annotation processing explicitly.
+Use either the `<annotationProcessors>` plugin configuration or,
+when using Maven 4 and Maven Compiler Plugin version 4.x, declare the processors as dependencies of type `processor`, `classpath-processor`, or `modular-processor`.
+Only those processors are executed by the compiler.
 
 The following example shows how to activate the Hibernate Processor.
 
 
 ### Maven 3
 
-When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the following configuration.
+When using Maven 3 and Maven Compiler Plugin version 3.x, you do this with the following configuration.
 
 ```xml
 <project>
@@ -66,9 +66,9 @@ When using Maven 3 and Maven Compiler Plugin version 3.x you do this using the f
 
 ### Maven 4
 
-With Maven 4 and Maven Compiler Plugin 4.x the way described above got deprecated and will be removed in a future version of the plugin.
-Configuration now makes use of the new `processor` dependency type to shorten the configuration,
-give control over the placement on class-path or module-path, and make the information available to other plugins.
+With Maven 4 and Maven Compiler Plugin 4.x, the way described above is deprecated. The plugin will remove it in a future version.
+Configuration now uses the new `processor` dependency type. This shortens the configuration,
+gives control over the placement on class-path or module-path, and makes the information available to other plugins.
 The following example shows this.
 
 ```xml
@@ -87,21 +87,21 @@ The following example shows this.
 ```
 
 Like ordinary dependencies, processors can be placed on the processor class-path or processor module-path.
-Each processor can be placed explicitly on one of those two kinds of path by specifying the
+Each processor can be placed on one of these two kinds of path. Specify the
 `classpath-processor` or `modular-processor` dependency type respectively.
-If the specified type is only `processor`, then the Maven compiler plugin will try to guess on which path to place the processor.
-Note that this guess is not guaranteed to be correct.
-Developers are encouraged to declare a more explicit type (for example `<type>classpath-processor</type>`) when they know how the processor is intended to be used.
+If the specified type is only `processor`, then the Maven compiler plugin guesses which path to place the processor on.
+This guess is not guaranteed to be correct.
+When you know how the processor is intended to be used, declare a more explicit type (for example `<type>classpath-processor</type>`).
 
 
 ## Not recommended: Using the `proc` configuration
 
 This section applies to Maven 3 and Maven 4.
 
-If you don't want to provide a list of processors, you have to set the value of the `<proc>` configuration to either `only` or `full`.
-The first will only scan the classpath for annotation processors and will execute them, while the later will also compile the code afterward.
-Keep in mind that if no list of desired annotation processors is provided, using the `<proc>` configuration will execute found processors on the classpath.
-**This might result in the execution of hidden and possible malicious processors.**
+If you do not want to provide a list of processors, set the value of the `<proc>` configuration to `only` or `full`.
+`only`  scans the classpath for annotation processors and executes them. `full` also compiles the code afterward.
+If you do not provide a list of annotation processors, the `<proc>` configuration executes the processors found on the classpath.
+**This can execute hidden and possibly malicious processors.**
 Therefore, using only the `proc` configuration is not recommended.
 
 You set the value of the `<proc>` configuration like every other [configuration](/usage.html) of the Maven Compiler Plugin:
@@ -126,7 +126,7 @@ You set the value of the `<proc>` configuration like every other [configuration]
 </project>
 ```
 
-You can also just overwrite the default value of the property:
+You can also overwrite the default value of the property:
 
 ```xml
 <project>
