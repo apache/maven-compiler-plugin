@@ -176,12 +176,6 @@ public class ToolExecutor {
     private IncrementalBuild incrementalBuild;
 
     /**
-     * Whether only a subset of the files will be compiled. This flag can be {@code true} only when
-     * incremental build is enabled and detected that some files do not need to be recompiled.
-     */
-    private boolean isPartialBuild;
-
-    /**
      * Where to send the compilation warning (never {@code null}). If a null value was specified
      * to the constructor, then this listener sends the warnings to the Maven {@linkplain #logger}.
      */
@@ -392,7 +386,6 @@ public class ToolExecutor {
                     logger.debug(causeOfRebuild);
                 }
             } else {
-                isPartialBuild = true;
                 sourceFiles = incrementalBuild.getModifiedSources();
                 if (IncrementalBuild.isEmptyOrIgnorable(sourceFiles)) {
                     incrementalBuildConfig.clear(); // Prevent this method to be executed twice.
@@ -463,6 +456,17 @@ public class ToolExecutor {
      * @param fileManager the file manager where to set the dependency paths
      */
     private void setDependencyPaths(final StandardJavaFileManager fileManager) throws IOException {
+        if (!hasModuleDeclaration) {
+            /*
+             * Unlike modular compilation, javac does not search the output directory automatically.
+             * Include classes produced by earlier compilers, even when all Java sources are rebuilt
+             * or the project has no dependencies. Do this after incremental dependency checks.
+             */
+            Collection<Path> paths = dependencies(JavaPathType.CLASSES);
+            if (!paths.contains(outputDirectory)) {
+                paths.add(outputDirectory);
+            }
+        }
         final var unresolvedPaths = new ArrayList<Path>();
         for (Map.Entry<PathType, Collection<Path>> entry : dependencies.entrySet()) {
             Collection<Path> paths = entry.getValue();
@@ -475,22 +479,6 @@ public class ToolExecutor {
                 Optional<JavaFileManager.Location> location = type.location();
                 if (location.isPresent()) { // Cannot use `Optional.ifPresent(…)` because of checked IOException.
                     var value = location.get();
-                    if (value == StandardLocation.CLASS_PATH) {
-                        if (isPartialBuild && !hasModuleDeclaration) {
-                            /*
-                             * From https://docs.oracle.com/en/java/javase/24/docs/specs/man/javac.html:
-                             * "When compiling code for one or more modules, the class output directory will
-                             * automatically be checked when searching for previously compiled classes.
-                             * When not compiling for modules, for backwards compatibility, the directory is not
-                             * automatically checked for previously compiled classes, and so it is recommended to
-                             * specify the class output directory as one of the locations on the user class path,
-                             * using the --class-path option or one of its alternate forms."
-                             */
-                            paths = new ArrayDeque<>(paths);
-                            paths.add(outputDirectory);
-                            entry.setValue(paths);
-                        }
-                    }
                     fileManager.setLocationFromPaths(value, paths);
                     continue;
                 }
