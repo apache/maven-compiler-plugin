@@ -457,15 +457,8 @@ public class ToolExecutor {
      */
     private void setDependencyPaths(final StandardJavaFileManager fileManager) throws IOException {
         if (!hasModuleDeclaration) {
-            /*
-             * Unlike modular compilation, javac does not search the output directory automatically.
-             * Include classes produced by earlier compilers, even when all Java sources are rebuilt
-             * or the project has no dependencies. Do this after incremental dependency checks.
-             */
-            Collection<Path> paths = dependencies(JavaPathType.CLASSES);
-            if (!paths.contains(outputDirectory)) {
-                paths.add(outputDirectory);
-            }
+            // Ensure that dependency-free projects also enter the CLASS_PATH branch below.
+            dependencies.putIfAbsent(JavaPathType.CLASSES, List.of());
         }
         final var unresolvedPaths = new ArrayList<Path>();
         for (Map.Entry<PathType, Collection<Path>> entry : dependencies.entrySet()) {
@@ -479,6 +472,22 @@ public class ToolExecutor {
                 Optional<JavaFileManager.Location> location = type.location();
                 if (location.isPresent()) { // Cannot use `Optional.ifPresent(…)` because of checked IOException.
                     var value = location.get();
+                    if (value == StandardLocation.CLASS_PATH) {
+                        if (!hasModuleDeclaration) {
+                            /*
+                             * From https://docs.oracle.com/en/java/javase/24/docs/specs/man/javac.html:
+                             * "When compiling code for one or more modules, the class output directory will
+                             * automatically be checked when searching for previously compiled classes.
+                             * When not compiling for modules, for backwards compatibility, the directory is not
+                             * automatically checked for previously compiled classes, and so it is recommended to
+                             * specify the class output directory as one of the locations on the user class path,
+                             * using the --class-path option or one of its alternate forms."
+                             */
+                            paths = new ArrayDeque<>(paths);
+                            paths.add(outputDirectory);
+                            entry.setValue(paths);
+                        }
+                    }
                     fileManager.setLocationFromPaths(value, paths);
                     continue;
                 }
