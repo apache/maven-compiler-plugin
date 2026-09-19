@@ -36,7 +36,7 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
  * Tracks output files processed by compiler executions for the current project and Maven session.
  *
  * <p>Multiple compiler executions may share an output directory while using different compiler options.
- * {@link org.apache.maven.shared.incremental.IncrementalBuildHelper} compares output file names before and after
+ * {@link IncrementalBuildHelper} compares output file names before and after
  * compilation, so it cannot detect an existing output overwritten by another execution. This registry lets a later
  * execution detect that overlap without relying on file timestamps, whose precision varies between file systems.</p>
  *
