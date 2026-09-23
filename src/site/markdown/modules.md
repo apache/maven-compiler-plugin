@@ -55,6 +55,7 @@ such as `--add-reads` in the `<testCompilerArgs>` element of the plugin configur
 Maven 4 allows the same directory layout as Maven 3.
 However, the `module-info.java` file in the test directory should be
 replaced by a `module-info-patch.maven` file in the same directory.
+
 ```
 src
 ├─ main
@@ -82,7 +83,7 @@ This Maven file is preferred to a `module-info.java` file in the test directory 
 When using the package hierarchy, problems can occur if the module name is a single name without a `.` separator
 (for example, `foo` or `bar` but not `foo.bar`) and that name is identical to a package name.
 In such a case, the hack implemented in the Maven compiler plugin for Maven 3 compatibility
-become confused about whether a directory named `foo` represents the module or the package.
+becomes confused about whether a directory named `foo` represents the module or the package.
 To avoid ambiguity, use module names containing at least one `.` character
 (as required by the reverse domain name convention)
 or use the module source hierarchy described below.

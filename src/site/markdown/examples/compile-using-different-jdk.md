@@ -37,7 +37,7 @@ To set this up, refer to the [Guide to Using Toolchains](https://maven.apache.or
 and the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolchains-plugin/).
 
 With the maven-toolchains-plugin, you configure one default JDK toolchain for all related Maven plugins.
-Since maven-compiler-plugin 3.6.0, it is also possible assign different plugins different toolchains.
+Since maven-compiler-plugin 3.6.0, it is also possible to assign different plugins different toolchains.
 For example, the test sources might require Java 8 but compilation requires Java 11.
 
 
