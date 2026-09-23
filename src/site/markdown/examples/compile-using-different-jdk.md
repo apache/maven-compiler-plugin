@@ -23,7 +23,7 @@ under the License.
 
 Maven is itself a Java application running in a JDK.
 By default the same JDK that runs Maven builds the code and runs the tests.
-However, sometimes you need different JDKs. For instance, recent versions of Maven require 
+However, sometimes you need different JDKs. For instance, recent versions of Maven require
 Java 17 to run, but you might need to compile a project with Java 8.
 Toolchains are the preferred way to use different JDKs to run Maven and to build the project.
 

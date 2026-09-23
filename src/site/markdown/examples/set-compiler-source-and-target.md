@@ -42,7 +42,9 @@ you can add the two following properties. These are the default property names f
 </project>
 ```
 
-or configure the plugin directly:```xml
+or configure the plugin directly:
+
+```xml
 <project>
   [...]
   <build>

@@ -53,7 +53,7 @@ such as `--add-reads` in the `<testCompilerArgs>` element of the plugin configur
 ## Maven 4 with package hierarchy
 
 Maven 4 allows the same directory layout as Maven 3.
-However, the `module-info.java` file in the test directory must be
+However, the `module-info.java` file in the test directory should be
 replaced by a `module-info-patch.maven` file in the same directory.
 ```
 src
