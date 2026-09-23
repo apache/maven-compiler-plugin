@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+def logFile = new File( basedir, 'build.log' )
+assert logFile.exists()
+def content = logFile.text
 
-buildLog = new File( basedir, 'build.log' ).text;
+// With proc=none (annotation processing disabled), changing exactly one of three independent
+// classes must recompile only the modified file, on every Java version. This is the documented
+// workaround for Java < 23, where the default otherwise conservatively rebuilds all files.
+assert content.contains( 'Compiling 1 modified source file' ) :
+        'Expected only the single modified source file to be recompiled'
 
-assert buildLog.contains("[WARNING] Filename-based automodules detected on the module path:")
-assert buildLog.contains("  - plexus-resources-1.1.0.jar")
+// It must NOT fall back to a full rebuild of the whole source set.
+assert !content.contains( 'Recompiling all files because at least one source file changed' ) :
+        'proc=none recompiled all files after a single-file change'

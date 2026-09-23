@@ -76,6 +76,7 @@ import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
+import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
 
@@ -649,6 +650,16 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
      * It means that a full rebuild will be done if any kind of change is detected.</p>
      *
+     * <p>Whether an annotation processor is considered present depends on the Java version when {@link #proc} is unset,
+     * because {@code javac} enables annotation processing by default before Java 23 ({@code -proc:full})
+     * but disables it since Java 23 ({@code -proc:none} unless a processor is configured).
+     * Consequently, on Java versions prior to 23 the plugin conservatively assumes that a processor may be present
+     * — since {@code javac} would discover processors on the compile classpath —
+     * and therefore applies {@code "rebuild-on-add,rebuild-on-change"} by default,
+     * doing a full rebuild on any change even when no processor is actually present.
+     * Projects on Java &lt; 23 that use no annotation processor can restore per-file recompilation
+     * by setting {@link #proc} to {@code "none"} (or by setting this {@code incrementalCompilation} property explicitly).</p>
+     *
      * @see #staleMillis
      * @see #fileExtensions
      * @see #showCompilationChanges
@@ -928,6 +939,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     @Inject
     protected ToolchainManager toolchainManager;
+
+    /**
+     * The service to use for creating include and exclude filters.
+     */
+    @Inject
+    protected PathMatcherFactory matcherFactory;
 
     @Inject
     protected MessageBuilderFactory messageBuilderFactory;
@@ -1428,9 +1445,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
                         .append(compileScope.projectScope().id())
                         .append(" classes.");
                 if (executor.listener instanceof DiagnosticLogger diagnostic) {
-                    diagnostic.firstError(failureCause).ifPresent((c) -> message.append(System.lineSeparator())
-                            .append("The first error is: ")
-                            .append(c));
+                    diagnostic
+                            .firstError(failureCause)
+                            .ifPresent((c) -> message.append(System.lineSeparator())
+                                    .append("The first error is: ")
+                                    .append(c));
                 }
                 var failure = new CompilationFailureException(message.toString(), failureCause);
                 if (suppressed != null) {

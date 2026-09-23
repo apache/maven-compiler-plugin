@@ -40,20 +40,20 @@ import org.apache.maven.api.di.Singleton;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
 import org.apache.maven.api.plugin.Log;
-import org.apache.maven.api.plugin.testing.Basedir;
-import org.apache.maven.api.plugin.testing.InjectMojo;
-import org.apache.maven.api.plugin.testing.MojoExtension;
-import org.apache.maven.api.plugin.testing.MojoParameter;
-import org.apache.maven.api.plugin.testing.MojoTest;
-import org.apache.maven.api.plugin.testing.stubs.ProducedArtifactStub;
-import org.apache.maven.api.plugin.testing.stubs.ProjectStub;
-import org.apache.maven.api.plugin.testing.stubs.SessionMock;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ToolchainManager;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
 import org.apache.maven.impl.InternalSession;
 import org.apache.maven.plugin.compiler.stubs.CompilerStub;
+import org.apache.maven.testing.plugin.Basedir;
+import org.apache.maven.testing.plugin.InjectMojo;
+import org.apache.maven.testing.plugin.MojoExtension;
+import org.apache.maven.testing.plugin.MojoParameter;
+import org.apache.maven.testing.plugin.MojoTest;
+import org.apache.maven.testing.plugin.stubs.ProducedArtifactStub;
+import org.apache.maven.testing.plugin.stubs.ProjectStub;
+import org.apache.maven.testing.plugin.stubs.SessionMock;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -66,6 +66,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -181,6 +182,26 @@ public class CompilerMojoTestCase {
 
         testCompileMojo.execute();
         assertFalse(Files.exists(testCompileMojo.getOutputDirectory()));
+    }
+
+    /**
+     * Tests that an empty source file does not cause compilation every time because it has no class file.
+     */
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-empty-source-change-detection-test")
+    public void testCompilerEmptySourceChangeDetection(
+            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) throws IOException {
+        Path source = compileMojo.basedir.resolve("src/main/java/Empty.java");
+        Files.createDirectories(source.getParent());
+        Files.write(source, new byte[0]);
+
+        Log log = mock(Log.class);
+        compileMojo.logger = log;
+        compileMojo.execute();
+
+        clearInvocations(log);
+        compileMojo.execute();
+        verify(log).info("Nothing to compile - all classes are up to date.");
     }
 
     /**

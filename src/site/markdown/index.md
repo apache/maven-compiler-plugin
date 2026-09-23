@@ -50,9 +50,9 @@ Especially for fixing bugs it is crucial that the developers can reproduce your 
 For this reason, entire debug logs, POMs or most preferably little demo projects attached to the issue are very much appreciated.
 Of course, patches are welcome, too.
 Contributors can check out the project from our [source repository](./scm.html) and will find supplementary information
-in the [guide to helping with Maven](http://maven.apache.org/guides/development/guide-helping.html).
+in the [guide to helping with Maven](https://maven.apache.org/guides/development/guide-helping.html).
 
-The following pages describes how to use the plugin beyond the default
+The following pages describe how to use the plugin beyond the default
 "one source directory, one module, one release" default configuration:
 
 * [Declaration of source directories](./sources.html)
@@ -69,7 +69,7 @@ you can take a look into the following examples:
 * [Annotation processors](./examples/annotation-processor.html)
 * [Arguments related to Java Platform Module System](./examples/jpms_args.html)
 * [Compile using a different JDK](./examples/compile-using-different-jdk.html)
-* [Compile using a non-javac compilers](./examples/non-javac-compilers.html)
+* [Compile using a non-javac compiler](./examples/non-javac-compilers.html)
 * [Compile using the --source and --target javac options](./examples/set-compiler-source-and-target.html)
 * [Compile using the --release javac option](./examples/set-compiler-release.html)
 * [Compile using memory allocation enhancements](./examples/compile-with-memory-enhancements.html)

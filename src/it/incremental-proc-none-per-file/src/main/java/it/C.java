@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package it;
 
-buildLog = new File( basedir, 'build.log' ).text;
-
-assert buildLog.contains("[WARNING] Filename-based automodules detected on the module path:")
-assert buildLog.contains("  - plexus-resources-1.1.0.jar")
+public class C {
+    public int v() {
+        return 1;
+    }
+}

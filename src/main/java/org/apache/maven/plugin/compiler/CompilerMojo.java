@@ -83,6 +83,11 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
     /**
      * A set of exclusion filters for the compiler.
+     * Excluding a source file only prevents the plugin from passing it explicitly to the compiler.
+     * The compiler may still find it on the source path and generate a class file for it.
+     * This can happen with {@code module-info.java}.
+     *
+     * @see #implicit
      */
     @Parameter
     protected Set<String> excludes;
@@ -347,22 +352,24 @@ public class CompilerMojo extends AbstractCompilerMojo {
             return null;
         }
         final var paths = new TreeMap<SourceVersion, Path>();
-        Files.walk(root, 1).forEach((path) -> {
-            SourceVersion version;
-            if (path.equals(root)) {
-                path = outputDirectory;
-                version = SourceVersion.RELEASE_0;
-            } else {
-                try {
-                    version = SourceVersion.valueOf("RELEASE_" + path.getFileName());
-                } catch (IllegalArgumentException e) {
-                    throw new CompilationFailureException("Invalid version number for " + path, e);
+        try (Stream<Path> stream = Files.walk(root, 1)) {
+            stream.forEach((path) -> {
+                SourceVersion version;
+                if (path.equals(root)) {
+                    path = outputDirectory;
+                    version = SourceVersion.RELEASE_0;
+                } else {
+                    try {
+                        version = SourceVersion.valueOf("RELEASE_" + path.getFileName());
+                    } catch (IllegalArgumentException e) {
+                        throw new CompilationFailureException("Invalid version number for " + path, e);
+                    }
                 }
-            }
-            if (paths.put(version, path) != null) {
-                throw new CompilationFailureException("Duplicated version number for " + path);
-            }
-        });
+                if (paths.put(version, path) != null) {
+                    throw new CompilationFailureException("Duplicated version number for " + path);
+                }
+            });
+        }
         return paths;
     }
 

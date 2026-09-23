@@ -389,7 +389,7 @@ public class ToolExecutor {
             }
             if (causeOfRebuild != null) {
                 if (!sourceFiles.isEmpty()) { // Avoid misleading message such as "all sources changed".
-                    logger.info(causeOfRebuild);
+                    logger.debug(causeOfRebuild);
                 }
             } else {
                 isPartialBuild = true;
@@ -405,7 +405,12 @@ public class ToolExecutor {
                     if (n > 1) {
                         sb.append('s'); // Make plural.
                     }
-                    logger.info(sb.append('.'));
+                    sb.append('.');
+                    if (incrementalBuild.showCompilationChanges) {
+                        logger.info(sb);
+                    } else {
+                        logger.debug(sb);
+                    }
                 }
             }
             if (!(checkSources | checkDepends | checkOptions)) {

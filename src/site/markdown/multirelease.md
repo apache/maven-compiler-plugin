@@ -19,7 +19,7 @@ under the License.
 
 # Multi Release
 
-With [JEP-238](http://openjdk.java.net/jeps/238) the support of multirelease JARs was introduced.
+With [JEP-238](https://openjdk.org/jeps/238) the support of multirelease JARs was introduced.
 This means that you can have Java version dependent classes inside one JAR.
 Based on the runtime, it will pick up the best matching version of a class.
 The output files of a multi-release project are organized like below:

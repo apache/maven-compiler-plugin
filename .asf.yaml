@@ -39,3 +39,26 @@ notifications:
   commits: commits@maven.apache.org
   issues: issues@maven.apache.org
   pullrequests: issues@maven.apache.org
+# https://release-test.apache.org/projects/maven-compiler-plugin
+project:
+  metadata:
+    key: maven-compiler-plugin
+    committee: maven
+    name: Apache Maven Compiler Plugin
+    description: The Compiler Plugin is used to compile the sources of your project.
+    short_description: The Compiler Plugin is used to compile the sources of your project.
+    homepage: https://maven.apache.org/plugins/maven-compiler-plugin/
+    download_page: https://maven.apache.org/plugins/maven-compiler-plugin/download.cgi
+    bug_database: https://maven.apache.org/plugins/maven-compiler-plugin/issue-management.html
+    mailing_lists: https://maven.apache.org/plugins/maven-compiler-plugin/mailing-lists.html
+    repositories:
+      - https://github.com/apache/maven-compiler-plugin.git
+    categories:
+      - build-management
+    programming_languages:
+      - Java
+  policy:
+    github_repository_name: maven-compiler-plugin
+    download_path_suffix: plugins
+  features:
+    atr_sync: true

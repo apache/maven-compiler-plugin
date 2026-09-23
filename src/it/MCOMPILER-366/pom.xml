@@ -32,7 +32,7 @@
     <dependency>
       <groupId>org.codehaus.plexus</groupId>
       <artifactId>plexus-utils</artifactId>
-      <version>3.0.24</version>
+      <version>3.6.1</version>
       <type>modular-jar</type>
       <!-- Force placement on the module-path. -->
     </dependency>
