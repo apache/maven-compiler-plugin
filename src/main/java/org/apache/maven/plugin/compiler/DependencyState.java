@@ -137,6 +137,9 @@ final class DependencyState {
      * The directory digest covers each relevant file's relative path, size and modification time.
      */
     private static ModificationState modificationState(Path dependency, ScanContext context) {
+        if (Files.notExists(dependency)) {
+            return new ModificationState(emptyDirectoryState(), null);
+        }
         if (!Files.isDirectory(dependency)) {
             try {
                 BasicFileAttributes attributes = readAttributes(dependency);
@@ -182,6 +185,10 @@ final class DependencyState {
 
     private static String fileMetadata(BasicFileAttributes attributes) {
         return attributes.size() + ":" + attributes.lastModifiedTime().toMillis();
+    }
+
+    private static String emptyDirectoryState() {
+        return "0:" + toHexString(newDigest().digest());
     }
 
     private static boolean changedSinceBuildStart(BasicFileAttributes attributes, ScanContext context) {

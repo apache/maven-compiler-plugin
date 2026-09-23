@@ -114,6 +114,22 @@ class DependencyStateTest {
     }
 
     @Test
+    void toleratesMissingClasspathDirectory() throws Exception {
+        Path missingMainOutput = temporaryDirectory.resolve("target/classes");
+
+        assertFalse(hasChanged(
+                Arrays.asList(missingMainOutput, dependency("dependency.jar", 1_000, 1)),
+                Collections.emptyList(),
+                BUILD_START,
+                0));
+        assertFalse(hasChanged(
+                Arrays.asList(missingMainOutput, dependency("dependency.jar", 1_000, 1)),
+                Collections.emptyList(),
+                BUILD_START,
+                0));
+    }
+
+    @Test
     void retainsCurrentBuildDetectionWhenStatusDirectoryIsUnavailable() throws Exception {
         Path dependency = dependency("dependency.jar", 3_000, 1);
         IncrementalBuildHelper helper = mock(IncrementalBuildHelper.class);
