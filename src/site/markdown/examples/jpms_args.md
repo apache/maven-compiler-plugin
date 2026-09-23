@@ -23,7 +23,7 @@ Java 9 comes with a new set of arguments related to the Java Platform Modular Sy
 Besides the module path, there are other new arguments which can change the behavior of the application.
 These can be used during both compile time and runtime.
 Except the module path, these extra arguments are not needed for compilation and execution of the main code.
-If they are needed, then the `module-info.java` file can be incomplete.
+If they are needed, then the `module-info.java` file is probably incomplete.
 But they can be needed for compilation and execution of tests.
 In such a case, at runtime it is useful to know which extra arguments were used at compile time.
 

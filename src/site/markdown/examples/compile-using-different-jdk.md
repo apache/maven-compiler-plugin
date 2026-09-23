@@ -22,9 +22,9 @@ under the License.
 ## Using Maven Toolchains
 
 Maven is itself a Java application running in a JDK.
-By default the same JDK that runs Maven builds the code and runs the tests.
+By default, the same JDK that runs Maven builds the code and runs the tests.
 However, sometimes you need different JDKs. For instance, recent versions of Maven require
-Java 17 to run, but you might need to compile a project with Java 8.
+Java 17 to run, but you can use Java 8 to compile a project.
 Toolchains are the preferred way to use different JDKs to run Maven and to build the project.
 
 During the build, Maven uses the JDK to perform various steps.
@@ -38,7 +38,7 @@ and the [Maven Toolchains Plugin](https://maven.apache.org/plugins/maven-toolcha
 
 With the maven-toolchains-plugin, you configure one default JDK toolchain for all related Maven plugins.
 Since maven-compiler-plugin 3.6.0, it is also possible to assign different plugins different toolchains.
-For example, the test sources might require Java 8 but compilation requires Java 11.
+For example, the test sources can require Java 8 while compilation requires Java 11.
 
 
 ## Configuring the Compiler Plugin
