@@ -121,7 +121,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>@version.maven-surefire@</version>
+        <version>@version.maven-surefire-plugin@</version>
         <executions>
           <execution>
             <goals>
@@ -207,7 +207,7 @@
           <!-- Run the unit tests with the JVM used to run maven -->
           <plugin>
             <artifactId>maven-surefire-plugin</artifactId>
-            <version>@version.maven-surefire@</version>
+            <version>@version.maven-surefire-plugin@</version>
             <configuration>
               <jvm>${env.JAVA_HOME}/bin/java</jvm>
               <!-- this shows that the Java 9 code isn't tested -->
