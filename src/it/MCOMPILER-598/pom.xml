@@ -25,9 +25,6 @@
   <packaging>jar</packaging>
   <name>MCOMPILER-598</name>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
 
   <build>
     <plugins>

@@ -26,9 +26,6 @@
 
   <url>https://issues.apache.org/jira/browse/MCOMPILER-298</url>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
 
   <dependencies>
     <dependency>
