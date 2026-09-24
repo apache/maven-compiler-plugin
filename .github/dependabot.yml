@@ -38,3 +38,4 @@ updates:
     schedule:
       interval: "daily"
     target-branch: "maven-compiler-plugin-3.x"
+# trigger rescan: 2026-09-25
