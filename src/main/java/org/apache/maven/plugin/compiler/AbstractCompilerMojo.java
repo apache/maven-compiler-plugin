@@ -586,7 +586,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String outputTimestamp;
 
     /**
-     * <b>Despite the word "incremental" in the name, this is <i>not</i> an incremental compiler
+     * <b>Despite the word "incremental" in the name, this is <em>not</em> an incremental compiler
      * in the sense of an IDE.</b> The plugin does not compile a single changed class and the classes
      * that depend on it (except when using the {@code modules} algorithm, which delegates this decision
      * to the Java compiler). It selects an algorithm used to <i>detect changes</i> and to decide whether
