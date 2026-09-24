@@ -48,7 +48,7 @@ When you create a new issue, describe the problem completely. Attach complete de
 
 The developers must reproduce the problem to fix the bug. Patches are welcome.
 
-Contributors can check out the project from the [source repository](./scm.html). They will find more information in the [guide to helping with Maven](https://maven.apache.org/guides/development/guide-helping.html).
+Contributors can check out the project from the [source repository](./scm.html). More information is in the [guide to helping with Maven](https://maven.apache.org/guides/development/guide-helping.html).
 
 The following pages describe how to use the plugin beyond the default
 "one source directory, one module, one release" configuration:
