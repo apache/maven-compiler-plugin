@@ -720,9 +720,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
         if ("only".equalsIgnoreCase(proc)) {
             aspects.clear();
             aspects.add(IncrementalBuild.Aspect.NONE);
-            return;
-        }
-        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
+        } else if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
             aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
             aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
         }
