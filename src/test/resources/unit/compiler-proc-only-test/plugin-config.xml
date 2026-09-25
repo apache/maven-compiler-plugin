@@ -29,7 +29,6 @@
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>maven-compiler-stub</compilerId>
-          <incrementalCompilation>classes</incrementalCompilation>
           <proc>only</proc>
         </configuration>
       </plugin>

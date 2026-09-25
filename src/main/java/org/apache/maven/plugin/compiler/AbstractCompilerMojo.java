@@ -708,7 +708,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Amends the configuration of incremental compilation for the presence of annotation processors.
+     * Amends the configuration of incremental compilation. If annotation processing only is requested
+     * ({@code proc=only}), incremental compilation is disabled so that processors always run.
+     * Otherwise, if an annotation processor is present, the incremental configuration is amended
+     * to also rebuild on source additions and changes.
      *
      * @param aspects the configuration to amend if an annotation processor is found
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
