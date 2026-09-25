@@ -397,6 +397,21 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
                 classpathElements = testPath;
             }
         }
+
+        if (pathElements != null && !modulepathElements.isEmpty()) {
+            Set<String> patchedModules = new HashSet<>();
+            if (mainModuleDescriptor != null) {
+                patchedModules.add(mainModuleDescriptor.name());
+            }
+            if (testModuleDescriptor != null) {
+                patchedModules.add(testModuleDescriptor.name());
+            }
+            if (compilerArgs == null) {
+                compilerArgs = new ArrayList<>();
+            }
+            modulepathElements = MultiReleaseModulePath.patch(
+                    modulepathElements, pathElements, patchedModules, getRelease(), getTarget(), compilerArgs);
+        }
     }
 
     private int getEffectiveTestJavaVersion() {
