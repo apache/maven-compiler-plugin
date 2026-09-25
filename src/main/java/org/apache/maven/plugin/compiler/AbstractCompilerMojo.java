@@ -714,6 +714,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
     final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
+        if ("only".equalsIgnoreCase(proc)) {
+            aspects.clear();
+            aspects.add(IncrementalBuild.Aspect.NONE);
+            return;
+        }
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
             aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
             aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
