@@ -329,6 +329,13 @@ public class CompilerMojo extends AbstractCompilerMojo {
                 for (File file : resolvePathsResult.getModulepathElements().keySet()) {
                     modulepathElements.add(file.getPath());
                 }
+                modulepathElements = MultiReleaseModulePath.patch(
+                        modulepathElements,
+                        pathElements,
+                        Collections.singleton(moduleDescriptor.name()),
+                        getRelease(),
+                        getTarget(),
+                        compilerArgs);
 
                 if (useModuleVersion) {
                     compilerArgs.add("--module-version");
