@@ -19,15 +19,15 @@ under the License.
 
 # Declaration of source directories in Maven 4
 
-By default, Maven compiles all `*.java` files in the `src/main/java` directory as the main Java code
-and all `*.java` files in the `src/test/java` directory as the test Java code.
+By default, Maven compiles all `*.java` files in the `src/main/java` directory as the main Java code.
+It compiles all `*.java` files in the `src/test/java` directory as the test Java code.
 This is suitable for a project in a single Java module targeting a single Java release.
 This page describes how to use different or additional directories in Maven 4.
 
-The Maven 3 `<sourceDirectory>` and `<testSourceDirectory>` elements are deprecated
-and should be replaced by the new `<sources>` element introduced in Maven 4.
-This new element allows multi-source, multi-release and multi-module projects,
-as shown in sub-sections of this page.
+The Maven 3 `<sourceDirectory>` and `<testSourceDirectory>` elements are deprecated.
+Replace them with the new `<sources>` element introduced in Maven 4.
+This new element allows multi-source, multi-release and multi-module projects.
+The sub-sections of this page show these projects.
 Instead of:
 
 ```xml
@@ -59,16 +59,15 @@ One can write:
 ```
 
 Note that the declaration of a `<sources>` element *replaces* the default values.
-If a `<source>` element is defined for one of the `main` or `test` scopes, then a
-`<source>` element should generally be defined for the other scope
-even if the latter use the default directory.
-See the example in next sub-section.
+If a `<source>` element is defined for one of the `main` or `test` scopes, define a
+`<source>` element for the other scope, even if it uses the default directory.
+See the example in the next sub-section.
 
 
 ## Declaration of many source directories
 
-External plugins such as `build-helper-maven-plugin` are no longer needed
-and should be replaced by the built-in `<sources>` elements as shown below.
+External plugins such as `build-helper-maven-plugin` are no longer needed.
+Replace them with the built-in `<sources>` elements as shown below.
 Note that the directories of the first and last `<source>` elements are omitted
 as their default values are `src/main/java` and `src/test/java` respectively.
 
@@ -96,8 +95,8 @@ as their default values are `src/main/java` and `src/test/java` respectively.
 
 ## Multi-release project
 
-The compiler plugin automatically handles multiple executions of `javac` with different `--release` option values
-together with automatic adjustments of class-path, module-path and output directories for producing a multi-release project.
+The compiler plugin automatically handles multiple executions of `javac` with different `--release` option values.
+It also adjusts the class-path, module-path and output directories to produce a multi-release project.
 Example:
 
 ```xml
@@ -124,12 +123,12 @@ Example:
 
 ## Multi-module project
 
-Maven 4 supports the Java [module source hierarchy](https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#directory-hierarchies)
-with the caveat that as of February 2026, not all plugins have been updated yet.
-Compared to multiple Maven sub-projects, using multiple Java modules in a single Maven sub-project has advantages such as
-resolving compiler warnings in references to dependent modules (the converse of references to dependencies),
-easier sharing of test code between modules in the Maven sub-project (no need for `test-jar`),
-and easier aggregated Javadoc for modules in the Maven sub-project.
+Maven 4 supports the Java [module source hierarchy](https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#directory-hierarchies).
+As of February 2026, not all plugins support it yet.
+Compared to multiple Maven sub-projects, using multiple Java modules in a single Maven sub-project has advantages.
+It resolves compiler warnings in references to dependent modules (the converse of references to dependencies).
+It shares test code more easily between modules in the Maven sub-project (no need for `test-jar`).
+It aggregates Javadoc more easily for modules in the Maven sub-project.
 See the [modular projects](./modules.html) page for more information.
 For example, a Maven sub-project containing two Java modules named `org.foo.bar.module1` and `org.foo.bar.module2`
 can be declared with the following fragment in the `pom.xml` file:
@@ -192,16 +191,16 @@ The following plugins need to be updated:
 
 ## Include/exclude filters
 
-The Maven 3 way to declare include/exclude filters is still supported,
-but should be replaced by the `<sources>` element when applicable.
+The Maven 3 way to declare include/exclude filters is still supported.
+Replace it with the `<sources>` element when applicable.
 Those two ways are not strictly equivalent:
 
 * The Maven 4 way specifies filters independently for each source directory.
-  These filters will be applied by all plugins that have migrated to the Maven 4 API, not only the compiler plugin.
-* Conversely, the Maven 3 way specifies filters which will be applied only by the compiler plugin.
+  All plugins that have migrated to the Maven 4 API apply these filters, not only the compiler plugin.
+* Conversely, the Maven 3 way specifies filters which are applied only by the compiler plugin.
   However, these filters apply to all source directories.
 
-The following (Maven 3) specifies a filter applied on all source directories but only by the compiler plugin:
+The following (Maven 3) specifies a filter applied to all source directories but only by the compiler plugin:
 
 ```xml
 <project>
@@ -221,8 +220,8 @@ The following (Maven 3) specifies a filter applied on all source directories but
 </project>
 ```
 
-The following (Maven 4) specifies a filter applied only on the specified directories,
-but potentially used (when relevant) by all plugins upgraded to Maven 4:
+The following (Maven 4) specifies a filter applied only on the specified directories.
+It is potentially used (when relevant) by all plugins upgraded to Maven 4:
 
 ```xml
 <project>

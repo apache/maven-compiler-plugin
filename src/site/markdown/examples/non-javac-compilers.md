@@ -23,11 +23,11 @@ Contrary to this plugin's name, the Compiler Plugin does not compile the
 sources of your project by itself. To compile, the Compiler Plugin uses
 another class to compile them.
 
-The parameter `compilerId` determines which class will be used.
+The `compilerId` parameter determines which class is used.
 
-By default, the version 4 of Maven Compiler Plugin uses the `javac` compiler
+By default, version 4 of Maven Compiler Plugin uses the `javac` compiler
 bundled in the `javax.tools` package of the standard Java library.
-But it is possible to use any other compiler, as long the
+It is possible to use any other compiler, as long as the
 implementation declares itself as a `javax.tools.JavaCompiler` service.
 To use such an implementation:
 
@@ -72,7 +72,7 @@ Instead, it uses an intermediate layer called the Plexus Compiler.
 The [Plexus Compiler](https://codehaus-plexus.github.io/plexus-compiler/) component
 has some compiler identifiers available under the group `org.codehaus.plexus`.
 To use any of the non-javac compilers with version 3.x of the Maven Compiler plugin,
-you need to declare a dependency to the Plexus artifact in your project's `pom.xml`.
+declare a dependency to the Plexus artifact in your project's `pom.xml`.
 The example below shows how to use the `csharp` compiler:
 
 ```xml
