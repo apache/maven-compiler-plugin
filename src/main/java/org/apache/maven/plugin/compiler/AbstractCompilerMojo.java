@@ -586,9 +586,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String outputTimestamp;
 
     /**
-     * The algorithm to use for selecting which files to compile.
-     * Values can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
-     * {@code rebuild-on-add}, {@code modules} or {@code none}.
+     * The strategy for selecting which files to compile.
+     * The value can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
+     * {@code rebuild-on-add}, {@code modules} or {@code none}.<p>
+     *
+     * <strong>Despite the word "incremental" in the name, this is <em>not</em> an incremental compiler
+     * in the sense of an IDE.</strong> The plugin does not compile a single changed class and the classes
+     * that depend on it (except when using the {@code modules} strategy, which delegates this decision
+     * to the Java compiler). It selects a startegy to <i>detect changes</i> and decide whether
+     * to recompile the whole module or only some source files. In the default configuration (no annotation
+     * processors, Java &ge; 23), only the modified source files are recompiled. A full rebuild is triggered
+     * by a compiler option change, a dependency JAR change, or annotation processor presence. See the
+     * values and the Default value section below.
      *
      * <p><b>{@code options}:</b>
      * recompile all source files if the compiler options changed.
@@ -615,9 +624,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * <p><b>{@code modules}:</b>
      * recompile modules and let the compiler decides which individual files to recompile.
-     * The compiler plugin does not enumerate the source files to recompile (actually, it does not scan at all the
-     * source directories). Instead, it only specifies the module to recompile using the {@code --module} option.
-     * The Java compiler will scan the source directories itself and compile only those source files that are newer
+     * The compiler plugin does not enumerate the source files to recompile. In fact, it does not scan the
+     * source directories at all). Instead, it only specifies the module to recompile using the {@code --module} option.
+     * The Java compiler scans the source directories itself and compiles only those source files that are newer
      * than the corresponding files in the output directory.</p>
      *
      * <p><b>{@code rebuild-on-add}:</b>
@@ -670,7 +679,11 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String incrementalCompilation;
 
     /**
-     * Whether to enable/disable incremental compilation feature.
+     * Whether to enable/disable the change detection that decides when to recompile the module.
+     * Despite the word "incremental", this does not enable an
+     * incremental compiler in the sense of an IDE. The plugin never compiles a single changed class
+     * together with the classes that depend on it. It only detects changes and, depending on the
+     * configuration, recompiles the whole module or only the modified source files.
      *
      * @since 3.1
      *
