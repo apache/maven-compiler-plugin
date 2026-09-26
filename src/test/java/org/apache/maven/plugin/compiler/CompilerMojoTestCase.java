@@ -205,6 +205,23 @@ public class CompilerMojoTestCase {
     }
 
     /**
+     * Tests that annotation processing runs again when {@code proc} is {@code only}, even if the sources are unchanged.
+     */
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-proc-only-test")
+    public void testCompilerProcOnlyRunsWhenSourcesAreUnchanged(
+            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
+        Log log = mock(Log.class);
+        compileMojo.logger = log;
+        compileMojo.execute();
+
+        clearInvocations(log);
+        compileMojo.execute();
+
+        verify(log, never()).info("Nothing to compile - all classes are up to date.");
+    }
+
+    /**
      * Tests the ability of the plugin to respond to includes and excludes correctly.
      */
     @Test
