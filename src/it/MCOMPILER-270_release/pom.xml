@@ -26,7 +26,6 @@
 
   <url>https://issues.apache.org/jira/browse/MCOMPILER-270</url>
 
-
   <build>
     <plugins>
       <plugin>

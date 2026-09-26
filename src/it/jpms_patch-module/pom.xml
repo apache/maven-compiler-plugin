@@ -24,7 +24,6 @@
   <artifactId>patch-module</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-
   <build>
     <pluginManagement>
       <plugins>

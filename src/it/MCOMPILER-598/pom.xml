@@ -25,7 +25,6 @@
   <packaging>jar</packaging>
   <name>MCOMPILER-598</name>
 
-
   <build>
     <plugins>
       <plugin>

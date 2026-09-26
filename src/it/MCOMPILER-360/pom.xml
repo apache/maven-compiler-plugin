@@ -32,7 +32,6 @@
     <module>main360</module>
   </modules>
 
-
   <build>
     <plugins>
       <plugin>

@@ -30,7 +30,6 @@
     <module>bar</module>
   </modules>
 
-
   <build>
     <pluginManagement>
       <plugins>

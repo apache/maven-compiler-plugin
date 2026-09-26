@@ -23,7 +23,6 @@ under the License.
   <artifactId>mcompiler-179</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-
   <build>
     <pluginManagement>
       <plugins>

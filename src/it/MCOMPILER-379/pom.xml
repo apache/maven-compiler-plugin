@@ -30,7 +30,6 @@
     <module>module2</module>
   </modules>
 
-
   <build>
     <plugins>
       <plugin>

@@ -32,7 +32,6 @@
     <module>app</module>
   </modules>
 
-
   <build>
     <plugins>
       <plugin>

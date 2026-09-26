@@ -26,7 +26,6 @@
 
   <name>Test for default configuration in a modular project</name>
 
-
   <build>
     <plugins>
       <plugin>

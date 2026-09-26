@@ -26,7 +26,6 @@
 
   <name>Test for default configuration</name>
 
-
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>

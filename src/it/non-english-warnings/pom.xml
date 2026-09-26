@@ -29,7 +29,6 @@
     The particular locales of interest here are Japanese (ja) and Simplified Chinese (zh_CN) for which javac actually
     is localized.</description>
 
-
   <build>
     <plugins>
       <plugin>
