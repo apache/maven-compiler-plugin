@@ -22,24 +22,24 @@ under the License.
 Compiling Your Java Sources
 ---------------------------
 
-The goals for the Compiler Plugin are bound to their respective phases in the build lifecycle. So to compile your sources, you need only to tell maven until which lifecycle to execute. The following will compile your sources:
+The goals for the Compiler Plugin bind to their phases in the build lifecycle. To compile your sources, tell Maven until which lifecycle to execute. The following command compiles your sources:
 
 ```unknown
 mvn compile
 ```
 
-To compile your test sources, you'll do:
+To compile your test sources, run:
 
 ```unknown
 mvn test-compile
 ```
 
-The above command will execute both `compiler:compile` and `compiler:testCompile` since the `compile` phase happens a few phases before the `test-compile` phase.
+The command above executes both `compiler:compile` and `compiler:testCompile`. The `compile` phase happens a few phases before the `test-compile` phase.
 
 Configuring Your Compiler Plugin
 --------------------------------
 
-Since the Compiler Plugin executes automatically during their phases, you don't have to put `executions` unlike many other plugins. However, you should specify the version of the Compiler Plugin.
+The Compiler Plugin executes automatically during its phases. You do not have to declare `executions`, unlike many other plugins. However, you must specify the version of the Compiler Plugin.
 
 ```unknown
 <project>
