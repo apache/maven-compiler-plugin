@@ -127,7 +127,7 @@ class DependencyStateTest {
         Files.createDirectories(missingMainOutput);
         Path classFile = missingMainOutput.resolve("org/example/Foo.class");
         Files.createDirectories(classFile.getParent());
-        Files.write(classFile, new byte[]{1});
+        Files.write(classFile, new byte[] {1});
         assertTrue(hasChanged(
                 Arrays.asList(missingMainOutput, dependency("dependency.jar", 1_000, 1)),
                 Collections.emptyList(),
