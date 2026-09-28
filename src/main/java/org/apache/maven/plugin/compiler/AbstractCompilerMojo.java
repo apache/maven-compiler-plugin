@@ -704,6 +704,18 @@ public abstract class AbstractCompilerMojo implements Mojo {
                                 IncrementalBuild.Aspect.REBUILD_ON_ADD)
                         : EnumSet.of(IncrementalBuild.Aspect.CLASSES);
             }
+            /*
+             * When annotation processing is explicitly disabled (`proc=none`), per-file incremental
+             * compilation is safe because javac cannot generate additional source files. We therefore
+             * omit REBUILD_ON_CHANGE from the default, keeping the documented behaviour that proc=none
+             * restores per-file recompilation on every Java version (including Java < 23).
+             */
+            if (!isAbsent(proc) && proc.equalsIgnoreCase("none")) {
+                return EnumSet.of(
+                        IncrementalBuild.Aspect.OPTIONS,
+                        IncrementalBuild.Aspect.DEPENDENCIES,
+                        IncrementalBuild.Aspect.SOURCES);
+            }
             return EnumSet.of(
                     IncrementalBuild.Aspect.OPTIONS,
                     IncrementalBuild.Aspect.DEPENDENCIES,
