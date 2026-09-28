@@ -123,7 +123,12 @@ class DependencyStateTest {
                 Collections.emptyList(),
                 BUILD_START,
                 0));
-        assertFalse(hasChanged(
+        // Once target/classes is created and populated, the change must be detected.
+        Files.createDirectories(missingMainOutput);
+        Path classFile = missingMainOutput.resolve("org/example/Foo.class");
+        Files.createDirectories(classFile.getParent());
+        Files.write(classFile, new byte[]{1});
+        assertTrue(hasChanged(
                 Arrays.asList(missingMainOutput, dependency("dependency.jar", 1_000, 1)),
                 Collections.emptyList(),
                 BUILD_START,

@@ -134,7 +134,9 @@ final class DependencyState {
     }
 
     /**
-     * Returns {@code size:mtime} for a file, or {@code relevant-file-count:metadata-sha256} for a directory.
+     * Returns {@code size:mtime} for a file, {@code relevant-file-count:metadata-sha256} for a directory,
+     * or an empty-directory fingerprint for a path that does not exist (e.g. {@code target/classes} in a
+     * tests-only module that was never compiled).
      * The directory digest covers each relevant file's relative path, size and modification time.
      */
     private static ModificationState modificationState(Path dependency, ScanContext context) {
