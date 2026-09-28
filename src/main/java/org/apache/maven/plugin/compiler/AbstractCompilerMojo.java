@@ -590,10 +590,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * The value can be {@code dependencies}, {@code sources}, {@code classes}, {@code rebuild-on-change},
      * {@code rebuild-on-add}, {@code modules} or {@code none}.<p>
      *
-     * <strong>Despite the word "incremental" in the name, this is <em>not</em> an incremental compiler
-     * in the sense of an IDE.</strong> The plugin does not compile a single changed class and the classes
-     * that depend on it. It selects a strategy to <i>detect changes</i> and decide whether
-     * to recompile the whole module or only some source files. In the default configuration (no annotation
+     * <strong>Despite the word "incremental" in the name, this is not yet as reliable as the incremental
+     * compilation provided by some IDEs.</strong> It provides an approximation based on the timestamps of
+     * source files. The current algorithms detect only direct changes — recompiling only modified source files —
+     * but a future version may add an option for tracking classes that depend on a modified class, as done by
+     * some IDEs. It selects a strategy to <i>detect changes</i> and decide whether
+     * to recompile the whole sub-project or only some source files. In the default configuration (no annotation
      * processors, Java &ge; 23), only the modified source files are recompiled. A full rebuild is triggered
      * by a compiler option change, a dependency JAR change, or annotation processor presence. See the
      * values and the Default value section below.
@@ -678,11 +680,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected String incrementalCompilation;
 
     /**
-     * Whether to enable/disable the change detection that decides when to recompile the module.
-     * Despite the word "incremental", this does not enable an
-     * incremental compiler in the sense of an IDE. The plugin never compiles a single changed class
-     * together with the classes that depend on it. It only detects changes and, depending on the
-     * configuration, recompiles the whole module or only the modified source files.
+     * Whether to enable/disable the change detection that decides when to recompile the sub-project.
+     * Despite the word "incremental", this does not yet provide the same reliability as the incremental
+     * compilation provided by some IDEs. It only detects changes based on timestamps and, depending on
+     * the configuration, recompiles the whole sub-project or only the modified source files.
      *
      * @since 3.1
      *
