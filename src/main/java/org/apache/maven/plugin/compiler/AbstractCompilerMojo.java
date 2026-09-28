@@ -683,6 +683,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
     protected Boolean useIncrementalCompilation;
 
     /**
+     * The strategy to use for incremental compilation.
+     * <ul>
+     *   <li>{@code timestamp} (default) — the existing timestamp-based strategy from
+     *       {@link IncrementalBuild}. Detects changes by comparing source file modification
+     *       times and triggers full rebuilds when files are added/removed or dependencies change.</li>
+     *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks the public API surface
+     *       (method signatures, field types, constant values) of each compiled type and only
+     *       recompiles consumers whose dependency's ABI actually changed. Method body changes
+     *       do not cascade. Cross-module ABI changes are detected via manifest files written
+     *       in the output directory.</li>
+     * </ul>
+     *
+     * @since 4.0.0-beta-7
+     */
+    @Parameter(property = "maven.compiler.incrementalStrategy", defaultValue = "timestamp")
+    protected String incrementalStrategy;
+
+    /**
      * Returns the configuration of the incremental compilation.
      * If the argument is null or blank, then this method applies
      * the default values documented in {@link #incrementalCompilation} javadoc.
@@ -1388,6 +1406,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
+        if ("abi".equalsIgnoreCase(incrementalStrategy)) {
+            executor.compileWithAbiIncremental(compiler, configuration, this);
+            return;
+        }
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;
         }
