@@ -592,8 +592,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * <strong>Despite the word "incremental" in the name, this is <em>not</em> an incremental compiler
      * in the sense of an IDE.</strong> The plugin does not compile a single changed class and the classes
-     * that depend on it (except when using the {@code modules} strategy, which delegates this decision
-     * to the Java compiler). It selects a strategy to <i>detect changes</i> and decide whether
+     * that depend on it. It selects a strategy to <i>detect changes</i> and decide whether
      * to recompile the whole module or only some source files. In the default configuration (no annotation
      * processors, Java &ge; 23), only the modified source files are recompiled. A full rebuild is triggered
      * by a compiler option change, a dependency JAR change, or annotation processor presence. See the
