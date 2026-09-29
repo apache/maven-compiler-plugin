@@ -29,7 +29,7 @@ import java.util.logging.Logger;
  * and compute bytecode-level ABI fingerprints.
  *
  * <p>When the JVM is JDK 24 or later, the standard {@code java.lang.classfile}
- * API ({@link ClassfileClassAnalyzer}) is used automatically. On earlier JVMs
+ * API ({@code ClassfileClassAnalyzer}) is used automatically. On earlier JVMs
  * the bundled ASM library ({@link AsmClassAnalyzer}) is used as a fallback.
  *
  * <p>The {@link ClassAnalysis} record carries the class name, ABI fingerprint
@@ -38,7 +38,6 @@ import java.util.logging.Logger;
  * referenced by the class.
  *
  * @see AsmClassAnalyzer
- * @see ClassfileClassAnalyzer
  * @see ClassAnalyzer
  */
 public final class BytecodeAnalyzer {
