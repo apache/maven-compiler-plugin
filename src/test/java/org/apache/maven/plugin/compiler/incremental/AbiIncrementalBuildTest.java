@@ -281,6 +281,54 @@ class AbiIncrementalBuildTest {
     }
 
     @Test
+    void removedInnerClassDeletesStaleClassFile() throws Exception {
+        // Set up source with inner class
+        CompilerTestHelper.writeSource(
+                sourceDir,
+                "api",
+                "Model",
+                "package api; public class Model { private String name; public String getName() { return name; } public void setName(String n) { this.name = n; } public static class Builder { public Model build() { return new Model(); } } }");
+
+        doFullBuildCycle();
+
+        // Inner class file should exist after full build
+        assertTrue(
+                Files.exists(classesDir.resolve("api/Model$Builder.class")),
+                "Inner class file should exist after full build");
+
+        // Remove the inner class
+        CompilerTestHelper.writeSource(
+                sourceDir,
+                "api",
+                "Model",
+                "package api; public class Model { private String name; public String getName() { return name; } public void setName(String n) { this.name = n; } }");
+
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        Set<Path> round1 = abi2.initialize(listSources());
+        assertFalse(round1.isEmpty(), "Modified file should need recompilation");
+
+        compileFiles(round1);
+        abi2.attachTo(lastTask);
+        lastTask.call();
+        Set<Path> round2 = abi2.processRound();
+
+        // Cascade any ABI consumers
+        while (!round2.isEmpty()) {
+            compileFiles(round2);
+            abi2.attachTo(lastTask);
+            lastTask.call();
+            round2 = abi2.processRound();
+        }
+        abi2.finish();
+
+        // Stale inner class file should be cleaned up
+        assertFalse(
+                Files.exists(classesDir.resolve("api/Model$Builder.class")),
+                "Stale inner class file should be deleted when inner class is removed");
+        assertTrue(Files.exists(classesDir.resolve("api/Model.class")), "Main class file should still exist");
+    }
+
+    @Test
     void constantValueChangeTriggersCascade() throws Exception {
         CompilerTestHelper.writeSource(
                 sourceDir,

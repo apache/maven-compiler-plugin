@@ -332,10 +332,13 @@ public class AbiIncrementalBuild {
             state.removeSource(deleted);
         }
 
-        // Clear stale type entries for files about to be recompiled —
+        // Clear stale type entries and class files for files about to be recompiled —
         // handles cases where a source file previously defined multiple types
-        // but now defines fewer
+        // (including inner/nested classes) but now defines fewer
         for (String sourceFile : toRecompile) {
+            for (String type : previousState.getTypesFromSource(sourceFile)) {
+                deleteClassFile(type);
+            }
             state.removeTypesForSource(sourceFile);
         }
 
