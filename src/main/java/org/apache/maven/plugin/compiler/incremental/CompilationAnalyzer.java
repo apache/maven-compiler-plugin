@@ -26,9 +26,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
+import com.sun.source.tree.ClassTree;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TaskListener;
+import com.sun.source.util.TreePath;
 import com.sun.source.util.Trees;
 
 /**
@@ -70,8 +72,20 @@ public class CompilationAnalyzer implements TaskListener {
         String qualifiedName = typeElement.getQualifiedName().toString();
         String sourceFile = cu.getSourceFile().getName();
 
+        // Scope the scan to only the ClassTree of the current type element.
+        // Scanning the full CU would pollute each type's dependency set with
+        // references from other top-level types in the same compilation unit
+        // (over-cascading). Trees.getPath() gives us the TreePath rooted at
+        // this type's ClassTree; DependencyScanner is a TreePathScanner so
+        // scanning from that path restricts traversal to this type's subtree.
         var scanner = new DependencyScanner(trees);
-        scanner.scan(cu, null);
+        TreePath typePath = trees.getPath(typeElement);
+        if (typePath != null && typePath.getLeaf() instanceof ClassTree) {
+            scanner.scan(typePath, null);
+        } else {
+            // Fallback: scan the full CU (safe but may over-cascade)
+            scanner.scan(cu, null);
+        }
 
         String abiFingerprint = AbiExtractor.computeFingerprint(typeElement);
         String abiCanonical = AbiExtractor.canonicalForm(typeElement);

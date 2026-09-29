@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -52,9 +53,10 @@ import java.util.TreeSet;
  */
 public class IncrementalState {
 
-    private static final int VERSION = 4;
+    private static final int VERSION = 5;
 
     private final Map<String, String> sourceHashes = new LinkedHashMap<>();
+    private final Map<String, Long> sourceMtimes = new LinkedHashMap<>();
     private final Map<String, TypeInfo> types = new LinkedHashMap<>();
     private final Map<String, String> externalFingerprints = new LinkedHashMap<>();
     private final Map<String, String> classpathIdentities = new LinkedHashMap<>();
@@ -89,6 +91,20 @@ public class IncrementalState {
 
     public void setSourceHash(String path, String hash) {
         sourceHashes.put(path, hash);
+    }
+
+    /**
+     * Returns the last-modified time (in milliseconds) recorded for the given
+     * source file in the previous build, or {@link OptionalLong#empty()} if not
+     * stored (e.g. first build or state format upgrade).
+     */
+    public OptionalLong getSourceMtime(String path) {
+        Long mtime = sourceMtimes.get(path);
+        return mtime != null ? OptionalLong.of(mtime) : OptionalLong.empty();
+    }
+
+    public void setSourceMtime(String path, long mtime) {
+        sourceMtimes.put(path, mtime);
     }
 
     public void setType(String qualifiedName, TypeInfo info) {
@@ -230,6 +246,7 @@ public class IncrementalState {
     public IncrementalState copy() {
         var copy = new IncrementalState();
         copy.sourceHashes.putAll(this.sourceHashes);
+        copy.sourceMtimes.putAll(this.sourceMtimes);
         copy.types.putAll(this.types);
         copy.externalFingerprints.putAll(this.externalFingerprints);
         copy.classpathIdentities.putAll(this.classpathIdentities);
@@ -260,6 +277,9 @@ public class IncrementalState {
             for (var entry : sourceHashes.entrySet()) {
                 out.writeUTF(entry.getKey());
                 out.writeUTF(entry.getValue());
+                // v5: mtime per source file (0 if not recorded)
+                Long mtime = sourceMtimes.get(entry.getKey());
+                out.writeLong(mtime != null ? mtime : 0L);
             }
             out.writeInt(types.size());
             for (var entry : types.entrySet()) {
@@ -291,7 +311,16 @@ public class IncrementalState {
             var state = new IncrementalState();
             int sourceCount = in.readInt();
             for (int i = 0; i < sourceCount; i++) {
-                state.sourceHashes.put(in.readUTF(), in.readUTF());
+                String path = in.readUTF();
+                String hash = in.readUTF();
+                state.sourceHashes.put(path, hash);
+                // v5: mtime per source file
+                if (version >= 5) {
+                    long mtime = in.readLong();
+                    if (mtime != 0L) {
+                        state.sourceMtimes.put(path, mtime);
+                    }
+                }
             }
             int typeCount = in.readInt();
             for (int i = 0; i < typeCount; i++) {

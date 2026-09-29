@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
@@ -77,6 +78,7 @@ public class AbiIncrementalBuild {
     private IncrementalState previousState;
     private IncrementalState state;
     private Map<String, String> sourceHashes;
+    private Map<String, Long> sourceMtimes;
     private List<Path> allSourceFiles;
     private Set<String> allCompiled;
     private CompilationAnalyzer currentAnalyzer;
@@ -132,8 +134,9 @@ public class AbiIncrementalBuild {
         this.allSourceFiles = allSourceFiles;
         totalSources = allSourceFiles.size();
         allCompiled = new TreeSet<>();
-        sourceHashes = hashSourceFiles(allSourceFiles);
         previousState = IncrementalState.load(stateFile);
+        sourceMtimes = new LinkedHashMap<>();
+        sourceHashes = hashSourceFiles(allSourceFiles, previousState, sourceMtimes);
 
         if (previousState == null) {
             return initFullBuild(allSourceFiles);
@@ -234,6 +237,11 @@ public class AbiIncrementalBuild {
             var resolver = createResolver();
             state.setExternalFingerprints(resolver.resolve(externalDeps));
             state.setClasspathIdentities(resolver.computeCurrentJarIdentities());
+        }
+
+        // Persist source mtimes for the next build's mtime-first optimization
+        for (var entry : sourceMtimes.entrySet()) {
+            state.setSourceMtime(entry.getKey(), entry.getValue());
         }
 
         state.save(stateFile);
@@ -504,10 +512,40 @@ public class AbiIncrementalBuild {
         }
     }
 
-    private static Map<String, String> hashSourceFiles(List<Path> files) throws IOException {
+    /**
+     * Computes SHA-256 hashes for the given source files, using an mtime-first
+     * short-circuit: if a file's last-modified time matches the value stored in
+     * {@code prev}, its previously stored hash is reused without reading the
+     * file's content.  This avoids redundant I/O on the common no-change case,
+     * particularly beneficial for large source trees.
+     *
+     * @param files    the source files to process
+     * @param prev     previous build's state (may be {@code null})
+     * @param mtimes   output map populated with each file's observed mtime (millis)
+     * @return map from file path string to SHA-256 content hash
+     */
+    private static Map<String, String> hashSourceFiles(
+            List<Path> files, IncrementalState prev, Map<String, Long> mtimes) throws IOException {
         var hashes = new LinkedHashMap<String, String>();
         for (Path file : files) {
-            hashes.put(file.toString(), sha256(Files.readAllBytes(file)));
+            String path = file.toString();
+            BasicFileAttributes attrs = Files.readAttributes(file, BasicFileAttributes.class);
+            long mtime = attrs.lastModifiedTime().toMillis();
+            mtimes.put(path, mtime);
+
+            if (prev != null) {
+                var storedMtime = prev.getSourceMtime(path);
+                if (storedMtime.isPresent() && storedMtime.getAsLong() == mtime) {
+                    String storedHash = prev.getSourceHash(path);
+                    if (storedHash != null) {
+                        // mtime unchanged — reuse stored hash, skip reading file content
+                        hashes.put(path, storedHash);
+                        continue;
+                    }
+                }
+            }
+
+            hashes.put(path, sha256(Files.readAllBytes(file)));
         }
         return hashes;
     }
