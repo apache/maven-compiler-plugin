@@ -44,22 +44,27 @@ import com.sun.source.util.JavacTask;
  * var abi = new AbiIncrementalBuild(outputDir);
  * abi.setClasspathEntries(classpath);
  * abi.setReactorModulePaths(reactorModules);
+ * abi.setProcessorPath(processorPath);
+ * abi.setConfigHash(configHash);
  *
  * Set<Path> toCompile = abi.initialize(allSourceFiles);
  *
  * while (!toCompile.isEmpty()) {
  *     JavacTask task = (JavacTask) compiler.getTask(..., toCompile, ...);
  *     abi.attachTo(task);
- *     if (!task.call()) break;
+ *     if (!task.call()) { abi.invalidate(); break; }
  *     toCompile = abi.processRound();
  * }
  *
  * abi.finish();
  * }</pre>
  *
- * <p>The engine persists its state as {@code .incremental-state} and writes
- * an {@link AbiManifest} ({@code .abi-fingerprints}) in the output directory
- * for downstream reactor modules.
+ * <p>See {@link org.apache.maven.plugin.compiler.ToolExecutor} for the full
+ * integration including module path detection and multi-release handling.
+ *
+ * <p>The engine persists its state as {@code .incremental-state} inside the
+ * output directory and writes an {@link AbiManifest} ({@code .abi-fingerprints})
+ * in the build directory for downstream reactor modules.
  *
  * @see CompilationAnalyzer
  * @see IncrementalState

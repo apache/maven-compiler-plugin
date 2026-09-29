@@ -50,6 +50,10 @@ import com.sun.source.tree.UsesTree;
  * methods, nested types). For {@code static final} fields, the compile-time
  * constant value is included so that changes to inlined constants are detected.
  *
+ * <p>Also computes fingerprints for module descriptors ({@code module-info.java})
+ * based on sorted {@code requires}, {@code exports}, {@code opens}, {@code uses},
+ * and {@code provides} directives.
+ *
  * <p>The fingerprint is a truncated SHA-256 hash of this canonical form.
  * Two types have the same fingerprint if and only if their public API surfaces
  * are identical — method body changes do not affect it.

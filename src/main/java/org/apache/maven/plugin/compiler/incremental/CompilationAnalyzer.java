@@ -52,6 +52,9 @@ import com.sun.source.util.Trees;
  * Results are collected into {@link SourceFileAnalysis} records accessible
  * via {@link #getResults()}.
  *
+ * <p>Also handles {@code module-info.java} by extracting module directive
+ * fingerprints via {@link AbiExtractor#computeModuleFingerprint}.
+ *
  * <p>JDK-internal types ({@code java.*}, {@code javax.*}, {@code jdk.*},
  * {@code sun.*}) are filtered from the dependency sets since they never change
  * across incremental builds.

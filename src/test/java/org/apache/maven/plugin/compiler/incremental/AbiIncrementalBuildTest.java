@@ -142,7 +142,35 @@ class AbiIncrementalBuildTest {
         var abi2 = new AbiIncrementalBuild(classesDir);
         Set<Path> toCompile = abi2.initialize(listSources());
         assertTrue(toCompile.isEmpty(), "No changes should return empty set");
+        assertNull(abi2.getRebuildCause(), "No changes should have no rebuild cause");
         abi2.finish();
+    }
+
+    @Test
+    void rebuildCauseDescribesChanges() throws Exception {
+        doFullBuildCycle();
+
+        // Modify one file, add a new one
+        CompilerTestHelper.writeSource(
+                sourceDir,
+                "impl",
+                "Helper",
+                "package impl; public class Helper { public String normalize(String s) { return s == null ? \"\" : s.strip(); } }");
+        CompilerTestHelper.writeSource(sourceDir, "api", "Extra", "package api; public class Extra {}");
+
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        abi2.initialize(listSources());
+        assertNotNull(abi2.getRebuildCause(), "Should have a rebuild cause");
+        assertTrue(abi2.getRebuildCause().contains("changed"), "Should mention changed files");
+        assertTrue(abi2.getRebuildCause().contains("new"), "Should mention new files");
+    }
+
+    @Test
+    void fullBuildCauseDescribed() throws Exception {
+        var abi = new AbiIncrementalBuild(classesDir);
+        abi.initialize(listSources());
+        assertNotNull(abi.getRebuildCause(), "Full build should have a cause");
+        assertTrue(abi.getRebuildCause().contains("no previous"), "Should mention no previous state");
     }
 
     @Test
