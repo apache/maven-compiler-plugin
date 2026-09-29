@@ -192,6 +192,34 @@ under the License.
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <!--
+              Compile sources that require java.lang.classfile (JDK 24+) separately
+              with release=24, so the main sources stay at the baseline Java version.
+              The compiled classes land alongside the main classes in the output directory.
+              BytecodeAnalyzer loads ClassfileClassAnalyzer reflectively at runtime when
+              the running JVM is JDK 24 or later; AsmClassAnalyzer is used otherwise.
+            -->
+            <id>compile-java24</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java24</compileSourceRoot>
+              </compileSourceRoots>
+              <release>24</release>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>
