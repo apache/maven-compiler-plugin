@@ -687,12 +687,22 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * <ul>
      *   <li>{@code timestamp} (default) — the existing timestamp-based strategy from
      *       {@link IncrementalBuild}. Detects changes by comparing source file modification
-     *       times and triggers full rebuilds when files are added/removed or dependencies change.</li>
+     *       times and triggers full rebuilds when files are added/removed or dependencies change.
+     *       Respects {@link #incrementalCompilation} aspects, {@code staleMillis}, and
+     *       {@link #incrementalExcludes}.</li>
      *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks the public API surface
-     *       (method signatures, field types, constant values) of each compiled type and only
-     *       recompiles consumers whose dependency's ABI actually changed. Method body changes
-     *       do not cascade. Cross-module ABI changes are detected via manifest files written
-     *       in the output directory.</li>
+     *       (method signatures, field types, constant values, sealed permits, enum constant
+     *       order, generic type parameters) of each compiled type and only recompiles consumers
+     *       whose dependency's ABI actually changed. Method body changes do not cascade.
+     *       Cross-module ABI changes are detected via manifest files written in the output
+     *       directory. Full JPMS support including {@code module-info.java} fingerprinting
+     *       and {@code module-info-patch.maven} tracking.
+     *       <p>Note: the ABI strategy has its own change detection and does not use
+     *       {@code staleMillis}, {@link #incrementalExcludes}, or the
+     *       {@link #incrementalCompilation} aspects. Forked compilation ({@code fork=true})
+     *       falls back to full compilation since the ABI analyzer requires in-process javac.
+     *       Setting {@link #useIncrementalCompilation} to {@code false} disables this
+     *       strategy and forces a full rebuild.</p></li>
      * </ul>
      *
      * @since 4.0.0-beta-7
@@ -1406,7 +1416,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
-        if ("abi".equalsIgnoreCase(incrementalStrategy)) {
+        if ("abi".equalsIgnoreCase(incrementalStrategy) && !Boolean.FALSE.equals(useIncrementalCompilation)) {
             executor.compileWithAbiIncremental(compiler, configuration, this);
             return;
         }
