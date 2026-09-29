@@ -22,8 +22,8 @@ assert new File( basedir, 'target/classes/api/Model.class' ).exists()
 assert new File( basedir, 'target/classes/impl/Helper.class' ).exists()
 assert new File( basedir, 'target/classes/impl/Service.class' ).exists()
 
-// ABI state and manifest should exist (in target/, not target/classes/)
-assert new File( basedir, 'target/.incremental-state' ).exists()
+// ABI state lives alongside class files; manifest is in target/ for reactor
+assert new File( basedir, 'target/classes/.incremental-state' ).exists()
 assert new File( basedir, 'target/.abi-fingerprints' ).exists()
 
 // Build log should show incremental messages

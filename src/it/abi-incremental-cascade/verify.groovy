@@ -21,8 +21,8 @@
 assert new File( basedir, 'target/classes/api/Model.class' ).exists()
 assert new File( basedir, 'target/classes/impl/Service.class' ).exists()
 
-// ABI state should exist
-assert new File( basedir, 'target/.incremental-state' ).exists()
+// ABI state lives alongside class files; manifest is in target/ for reactor
+assert new File( basedir, 'target/classes/.incremental-state' ).exists()
 assert new File( basedir, 'target/.abi-fingerprints' ).exists()
 
 // Build should succeed (compilation didn't fail after cascade)
