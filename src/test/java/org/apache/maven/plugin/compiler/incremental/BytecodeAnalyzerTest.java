@@ -147,4 +147,34 @@ class BytecodeAnalyzerTest {
         assertEquals(fromPath.abiCanonical(), fromBytes.abiCanonical());
         assertEquals(fromPath.referencedTypes(), fromBytes.referencedTypes());
     }
+
+    /**
+     * When running on JDK 24+, {@link BytecodeAnalyzer} uses {@link ClassfileClassAnalyzer}
+     * instead of {@link AsmClassAnalyzer}. Both must produce identical results for the same
+     * class file. This test cross-validates the two implementations against each other.
+     */
+    @Test
+    void asmAndClassfileAnalyzersProduceIdenticalResults() throws Exception {
+        CompilerTestHelper.writeSource(sourceDir, "test", "Subject", """
+                package test;
+                public class Subject implements Runnable {
+                    public static final String CONST = "hello";
+                    private int secret = 42;
+                    public String greet(int x, java.util.List<String> items) { return CONST + x; }
+                    @Override public void run() { greet(1, null); }
+                    protected static int helper(byte b) throws java.io.IOException { return b; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        byte[] bytes = Files.readAllBytes(outputDir.resolve("test/Subject.class"));
+
+        var asmResult = new AsmClassAnalyzer().analyze(bytes);
+        var cfResult = new ClassfileClassAnalyzer().analyze(bytes);
+
+        assertEquals(asmResult.className(), cfResult.className(), "className");
+        assertEquals(asmResult.abiCanonical(), cfResult.abiCanonical(), "abiCanonical");
+        assertEquals(asmResult.abiFingerprint(), cfResult.abiFingerprint(), "abiFingerprint");
+        assertEquals(asmResult.referencedTypes(), cfResult.referencedTypes(), "referencedTypes");
+    }
 }
