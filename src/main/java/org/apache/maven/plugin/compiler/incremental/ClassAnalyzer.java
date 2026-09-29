@@ -70,8 +70,9 @@ public abstract class ClassAnalyzer {
      * @param name          field name
      * @param descriptor    JVM type descriptor
      * @param constantValue compile-time constant value, or {@code null}
+     * @param signature     generic signature from the Signature attribute, or {@code null}
      */
-    protected record FieldInfo(int access, String name, String descriptor, Object constantValue)
+    protected record FieldInfo(int access, String name, String descriptor, Object constantValue, String signature)
             implements Comparable<FieldInfo> {
         @Override
         public int compareTo(FieldInfo o) {
@@ -85,8 +86,10 @@ public abstract class ClassAnalyzer {
      * @param access     JVM access flags bitmask
      * @param name       method name
      * @param descriptor JVM method descriptor
+     * @param signature  generic signature from the Signature attribute, or {@code null}
      */
-    protected record MethodInfo(int access, String name, String descriptor) implements Comparable<MethodInfo> {
+    protected record MethodInfo(int access, String name, String descriptor, String signature)
+            implements Comparable<MethodInfo> {
         @Override
         public int compareTo(MethodInfo o) {
             int c = name.compareTo(o.name);
@@ -119,17 +122,19 @@ public abstract class ClassAnalyzer {
      * The format is deterministic and identical across both analyzer
      * implementations, ensuring consistent fingerprints.
      *
-     * @param classAccess JVM access flags for the class
-     * @param className   fully-qualified class name (dot-separated)
-     * @param superName   fully-qualified superclass name, or {@code null}
-     * @param interfaces  fully-qualified interface names (dot-separated)
-     * @param fields      non-private, non-synthetic fields (will be sorted)
-     * @param methods     non-private, non-synthetic methods (will be sorted)
+     * @param classAccess    JVM access flags for the class
+     * @param className      fully-qualified class name (dot-separated)
+     * @param classSignature generic signature of the class, or {@code null}
+     * @param superName      fully-qualified superclass name, or {@code null}
+     * @param interfaces     fully-qualified interface names (dot-separated)
+     * @param fields         non-private, non-synthetic fields (will be sorted)
+     * @param methods        non-private, non-synthetic methods (will be sorted)
      * @return the canonical ABI string
      */
     protected static String buildCanonicalForm(
             int classAccess,
             String className,
+            String classSignature,
             String superName,
             List<String> interfaces,
             List<FieldInfo> fields,
@@ -148,7 +153,11 @@ public abstract class ClassAnalyzer {
         } else {
             sb.append("class ");
         }
-        sb.append(className).append('\n');
+        sb.append(className);
+        if (classSignature != null) {
+            sb.append(" <sig: ").append(classSignature).append('>');
+        }
+        sb.append('\n');
 
         if (superName != null && !EXCLUDED_SUPERTYPES.contains(superName)) {
             sb.append("  extends ").append(superName).append('\n');
@@ -166,6 +175,9 @@ public abstract class ClassAnalyzer {
             if (f.constantValue != null) {
                 sb.append(" = ").append(f.constantValue);
             }
+            if (f.signature != null) {
+                sb.append(" <sig: ").append(f.signature).append('>');
+            }
             sb.append('\n');
         }
 
@@ -177,6 +189,9 @@ public abstract class ClassAnalyzer {
             String ret = BytecodeAnalyzer.parseReturn(m.descriptor);
             if (!"void".equals(ret)) {
                 sb.append(" -> ").append(ret);
+            }
+            if (m.signature != null) {
+                sb.append(" <sig: ").append(m.signature).append('>');
             }
             sb.append('\n');
         }

@@ -68,6 +68,7 @@ class AsmClassAnalyzer extends ClassAnalyzer {
     private static class TypeCollector extends ClassVisitor {
         String className;
         String superName;
+        String classSignature;
         final Set<String> referencedTypes = new TreeSet<>();
         final List<String> interfaces = new ArrayList<>();
 
@@ -80,6 +81,7 @@ class AsmClassAnalyzer extends ClassAnalyzer {
                 int version, int access, String name, String signature, String superName, String[] interfaces) {
             this.className = name;
             this.superName = superName;
+            this.classSignature = signature;
             if (superName != null) {
                 addRef(superName);
             }
@@ -175,7 +177,7 @@ class AsmClassAnalyzer extends ClassAnalyzer {
                     public FieldVisitor visitField(
                             int access, String name, String descriptor, String signature, Object value) {
                         if (!isPrivateOrSynthetic(access)) {
-                            fields.add(new FieldInfo(access, name, descriptor, value));
+                            fields.add(new FieldInfo(access, name, descriptor, value, signature));
                         }
                         return null;
                     }
@@ -184,7 +186,7 @@ class AsmClassAnalyzer extends ClassAnalyzer {
                     public MethodVisitor visitMethod(
                             int access, String name, String descriptor, String signature, String[] exceptions) {
                         if (!isPrivateOrSynthetic(access) && !"<clinit>".equals(name)) {
-                            methods.add(new MethodInfo(access, name, descriptor));
+                            methods.add(new MethodInfo(access, name, descriptor, signature));
                         }
                         return null;
                     }
@@ -196,6 +198,7 @@ class AsmClassAnalyzer extends ClassAnalyzer {
         var ifaceNames =
                 collector.interfaces.stream().map(BytecodeAnalyzer::toJavaName).toList();
 
-        return buildCanonicalForm(reader.getAccess(), className, superName, ifaceNames, fields, methods);
+        return buildCanonicalForm(
+                reader.getAccess(), className, collector.classSignature, superName, ifaceNames, fields, methods);
     }
 }

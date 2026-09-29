@@ -143,11 +143,15 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
                 Object constantValue = field.findAttribute(Attributes.constantValue())
                         .map(cv -> cv.constant().constantValue())
                         .orElse(null);
+                String fieldSig = field.findAttribute(Attributes.signature())
+                        .map(s -> s.signature().stringValue())
+                        .orElse(null);
                 fields.add(new FieldInfo(
                         access,
                         field.fieldName().stringValue(),
                         field.fieldType().stringValue(),
-                        constantValue));
+                        constantValue,
+                        fieldSig));
             }
         }
 
@@ -155,12 +159,18 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
             int access = accessMask(method.flags().flags());
             String name = method.methodName().stringValue();
             if (!isPrivateOrSynthetic(access) && !"<clinit>".equals(name)) {
-                methods.add(new MethodInfo(access, name, method.methodType().stringValue()));
+                String methodSig = method.findAttribute(Attributes.signature())
+                        .map(s -> s.signature().stringValue())
+                        .orElse(null);
+                methods.add(new MethodInfo(access, name, method.methodType().stringValue(), methodSig));
             }
         }
 
         int classAccess = accessMask(cm.flags().flags());
         String className = BytecodeAnalyzer.toJavaName(cm.thisClass().asInternalName());
+        String classSignature = cm.findAttribute(Attributes.signature())
+                .map(s -> s.signature().stringValue())
+                .orElse(null);
         String superName = cm.superclass()
                 .map(sup -> BytecodeAnalyzer.toJavaName(sup.asInternalName()))
                 .orElse(null);
@@ -168,7 +178,7 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
                 .map(iface -> BytecodeAnalyzer.toJavaName(iface.asInternalName()))
                 .toList();
 
-        return buildCanonicalForm(classAccess, className, superName, ifaceNames, fields, methods);
+        return buildCanonicalForm(classAccess, className, classSignature, superName, ifaceNames, fields, methods);
     }
 
     // --- utilities ---
