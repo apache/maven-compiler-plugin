@@ -26,9 +26,6 @@
 
   <name>Test for default configuration</name>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
