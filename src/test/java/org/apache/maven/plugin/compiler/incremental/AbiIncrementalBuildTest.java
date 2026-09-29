@@ -521,4 +521,65 @@ class AbiIncrementalBuildTest {
         abi2.processRound();
         abi2.finish();
     }
+
+    @Test
+    void stateFileInsideOutputDirectory() throws Exception {
+        doFullBuildCycle();
+
+        // State file should be inside the output directory, not the parent
+        assertTrue(
+                Files.exists(classesDir.resolve(".incremental-state")),
+                "State file should be inside output directory (target/classes/)");
+        assertFalse(
+                Files.exists(workDir.resolve("target/.incremental-state")),
+                "State file should NOT be in parent (target/)");
+    }
+
+    @Test
+    void separateOutputDirsGetSeparateState() throws Exception {
+        doFullBuildCycle();
+
+        // Simulate a second execution with a different output directory (e.g., test-compile)
+        Path testClassesDir = workDir.resolve("target/test-classes");
+        Files.createDirectories(testClassesDir);
+
+        Path testSourceDir = workDir.resolve("test-src");
+        CompilerTestHelper.writeSource(
+                testSourceDir, "test", "MyTest", "package test; public class MyTest { public void run() {} }");
+
+        var abi2 = new AbiIncrementalBuild(testClassesDir);
+        List<Path> testFiles;
+        try (var walk = Files.walk(testSourceDir)) {
+            testFiles =
+                    walk.filter(p -> p.toString().endsWith(".java")).sorted().toList();
+        }
+        abi2.initialize(testFiles);
+        assertTrue(abi2.isFullBuild(), "Second output dir should get its own full build");
+
+        // State file should be in the test output directory
+        // Original state should be untouched
+        var mainState = IncrementalState.load(classesDir.resolve(".incremental-state"));
+        assertNotNull(mainState, "Main compile state should still exist");
+        assertEquals(3, mainState.getSourceHashes().size(), "Main state should have 3 sources");
+    }
+
+    @Test
+    void invalidateDeletesStateFile() throws Exception {
+        doFullBuildCycle();
+
+        Path stateFile = classesDir.resolve(".incremental-state");
+        assertTrue(Files.exists(stateFile), "State file should exist after successful build");
+
+        // Simulate compilation failure → invalidate
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        abi2.initialize(listSources());
+        abi2.invalidate();
+
+        assertFalse(Files.exists(stateFile), "State file should be deleted after invalidate");
+
+        // Next build should be a full build
+        var abi3 = new AbiIncrementalBuild(classesDir);
+        abi3.initialize(listSources());
+        assertTrue(abi3.isFullBuild(), "Build after invalidation should be full");
+    }
 }
