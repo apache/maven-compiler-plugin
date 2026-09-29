@@ -19,7 +19,6 @@
 package org.apache.maven.plugin.compiler.incremental;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -49,7 +48,7 @@ import org.objectweb.asm.Type;
  * @see BytecodeAnalyzer
  * @see ClassAnalyzer
  */
-class AsmClassAnalyzer implements ClassAnalyzer {
+class AsmClassAnalyzer extends ClassAnalyzer {
 
     @Override
     public BytecodeAnalyzer.ClassAnalysis analyze(byte[] classBytes) {
@@ -60,7 +59,7 @@ class AsmClassAnalyzer implements ClassAnalyzer {
         String className = BytecodeAnalyzer.toJavaName(collector.className);
         collector.referencedTypes.remove(className);
 
-        String abiCanonical = canonicalForm(reader, collector);
+        String abiCanonical = buildCanonical(reader, collector);
         String abiFingerprint = Sha256.hash(abiCanonical);
 
         return new BytecodeAnalyzer.ClassAnalysis(className, abiFingerprint, abiCanonical, collector.referencedTypes);
@@ -82,12 +81,12 @@ class AsmClassAnalyzer implements ClassAnalyzer {
             this.className = name;
             this.superName = superName;
             if (superName != null) {
-                addInternalName(superName);
+                addRef(superName);
             }
             if (interfaces != null) {
                 for (String iface : interfaces) {
                     this.interfaces.add(iface);
-                    addInternalName(iface);
+                    addRef(iface);
                 }
             }
         }
@@ -104,24 +103,24 @@ class AsmClassAnalyzer implements ClassAnalyzer {
             addDescriptorTypes(descriptor);
             if (exceptions != null) {
                 for (String ex : exceptions) {
-                    addInternalName(ex);
+                    addRef(ex);
                 }
             }
             return new MethodVisitor(Opcodes.ASM9) {
                 @Override
                 public void visitTypeInsn(int opcode, String type) {
-                    addInternalName(type);
+                    addRef(type);
                 }
 
                 @Override
                 public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
-                    addInternalName(owner);
+                    addRef(owner);
                 }
 
                 @Override
                 public void visitMethodInsn(
                         int opcode, String owner, String name, String descriptor, boolean isInterface) {
-                    addInternalName(owner);
+                    addRef(owner);
                 }
 
                 @Override
@@ -137,21 +136,11 @@ class AsmClassAnalyzer implements ClassAnalyzer {
             return null;
         }
 
-        private void addInternalName(String internalName) {
-            if (internalName == null) {
-                return;
+        private void addRef(String internalName) {
+            String resolved = resolveInternalName(internalName);
+            if (resolved != null) {
+                referencedTypes.add(resolved);
             }
-            // Unwrap array types
-            while (internalName.startsWith("[")) {
-                internalName = internalName.substring(1);
-            }
-            if (internalName.startsWith("L") && internalName.endsWith(";")) {
-                internalName = internalName.substring(1, internalName.length() - 1);
-            }
-            if (internalName.isEmpty() || internalName.length() == 1) {
-                return; // primitive
-            }
-            referencedTypes.add(BytecodeAnalyzer.toJavaName(internalName));
         }
 
         private void addDescriptorTypes(String descriptor) {
@@ -176,24 +165,7 @@ class AsmClassAnalyzer implements ClassAnalyzer {
 
     // --- ABI canonical form ---
 
-    private record FieldInfo(int access, String name, String descriptor, Object constantValue)
-            implements Comparable<FieldInfo> {
-        @Override
-        public int compareTo(FieldInfo o) {
-            return name.compareTo(o.name);
-        }
-    }
-
-    private record MethodInfo(int access, String name, String descriptor, String[] exceptions)
-            implements Comparable<MethodInfo> {
-        @Override
-        public int compareTo(MethodInfo o) {
-            int c = name.compareTo(o.name);
-            return c != 0 ? c : descriptor.compareTo(o.descriptor);
-        }
-    }
-
-    private static String canonicalForm(ClassReader reader, TypeCollector collector) {
+    private static String buildCanonical(ClassReader reader, TypeCollector collector) {
         var fields = new ArrayList<FieldInfo>();
         var methods = new ArrayList<MethodInfo>();
 
@@ -202,7 +174,7 @@ class AsmClassAnalyzer implements ClassAnalyzer {
                     @Override
                     public FieldVisitor visitField(
                             int access, String name, String descriptor, String signature, Object value) {
-                        if ((access & Opcodes.ACC_PRIVATE) == 0 && (access & Opcodes.ACC_SYNTHETIC) == 0) {
+                        if (!isPrivateOrSynthetic(access)) {
                             fields.add(new FieldInfo(access, name, descriptor, value));
                         }
                         return null;
@@ -211,86 +183,19 @@ class AsmClassAnalyzer implements ClassAnalyzer {
                     @Override
                     public MethodVisitor visitMethod(
                             int access, String name, String descriptor, String signature, String[] exceptions) {
-                        if ((access & Opcodes.ACC_PRIVATE) == 0
-                                && (access & Opcodes.ACC_SYNTHETIC) == 0
-                                && !"<clinit>".equals(name)) {
-                            methods.add(new MethodInfo(access, name, descriptor, exceptions));
+                        if (!isPrivateOrSynthetic(access) && !"<clinit>".equals(name)) {
+                            methods.add(new MethodInfo(access, name, descriptor));
                         }
                         return null;
                     }
                 },
                 ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
 
-        Collections.sort(fields);
-        Collections.sort(methods);
+        String className = BytecodeAnalyzer.toJavaName(collector.className);
+        String superName = collector.superName != null ? BytecodeAnalyzer.toJavaName(collector.superName) : null;
+        var ifaceNames =
+                collector.interfaces.stream().map(BytecodeAnalyzer::toJavaName).toList();
 
-        var sb = new StringBuilder();
-        int classAccess = reader.getAccess();
-
-        appendAccessFlags(sb, classAccess);
-        if ((classAccess & Opcodes.ACC_INTERFACE) != 0) {
-            sb.append("interface ");
-        } else if ((classAccess & Opcodes.ACC_ENUM) != 0) {
-            sb.append("enum ");
-        } else {
-            sb.append("class ");
-        }
-        sb.append(BytecodeAnalyzer.toJavaName(collector.className)).append('\n');
-
-        if (collector.superName != null) {
-            String sup = BytecodeAnalyzer.toJavaName(collector.superName);
-            if (!"java.lang.Object".equals(sup) && !"java.lang.Enum".equals(sup) && !"java.lang.Record".equals(sup)) {
-                sb.append("  extends ").append(sup).append('\n');
-            }
-        }
-
-        for (String iface : collector.interfaces) {
-            sb.append("  implements ")
-                    .append(BytecodeAnalyzer.toJavaName(iface))
-                    .append('\n');
-        }
-
-        for (var f : fields) {
-            sb.append("  ");
-            appendAccessFlags(sb, f.access);
-            sb.append(BytecodeAnalyzer.descriptorToReadable(f.descriptor)).append(' ');
-            sb.append(f.name);
-            if (f.constantValue != null) {
-                sb.append(" = ").append(f.constantValue);
-            }
-            sb.append('\n');
-        }
-
-        for (var m : methods) {
-            sb.append("  ");
-            appendAccessFlags(sb, m.access);
-            sb.append(m.name);
-            sb.append('(').append(BytecodeAnalyzer.parseParams(m.descriptor)).append(')');
-            String ret = BytecodeAnalyzer.parseReturn(m.descriptor);
-            if (!"void".equals(ret)) {
-                sb.append(" -> ").append(ret);
-            }
-            sb.append('\n');
-        }
-
-        return sb.toString();
-    }
-
-    private static void appendAccessFlags(StringBuilder sb, int access) {
-        if ((access & Opcodes.ACC_PUBLIC) != 0) {
-            sb.append("public ");
-        }
-        if ((access & Opcodes.ACC_PROTECTED) != 0) {
-            sb.append("protected ");
-        }
-        if ((access & Opcodes.ACC_ABSTRACT) != 0) {
-            sb.append("abstract ");
-        }
-        if ((access & Opcodes.ACC_STATIC) != 0) {
-            sb.append("static ");
-        }
-        if ((access & Opcodes.ACC_FINAL) != 0) {
-            sb.append("final ");
-        }
+        return buildCanonicalForm(reader.getAccess(), className, superName, ifaceNames, fields, methods);
     }
 }

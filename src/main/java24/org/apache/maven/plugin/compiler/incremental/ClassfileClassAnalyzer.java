@@ -30,7 +30,7 @@ import java.lang.classfile.instruction.NewObjectInstruction;
 import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.reflect.AccessFlag;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -52,23 +52,33 @@ import java.util.TreeSet;
  * @see AsmClassAnalyzer
  * @see ClassAnalyzer
  */
-class ClassfileClassAnalyzer implements ClassAnalyzer {
+class ClassfileClassAnalyzer extends ClassAnalyzer {
 
     @Override
     public BytecodeAnalyzer.ClassAnalysis analyze(byte[] classBytes) {
         ClassModel cm = ClassFile.of().parse(classBytes);
 
-        String className = toJavaName(cm.thisClass().asInternalName());
+        String className = BytecodeAnalyzer.toJavaName(cm.thisClass().asInternalName());
         Set<String> referencedTypes = new TreeSet<>();
 
-        // --- collect referenced types ---
+        collectReferencedTypes(cm, referencedTypes);
+        referencedTypes.remove(className);
 
+        String abiCanonical = buildCanonical(cm);
+        String abiFingerprint = Sha256.hash(abiCanonical);
+
+        return new BytecodeAnalyzer.ClassAnalysis(className, abiFingerprint, abiCanonical, referencedTypes);
+    }
+
+    // --- type reference collection ---
+
+    private static void collectReferencedTypes(ClassModel cm, Set<String> referencedTypes) {
         // superclass
-        cm.superclass().ifPresent(sup -> addInternalName(sup.asInternalName(), referencedTypes));
+        cm.superclass().ifPresent(sup -> addRef(sup.asInternalName(), referencedTypes));
 
         // interfaces
         for (var iface : cm.interfaces()) {
-            addInternalName(iface.asInternalName(), referencedTypes);
+            addRef(iface.asInternalName(), referencedTypes);
         }
 
         // annotations (visible and invisible)
@@ -96,8 +106,7 @@ class ClassfileClassAnalyzer implements ClassAnalyzer {
             addMethodDescriptor(methodDesc, referencedTypes);
 
             method.findAttribute(Attributes.exceptions())
-                    .ifPresent(
-                            ex -> ex.exceptions().forEach(e -> addInternalName(e.asInternalName(), referencedTypes)));
+                    .ifPresent(ex -> ex.exceptions().forEach(e -> addRef(e.asInternalName(), referencedTypes)));
 
             method.findAttribute(Attributes.runtimeVisibleAnnotations())
                     .ifPresent(a -> a.annotations()
@@ -109,58 +118,33 @@ class ClassfileClassAnalyzer implements ClassAnalyzer {
             method.code().ifPresent(code -> {
                 for (var element : code) {
                     switch (element) {
-                        case InvokeInstruction ii -> addInternalName(ii.owner().asInternalName(), referencedTypes);
-                        case FieldInstruction fi -> addInternalName(fi.owner().asInternalName(), referencedTypes);
-                        case TypeCheckInstruction tci ->
-                            addInternalName(tci.type().asInternalName(), referencedTypes);
-                        case NewObjectInstruction noi ->
-                            addInternalName(noi.className().asInternalName(), referencedTypes);
+                        case InvokeInstruction ii -> addRef(ii.owner().asInternalName(), referencedTypes);
+                        case FieldInstruction fi -> addRef(fi.owner().asInternalName(), referencedTypes);
+                        case TypeCheckInstruction tci -> addRef(tci.type().asInternalName(), referencedTypes);
+                        case NewObjectInstruction noi -> addRef(noi.className().asInternalName(), referencedTypes);
                         case NewMultiArrayInstruction nma ->
-                            addInternalName(nma.arrayType().asInternalName(), referencedTypes);
+                            addRef(nma.arrayType().asInternalName(), referencedTypes);
                         default -> {}
                     }
                 }
             });
         }
-
-        referencedTypes.remove(className);
-
-        String abiCanonical = canonicalForm(cm);
-        String abiFingerprint = Sha256.hash(abiCanonical);
-
-        return new BytecodeAnalyzer.ClassAnalysis(className, abiFingerprint, abiCanonical, referencedTypes);
     }
 
     // --- ABI canonical form ---
 
-    private record FieldInfo(Set<AccessFlag> flags, String name, String descriptor, Object constantValue)
-            implements Comparable<FieldInfo> {
-        @Override
-        public int compareTo(FieldInfo o) {
-            return name.compareTo(o.name);
-        }
-    }
-
-    private record MethodInfo(Set<AccessFlag> flags, String name, String descriptor) implements Comparable<MethodInfo> {
-        @Override
-        public int compareTo(MethodInfo o) {
-            int c = name.compareTo(o.name);
-            return c != 0 ? c : descriptor.compareTo(o.descriptor);
-        }
-    }
-
-    private static String canonicalForm(ClassModel cm) {
+    private static String buildCanonical(ClassModel cm) {
         var fields = new ArrayList<FieldInfo>();
         var methods = new ArrayList<MethodInfo>();
 
         for (FieldModel field : cm.fields()) {
-            Set<AccessFlag> flags = field.flags().flags();
-            if (!flags.contains(AccessFlag.PRIVATE) && !flags.contains(AccessFlag.SYNTHETIC)) {
+            int access = accessMask(field.flags().flags());
+            if (!isPrivateOrSynthetic(access)) {
                 Object constantValue = field.findAttribute(Attributes.constantValue())
                         .map(cv -> cv.constant().constantValue())
                         .orElse(null);
                 fields.add(new FieldInfo(
-                        flags,
+                        access,
                         field.fieldName().stringValue(),
                         field.fieldType().stringValue(),
                         constantValue));
@@ -168,158 +152,70 @@ class ClassfileClassAnalyzer implements ClassAnalyzer {
         }
 
         for (MethodModel method : cm.methods()) {
-            Set<AccessFlag> flags = method.flags().flags();
+            int access = accessMask(method.flags().flags());
             String name = method.methodName().stringValue();
-            if (!flags.contains(AccessFlag.PRIVATE)
-                    && !flags.contains(AccessFlag.SYNTHETIC)
-                    && !"<clinit>".equals(name)) {
-                methods.add(new MethodInfo(flags, name, method.methodType().stringValue()));
+            if (!isPrivateOrSynthetic(access) && !"<clinit>".equals(name)) {
+                methods.add(new MethodInfo(access, name, method.methodType().stringValue()));
             }
         }
 
-        Collections.sort(fields);
-        Collections.sort(methods);
+        int classAccess = accessMask(cm.flags().flags());
+        String className = BytecodeAnalyzer.toJavaName(cm.thisClass().asInternalName());
+        String superName = cm.superclass()
+                .map(sup -> BytecodeAnalyzer.toJavaName(sup.asInternalName()))
+                .orElse(null);
+        List<String> ifaceNames = cm.interfaces().stream()
+                .map(iface -> BytecodeAnalyzer.toJavaName(iface.asInternalName()))
+                .toList();
 
-        var sb = new StringBuilder();
-        Set<AccessFlag> classFlags = cm.flags().flags();
-
-        appendAccessFlags(sb, classFlags);
-        if (classFlags.contains(AccessFlag.INTERFACE)) {
-            sb.append("interface ");
-        } else if (classFlags.contains(AccessFlag.ENUM)) {
-            sb.append("enum ");
-        } else {
-            sb.append("class ");
-        }
-        sb.append(toJavaName(cm.thisClass().asInternalName())).append('\n');
-
-        cm.superclass().ifPresent(sup -> {
-            String superName = toJavaName(sup.asInternalName());
-            if (!"java.lang.Object".equals(superName)
-                    && !"java.lang.Enum".equals(superName)
-                    && !"java.lang.Record".equals(superName)) {
-                sb.append("  extends ").append(superName).append('\n');
-            }
-        });
-
-        for (var iface : cm.interfaces()) {
-            sb.append("  implements ")
-                    .append(toJavaName(iface.asInternalName()))
-                    .append('\n');
-        }
-
-        for (var f : fields) {
-            sb.append("  ");
-            appendAccessFlags(sb, f.flags);
-            sb.append(BytecodeAnalyzer.descriptorToReadable(f.descriptor)).append(' ');
-            sb.append(f.name);
-            if (f.constantValue != null) {
-                sb.append(" = ").append(f.constantValue);
-            }
-            sb.append('\n');
-        }
-
-        for (var m : methods) {
-            sb.append("  ");
-            appendAccessFlags(sb, m.flags);
-            sb.append(m.name);
-            sb.append('(').append(BytecodeAnalyzer.parseParams(m.descriptor)).append(')');
-            String ret = BytecodeAnalyzer.parseReturn(m.descriptor);
-            if (!"void".equals(ret)) {
-                sb.append(" -> ").append(ret);
-            }
-            sb.append('\n');
-        }
-
-        return sb.toString();
+        return buildCanonicalForm(classAccess, className, superName, ifaceNames, fields, methods);
     }
 
-    private static void appendAccessFlags(StringBuilder sb, Set<AccessFlag> flags) {
-        if (flags.contains(AccessFlag.PUBLIC)) {
-            sb.append("public ");
+    // --- utilities ---
+
+    private static int accessMask(Set<AccessFlag> flags) {
+        int mask = 0;
+        for (AccessFlag flag : flags) {
+            mask |= flag.mask();
         }
-        if (flags.contains(AccessFlag.PROTECTED)) {
-            sb.append("protected ");
-        }
-        if (flags.contains(AccessFlag.ABSTRACT)) {
-            sb.append("abstract ");
-        }
-        if (flags.contains(AccessFlag.STATIC)) {
-            sb.append("static ");
-        }
-        if (flags.contains(AccessFlag.FINAL)) {
-            sb.append("final ");
+        return mask;
+    }
+
+    private static void addRef(String internalName, Set<String> referencedTypes) {
+        String resolved = resolveInternalName(internalName);
+        if (resolved != null) {
+            referencedTypes.add(resolved);
         }
     }
 
-    // --- type name helpers ---
-
-    private static String toJavaName(String internalName) {
-        return internalName.replace('/', '.');
-    }
-
-    /**
-     * Adds a field/class descriptor (e.g. {@code Ljava/lang/String;} or
-     * {@code [Ljava/util/List;}) to the referenced types set.
-     */
     private static void addDescriptor(String descriptor, Set<String> referencedTypes) {
-        // Unwrap array dimensions
         int i = 0;
         while (i < descriptor.length() && descriptor.charAt(i) == '[') {
             i++;
         }
         String core = descriptor.substring(i);
         if (core.startsWith("L") && core.endsWith(";")) {
-            addInternalName(core.substring(1, core.length() - 1), referencedTypes);
+            addRef(core.substring(1, core.length() - 1), referencedTypes);
         }
-        // primitives and void (single char, no 'L') are ignored
     }
 
-    /**
-     * Adds a method descriptor's parameter types and return type to the set.
-     */
     private static void addMethodDescriptor(String methodDesc, Set<String> referencedTypes) {
         int close = methodDesc.indexOf(')');
-        // parse parameters
         int i = 1;
         while (i < close) {
-            int start = i;
             while (i < close && methodDesc.charAt(i) == '[') {
                 i++;
             }
             if (i < close) {
                 if (methodDesc.charAt(i) == 'L') {
                     int end = methodDesc.indexOf(';', i);
-                    addInternalName(methodDesc.substring(i + 1, end), referencedTypes);
+                    addRef(methodDesc.substring(i + 1, end), referencedTypes);
                     i = end + 1;
                 } else {
-                    i++; // primitive
+                    i++;
                 }
             }
         }
-        // return type
         addDescriptor(methodDesc.substring(close + 1), referencedTypes);
-    }
-
-    /**
-     * Adds an internal class name (slash-separated, possibly an array descriptor)
-     * to the referenced types set.
-     */
-    private static void addInternalName(String internalName, Set<String> referencedTypes) {
-        if (internalName == null || internalName.isEmpty()) {
-            return;
-        }
-        // Handle array internal names like [[Ljava/lang/String;
-        String name = internalName;
-        while (name.startsWith("[")) {
-            name = name.substring(1);
-        }
-        if (name.startsWith("L") && name.endsWith(";")) {
-            name = name.substring(1, name.length() - 1);
-        }
-        if (name.isEmpty() || name.length() == 1) {
-            return; // primitive
-        }
-        referencedTypes.add(toJavaName(name));
     }
 }

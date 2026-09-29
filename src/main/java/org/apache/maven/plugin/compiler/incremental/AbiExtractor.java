@@ -27,8 +27,6 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -52,7 +50,7 @@ import java.util.stream.Collectors;
 public class AbiExtractor {
 
     public static String computeFingerprint(TypeElement type) {
-        return sha256(canonicalForm(type));
+        return Sha256.hash(canonicalForm(type));
     }
 
     public static String canonicalForm(TypeElement type) {
@@ -187,20 +185,6 @@ public class AbiExtractor {
             if (modifiers.contains(m)) {
                 sb.append(m).append(' ');
             }
-        }
-    }
-
-    private static String sha256(String input) {
-        try {
-            var md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(input.getBytes(StandardCharsets.UTF_8));
-            var hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.substring(0, 16);
-        } catch (java.security.NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
         }
     }
 }
