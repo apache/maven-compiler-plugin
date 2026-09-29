@@ -90,7 +90,7 @@ public class AbiIncrementalBuild {
     public AbiIncrementalBuild(Path outputDir) {
         this.outputDir = outputDir;
         this.buildDir = outputDir.getParent() != null ? outputDir.getParent() : outputDir;
-        this.stateFile = buildDir.resolve(".incremental-state");
+        this.stateFile = outputDir.resolve(".incremental-state");
     }
 
     /**
@@ -265,6 +265,20 @@ public class AbiIncrementalBuild {
 
         state.save(stateFile);
         AbiManifest.write(buildDir.resolve(AbiManifest.FILENAME), state.getAllAbiFingerprints());
+    }
+
+    /**
+     * Invalidates the incremental state after a compilation failure.
+     * Deletes the state file so the next build starts fresh, avoiding
+     * a broken output directory where class files were deleted but
+     * not regenerated.
+     */
+    public void invalidate() {
+        try {
+            Files.deleteIfExists(stateFile);
+        } catch (IOException e) {
+            // Best effort — a missing state file just triggers a full rebuild
+        }
     }
 
     /**

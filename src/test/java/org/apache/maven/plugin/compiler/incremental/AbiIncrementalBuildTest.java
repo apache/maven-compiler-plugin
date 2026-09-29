@@ -130,7 +130,7 @@ class AbiIncrementalBuildTest {
         abi.finish();
 
         // State and manifest should exist
-        assertTrue(Files.exists(workDir.resolve("target/.incremental-state")));
+        assertTrue(Files.exists(workDir.resolve("target/classes/.incremental-state")));
         assertTrue(Files.exists(workDir.resolve("target/.abi-fingerprints")));
         assertEquals(3, abi.compiledCount());
     }
@@ -350,8 +350,8 @@ class AbiIncrementalBuildTest {
         doFullBuildCycle(true);
 
         // State should exist and include module entry
-        assertTrue(Files.exists(workDir.resolve("target/.incremental-state")));
-        var state = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        assertTrue(Files.exists(workDir.resolve("target/classes/.incremental-state")));
+        var state = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
         assertNotNull(state, "State should be loaded");
         assertNotNull(state.getType("module:my.mod"), "State should contain module-info entry with 'module:' prefix");
         assertNotNull(state.getAbiFingerprint("module:my.mod"), "Module entry should have an ABI fingerprint");
@@ -386,7 +386,7 @@ class AbiIncrementalBuildTest {
 
         doFullBuildCycle(true);
 
-        var state1 = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        var state1 = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
         String fingerprint1 = state1.getAbiFingerprint("module:my.mod");
         assertNotNull(fingerprint1);
 
@@ -405,7 +405,7 @@ class AbiIncrementalBuildTest {
         }
         abi2.finish();
 
-        var state2 = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        var state2 = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
         String fingerprint2 = state2.getAbiFingerprint("module:my.mod");
         assertNotNull(fingerprint2);
         assertNotEquals(fingerprint1, fingerprint2, "ABI fingerprint should change when exports are added");
@@ -443,7 +443,7 @@ class AbiIncrementalBuildTest {
         abi2.finish();
 
         // State should reflect the new module name
-        var state = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        var state = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
         assertNotNull(state.getType("module:my.renamed"), "State should have new module name");
         assertNull(state.getType("module:my.old"), "State should not have old module name");
     }

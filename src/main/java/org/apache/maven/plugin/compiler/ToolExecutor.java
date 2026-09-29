@@ -932,6 +932,10 @@ public class ToolExecutor {
      */
     void compileWithAbiIncremental(JavaCompiler compiler, final Options configuration, final AbstractCompilerMojo mojo)
             throws IOException {
+        if (compiler instanceof ForkedTool) {
+            logger.warn("ABI incremental strategy is not supported with forked compilation."
+                    + " Falling back to full compilation.");
+        }
         var abiBuild = new AbiIncrementalBuild(outputDirectory);
 
         // Collect classpath entries for cross-module tracking
@@ -957,6 +961,22 @@ public class ToolExecutor {
         abiBuild.setClasspathEntries(classpathPaths);
         if (!reactorPaths.isEmpty()) {
             abiBuild.setReactorModulePaths(reactorPaths);
+        }
+
+        // Collect annotation processor path for processor classification
+        var processorPaths = new ArrayList<Path>();
+        for (var entry : dependencies.entrySet()) {
+            if (entry.getKey() instanceof JavaPathType type) {
+                var location = type.location();
+                if (location.isPresent()
+                        && (location.get() == StandardLocation.ANNOTATION_PROCESSOR_PATH
+                                || location.get() == StandardLocation.ANNOTATION_PROCESSOR_MODULE_PATH)) {
+                    processorPaths.addAll(entry.getValue());
+                }
+            }
+        }
+        if (!processorPaths.isEmpty()) {
+            abiBuild.setProcessorPath(processorPaths);
         }
 
         // Collect all source file paths
@@ -1015,6 +1035,7 @@ public class ToolExecutor {
             logger.info("Compiled " + abiBuild.compiledCount() + " file(s), " + abiBuild.unchangedCount()
                     + " unchanged (ABI strategy).");
         } else {
+            abiBuild.invalidate();
             throw new CompilationFailureException("Compilation failed (ABI incremental strategy).");
         }
     }
@@ -1059,6 +1080,7 @@ public class ToolExecutor {
                         case PACKAGE_WITH_MODULE, MODULE_SOURCE -> new ModulePathManager(fileManager);
                     };
 
+            boolean isBaseRelease = true;
             for (final SourcesForRelease unit : units) {
                 configuration.setRelease(unit.getReleaseString());
                 pathManager.configureSourcePaths(unit.roots);
@@ -1070,7 +1092,9 @@ public class ToolExecutor {
                     Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(unit.files);
                     JavaCompiler.CompilationTask task;
                     task = compiler.getTask(otherOutput, fileManager, listener, configuration.options, null, sources);
-                    if (task instanceof JavacTask javacTask) {
+                    // Only attach ABI analyzer for the base release — versioned
+                    // releases (multi-release JARs) are always compiled fully
+                    if (isBaseRelease && task instanceof JavacTask javacTask) {
                         abiBuild.attachTo(javacTask);
                     }
                     success = task.call();
@@ -1078,6 +1102,7 @@ public class ToolExecutor {
                         break;
                     }
                 }
+                isBaseRelease = false;
                 pathManager.markVersioned();
             }
         } catch (UncheckedIOException e) {
