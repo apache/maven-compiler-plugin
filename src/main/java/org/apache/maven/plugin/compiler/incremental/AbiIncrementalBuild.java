@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import com.sun.source.util.JavacTask;
 
@@ -209,6 +210,12 @@ public class AbiIncrementalBuild {
 
         if (fullBuild || abiChanged.isEmpty()) {
             return Set.of();
+        }
+
+        // Detect module name changes — these require a full rebuild because
+        // all types in the module were compiled under the old module context
+        if (previousState != null && hasModuleNameChanged(state, previousState)) {
+            return forceFullRebuild();
         }
 
         // Cascade: find consumers of ABI-changed types
@@ -489,6 +496,34 @@ public class AbiIncrementalBuild {
     }
 
     // --- Utility ---
+
+    private static boolean hasModuleNameChanged(IncrementalState current, IncrementalState previous) {
+        var currentModules = current.getTypes().keySet().stream()
+                .filter(k -> k.startsWith(CompilationAnalyzer.MODULE_PREFIX))
+                .collect(Collectors.toSet());
+        var previousModules = previous.getTypes().keySet().stream()
+                .filter(k -> k.startsWith(CompilationAnalyzer.MODULE_PREFIX))
+                .collect(Collectors.toSet());
+        return !currentModules.equals(previousModules);
+    }
+
+    private Set<Path> forceFullRebuild() {
+        // Delete old class files for types not yet recompiled
+        for (var entry : previousState.getTypes().entrySet()) {
+            String sf = entry.getValue().sourceFile();
+            if (sf != null && !allCompiled.contains(sf)) {
+                deleteClassFile(entry.getKey(), entry.getValue());
+            }
+        }
+        var additionalFiles = new TreeSet<Path>();
+        for (Path sf : allSourceFiles) {
+            if (!allCompiled.contains(sf.toString())) {
+                additionalFiles.add(sf);
+                allCompiled.add(sf.toString());
+            }
+        }
+        return additionalFiles;
+    }
 
     private void expandSignatureCascade(String type, IncrementalState state, Set<String> result) {
         for (String consumer : state.getSignatureConsumers(type)) {

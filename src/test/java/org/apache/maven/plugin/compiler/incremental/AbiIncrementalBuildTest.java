@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AbiIncrementalBuildTest {
@@ -408,6 +409,43 @@ class AbiIncrementalBuildTest {
         String fingerprint2 = state2.getAbiFingerprint("module:my.mod");
         assertNotNull(fingerprint2);
         assertNotEquals(fingerprint1, fingerprint2, "ABI fingerprint should change when exports are added");
+    }
+
+    @Test
+    void moduleNameChangeTriggersFullRebuild() throws Exception {
+        Files.writeString(sourceDir.resolve("module-info.java"), "module my.old {\n  exports api;\n}\n");
+
+        doFullBuildCycle(true);
+
+        // Change the module name
+        Files.writeString(sourceDir.resolve("module-info.java"), "module my.renamed {\n  exports api;\n}\n");
+
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        Set<Path> toCompile = abi2.initialize(listSources());
+        assertFalse(abi2.isFullBuild(), "Should start as incremental");
+
+        // First round: recompile module-info.java
+        compileFiles(toCompile, true);
+        abi2.attachTo(lastTask);
+        lastTask.call();
+        Set<Path> cascade = abi2.processRound();
+
+        // Module name change should force recompilation of all remaining files
+        assertFalse(cascade.isEmpty(), "Module name change should trigger full rebuild");
+
+        // Complete all rounds
+        while (!cascade.isEmpty()) {
+            compileFiles(cascade, true);
+            abi2.attachTo(lastTask);
+            lastTask.call();
+            cascade = abi2.processRound();
+        }
+        abi2.finish();
+
+        // State should reflect the new module name
+        var state = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        assertNotNull(state.getType("module:my.renamed"), "State should have new module name");
+        assertNull(state.getType("module:my.old"), "State should not have old module name");
     }
 
     @Test
