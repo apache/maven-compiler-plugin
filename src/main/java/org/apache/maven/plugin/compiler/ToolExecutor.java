@@ -936,6 +936,7 @@ public class ToolExecutor {
 
         // Collect classpath entries for cross-module tracking
         var classpathPaths = new ArrayList<Path>();
+        var reactorPaths = new LinkedHashSet<Path>();
         for (var entry : dependencies.entrySet()) {
             if (entry.getKey() instanceof JavaPathType type) {
                 var location = type.location();
@@ -943,10 +944,20 @@ public class ToolExecutor {
                         && (location.get() == StandardLocation.CLASS_PATH
                                 || location.get() == StandardLocation.MODULE_PATH)) {
                     classpathPaths.addAll(entry.getValue());
+                    if (location.get() == StandardLocation.MODULE_PATH) {
+                        for (Path p : entry.getValue()) {
+                            if (Files.isDirectory(p)) {
+                                reactorPaths.add(p);
+                            }
+                        }
+                    }
                 }
             }
         }
         abiBuild.setClasspathEntries(classpathPaths);
+        if (!reactorPaths.isEmpty()) {
+            abiBuild.setReactorModulePaths(reactorPaths);
+        }
 
         // Collect all source file paths
         var allSourcePaths = new ArrayList<Path>();

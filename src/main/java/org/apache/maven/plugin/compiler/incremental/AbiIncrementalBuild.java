@@ -490,6 +490,15 @@ public class AbiIncrementalBuild {
     // javac's ANALYZE fires for top-level types, so inner class names should not appear here,
     // but this needs verification for nested/local class edge cases.
     private void deleteClassFile(String qualifiedName) {
+        if (qualifiedName.startsWith(CompilationAnalyzer.MODULE_PREFIX)) {
+            Path moduleInfoClass = outputDir.resolve("module-info.class");
+            try {
+                Files.deleteIfExists(moduleInfoClass);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to delete module-info.class", e);
+            }
+            return;
+        }
         Path classFile = outputDir.resolve(qualifiedName.replace('.', '/') + ".class");
         try {
             Files.deleteIfExists(classFile);

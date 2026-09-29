@@ -35,6 +35,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AbiIncrementalBuildTest {
@@ -68,29 +70,40 @@ class AbiIncrementalBuildTest {
                 "package impl; import api.Model; public class Service { private final Helper h = new Helper(); public Model process(String input) { Model m = new Model(); m.setName(h.normalize(input)); return m; } }");
     }
 
-    private Set<Path> doFullBuildCycle() throws Exception {
+    private void doFullBuildCycle() throws Exception {
+        doFullBuildCycle(false);
+    }
+
+    private void doFullBuildCycle(boolean modular) throws Exception {
         var abi = new AbiIncrementalBuild(classesDir);
         List<Path> allFiles = listSources();
         Set<Path> toCompile = abi.initialize(allFiles);
 
         while (!toCompile.isEmpty()) {
-            compileFiles(toCompile);
+            compileFiles(toCompile, modular);
             abi.attachTo(lastTask);
             lastTask.call();
             toCompile = abi.processRound();
         }
         abi.finish();
-        return Set.of(); // done
     }
 
     private JavacTask lastTask;
 
     private void compileFiles(Set<Path> files) throws Exception {
+        compileFiles(files, false);
+    }
+
+    private void compileFiles(Set<Path> files, boolean modular) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         var fm = compiler.getStandardFileManager(null, null, null);
         fm.setLocation(StandardLocation.CLASS_OUTPUT, List.of(classesDir.toFile()));
         fm.setLocation(StandardLocation.CLASS_PATH, List.of(classesDir.toFile()));
-        fm.setLocation(StandardLocation.SOURCE_PATH, List.of());
+        if (modular) {
+            fm.setLocation(StandardLocation.SOURCE_PATH, List.of(sourceDir.toFile()));
+        } else {
+            fm.setLocation(StandardLocation.SOURCE_PATH, List.of());
+        }
         var units = fm.getJavaFileObjectsFromPaths(files);
         lastTask = (JavacTask) compiler.getTask(null, fm, null, null, null, units);
     }
@@ -326,6 +339,75 @@ class AbiIncrementalBuildTest {
                 Files.exists(classesDir.resolve("api/Model$Builder.class")),
                 "Stale inner class file should be deleted when inner class is removed");
         assertTrue(Files.exists(classesDir.resolve("api/Model.class")), "Main class file should still exist");
+    }
+
+    @Test
+    void moduleInfoTrackedInFullBuild() throws Exception {
+        // Set up modular sources
+        Files.writeString(sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n}\n");
+
+        doFullBuildCycle(true);
+
+        // State should exist and include module entry
+        assertTrue(Files.exists(workDir.resolve("target/.incremental-state")));
+        var state = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        assertNotNull(state, "State should be loaded");
+        assertNotNull(state.getType("module:my.mod"), "State should contain module-info entry with 'module:' prefix");
+        assertNotNull(state.getAbiFingerprint("module:my.mod"), "Module entry should have an ABI fingerprint");
+    }
+
+    @Test
+    void moduleInfoChangeDetectedAsIncremental() throws Exception {
+        Files.writeString(sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n}\n");
+
+        doFullBuildCycle(true);
+
+        // Modify module-info.java — add exports impl
+        CompilerTestHelper.writeSource(
+                sourceDir,
+                "impl",
+                "Helper",
+                "package impl; public class Helper { public String normalize(String s) { return s == null ? \"\" : s.trim(); } }");
+        Files.writeString(
+                sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n  exports impl;\n}\n");
+
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        Set<Path> toCompile = abi2.initialize(listSources());
+        assertFalse(toCompile.isEmpty(), "Changed module-info should need recompilation");
+        assertTrue(
+                toCompile.stream().anyMatch(p -> p.toString().endsWith("module-info.java")),
+                "module-info.java should be in compile set");
+    }
+
+    @Test
+    void moduleInfoAbiFingerprintChangesOnDirectiveChange() throws Exception {
+        Files.writeString(sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n}\n");
+
+        doFullBuildCycle(true);
+
+        var state1 = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        String fingerprint1 = state1.getAbiFingerprint("module:my.mod");
+        assertNotNull(fingerprint1);
+
+        // Change exports → ABI should change
+        Files.writeString(
+                sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n  exports impl;\n}\n");
+
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        Set<Path> toCompile = abi2.initialize(listSources());
+
+        while (!toCompile.isEmpty()) {
+            compileFiles(toCompile, true);
+            abi2.attachTo(lastTask);
+            lastTask.call();
+            toCompile = abi2.processRound();
+        }
+        abi2.finish();
+
+        var state2 = IncrementalState.load(workDir.resolve("target/.incremental-state"));
+        String fingerprint2 = state2.getAbiFingerprint("module:my.mod");
+        assertNotNull(fingerprint2);
+        assertNotEquals(fingerprint1, fingerprint2, "ABI fingerprint should change when exports are added");
     }
 
     @Test

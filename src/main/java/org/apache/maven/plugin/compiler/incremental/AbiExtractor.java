@@ -30,7 +30,16 @@ import javax.lang.model.type.TypeMirror;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
+
+import com.sun.source.tree.DirectiveTree;
+import com.sun.source.tree.ExportsTree;
+import com.sun.source.tree.ModuleTree;
+import com.sun.source.tree.OpensTree;
+import com.sun.source.tree.ProvidesTree;
+import com.sun.source.tree.RequiresTree;
+import com.sun.source.tree.UsesTree;
 
 /**
  * Computes ABI (Application Binary Interface) fingerprints for Java types
@@ -56,6 +65,85 @@ public class AbiExtractor {
     public static String canonicalForm(TypeElement type) {
         var sb = new StringBuilder();
         appendType(sb, type, 0);
+        return sb.toString();
+    }
+
+    public static String computeModuleFingerprint(ModuleTree moduleTree) {
+        return Sha256.hash(moduleCanonicalForm(moduleTree));
+    }
+
+    public static String moduleCanonicalForm(ModuleTree moduleTree) {
+        var sb = new StringBuilder();
+        if (moduleTree.getModuleType() == ModuleTree.ModuleKind.OPEN) {
+            sb.append("open ");
+        }
+        sb.append("module ").append(moduleTree.getName()).append('\n');
+
+        var requires = new TreeSet<String>();
+        var exports = new TreeSet<String>();
+        var opens = new TreeSet<String>();
+        var uses = new TreeSet<String>();
+        var provides = new TreeSet<String>();
+
+        for (DirectiveTree directive : moduleTree.getDirectives()) {
+            if (directive instanceof RequiresTree r) {
+                var entry = new StringBuilder("requires ");
+                if (r.isTransitive()) {
+                    entry.append("transitive ");
+                }
+                if (r.isStatic()) {
+                    entry.append("static ");
+                }
+                entry.append(r.getModuleName());
+                requires.add(entry.toString());
+            } else if (directive instanceof ExportsTree e) {
+                var entry = new StringBuilder("exports ").append(e.getPackageName());
+                var moduleNames = e.getModuleNames();
+                if (moduleNames != null && !moduleNames.isEmpty()) {
+                    entry.append(" to ");
+                    entry.append(
+                            moduleNames.stream().map(Object::toString).sorted().collect(Collectors.joining(", ")));
+                }
+                exports.add(entry.toString());
+            } else if (directive instanceof OpensTree o) {
+                var entry = new StringBuilder("opens ").append(o.getPackageName());
+                var moduleNames = o.getModuleNames();
+                if (moduleNames != null && !moduleNames.isEmpty()) {
+                    entry.append(" to ");
+                    entry.append(
+                            moduleNames.stream().map(Object::toString).sorted().collect(Collectors.joining(", ")));
+                }
+                opens.add(entry.toString());
+            } else if (directive instanceof UsesTree u) {
+                uses.add("uses " + u.getServiceName());
+            } else if (directive instanceof ProvidesTree p) {
+                var entry = new StringBuilder("provides ").append(p.getServiceName());
+                var implNames = p.getImplementationNames();
+                if (implNames != null && !implNames.isEmpty()) {
+                    entry.append(" with ");
+                    entry.append(
+                            implNames.stream().map(Object::toString).sorted().collect(Collectors.joining(", ")));
+                }
+                provides.add(entry.toString());
+            }
+        }
+
+        for (String r : requires) {
+            sb.append("  ").append(r).append('\n');
+        }
+        for (String e : exports) {
+            sb.append("  ").append(e).append('\n');
+        }
+        for (String o : opens) {
+            sb.append("  ").append(o).append('\n');
+        }
+        for (String u : uses) {
+            sb.append("  ").append(u).append('\n');
+        }
+        for (String p : provides) {
+            sb.append("  ").append(p).append('\n');
+        }
+
         return sb.toString();
     }
 

@@ -24,9 +24,15 @@ import javax.lang.model.element.TypeElement;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 
 import com.sun.source.tree.ClassTree;
+import com.sun.source.tree.CompilationUnitTree;
+import com.sun.source.tree.DirectiveTree;
+import com.sun.source.tree.ModuleTree;
+import com.sun.source.tree.ProvidesTree;
+import com.sun.source.tree.UsesTree;
 import com.sun.source.util.JavacTask;
 import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TaskListener;
@@ -57,15 +63,27 @@ public class CompilationAnalyzer implements TaskListener {
         this.trees = Trees.instance(task);
     }
 
+    static final String MODULE_PREFIX = "module:";
+
     @Override
     public void finished(TaskEvent e) {
         if (e.getKind() != TaskEvent.Kind.ANALYZE) {
             return;
         }
 
-        TypeElement typeElement = e.getTypeElement();
         var cu = e.getCompilationUnit();
-        if (typeElement == null || cu == null) {
+        if (cu == null) {
+            return;
+        }
+
+        ModuleTree moduleTree = cu.getModule();
+        if (moduleTree != null) {
+            analyzeModule(moduleTree, cu);
+            return;
+        }
+
+        TypeElement typeElement = e.getTypeElement();
+        if (typeElement == null) {
             return;
         }
 
@@ -121,6 +139,43 @@ public class CompilationAnalyzer implements TaskListener {
                 qualifiedName,
                 new SourceFileAnalysis(
                         qualifiedName, sourceFile, sigDeps, implDeps, abiFingerprint, abiCanonical, annotationTypes));
+    }
+
+    private void analyzeModule(ModuleTree moduleTree, CompilationUnitTree cu) {
+        String moduleName = moduleTree.getName().toString();
+        String qualifiedName = MODULE_PREFIX + moduleName;
+        String sourceFile = cu.getSourceFile().getName();
+
+        String abiFingerprint = AbiExtractor.computeModuleFingerprint(moduleTree);
+        String abiCanonical = AbiExtractor.moduleCanonicalForm(moduleTree);
+
+        var sigDeps = new TreeSet<String>();
+        for (DirectiveTree directive : moduleTree.getDirectives()) {
+            if (directive instanceof UsesTree u) {
+                String typeName = u.getServiceName().toString();
+                if (!isJdkType(typeName)) {
+                    sigDeps.add(typeName);
+                }
+            } else if (directive instanceof ProvidesTree p) {
+                String typeName = p.getServiceName().toString();
+                if (!isJdkType(typeName)) {
+                    sigDeps.add(typeName);
+                }
+                if (p.getImplementationNames() != null) {
+                    for (var impl : p.getImplementationNames()) {
+                        String implName = impl.toString();
+                        if (!isJdkType(implName)) {
+                            sigDeps.add(implName);
+                        }
+                    }
+                }
+            }
+        }
+
+        analyses.put(
+                qualifiedName,
+                new SourceFileAnalysis(
+                        qualifiedName, sourceFile, sigDeps, Set.of(), abiFingerprint, abiCanonical, Set.of()));
     }
 
     public Map<String, SourceFileAnalysis> getResults() {
