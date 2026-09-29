@@ -449,6 +449,39 @@ class AbiIncrementalBuildTest {
     }
 
     @Test
+    void packageInfoChangeDetected() throws Exception {
+        CompilerTestHelper.writeSource(
+                sourceDir,
+                "api",
+                "ApiStatus",
+                "package api; import java.lang.annotation.*; @Retention(RetentionPolicy.RUNTIME) @Target(ElementType.PACKAGE) public @interface ApiStatus { String value(); }");
+        CompilerTestHelper.writeSource(sourceDir, "api", "package-info", "@api.ApiStatus(\"stable\")\npackage api;\n");
+
+        doFullBuildCycle();
+
+        assertTrue(
+                Files.exists(classesDir.resolve("api/package-info.class")),
+                "package-info.class should exist after full build");
+
+        // Modify the package-info annotation value
+        CompilerTestHelper.writeSource(
+                sourceDir, "api", "package-info", "@api.ApiStatus(\"experimental\")\npackage api;\n");
+
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        Set<Path> toCompile = abi2.initialize(listSources());
+        assertFalse(toCompile.isEmpty(), "Changed package-info should need recompilation");
+        assertTrue(
+                toCompile.stream().anyMatch(p -> p.toString().endsWith("package-info.java")),
+                "package-info.java should be in compile set");
+
+        compileFiles(toCompile);
+        abi2.attachTo(lastTask);
+        lastTask.call();
+        abi2.processRound();
+        abi2.finish();
+    }
+
+    @Test
     void constantValueChangeTriggersCascade() throws Exception {
         CompilerTestHelper.writeSource(
                 sourceDir,
