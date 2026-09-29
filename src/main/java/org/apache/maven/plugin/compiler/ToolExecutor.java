@@ -1002,6 +1002,12 @@ public class ToolExecutor {
                 abiBuild.isFullBuild()
                         ? "Compiling " + toCompile.size() + " source file(s) (ABI: full build)."
                         : "Compiling " + toCompile.size() + " source file(s) (ABI: incremental).");
+        if (mojo.showCompilationChanges && abiBuild.getRebuildCause() != null) {
+            logger.info("Rebuild cause: " + abiBuild.getRebuildCause());
+            for (Path f : toCompile) {
+                logger.info("  " + f);
+            }
+        }
 
         var originalSourceFiles = new ArrayList<>(sourceFiles);
         boolean success = true;
@@ -1030,6 +1036,11 @@ public class ToolExecutor {
                 toCompile = abiBuild.processRound();
                 if (!toCompile.isEmpty()) {
                     logger.info("ABI cascade: recompiling " + toCompile.size() + " additional file(s).");
+                    if (mojo.showCompilationChanges) {
+                        for (Path f : toCompile) {
+                            logger.info("  " + f);
+                        }
+                    }
                 }
             }
         } finally {

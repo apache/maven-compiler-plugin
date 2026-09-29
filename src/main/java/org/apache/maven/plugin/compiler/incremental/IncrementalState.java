@@ -53,7 +53,7 @@ import java.util.TreeSet;
  */
 public class IncrementalState {
 
-    private static final int VERSION = 7;
+    private static final int VERSION = 1;
 
     private final Map<String, String> sourceHashes = new LinkedHashMap<>();
     private final Map<String, Long> sourceMtimes = new LinkedHashMap<>();
@@ -293,7 +293,6 @@ public class IncrementalState {
             for (var entry : sourceHashes.entrySet()) {
                 out.writeUTF(entry.getKey());
                 out.writeUTF(entry.getValue());
-                // v5: mtime per source file (0 if not recorded)
                 Long mtime = sourceMtimes.get(entry.getKey());
                 out.writeLong(mtime != null ? mtime : 0L);
             }
@@ -304,16 +303,11 @@ public class IncrementalState {
                 out.writeUTF(entry.getValue().abiFingerprint());
                 writeStringSet(out, entry.getValue().signatureDeps());
                 writeStringSet(out, entry.getValue().implementationDeps());
-                // v4: annotation types
                 writeStringSet(out, entry.getValue().annotationTypes());
-                // v6: module name
                 out.writeUTF(entry.getValue().moduleName());
             }
-            // v2: external fingerprints
             writeStringMap(out, externalFingerprints);
-            // v3: classpath entry identities
             writeStringMap(out, classpathIdentities);
-            // v7: compilation context hash
             out.writeUTF(configHash);
         }
     }
@@ -334,12 +328,9 @@ public class IncrementalState {
                 String path = in.readUTF();
                 String hash = in.readUTF();
                 state.sourceHashes.put(path, hash);
-                // v5: mtime per source file
-                if (version >= 5) {
-                    long mtime = in.readLong();
-                    if (mtime != 0L) {
-                        state.sourceMtimes.put(path, mtime);
-                    }
+                long mtime = in.readLong();
+                if (mtime != 0L) {
+                    state.sourceMtimes.put(path, mtime);
                 }
             }
             int typeCount = in.readInt();
@@ -349,19 +340,13 @@ public class IncrementalState {
                 String abi = in.readUTF();
                 Set<String> sigDeps = readStringSet(in);
                 Set<String> implDeps = readStringSet(in);
-                Set<String> annotTypes = version >= 4 ? readStringSet(in) : Set.of();
-                String moduleName = version >= 6 ? in.readUTF() : "";
+                Set<String> annotTypes = readStringSet(in);
+                String moduleName = in.readUTF();
                 state.types.put(name, new TypeInfo(sourceFile, abi, sigDeps, implDeps, annotTypes, moduleName));
             }
-            if (version >= 2) {
-                readStringMap(in, state.externalFingerprints);
-            }
-            if (version >= 3) {
-                readStringMap(in, state.classpathIdentities);
-            }
-            if (version >= 7) {
-                state.configHash = in.readUTF();
-            }
+            readStringMap(in, state.externalFingerprints);
+            readStringMap(in, state.classpathIdentities);
+            state.configHash = in.readUTF();
             return state;
         } catch (IOException e) {
             return null;

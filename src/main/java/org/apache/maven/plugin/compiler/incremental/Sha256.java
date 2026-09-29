@@ -36,9 +36,19 @@ final class Sha256 {
      * @return 16-character hex string
      */
     static String hash(String input) {
+        return hash(input.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Returns the first 16 hex characters of the SHA-256 hash of {@code content}.
+     *
+     * @param content the bytes to hash
+     * @return 16-character hex string
+     */
+    static String hash(byte[] content) {
         try {
             var md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(input.getBytes(StandardCharsets.UTF_8));
+            byte[] digest = md.digest(content);
             var hex = new StringBuilder(32);
             for (byte b : digest) {
                 hex.append(String.format("%02x", b));

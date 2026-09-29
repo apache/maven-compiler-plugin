@@ -23,8 +23,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +84,7 @@ public class AbiIncrementalBuild {
     private boolean fullBuild;
     private boolean useModulePrefixedPaths;
     private String configHash = "";
+    private String rebuildCause;
     private int totalSources;
 
     public AbiIncrementalBuild(Path outputDir) {
@@ -159,7 +158,11 @@ public class AbiIncrementalBuild {
         sourceMtimes = new LinkedHashMap<>();
         sourceHashes = hashSourceFiles(allSourceFiles, previousState, sourceMtimes);
 
-        if (previousState == null || !configHash.equals(previousState.getConfigHash())) {
+        if (previousState == null) {
+            rebuildCause = "no previous build state";
+            return initFullBuild(allSourceFiles);
+        } else if (!configHash.equals(previousState.getConfigHash())) {
+            rebuildCause = "compilation configuration changed (module-info-patch.maven)";
             return initFullBuild(allSourceFiles);
         } else {
             return initIncrementalBuild(allSourceFiles);
@@ -313,6 +316,14 @@ public class AbiIncrementalBuild {
         return totalSources - allCompiled.size();
     }
 
+    /**
+     * Returns a human-readable description of why recompilation was triggered,
+     * or {@code null} if no rebuild is needed.
+     */
+    public String getRebuildCause() {
+        return rebuildCause;
+    }
+
     // --- Initialization ---
 
     private Set<Path> initFullBuild(List<Path> allSourceFiles) {
@@ -355,6 +366,22 @@ public class AbiIncrementalBuild {
         if (changedFiles.isEmpty() && newFiles.isEmpty() && deletedFiles.isEmpty() && externallyInvalidated.isEmpty()) {
             return Set.of();
         }
+
+        // Build rebuild cause description
+        var causes = new java.util.ArrayList<String>();
+        if (!changedFiles.isEmpty()) {
+            causes.add(changedFiles.size() + " changed");
+        }
+        if (!newFiles.isEmpty()) {
+            causes.add(newFiles.size() + " new");
+        }
+        if (!deletedFiles.isEmpty()) {
+            causes.add(deletedFiles.size() + " deleted");
+        }
+        if (!externallyInvalidated.isEmpty()) {
+            causes.add(externallyInvalidated.size() + " invalidated by dependency changes");
+        }
+        rebuildCause = String.join(", ", causes);
 
         // Build initial recompilation set
         var toRecompile = new TreeSet<String>();
@@ -629,22 +656,8 @@ public class AbiIncrementalBuild {
                 }
             }
 
-            hashes.put(path, sha256(Files.readAllBytes(file)));
+            hashes.put(path, Sha256.hash(Files.readAllBytes(file)));
         }
         return hashes;
-    }
-
-    private static String sha256(byte[] content) {
-        try {
-            var md = MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(content);
-            var hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
