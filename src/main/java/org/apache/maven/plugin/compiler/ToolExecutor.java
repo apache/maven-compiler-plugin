@@ -969,33 +969,36 @@ public class ToolExecutor {
         var originalSourceFiles = new ArrayList<>(sourceFiles);
         boolean success = true;
 
-        while (!toCompile.isEmpty()) {
-            Set<Path> compileSet = toCompile;
-            sourceFiles = originalSourceFiles.stream()
-                    .filter(sf -> compileSet.contains(sf.file))
-                    .collect(Collectors.toList());
+        try {
+            while (!toCompile.isEmpty()) {
+                Set<Path> compileSet = toCompile;
+                sourceFiles = originalSourceFiles.stream()
+                        .filter(sf -> compileSet.contains(sf.file))
+                        .collect(Collectors.toList());
 
-            if (sourceFiles.isEmpty()) {
-                break;
-            }
+                if (sourceFiles.isEmpty()) {
+                    break;
+                }
 
-            var compilerOutput = new StringWriter();
-            success = compileWithAbiAnalyzer(compiler, configuration, compilerOutput, abiBuild);
-            String output = compilerOutput.toString();
-            if (!output.isBlank()) {
-                logger.warn(output);
-            }
-            if (!success) {
-                break;
-            }
+                var compilerOutput = new StringWriter();
+                success = compileWithAbiAnalyzer(compiler, configuration, compilerOutput, abiBuild);
+                String output = compilerOutput.toString();
+                if (!output.isBlank()) {
+                    logger.warn(output);
+                }
+                if (!success) {
+                    break;
+                }
 
-            toCompile = abiBuild.processRound();
-            if (!toCompile.isEmpty()) {
-                logger.info("ABI cascade: recompiling " + toCompile.size() + " additional file(s).");
+                toCompile = abiBuild.processRound();
+                if (!toCompile.isEmpty()) {
+                    logger.info("ABI cascade: recompiling " + toCompile.size() + " additional file(s).");
+                }
             }
+        } finally {
+            sourceFiles = originalSourceFiles;
         }
 
-        sourceFiles = originalSourceFiles;
         if (success) {
             abiBuild.finish();
             logger.info("Compiled " + abiBuild.compiledCount() + " file(s), " + abiBuild.unchangedCount()

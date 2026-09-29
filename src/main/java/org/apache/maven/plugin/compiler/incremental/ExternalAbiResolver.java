@@ -30,6 +30,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Resolves ABI fingerprints for types defined outside the current compilation
@@ -60,6 +62,8 @@ import java.util.Set;
  * @see AbiIncrementalBuild
  */
 public class ExternalAbiResolver {
+
+    private static final Logger LOGGER = Logger.getLogger(ExternalAbiResolver.class.getName());
 
     private final List<Path> classpathEntries;
     private final Set<Path> reactorModulePaths;
@@ -171,8 +175,9 @@ public class ExternalAbiResolver {
                 } else if (isJarFile(entry) && Files.exists(entry)) {
                     resolveFromJar(entry, remaining, result);
                 }
-            } catch (IOException ignored) {
+            } catch (IOException e) {
                 // Classpath entry unreadable — skip to next
+                LOGGER.log(Level.FINE, "Skipping unreadable classpath entry: " + entry, e);
             }
         }
     }

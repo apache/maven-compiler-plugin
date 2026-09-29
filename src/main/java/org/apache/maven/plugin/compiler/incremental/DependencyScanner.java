@@ -190,7 +190,8 @@ public class DependencyScanner extends TreePathScanner<Void, Void> {
     private Element resolveElement(TreePath path) {
         try {
             return trees.getElement(path);
-        } catch (Exception e) {
+        } catch (IllegalArgumentException | NullPointerException e) {
+            // javac may throw for synthetic elements, error types, or unresolved symbols
             return null;
         }
     }
