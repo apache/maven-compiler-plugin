@@ -937,6 +937,9 @@ public class ToolExecutor {
                     + " Falling back to full compilation.");
         }
         var abiBuild = new AbiIncrementalBuild(outputDirectory);
+        if (compiler instanceof ForkedTool) {
+            abiBuild.invalidate();
+        }
 
         // Collect classpath entries for cross-module tracking
         var classpathPaths = new ArrayList<Path>();
