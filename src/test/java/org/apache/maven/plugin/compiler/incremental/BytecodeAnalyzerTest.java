@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -146,6 +147,65 @@ class BytecodeAnalyzerTest {
         assertEquals(fromPath.abiFingerprint(), fromBytes.abiFingerprint());
         assertEquals(fromPath.abiCanonical(), fromBytes.abiCanonical());
         assertEquals(fromPath.referencedTypes(), fromBytes.referencedTypes());
+    }
+
+    @Test
+    void genericTypeChangeAffectsFingerprint() throws Exception {
+        // Compile with List<String>
+        CompilerTestHelper.writeSource(sourceDir, "test", "Generics", """
+                package test;
+                public class Generics {
+                    public java.util.List<String> getNames() { return null; }
+                    public java.util.Map<String, Integer> getMap() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis1 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Generics.class"));
+
+        // Recompile with List<Integer> — erased descriptor is identical,
+        // but generic signature differs
+        Path srcFile = sourceDir.resolve("test/Generics.java");
+        Files.writeString(srcFile, """
+                package test;
+                public class Generics {
+                    public java.util.List<Integer> getNames() { return null; }
+                    public java.util.Map<String, Integer> getMap() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis2 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Generics.class"));
+
+        assertNotEquals(
+                analysis1.abiFingerprint(),
+                analysis2.abiFingerprint(),
+                "Changing List<String> to List<Integer> should change bytecode ABI fingerprint");
+        assertTrue(analysis2.abiCanonical().contains("<sig:"), "Canonical form should include generic signatures");
+    }
+
+    @Test
+    void classLevelGenericSignatureAffectsFingerprint() throws Exception {
+        CompilerTestHelper.writeSource(sourceDir, "test", "Box", """
+                package test;
+                public class Box<T> {
+                    public T get() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis1 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Box.class"));
+
+        Files.writeString(sourceDir.resolve("test/Box.java"), """
+                package test;
+                public class Box<T extends Comparable<T>> {
+                    public T get() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis2 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Box.class"));
+
+        assertNotEquals(
+                analysis1.abiFingerprint(),
+                analysis2.abiFingerprint(),
+                "Changing type parameter bounds should change bytecode ABI fingerprint");
     }
 
     /**
