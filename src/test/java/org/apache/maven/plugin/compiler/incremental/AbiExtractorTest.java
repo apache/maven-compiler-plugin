@@ -116,4 +116,35 @@ class AbiExtractorTest {
 
         assertNotEquals(fp1, fp2, "Changing superclass should change ABI fingerprint");
     }
+
+    @Test
+    void sealedClassPermitsAffectsFingerprint() throws Exception {
+        Path src1 = sourceDir.resolveSibling("srcSealed1");
+        Path out1 = outputDir.resolveSibling("outSealed1");
+        CompilerTestHelper.writeSource(
+                src1, "test", "Subject", "package test; public sealed class Subject permits A { }");
+        CompilerTestHelper.writeSource(src1, "test", "A", "package test; public final class A extends Subject { }");
+        Map<String, SourceFileAnalysis> r1 = CompilerTestHelper.compileAndAnalyze(src1, out1);
+        String fp1 = r1.get("test.Subject").abiFingerprint();
+
+        Path src2 = sourceDir.resolveSibling("srcSealed2");
+        Path out2 = outputDir.resolveSibling("outSealed2");
+        CompilerTestHelper.writeSource(
+                src2, "test", "Subject", "package test; public sealed class Subject permits A, B { }");
+        CompilerTestHelper.writeSource(src2, "test", "A", "package test; public final class A extends Subject { }");
+        CompilerTestHelper.writeSource(src2, "test", "B", "package test; public final class B extends Subject { }");
+        Map<String, SourceFileAnalysis> r2 = CompilerTestHelper.compileAndAnalyze(src2, out2);
+        String fp2 = r2.get("test.Subject").abiFingerprint();
+
+        assertNotEquals(fp1, fp2, "Adding a permitted subclass should change ABI fingerprint");
+    }
+
+    @Test
+    void enumConstantReorderingAffectsFingerprint() throws Exception {
+        String fp1 = fingerprintFor("package test; public enum Subject { RED, GREEN, BLUE }");
+        sourceDir = sourceDir.resolveSibling("srcEnum2");
+        outputDir = outputDir.resolveSibling("outEnum2");
+        String fp2 = fingerprintFor("package test; public enum Subject { BLUE, GREEN, RED }");
+        assertNotEquals(fp1, fp2, "Reordering enum constants should change ABI fingerprint (ordinal changes)");
+    }
 }

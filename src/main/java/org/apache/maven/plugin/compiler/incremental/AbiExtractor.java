@@ -185,10 +185,26 @@ public class AbiExtractor {
             sb.append(prefix).append("  implements ").append(iface).append('\n');
         }
 
+        List<? extends TypeMirror> permitted = type.getPermittedSubclasses();
+        if (permitted != null && !permitted.isEmpty()) {
+            var sorted = permitted.stream().map(TypeMirror::toString).sorted().toList();
+            for (String p : sorted) {
+                sb.append(prefix).append("  permits ").append(p).append('\n');
+            }
+        }
+
+        // Enum constants are emitted first in declaration order (ordinal matters)
+        for (Element el : type.getEnclosedElements()) {
+            if (el.getKind() == ElementKind.ENUM_CONSTANT && !el.getModifiers().contains(Modifier.PRIVATE)) {
+                appendField(sb, (VariableElement) el, indent + 1);
+            }
+        }
+
         var members = type.getEnclosedElements().stream()
                 .filter(e -> !e.getModifiers().contains(Modifier.PRIVATE))
+                .filter(e -> e.getKind() != ElementKind.ENUM_CONSTANT)
                 .sorted(Comparator.<Element, Integer>comparing(e -> switch (e.getKind()) {
-                            case FIELD, ENUM_CONSTANT -> 0;
+                            case FIELD -> 0;
                             case CONSTRUCTOR -> 1;
                             case METHOD -> 2;
                             default -> e.getKind().isClass() || e.getKind().isInterface() ? 3 : 4;
