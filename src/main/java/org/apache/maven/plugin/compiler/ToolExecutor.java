@@ -979,6 +979,9 @@ public class ToolExecutor {
             abiBuild.setProcessorPath(processorPaths);
         }
 
+        // Hash module-info-patch.maven files for config change detection
+        abiBuild.setConfigHash(computeModuleInfoPatchHash());
+
         // Collect all source file paths
         var allSourcePaths = new ArrayList<Path>();
         for (SourceFile sf : sourceFiles) {
@@ -1037,6 +1040,41 @@ public class ToolExecutor {
         } else {
             abiBuild.invalidate();
             throw new CompilationFailureException("Compilation failed (ABI incremental strategy).");
+        }
+    }
+
+    private String computeModuleInfoPatchHash() {
+        var digest = new StringBuilder();
+        for (SourceDirectory source : sourceDirectories) {
+            Path patchFile = source.root.resolve(ModuleInfoPatch.FILENAME);
+            if (Files.isRegularFile(patchFile)) {
+                try {
+                    byte[] content = Files.readAllBytes(patchFile);
+                    var md = java.security.MessageDigest.getInstance("SHA-256");
+                    byte[] hash = md.digest(content);
+                    var hex = new StringBuilder();
+                    for (byte b : hash) {
+                        hex.append(String.format("%02x", b));
+                    }
+                    digest.append(patchFile).append(':').append(hex, 0, 16).append(';');
+                } catch (IOException | java.security.NoSuchAlgorithmException e) {
+                    digest.append(patchFile).append(":unreadable;");
+                }
+            }
+        }
+        if (digest.isEmpty()) {
+            return "";
+        }
+        try {
+            var md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(digest.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            var hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.substring(0, 16);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return digest.toString();
         }
     }
 

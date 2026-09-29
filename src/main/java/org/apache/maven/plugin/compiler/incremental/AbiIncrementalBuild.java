@@ -85,6 +85,7 @@ public class AbiIncrementalBuild {
     private CompilationAnalyzer currentAnalyzer;
     private boolean fullBuild;
     private boolean useModulePrefixedPaths;
+    private String configHash = "";
     private int totalSources;
 
     public AbiIncrementalBuild(Path outputDir) {
@@ -132,6 +133,15 @@ public class AbiIncrementalBuild {
     }
 
     /**
+     * Sets a hash of compilation context configuration (e.g. module-info-patch
+     * files). If this hash differs from the previous build, a full rebuild
+     * is triggered.
+     */
+    public void setConfigHash(String hash) {
+        this.configHash = hash != null ? hash : "";
+    }
+
+    /**
      * Initializes the incremental build by scanning source files and comparing
      * against the previous build's state.
      *
@@ -149,7 +159,7 @@ public class AbiIncrementalBuild {
         sourceMtimes = new LinkedHashMap<>();
         sourceHashes = hashSourceFiles(allSourceFiles, previousState, sourceMtimes);
 
-        if (previousState == null) {
+        if (previousState == null || !configHash.equals(previousState.getConfigHash())) {
             return initFullBuild(allSourceFiles);
         } else {
             return initIncrementalBuild(allSourceFiles);
@@ -263,6 +273,7 @@ public class AbiIncrementalBuild {
             state.setSourceMtime(entry.getKey(), entry.getValue());
         }
 
+        state.setConfigHash(configHash);
         state.save(stateFile);
         AbiManifest.write(buildDir.resolve(AbiManifest.FILENAME), state.getAllAbiFingerprints());
     }

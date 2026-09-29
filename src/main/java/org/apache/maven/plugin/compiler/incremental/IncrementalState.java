@@ -53,13 +53,14 @@ import java.util.TreeSet;
  */
 public class IncrementalState {
 
-    private static final int VERSION = 6;
+    private static final int VERSION = 7;
 
     private final Map<String, String> sourceHashes = new LinkedHashMap<>();
     private final Map<String, Long> sourceMtimes = new LinkedHashMap<>();
     private final Map<String, TypeInfo> types = new LinkedHashMap<>();
     private final Map<String, String> externalFingerprints = new LinkedHashMap<>();
     private final Map<String, String> classpathIdentities = new LinkedHashMap<>();
+    private String configHash = "";
 
     public record TypeInfo(
             String sourceFile,
@@ -184,6 +185,18 @@ public class IncrementalState {
     }
 
     /**
+     * Returns the compilation context hash, capturing external configuration
+     * such as module-info-patch.maven file content.
+     */
+    public String getConfigHash() {
+        return configHash;
+    }
+
+    public void setConfigHash(String hash) {
+        this.configHash = hash != null ? hash : "";
+    }
+
+    /**
      * Returns the source files of all types carrying any of the given annotations.
      */
     public Set<String> getSourceFilesWithAnnotations(Set<String> annotationTypes) {
@@ -251,6 +264,7 @@ public class IncrementalState {
         copy.types.putAll(this.types);
         copy.externalFingerprints.putAll(this.externalFingerprints);
         copy.classpathIdentities.putAll(this.classpathIdentities);
+        copy.configHash = this.configHash;
         return copy;
     }
 
@@ -299,6 +313,8 @@ public class IncrementalState {
             writeStringMap(out, externalFingerprints);
             // v3: classpath entry identities
             writeStringMap(out, classpathIdentities);
+            // v7: compilation context hash
+            out.writeUTF(configHash);
         }
     }
 
@@ -342,6 +358,9 @@ public class IncrementalState {
             }
             if (version >= 3) {
                 readStringMap(in, state.classpathIdentities);
+            }
+            if (version >= 7) {
+                state.configHash = in.readUTF();
             }
             return state;
         } catch (IOException e) {

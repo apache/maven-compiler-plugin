@@ -582,4 +582,31 @@ class AbiIncrementalBuildTest {
         abi3.initialize(listSources());
         assertTrue(abi3.isFullBuild(), "Build after invalidation should be full");
     }
+
+    @Test
+    void configHashChangeTriggersFullRebuild() throws Exception {
+        // Build with configHash "abc"
+        var abi1 = new AbiIncrementalBuild(classesDir);
+        abi1.setConfigHash("abc");
+        Set<Path> toCompile = abi1.initialize(listSources());
+        assertTrue(abi1.isFullBuild(), "First build should be full");
+
+        compileFiles(toCompile);
+        abi1.attachTo(lastTask);
+        lastTask.call();
+        abi1.processRound();
+        abi1.finish();
+
+        // Same configHash → incremental (no changes)
+        var abi2 = new AbiIncrementalBuild(classesDir);
+        abi2.setConfigHash("abc");
+        toCompile = abi2.initialize(listSources());
+        assertTrue(toCompile.isEmpty(), "Same configHash should be up-to-date");
+
+        // Different configHash → full rebuild
+        var abi3 = new AbiIncrementalBuild(classesDir);
+        abi3.setConfigHash("xyz");
+        abi3.initialize(listSources());
+        assertTrue(abi3.isFullBuild(), "Changed configHash should trigger full rebuild");
+    }
 }
