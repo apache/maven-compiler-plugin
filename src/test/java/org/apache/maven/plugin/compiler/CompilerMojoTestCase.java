@@ -223,6 +223,42 @@ public class CompilerMojoTestCase {
     }
 
     /**
+     * Tests that full annotation processing runs again when sources are unchanged.
+     */
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-proc-full-test")
+    public void testCompilerProcFullRunsWhenSourcesAreUnchanged(
+            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
+        Log log = mock(Log.class);
+        compileMojo.logger = log;
+        compileMojo.execute();
+
+        clearInvocations(log);
+        compileMojo.execute();
+
+        verify(log, never()).info("Nothing to compile - all classes are up to date.");
+        assertCompilerStubOutputFileExists(compileMojo);
+    }
+
+    /**
+     * Tests that an explicitly configured incremental compilation value takes precedence over annotation processing.
+     */
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-proc-only-explicit-incremental-test")
+    public void testCompilerProcOnlyRespectsExplicitIncrementalCompilation(
+            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
+        Log log = mock(Log.class);
+        compileMojo.logger = log;
+        compileMojo.execute();
+
+        clearInvocations(log);
+        compileMojo.execute();
+
+        verify(log).info("Nothing to compile - all classes are up to date.");
+        assertCompilerStubOutputFileExists(compileMojo);
+    }
+
+    /**
      * Tests the ability of the plugin to respond to includes and excludes correctly.
      */
     @Test
