@@ -19,7 +19,9 @@
 package org.apache.maven.plugin.compiler.incremental;
 
 import javax.lang.model.element.AnnotationMirror;
+import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.TypeElement;
+import javax.lang.model.util.Elements;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -57,10 +59,12 @@ import com.sun.source.util.Trees;
 public class CompilationAnalyzer implements TaskListener {
 
     private final Trees trees;
+    private final Elements elements;
     private final Map<String, SourceFileAnalysis> analyses = new LinkedHashMap<>();
 
     public CompilationAnalyzer(JavacTask task) {
         this.trees = Trees.instance(task);
+        this.elements = task.getElements();
     }
 
     static final String MODULE_PREFIX = "module:";
@@ -135,10 +139,31 @@ public class CompilationAnalyzer implements TaskListener {
             }
         }
 
+        String moduleName = resolveModuleName(typeElement);
+
         analyses.put(
                 qualifiedName,
                 new SourceFileAnalysis(
-                        qualifiedName, sourceFile, sigDeps, implDeps, abiFingerprint, abiCanonical, annotationTypes));
+                        qualifiedName,
+                        sourceFile,
+                        sigDeps,
+                        implDeps,
+                        abiFingerprint,
+                        abiCanonical,
+                        annotationTypes,
+                        moduleName));
+    }
+
+    private String resolveModuleName(TypeElement typeElement) {
+        try {
+            ModuleElement module = elements.getModuleOf(typeElement);
+            if (module != null && !module.isUnnamed()) {
+                return module.getQualifiedName().toString();
+            }
+        } catch (Exception e) {
+            // Some javac versions may not support getModuleOf — fall back to empty
+        }
+        return "";
     }
 
     private void analyzeModule(ModuleTree moduleTree, CompilationUnitTree cu) {
@@ -175,7 +200,14 @@ public class CompilationAnalyzer implements TaskListener {
         analyses.put(
                 qualifiedName,
                 new SourceFileAnalysis(
-                        qualifiedName, sourceFile, sigDeps, Set.of(), abiFingerprint, abiCanonical, Set.of()));
+                        qualifiedName,
+                        sourceFile,
+                        sigDeps,
+                        Set.of(),
+                        abiFingerprint,
+                        abiCanonical,
+                        Set.of(),
+                        moduleName));
     }
 
     public Map<String, SourceFileAnalysis> getResults() {

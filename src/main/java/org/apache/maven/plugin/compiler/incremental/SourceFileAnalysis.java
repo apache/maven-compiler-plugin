@@ -35,6 +35,7 @@ import java.util.Set;
  * @param abiCanonical       human-readable canonical representation of the public API
  * @param annotationTypes    fully qualified names of annotations present on this type,
  *                           used for annotation processor classification decisions
+ * @param moduleName         Java module name (empty string if non-modular or unnamed module)
  */
 public record SourceFileAnalysis(
         String qualifiedName,
@@ -43,4 +44,5 @@ public record SourceFileAnalysis(
         Set<String> implementationDeps,
         String abiFingerprint,
         String abiCanonical,
-        Set<String> annotationTypes) {}
+        Set<String> annotationTypes,
+        String moduleName) {}

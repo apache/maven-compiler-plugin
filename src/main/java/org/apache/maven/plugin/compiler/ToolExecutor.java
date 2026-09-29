@@ -1031,6 +1031,7 @@ public class ToolExecutor {
         }
         final Collection<SourcesForRelease> units = groupByReleaseAndModule();
         determineDirectoryHierarchy(units);
+        abiBuild.setUseModulePrefixedPaths(directoryHierarchy == DirectoryHierarchy.MODULE_SOURCE);
         if (WorkaroundForPatchModule.ENABLED && hasModuleDeclaration && !(compiler instanceof ForkedTool)) {
             compiler = new WorkaroundForPatchModule(compiler);
         }

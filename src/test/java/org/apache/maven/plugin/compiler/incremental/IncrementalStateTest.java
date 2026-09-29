@@ -44,11 +44,11 @@ class IncrementalStateTest {
         state.setType(
                 "com.Model",
                 new IncrementalState.TypeInfo(
-                        "src/Model.java", "abi1", Set.of(), Set.of(), Set.of("com.MyAnnotation")));
+                        "src/Model.java", "abi1", Set.of(), Set.of(), Set.of("com.MyAnnotation"), ""));
         state.setType(
                 "com.Service",
                 new IncrementalState.TypeInfo(
-                        "src/Service.java", "abi2", Set.of("com.Model"), Set.of("com.Helper"), Set.of()));
+                        "src/Service.java", "abi2", Set.of("com.Model"), Set.of("com.Helper"), Set.of(), ""));
         state.setExternalFingerprints(Map.of("ext.Lib", "extfp1"));
         state.setClasspathIdentities(Map.of("/path/to/lib.jar", "1234:5678"));
         return state;
@@ -152,7 +152,7 @@ class IncrementalStateTest {
 
         copy.setSourceHash("src/Extra.java", "hash3");
         copy.setType(
-                "com.Extra", new IncrementalState.TypeInfo("src/Extra.java", "abi3", Set.of(), Set.of(), Set.of()));
+                "com.Extra", new IncrementalState.TypeInfo("src/Extra.java", "abi3", Set.of(), Set.of(), Set.of(), ""));
 
         assertNull(original.getSourceHash("src/Extra.java"), "original should not be affected");
         assertNull(original.getType("com.Extra"), "original should not be affected");

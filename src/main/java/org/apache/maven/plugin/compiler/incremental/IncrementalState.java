@@ -53,7 +53,7 @@ import java.util.TreeSet;
  */
 public class IncrementalState {
 
-    private static final int VERSION = 5;
+    private static final int VERSION = 6;
 
     private final Map<String, String> sourceHashes = new LinkedHashMap<>();
     private final Map<String, Long> sourceMtimes = new LinkedHashMap<>();
@@ -66,7 +66,8 @@ public class IncrementalState {
             String abiFingerprint,
             Set<String> signatureDeps,
             Set<String> implementationDeps,
-            Set<String> annotationTypes) {}
+            Set<String> annotationTypes,
+            String moduleName) {}
 
     public String getSourceHash(String path) {
         return sourceHashes.get(path);
@@ -264,7 +265,8 @@ public class IncrementalState {
                             result.abiFingerprint(),
                             result.signatureDeps(),
                             result.implementationDeps(),
-                            result.annotationTypes()));
+                            result.annotationTypes(),
+                            result.moduleName()));
         }
         return state;
     }
@@ -290,6 +292,8 @@ public class IncrementalState {
                 writeStringSet(out, entry.getValue().implementationDeps());
                 // v4: annotation types
                 writeStringSet(out, entry.getValue().annotationTypes());
+                // v6: module name
+                out.writeUTF(entry.getValue().moduleName());
             }
             // v2: external fingerprints
             writeStringMap(out, externalFingerprints);
@@ -330,7 +334,8 @@ public class IncrementalState {
                 Set<String> sigDeps = readStringSet(in);
                 Set<String> implDeps = readStringSet(in);
                 Set<String> annotTypes = version >= 4 ? readStringSet(in) : Set.of();
-                state.types.put(name, new TypeInfo(sourceFile, abi, sigDeps, implDeps, annotTypes));
+                String moduleName = version >= 6 ? in.readUTF() : "";
+                state.types.put(name, new TypeInfo(sourceFile, abi, sigDeps, implDeps, annotTypes, moduleName));
             }
             if (version >= 2) {
                 readStringMap(in, state.externalFingerprints);

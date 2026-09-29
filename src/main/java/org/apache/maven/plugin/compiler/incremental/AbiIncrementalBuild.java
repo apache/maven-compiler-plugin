@@ -83,6 +83,7 @@ public class AbiIncrementalBuild {
     private Set<String> allCompiled;
     private CompilationAnalyzer currentAnalyzer;
     private boolean fullBuild;
+    private boolean useModulePrefixedPaths;
     private int totalSources;
 
     public AbiIncrementalBuild(Path outputDir) {
@@ -118,6 +119,15 @@ public class AbiIncrementalBuild {
     public void setProcessorPath(List<Path> processorPath) {
         this.processorPath = processorPath;
         this.processorClassification = new ProcessorClassification(processorPath);
+    }
+
+    /**
+     * Indicates that class files are written under module-name subdirectories
+     * of the output directory (MODULE_SOURCE hierarchy). When set, stored module
+     * names are used as path prefixes when deleting class files.
+     */
+    public void setUseModulePrefixedPaths(boolean useModulePrefixedPaths) {
+        this.useModulePrefixedPaths = useModulePrefixedPaths;
     }
 
     /**
@@ -185,6 +195,7 @@ public class AbiIncrementalBuild {
             }
         }
         for (var result : results.values()) {
+            String moduleName = useModulePrefixedPaths ? result.moduleName() : "";
             state.setType(
                     result.qualifiedName(),
                     new IncrementalState.TypeInfo(
@@ -192,7 +203,8 @@ public class AbiIncrementalBuild {
                             result.abiFingerprint(),
                             result.signatureDeps(),
                             result.implementationDeps(),
-                            result.annotationTypes()));
+                            result.annotationTypes(),
+                            moduleName));
         }
 
         if (fullBuild || abiChanged.isEmpty()) {
@@ -327,7 +339,7 @@ public class AbiIncrementalBuild {
                         toRecompile.add(sf);
                     }
                 }
-                deleteClassFile(type);
+                deleteClassFile(type, previousState.getType(type));
             }
             state.removeSource(deleted);
         }
@@ -337,7 +349,7 @@ public class AbiIncrementalBuild {
         // (including inner/nested classes) but now defines fewer
         for (String sourceFile : toRecompile) {
             for (String type : previousState.getTypesFromSource(sourceFile)) {
-                deleteClassFile(type);
+                deleteClassFile(type, previousState.getType(type));
             }
             state.removeTypesForSource(sourceFile);
         }
@@ -486,12 +498,12 @@ public class AbiIncrementalBuild {
         }
     }
 
-    // TODO: inner classes use $ in file names (Foo$Bar.class) but qualified names use dots.
-    // javac's ANALYZE fires for top-level types, so inner class names should not appear here,
-    // but this needs verification for nested/local class edge cases.
-    private void deleteClassFile(String qualifiedName) {
+    private void deleteClassFile(String qualifiedName, IncrementalState.TypeInfo info) {
+        String moduleName = info != null ? info.moduleName() : "";
+        Path baseDir = moduleName.isEmpty() ? outputDir : outputDir.resolve(moduleName);
+
         if (qualifiedName.startsWith(CompilationAnalyzer.MODULE_PREFIX)) {
-            Path moduleInfoClass = outputDir.resolve("module-info.class");
+            Path moduleInfoClass = baseDir.resolve("module-info.class");
             try {
                 Files.deleteIfExists(moduleInfoClass);
             } catch (IOException e) {
@@ -499,7 +511,7 @@ public class AbiIncrementalBuild {
             }
             return;
         }
-        Path classFile = outputDir.resolve(qualifiedName.replace('.', '/') + ".class");
+        Path classFile = baseDir.resolve(qualifiedName.replace('.', '/') + ".class");
         try {
             Files.deleteIfExists(classFile);
             // Also clean up inner/nested class files (Foo$Bar.class, Foo$Bar$Baz.class, etc.)
