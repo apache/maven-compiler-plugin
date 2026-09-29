@@ -177,10 +177,10 @@ class BytecodeAnalyzerTest {
         var asmResult = new AsmClassAnalyzer().analyze(bytes);
 
         // Instantiate ClassfileClassAnalyzer reflectively — the class is only compiled on JDK 24+
-        ClassAnalyzer cfAnalyzer = (ClassAnalyzer) Class.forName(
-                        "org.apache.maven.plugin.compiler.incremental.ClassfileClassAnalyzer")
-                .getDeclaredConstructor()
-                .newInstance();
+        ClassAnalyzer cfAnalyzer =
+                (ClassAnalyzer) Class.forName("org.apache.maven.plugin.compiler.incremental.ClassfileClassAnalyzer")
+                        .getDeclaredConstructor()
+                        .newInstance();
         var cfResult = cfAnalyzer.analyze(bytes);
 
         assertEquals(asmResult.className(), cfResult.className(), "className");
