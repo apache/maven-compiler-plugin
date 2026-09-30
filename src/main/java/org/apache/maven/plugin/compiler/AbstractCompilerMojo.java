@@ -689,7 +689,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *       {@link IncrementalBuild}. Detects changes by comparing source file modification
      *       times and triggers full rebuilds when files are added/removed or dependencies change.
      *       Respects {@link #incrementalCompilation} aspects, {@code staleMillis}, and
-     *       {@link #incrementalExcludes}.</li>
+     *       {@code incrementalExcludes}.</li>
      *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks the public API surface
      *       (method signatures, field types, constant values, sealed permits, enum constant
      *       order, generic type parameters) of each compiled type and only recompiles consumers
@@ -698,7 +698,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *       directory. Full JPMS support including {@code module-info.java} fingerprinting
      *       and {@code module-info-patch.maven} tracking.
      *       <p>Note: the ABI strategy has its own change detection and does not use
-     *       {@code staleMillis}, {@link #incrementalExcludes}, or the
+     *       {@code staleMillis}, {@code incrementalExcludes}, or the
      *       {@link #incrementalCompilation} aspects. Forked compilation ({@code fork=true})
      *       falls back to full compilation since the ABI analyzer requires in-process javac.
      *       Setting {@link #useIncrementalCompilation} to {@code false} disables this
