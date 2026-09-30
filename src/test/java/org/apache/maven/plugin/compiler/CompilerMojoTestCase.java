@@ -254,7 +254,7 @@ public class CompilerMojoTestCase {
         clearInvocations(log);
         compileMojo.execute();
 
-        verify(log).info("Nothing to compile - all classes are up to date.");
+        verify(log, never()).info("Nothing to compile - all classes are up to date.");
         assertCompilerStubOutputFileExists(compileMojo);
     }
 
