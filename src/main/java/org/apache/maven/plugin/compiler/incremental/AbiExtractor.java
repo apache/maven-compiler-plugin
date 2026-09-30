@@ -167,11 +167,12 @@ public class AbiExtractor {
                         var tpSb = new StringBuilder(tp.getSimpleName());
                         var bounds = tp.getBounds().stream()
                                 .filter(b -> !"java.lang.Object".equals(b.toString()))
+                                .map(TypeMirror::toString)
+                                .sorted()
                                 .toList();
                         if (!bounds.isEmpty()) {
                             tpSb.append(" extends ");
-                            tpSb.append(
-                                    bounds.stream().map(TypeMirror::toString).collect(Collectors.joining(" & ")));
+                            tpSb.append(String.join(" & ", bounds));
                         }
                         return tpSb.toString();
                     })

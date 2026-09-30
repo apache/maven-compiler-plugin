@@ -60,6 +60,8 @@ public class IncrementalState {
     private final Map<String, TypeInfo> types = new LinkedHashMap<>();
     private final Map<String, String> externalFingerprints = new LinkedHashMap<>();
     private final Map<String, String> classpathIdentities = new LinkedHashMap<>();
+    private final Map<String, Set<String>> signatureConsumersIndex = new LinkedHashMap<>();
+    private final Map<String, Set<String>> implementationConsumersIndex = new LinkedHashMap<>();
     private String configHash = "";
 
     public record TypeInfo(
@@ -110,7 +112,8 @@ public class IncrementalState {
     }
 
     public void setType(String qualifiedName, TypeInfo info) {
-        types.put(qualifiedName, info);
+        TypeInfo old = types.put(qualifiedName, info);
+        updateInvertedIndex(qualifiedName, old, info);
     }
 
     public void removeSource(String path) {
@@ -125,7 +128,13 @@ public class IncrementalState {
      * would otherwise retain phantom type B in the state.
      */
     public void removeTypesForSource(String sourceFile) {
-        types.entrySet().removeIf(e -> e.getValue().sourceFile().equals(sourceFile));
+        types.entrySet().removeIf(e -> {
+            if (e.getValue().sourceFile().equals(sourceFile)) {
+                updateInvertedIndex(e.getKey(), e.getValue(), null);
+                return true;
+            }
+            return false;
+        });
     }
 
     public List<String> getTypesFromSource(String sourceFile) {
@@ -136,27 +145,15 @@ public class IncrementalState {
     }
 
     public Set<String> getSignatureConsumers(String type) {
-        var result = new TreeSet<String>();
-        for (var entry : types.entrySet()) {
-            if (entry.getValue().signatureDeps().contains(type)) {
-                result.add(entry.getKey());
-            }
-        }
-        return result;
+        return Collections.unmodifiableSet(signatureConsumersIndex.getOrDefault(type, Collections.emptySet()));
     }
 
     public Set<String> getImplementationConsumers(String type) {
-        var result = new TreeSet<String>();
-        for (var entry : types.entrySet()) {
-            if (entry.getValue().implementationDeps().contains(type)) {
-                result.add(entry.getKey());
-            }
-        }
-        return result;
+        return Collections.unmodifiableSet(implementationConsumersIndex.getOrDefault(type, Collections.emptySet()));
     }
 
     public Set<String> getAllConsumers(String type) {
-        var result = getSignatureConsumers(type);
+        var result = new TreeSet<>(getSignatureConsumers(type));
         result.addAll(getImplementationConsumers(type));
         return result;
     }
@@ -265,6 +262,7 @@ public class IncrementalState {
         copy.externalFingerprints.putAll(this.externalFingerprints);
         copy.classpathIdentities.putAll(this.classpathIdentities);
         copy.configHash = this.configHash;
+        copy.buildInvertedIndex();
         return copy;
     }
 
@@ -282,7 +280,58 @@ public class IncrementalState {
                             result.annotationTypes(),
                             result.moduleName()));
         }
+        state.buildInvertedIndex();
         return state;
+    }
+
+    private void buildInvertedIndex() {
+        signatureConsumersIndex.clear();
+        implementationConsumersIndex.clear();
+        for (var entry : types.entrySet()) {
+            String consumer = entry.getKey();
+            TypeInfo info = entry.getValue();
+            for (String dep : info.signatureDeps()) {
+                signatureConsumersIndex
+                        .computeIfAbsent(dep, k -> new TreeSet<>())
+                        .add(consumer);
+            }
+            for (String dep : info.implementationDeps()) {
+                implementationConsumersIndex
+                        .computeIfAbsent(dep, k -> new TreeSet<>())
+                        .add(consumer);
+            }
+        }
+    }
+
+    private void updateInvertedIndex(String typeName, TypeInfo oldInfo, TypeInfo newInfo) {
+        // Remove old entries
+        if (oldInfo != null) {
+            for (String dep : oldInfo.signatureDeps()) {
+                Set<String> consumers = signatureConsumersIndex.get(dep);
+                if (consumers != null) {
+                    consumers.remove(typeName);
+                }
+            }
+            for (String dep : oldInfo.implementationDeps()) {
+                Set<String> consumers = implementationConsumersIndex.get(dep);
+                if (consumers != null) {
+                    consumers.remove(typeName);
+                }
+            }
+        }
+        // Add new entries
+        if (newInfo != null) {
+            for (String dep : newInfo.signatureDeps()) {
+                signatureConsumersIndex
+                        .computeIfAbsent(dep, k -> new TreeSet<>())
+                        .add(typeName);
+            }
+            for (String dep : newInfo.implementationDeps()) {
+                implementationConsumersIndex
+                        .computeIfAbsent(dep, k -> new TreeSet<>())
+                        .add(typeName);
+            }
+        }
     }
 
     public void save(Path file) throws IOException {
@@ -347,6 +396,7 @@ public class IncrementalState {
             readStringMap(in, state.externalFingerprints);
             readStringMap(in, state.classpathIdentities);
             state.configHash = in.readUTF();
+            state.buildInvertedIndex();
             return state;
         } catch (IOException e) {
             return null;

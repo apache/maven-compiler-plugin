@@ -137,9 +137,9 @@ public class AbiIncrementalBuild {
     }
 
     /**
-     * Sets a hash of compilation context configuration (e.g. module-info-patch
-     * files). If this hash differs from the previous build, a full rebuild
-     * is triggered.
+     * Sets a hash of compilation context configuration (e.g. compiler options
+     * and module-info-patch files). If this hash differs from the previous
+     * build, a full rebuild is triggered.
      */
     public void setConfigHash(String hash) {
         this.configHash = hash != null ? hash : "";
@@ -167,7 +167,7 @@ public class AbiIncrementalBuild {
             rebuildCause = "no previous build state";
             return initFullBuild(allSourceFiles);
         } else if (!configHash.equals(previousState.getConfigHash())) {
-            rebuildCause = "compilation configuration changed (module-info-patch.maven)";
+            rebuildCause = "compilation configuration changed (module-info-patch.maven or compiler options)";
             return initFullBuild(allSourceFiles);
         } else {
             return initIncrementalBuild(allSourceFiles);

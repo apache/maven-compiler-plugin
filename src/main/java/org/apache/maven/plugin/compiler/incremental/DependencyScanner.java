@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.sun.source.tree.AnnotationTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.IdentifierTree;
@@ -135,6 +136,16 @@ public class DependencyScanner extends TreePathScanner<Void, Void> {
             return result;
         }
         return super.visitBlock(node, p);
+    }
+
+    @Override
+    public Void visitAnnotation(AnnotationTree node, Void p) {
+        // Record the annotation type itself
+        recordReference(getCurrentPath());
+        // Visit annotation arguments — this catches types used in annotation values
+        // such as @Foo(SomeEnum.VALUE) or @Foo(SomeType.class), where SomeEnum/SomeType
+        // need to be tracked as dependencies even if not in any method signature.
+        return super.visitAnnotation(node, p);
     }
 
     @Override

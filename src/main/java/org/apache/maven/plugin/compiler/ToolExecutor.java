@@ -935,11 +935,21 @@ public class ToolExecutor {
         if (compiler instanceof ForkedTool) {
             logger.warn("ABI incremental strategy is not supported with forked compilation."
                     + " Falling back to full compilation.");
+            // ABI analysis requires in-process javac (JavacTask). Fall back to the
+            // standard incremental strategy instead of attempting ABI analysis.
+            var compilerOutput = new StringWriter();
+            applyIncrementalBuild(mojo, configuration);
+            boolean success = compile(compiler, configuration, compilerOutput);
+            String output = compilerOutput.toString();
+            if (!output.isBlank()) {
+                logger.warn(output);
+            }
+            if (!success) {
+                throw new CompilationFailureException("Compilation failed (forked, non-ABI fallback).");
+            }
+            return;
         }
         var abiBuild = new AbiIncrementalBuild(outputDirectory);
-        if (compiler instanceof ForkedTool) {
-            abiBuild.invalidate();
-        }
 
         // Collect classpath entries for cross-module tracking
         var classpathPaths = new ArrayList<Path>();
@@ -983,7 +993,7 @@ public class ToolExecutor {
         }
 
         // Hash module-info-patch.maven files for config change detection
-        abiBuild.setConfigHash(computeModuleInfoPatchHash());
+        abiBuild.setConfigHash(computeConfigHash(configuration));
 
         // Collect all source file paths
         var allSourcePaths = new ArrayList<Path>();
@@ -1057,8 +1067,14 @@ public class ToolExecutor {
         }
     }
 
-    private String computeModuleInfoPatchHash() {
+    private String computeConfigHash(Options configuration) {
         var digest = new StringBuilder();
+
+        // Include compiler options in the config hash so changes to -source/-target/-release
+        // etc. trigger a full rebuild under the ABI strategy.
+        String optionsRepr = String.join("|", configuration.options);
+        digest.append("opts:").append(optionsRepr).append(';');
+
         for (SourceDirectory source : sourceDirectories) {
             Path patchFile = source.root.resolve(ModuleInfoPatch.FILENAME);
             if (Files.isRegularFile(patchFile)) {
