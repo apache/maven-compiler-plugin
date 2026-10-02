@@ -1300,13 +1300,6 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             }
         }
 
-        if (outputTimestamp != null
-                && !outputTimestamp.isEmpty()
-                && (outputTimestamp.length() > 1 || Character.isDigit(outputTimestamp.charAt(0)))) {
-            // if Reproducible Builds mode, apply workaround
-            patchJdkModuleVersion(compilerResult, sources);
-        }
-
         if (useIncrementalCompilation) {
             if (incrementalBuildHelperRequest.getOutputDirectory().exists()) {
                 getLog().debug("incrementalBuildHelper#afterRebuildExecution");
@@ -1965,32 +1958,5 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     final String getImplicit() {
         return implicit;
-    }
-
-    /**
-     * JDK-8318913 workaround: Patch module-info.class to set the java release version for java/jdk modules.
-     *
-     * @param compilerResult should succeed.
-     * @param sources the list of the source files to check for the "module-info.java"
-     *
-     * @see <a href="https://issues.apache.org/jira/browse/MCOMPILER-542">MCOMPILER-542</a>
-     * @see <a href="https://bugs.openjdk.org/browse/JDK-8318913">JDK-8318913</a>
-     */
-    private void patchJdkModuleVersion(CompilerResult compilerResult, Set<File> sources) throws MojoExecutionException {
-        if (compilerResult.isSuccess() && getModuleDeclaration(sources).isPresent()) {
-            Path moduleDescriptor = getOutputDirectory().toPath().resolve("module-info.class");
-            if (Files.isRegularFile(moduleDescriptor)) {
-                try {
-                    final byte[] descriptorOriginal = Files.readAllBytes(moduleDescriptor);
-                    final byte[] descriptorMod =
-                            ModuleInfoTransformer.transform(descriptorOriginal, getRelease(), getLog());
-                    if (descriptorMod != null) {
-                        Files.write(moduleDescriptor, descriptorMod);
-                    }
-                } catch (IOException ex) {
-                    throw new MojoExecutionException("Error reading or writing module-info.class", ex);
-                }
-            }
-        }
     }
 }
