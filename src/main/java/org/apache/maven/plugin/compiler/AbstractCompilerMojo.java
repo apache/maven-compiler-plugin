@@ -708,15 +708,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Amends the configuration of incremental compilation for the presence of annotation processors.
+     * Amends the default configuration of incremental compilation for annotation processing.
+     * When processing is explicitly requested, incremental compilation is disabled so that processors always run.
+     * On Java versions before 23, an absent {@code proc} value only implies the compiler's default processing mode;
+     * it does not prove that a processor is present, so the traditional rebuild-on-add/change behavior is retained.
+     * This method does not amend an explicitly configured {@link #incrementalCompilation} value.
      *
      * @param aspects the configuration to amend if an annotation processor is found
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
     final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+            if (isAbsent(proc) && !isVersionEqualOrNewer(RELEASE_23)) {
+                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
+                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
+            } else {
+                aspects.clear();
+                aspects.add(IncrementalBuild.Aspect.NONE);
+            }
         }
     }
 
