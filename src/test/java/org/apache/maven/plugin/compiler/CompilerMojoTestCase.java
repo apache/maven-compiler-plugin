@@ -247,9 +247,9 @@ public class CompilerMojoTestCase {
      * Tests that an explicitly configured incremental compilation value takes precedence over annotation processing.
      */
     @Test
-    @Basedir("${basedir}/target/test-classes/unit/compiler-proc-only-explicit-incremental-test")
-    public void testCompilerProcOnlyRespectsExplicitIncrementalCompilation(
-            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
+    public void testCompilerProcOnlyRespectsExplicitIncrementalCompilation() {
+        CompilerMojo compileMojo = new CompilerMojo();
+        compileMojo.incrementalCompilation = "classes";
         EnumSet<IncrementalBuild.Aspect> aspects = EnumSet.of(IncrementalBuild.Aspect.CLASSES);
         compileMojo.amendincrementalCompilation(aspects, Set.of(JavaPathType.PROCESSOR_CLASSES));
         assertEquals(EnumSet.of(IncrementalBuild.Aspect.CLASSES), aspects);
