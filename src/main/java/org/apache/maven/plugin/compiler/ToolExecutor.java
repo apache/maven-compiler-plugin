@@ -27,6 +27,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -47,13 +48,16 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.sun.source.util.JavacTask;
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
+import org.apache.maven.plugin.compiler.incremental.AbiIncrementalBuild;
 
 /**
  * A task which configures and executes a Java tool such as the Java compiler.
@@ -913,6 +917,253 @@ public class ToolExecutor {
             }
             return changed;
         }
+    }
+
+    /**
+     * Compiles using the ABI-fingerprint incremental strategy. This method handles the full
+     * lifecycle: determining what to compile, running javac with the analysis TaskListener,
+     * cascading on ABI changes, and persisting state.
+     *
+     * @param compiler the compiler
+     * @param configuration the options to give to the Java compiler
+     * @param mojo the MOJO for configuration access
+     * @throws IOException if an error occurred while reading or writing a file
+     * @throws MojoException if the compilation failed
+     */
+    void compileWithAbiIncremental(JavaCompiler compiler, final Options configuration, final AbstractCompilerMojo mojo)
+            throws IOException {
+        if (compiler instanceof ForkedTool) {
+            logger.warn("ABI incremental strategy is not supported with forked compilation."
+                    + " Falling back to full compilation.");
+        }
+        var abiBuild = new AbiIncrementalBuild(outputDirectory);
+        if (compiler instanceof ForkedTool) {
+            abiBuild.invalidate();
+        }
+
+        // Collect classpath entries for cross-module tracking
+        var classpathPaths = new ArrayList<Path>();
+        var reactorPaths = new LinkedHashSet<Path>();
+        for (var entry : dependencies.entrySet()) {
+            if (entry.getKey() instanceof JavaPathType type) {
+                var location = type.location();
+                if (location.isPresent()
+                        && (location.get() == StandardLocation.CLASS_PATH
+                                || location.get() == StandardLocation.MODULE_PATH)) {
+                    classpathPaths.addAll(entry.getValue());
+                    if (location.get() == StandardLocation.MODULE_PATH) {
+                        for (Path p : entry.getValue()) {
+                            if (Files.isDirectory(p)) {
+                                reactorPaths.add(p);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        abiBuild.setClasspathEntries(classpathPaths);
+        if (!reactorPaths.isEmpty()) {
+            abiBuild.setReactorModulePaths(reactorPaths);
+        }
+
+        // Collect annotation processor path for processor classification
+        var processorPaths = new ArrayList<Path>();
+        for (var entry : dependencies.entrySet()) {
+            if (entry.getKey() instanceof JavaPathType type) {
+                var location = type.location();
+                if (location.isPresent()
+                        && (location.get() == StandardLocation.ANNOTATION_PROCESSOR_PATH
+                                || location.get() == StandardLocation.ANNOTATION_PROCESSOR_MODULE_PATH)) {
+                    processorPaths.addAll(entry.getValue());
+                }
+            }
+        }
+        if (!processorPaths.isEmpty()) {
+            abiBuild.setProcessorPath(processorPaths);
+        }
+
+        // Hash module-info-patch.maven files for config change detection
+        abiBuild.setConfigHash(computeModuleInfoPatchHash());
+
+        // Collect all source file paths
+        var allSourcePaths = new ArrayList<Path>();
+        for (SourceFile sf : sourceFiles) {
+            allSourcePaths.add(sf.file);
+        }
+
+        Set<Path> toCompile = abiBuild.initialize(allSourcePaths);
+        if (toCompile.isEmpty()) {
+            logger.info("Nothing to compile - all classes are up to date (ABI strategy).");
+            abiBuild.finish();
+            return;
+        }
+
+        logger.info(
+                abiBuild.isFullBuild()
+                        ? "Compiling " + toCompile.size() + " source file(s) (ABI: full build)."
+                        : "Compiling " + toCompile.size() + " source file(s) (ABI: incremental).");
+        if (mojo.showCompilationChanges && abiBuild.getRebuildCause() != null) {
+            logger.info("Rebuild cause: " + abiBuild.getRebuildCause());
+            for (Path f : toCompile) {
+                logger.info("  " + f);
+            }
+        }
+
+        var originalSourceFiles = new ArrayList<>(sourceFiles);
+        boolean success = true;
+
+        try {
+            while (!toCompile.isEmpty()) {
+                Set<Path> compileSet = toCompile;
+                sourceFiles = originalSourceFiles.stream()
+                        .filter(sf -> compileSet.contains(sf.file))
+                        .collect(Collectors.toList());
+
+                if (sourceFiles.isEmpty()) {
+                    break;
+                }
+
+                var compilerOutput = new StringWriter();
+                success = compileWithAbiAnalyzer(compiler, configuration, compilerOutput, abiBuild);
+                String output = compilerOutput.toString();
+                if (!output.isBlank()) {
+                    logger.warn(output);
+                }
+                if (!success) {
+                    break;
+                }
+
+                toCompile = abiBuild.processRound();
+                if (!toCompile.isEmpty()) {
+                    logger.info("ABI cascade: recompiling " + toCompile.size() + " additional file(s).");
+                    if (mojo.showCompilationChanges) {
+                        for (Path f : toCompile) {
+                            logger.info("  " + f);
+                        }
+                    }
+                }
+            }
+        } finally {
+            sourceFiles = originalSourceFiles;
+        }
+
+        if (success) {
+            abiBuild.finish();
+            logger.info("Compiled " + abiBuild.compiledCount() + " file(s), " + abiBuild.unchangedCount()
+                    + " unchanged (ABI strategy).");
+        } else {
+            abiBuild.invalidate();
+            throw new CompilationFailureException("Compilation failed (ABI incremental strategy).");
+        }
+    }
+
+    private String computeModuleInfoPatchHash() {
+        var digest = new StringBuilder();
+        for (SourceDirectory source : sourceDirectories) {
+            Path patchFile = source.root.resolve(ModuleInfoPatch.FILENAME);
+            if (Files.isRegularFile(patchFile)) {
+                try {
+                    byte[] content = Files.readAllBytes(patchFile);
+                    var md = java.security.MessageDigest.getInstance("SHA-256");
+                    byte[] hash = md.digest(content);
+                    var hex = new StringBuilder();
+                    for (byte b : hash) {
+                        hex.append(String.format("%02x", b));
+                    }
+                    digest.append(patchFile).append(':').append(hex, 0, 16).append(';');
+                } catch (IOException | java.security.NoSuchAlgorithmException e) {
+                    digest.append(patchFile).append(":unreadable;");
+                }
+            }
+        }
+        if (digest.isEmpty()) {
+            return "";
+        }
+        try {
+            var md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(digest.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            var hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.substring(0, 16);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            return digest.toString();
+        }
+    }
+
+    /**
+     * Compiles sources with the ABI analyzer attached as a TaskListener.
+     */
+    private boolean compileWithAbiAnalyzer(
+            JavaCompiler compiler, final Options configuration, final Writer otherOutput, AbiIncrementalBuild abiBuild)
+            throws IOException {
+
+        if (noSourcesToCompile()) {
+            return true;
+        }
+        final Collection<SourcesForRelease> units = groupByReleaseAndModule();
+        determineDirectoryHierarchy(units);
+        abiBuild.setUseModulePrefixedPaths(directoryHierarchy == DirectoryHierarchy.MODULE_SOURCE);
+        if (WorkaroundForPatchModule.ENABLED && hasModuleDeclaration && !(compiler instanceof ForkedTool)) {
+            compiler = new WorkaroundForPatchModule(compiler);
+        }
+        boolean success = true;
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(listener, LOCALE, encoding)) {
+            setDependencyPaths(fileManager);
+            if (!generatedSourceDirectories.isEmpty()) {
+                fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, generatedSourceDirectories);
+            }
+            // Add output dir to classpath for resolving types not being compiled
+            fileManager.setLocationFromPaths(StandardLocation.SOURCE_PATH, List.of());
+            var classPath = new ArrayList<Path>();
+            var existingCp = fileManager.getLocationAsPaths(StandardLocation.CLASS_PATH);
+            if (existingCp != null) {
+                existingCp.forEach(classPath::add);
+            }
+            if (!classPath.contains(outputDirectory)) {
+                classPath.add(outputDirectory);
+            }
+            fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, classPath);
+
+            final PathManager pathManager =
+                    switch (directoryHierarchy) {
+                        case PACKAGE -> new PathManager(fileManager);
+                        case PACKAGE_WITH_MODULE, MODULE_SOURCE -> new ModulePathManager(fileManager);
+                    };
+
+            boolean isBaseRelease = true;
+            for (final SourcesForRelease unit : units) {
+                configuration.setRelease(unit.getReleaseString());
+                pathManager.configureSourcePaths(unit.roots);
+                copyDependencyValues();
+                unit.dependencySnapshot = new LinkedHashMap<>(dependencies);
+                pathManager.setupOutputDirectory(unit);
+
+                if (!unit.files.isEmpty()) {
+                    Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(unit.files);
+                    JavaCompiler.CompilationTask task;
+                    task = compiler.getTask(otherOutput, fileManager, listener, configuration.options, null, sources);
+                    // Only attach ABI analyzer for the base release — versioned
+                    // releases (multi-release JARs) are always compiled fully
+                    if (isBaseRelease && task instanceof JavacTask javacTask) {
+                        abiBuild.attachTo(javacTask);
+                    }
+                    success = task.call();
+                    if (!success) {
+                        break;
+                    }
+                }
+                isBaseRelease = false;
+                pathManager.markVersioned();
+            }
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+        if (listener instanceof DiagnosticLogger diagnostic) {
+            diagnostic.logSummary();
+        }
+        return success;
     }
 
     /**

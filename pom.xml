@@ -192,6 +192,60 @@ under the License.
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-java-build-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <!--
+                    Building this plugin requires JDK 25+ so that the java.lang.classfile
+                    classes in src/main/java24/ can always be compiled (with release=24).
+                    The compiled plugin JAR targets JDK 17 for main sources and JDK 24
+                    for the classfile-backed bytecode analyzer, and runs on any JVM >= 17.
+                  -->
+                  <version>[25,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <!--
+              Compile sources that require java.lang.classfile (JDK 24+) separately
+              with release=24, so the main sources stay at the baseline Java version (17).
+              The compiled classes land alongside the main classes in the output directory.
+              BytecodeAnalyzer loads ClassfileClassAnalyzer reflectively at runtime when
+              the running JVM is JDK 24 or later; AsmClassAnalyzer is used otherwise.
+              JDK 25 is required at build time so this execution always runs unconditionally.
+            -->
+            <id>compile-java24</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java24</compileSourceRoot>
+              </compileSourceRoots>
+              <release>24</release>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>
