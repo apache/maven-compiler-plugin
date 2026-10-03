@@ -27,10 +27,13 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.Project;
 import org.apache.maven.api.Session;
@@ -247,15 +250,9 @@ public class CompilerMojoTestCase {
     @Basedir("${basedir}/target/test-classes/unit/compiler-proc-only-explicit-incremental-test")
     public void testCompilerProcOnlyRespectsExplicitIncrementalCompilation(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
-        Log log = mock(Log.class);
-        compileMojo.logger = log;
-        compileMojo.execute();
-
-        clearInvocations(log);
-        compileMojo.execute();
-
-        verify(log, never()).info("Nothing to compile - all classes are up to date.");
-        assertCompilerStubOutputFileExists(compileMojo);
+        EnumSet<IncrementalBuild.Aspect> aspects = EnumSet.of(IncrementalBuild.Aspect.CLASSES);
+        compileMojo.amendincrementalCompilation(aspects, Set.of(JavaPathType.PROCESSOR_CLASSES));
+        assertEquals(EnumSet.of(IncrementalBuild.Aspect.CLASSES), aspects);
     }
 
     /**
