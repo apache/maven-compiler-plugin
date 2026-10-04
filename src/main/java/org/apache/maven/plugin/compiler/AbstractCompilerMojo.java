@@ -720,6 +720,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
     final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
             if (isAbsent(proc) && !isVersionEqualOrNewer(RELEASE_23)) {
+                // Case when `hasAnnotationProcessor(…)` cannot decide for sure.
+                // Apply an intermediate strategy between "no processor" and "processor for sure".
                 aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
                 aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
             } else {
@@ -1686,6 +1688,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * {@return whether an annotation processor seems to be present}
+     * In case of doubt (for example, with Java versions older than 23), conservatively returns {@code true}.
      *
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      *
