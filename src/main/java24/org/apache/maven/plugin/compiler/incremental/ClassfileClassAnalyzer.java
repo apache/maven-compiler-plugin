@@ -424,36 +424,75 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
             return;
         }
         int[] pos = {0};
-        parseSig(sig, pos, types);
+        // A ClassSignature or MethodSignature may start with FormalTypeParameters: <T:Lbound;>...
+        // Detect this case and parse the FormalTypeParameters block with the dedicated mode.
+        if (sig.charAt(0) == '<') {
+            pos[0]++; // consume '<'
+            parseSig(sig, pos, types, true); // FormalTypeParameter mode
+            if (pos[0] < sig.length() && sig.charAt(pos[0]) == '>') {
+                pos[0]++; // consume '>'
+            }
+        }
+        // Parse the remainder (SuperclassSignature, SuperinterfaceSignatures, or method sig body)
+        parseSig(sig, pos, types, false);
     }
 
     /**
-     * Recursive descent parser for JVM generic signatures.
-     * Advances {@code pos[0]} as it consumes characters.
+     * Recursive descent parser for JVM generic signatures (JVMS §4.7.9.1).
+     * {@code inFormalTypeParams} must be {@code true} when called from inside a
+     * {@code FormalTypeParameters} block ({@code <...>} at the top of a class or method
+     * signature), where the grammar is {@code Identifier ClassBound {InterfaceBound}} rather
+     * than {@code TypeArgument*}.  All other call sites pass {@code false}.
      */
-    private static void parseSig(String sig, int[] pos, Set<String> types) {
+    private static void parseSig(String sig, int[] pos, Set<String> types, boolean inFormalTypeParams) {
         while (pos[0] < sig.length()) {
             char c = sig.charAt(pos[0]);
-            switch (c) {
-                case 'L' -> parseClassTypeSignature(sig, pos, types);
-                case 'T' -> {
-                    // TypeVariableSignature: T<Identifier>; — skip, it's a generic parameter, not a concrete type
-                    pos[0]++; // skip 'T'
-                    while (pos[0] < sig.length() && sig.charAt(pos[0]) != ';') {
-                        pos[0]++;
-                    }
-                    if (pos[0] < sig.length()) pos[0]++; // skip ';'
+            if (inFormalTypeParams) {
+                // Inside FormalTypeParameters: Identifier ClassBound {InterfaceBound}
+                // Identifier is an arbitrary Java identifier (NOT prefixed by 'T')
+                // followed by ':' (ClassBound) or ':' (InterfaceBound)
+                if (c == '>') {
+                    // End of FormalTypeParameters block — stop, let the caller consume '>'
+                    return;
                 }
-                case '[' -> pos[0]++; // ArrayTypeSignature prefix — continue into element type
-                case '+', '-' -> pos[0]++; // wildcard indicator — continue into bound type
-                case '*' -> pos[0]++; // unbounded wildcard — nothing to extract
-                case '(' -> pos[0]++; // method params open paren
-                case ')' -> pos[0]++; // method params close paren
-                case '^' -> pos[0]++; // throws clause marker
-                case '<' -> pos[0]++; // type params open — contents parsed by ClassTypeSignature
-                case '>' -> pos[0]++; // type params close — contents parsed by ClassTypeSignature
-                case ';' -> pos[0]++; // separator — consumed inside ClassTypeSignature
-                default -> pos[0]++; // primitive (B C D F I J S V Z) or unknown — skip
+                // Skip the Identifier (type parameter name, e.g. "T", "E", "Type")
+                while (pos[0] < sig.length() && sig.charAt(pos[0]) != ':' && sig.charAt(pos[0]) != '>') {
+                    pos[0]++;
+                }
+                // Parse ClassBound and InterfaceBound(s): each is ':' followed by a FieldTypeSignature
+                while (pos[0] < sig.length() && sig.charAt(pos[0]) == ':') {
+                    pos[0]++; // consume ':'
+                    // ClassBound may be empty (just ':' with no FieldTypeSignature before next ':' or '>')
+                    if (pos[0] < sig.length()) {
+                        char next = sig.charAt(pos[0]);
+                        if (next == 'L' || next == '[' || next == 'T') {
+                            // There is a FieldTypeSignature — parse it as a TypeArgument (NOT inFormalTypeParams)
+                            parseSig(sig, pos, types, false);
+                        }
+                        // else: empty ClassBound — move on to next ':' or '>'
+                    }
+                }
+                // After all bounds for this FormalTypeParameter, loop back for the next one (if any)
+            } else {
+                switch (c) {
+                    case 'L' -> parseClassTypeSignature(sig, pos, types);
+                    case 'T' -> {
+                        // TypeVariableSignature: T Identifier ; — skip, not a concrete dep
+                        pos[0]++; // consume 'T'
+                        while (pos[0] < sig.length() && sig.charAt(pos[0]) != ';') {
+                            pos[0]++;
+                        }
+                        if (pos[0] < sig.length()) pos[0]++; // consume ';'
+                    }
+                    case '[' -> pos[0]++; // ArrayTypeSignature prefix — element type follows
+                    case '+', '-' -> pos[0]++; // wildcard indicator — bound type follows
+                    case '*' -> pos[0]++; // unbounded wildcard — nothing to extract
+                    case '(' -> pos[0]++; // method params open paren
+                    case ')' -> pos[0]++; // method params close paren
+                    case '^' -> pos[0]++; // throws clause marker — bound type follows
+                    case ';' -> pos[0]++; // unexpected stray ';' — skip
+                    default -> pos[0]++; // primitive (B C D F I J S V Z) or unknown — skip
+                }
             }
         }
     }
@@ -461,6 +500,11 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
     /**
      * Parses a {@code ClassTypeSignature} starting at {@code pos[0]} (which points at 'L').
      * Format: {@code L<InternalName>[<TypeArguments>][.<InnerClass>[<TypeArguments>]]*;}
+     *
+     * <p>The {@code <TypeArguments>} block uses {@link #parseSig} with
+     * {@code inFormalTypeParams=false} (they are type <em>arguments</em>, not declarations).
+     * The top-level {@code FormalTypeParameters} block (before the first {@code L}) is handled
+     * by {@link #parseSig} with {@code inFormalTypeParams=true}.
      */
     private static void parseClassTypeSignature(String sig, int[] pos, Set<String> types) {
         pos[0]++; // consume 'L'
@@ -473,8 +517,7 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
         }
         String internalName = sig.substring(nameStart, pos[0]);
         if (!internalName.isEmpty()) {
-            String javaName = BytecodeAnalyzer.toJavaName(internalName);
-            types.add(javaName);
+            types.add(BytecodeAnalyzer.toJavaName(internalName));
         }
 
         // Handle type arguments <...> and inner class suffixes
@@ -482,20 +525,20 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
             char c = sig.charAt(pos[0]);
             if (c == '<') {
                 pos[0]++; // consume '<'
-                // Parse type arguments until matching '>'
+                // These are TypeArguments (not FormalTypeParameters) — use inFormalTypeParams=false
                 while (pos[0] < sig.length() && sig.charAt(pos[0]) != '>') {
-                    parseSig(sig, pos, types);
+                    parseSig(sig, pos, types, false);
                 }
                 if (pos[0] < sig.length()) pos[0]++; // consume '>'
             } else if (c == '.') {
-                // Inner class: .InnerName[<TypeArgs>]
+                // Inner class suffix: .InnerName[<TypeArgs>]
                 pos[0]++; // consume '.'
                 while (pos[0] < sig.length()) {
                     char ic = sig.charAt(pos[0]);
                     if (ic == '<' || ic == '.' || ic == ';') break;
                     pos[0]++;
                 }
-                // Don't add the inner class name separately — it's nested inside the outer class
+                // Don't add the inner class name separately — it's part of the outer class
             } else if (c == ';') {
                 pos[0]++; // consume ';'
                 break;

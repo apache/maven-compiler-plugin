@@ -265,6 +265,47 @@ class BytecodeAnalyzerTest {
                 "test.Item as superclass type arg should be in signatureTypes; got: " + analysis.signatureTypes());
     }
 
+    @Test
+    @org.junit.jupiter.api.condition.EnabledForJreRange(min = org.junit.jupiter.api.condition.JRE.JAVA_24)
+    void formalTypeParameterBoundsTracked() throws Exception {
+        // MyBound is a user type used only as a type parameter bound — e.g. <T extends MyBound>
+        // The bug: type param names starting with 'T' (e.g. "T", "Type", "Target") caused the
+        // parser to misidentify FormalTypeParameter as TypeVariableSignature and skip the bound.
+        CompilerTestHelper.writeSource(sourceDir, "test", "MyBound", "package test; public interface MyBound {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "OtherBound", "package test; public interface OtherBound {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "Container", """
+                package test;
+                // 'T' as type param name — the previously failing case
+                public class Container<T extends MyBound> {
+                    public T get() { return null; }
+                }
+                """);
+        CompilerTestHelper.writeSource(sourceDir, "test", "MultiContainer", """
+                package test;
+                // 'Type'-prefixed name + multiple bounds via interface bound
+                public class MultiContainer<Type extends MyBound & OtherBound> {
+                    public Type get() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        var containerAnalysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/Container.class"));
+        assertTrue(
+                containerAnalysis.signatureTypes().contains("test.MyBound"),
+                "test.MyBound as <T extends MyBound> bound should be in signatureTypes; got: "
+                        + containerAnalysis.signatureTypes());
+
+        var multiAnalysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/MultiContainer.class"));
+        assertTrue(
+                multiAnalysis.signatureTypes().contains("test.MyBound"),
+                "test.MyBound as <Type extends MyBound & OtherBound> bound should be in signatureTypes; got: "
+                        + multiAnalysis.signatureTypes());
+        assertTrue(
+                multiAnalysis.signatureTypes().contains("test.OtherBound"),
+                "test.OtherBound as interface bound should be in signatureTypes; got: "
+                        + multiAnalysis.signatureTypes());
+    }
+
     /**
      * When running on JDK 24+, {@link BytecodeAnalyzer} uses the {@code ClassfileClassAnalyzer}.
      * Verifies idempotency: analyzing the same bytes twice produces identical results.
