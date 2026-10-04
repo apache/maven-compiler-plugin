@@ -44,7 +44,7 @@ public class AbiManifest {
 
     public static final String FILENAME = ".abi-fingerprints";
 
-    static final String VERSION_HEADER = "#javaci:v1";
+    static final String VERSION_HEADER = "#maven-compiler:v1";
 
     static final int CURRENT_VERSION = 1;
 
@@ -101,9 +101,9 @@ public class AbiManifest {
             if (line.isEmpty()) {
                 continue;
             }
-            if (line.startsWith("#javaci:v")) {
+            if (line.startsWith("#maven-compiler:v")) {
                 try {
-                    int version = Integer.parseInt(line.substring("#javaci:v".length()));
+                    int version = Integer.parseInt(line.substring("#maven-compiler:v".length()));
                     return version <= CURRENT_VERSION;
                 } catch (NumberFormatException e) {
                     return false;

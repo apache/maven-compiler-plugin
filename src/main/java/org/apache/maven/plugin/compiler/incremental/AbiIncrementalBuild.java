@@ -127,7 +127,7 @@ public class AbiIncrementalBuild {
 
     /**
      * Sets the annotation processor classpath for processor classification.
-     * Entries are scanned for {@code META-INF/javaci/incremental.annotation.processors}
+     * Entries are scanned for {@code META-INF/maven/compiler/incremental.annotation.processors}
      * and {@code META-INF/gradle/incremental.annotation.processors} to determine
      * whether each processor is {@link ProcessorType#ISOLATING},
      * {@link ProcessorType#AGGREGATING}, or {@link ProcessorType#UNKNOWN}.

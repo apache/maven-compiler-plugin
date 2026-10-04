@@ -36,7 +36,7 @@ import java.util.Map;
  * <p>Reads classification files from two locations in each classpath entry
  * (directory or JAR), checked in order:
  * <ol>
- *   <li>{@code META-INF/javaci/incremental.annotation.processors}</li>
+ *   <li>{@code META-INF/maven/compiler/incremental.annotation.processors}</li>
  *   <li>{@code META-INF/gradle/incremental.annotation.processors}
  *       (Gradle-compatible, for ecosystem reuse)</li>
  * </ol>
@@ -52,7 +52,7 @@ import java.util.Map;
  */
 public class ProcessorClassification {
 
-    private static final String JAVACI_RESOURCE = "META-INF/javaci/incremental.annotation.processors";
+    private static final String MAVEN_COMPILER_RESOURCE = "META-INF/maven/compiler/incremental.annotation.processors";
     private static final String GRADLE_RESOURCE = "META-INF/gradle/incremental.annotation.processors";
 
     private final Map<String, ProcessorType> classifications = new HashMap<>();
@@ -121,13 +121,13 @@ public class ProcessorClassification {
     }
 
     private void loadFromDirectory(Path dir) {
-        loadFile(dir.resolve(JAVACI_RESOURCE));
+        loadFile(dir.resolve(MAVEN_COMPILER_RESOURCE));
         loadFile(dir.resolve(GRADLE_RESOURCE));
     }
 
     private void loadFromJar(Path jarPath) {
         try (FileSystem fs = FileSystems.newFileSystem(jarPath)) {
-            loadFile(fs.getPath(JAVACI_RESOURCE));
+            loadFile(fs.getPath(MAVEN_COMPILER_RESOURCE));
             loadFile(fs.getPath(GRADLE_RESOURCE));
         } catch (IOException ignored) {
             // Skip unreadable JARs
@@ -152,7 +152,7 @@ public class ProcessorClassification {
                     String typeStr = line.substring(comma + 1).strip().toUpperCase(java.util.Locale.ROOT);
                     try {
                         ProcessorType type = ProcessorType.valueOf(typeStr);
-                        // Don't overwrite — first classification wins (javaci before gradle)
+                        // Don't overwrite — first classification wins (maven/compiler before gradle)
                         classifications.putIfAbsent(name, type);
                     } catch (IllegalArgumentException ignored) {
                         // Skip unrecognized types

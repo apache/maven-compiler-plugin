@@ -38,7 +38,7 @@ class ProcessorClassificationTest {
     @Test
     void readsFromJavacMetaInf() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Path metaInf = dir.resolve("META-INF/javaci");
+        Path metaInf = dir.resolve("META-INF/maven/compiler");
         Files.createDirectories(metaInf);
         Files.writeString(metaInf.resolve("incremental.annotation.processors"), "com.MyProcessor,ISOLATING\n");
 
@@ -61,7 +61,7 @@ class ProcessorClassificationTest {
     void readsFromJar() throws Exception {
         Path jarPath = tempDir.resolve("processor.jar");
         try (var jos = new JarOutputStream(new FileOutputStream(jarPath.toFile()))) {
-            jos.putNextEntry(new JarEntry("META-INF/javaci/incremental.annotation.processors"));
+            jos.putNextEntry(new JarEntry("META-INF/maven/compiler/incremental.annotation.processors"));
             jos.write("com.JarProcessor,ISOLATING\n".getBytes());
             jos.closeEntry();
         }
@@ -79,7 +79,7 @@ class ProcessorClassificationTest {
     @Test
     void isolatingClassificationWorks() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Path metaInf = dir.resolve("META-INF/javaci");
+        Path metaInf = dir.resolve("META-INF/maven/compiler");
         Files.createDirectories(metaInf);
         Files.writeString(metaInf.resolve("incremental.annotation.processors"), "com.Proc1,ISOLATING\n");
 
@@ -90,7 +90,7 @@ class ProcessorClassificationTest {
     @Test
     void aggregatingClassificationWorks() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Path metaInf = dir.resolve("META-INF/javaci");
+        Path metaInf = dir.resolve("META-INF/maven/compiler");
         Files.createDirectories(metaInf);
         Files.writeString(metaInf.resolve("incremental.annotation.processors"), "com.Proc1,AGGREGATING\n");
 
@@ -101,20 +101,22 @@ class ProcessorClassificationTest {
     @Test
     void javacTakesPrecedenceOverGradle() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Files.createDirectories(dir.resolve("META-INF/javaci"));
+        Files.createDirectories(dir.resolve("META-INF/maven/compiler"));
         Files.createDirectories(dir.resolve("META-INF/gradle"));
-        Files.writeString(dir.resolve("META-INF/javaci/incremental.annotation.processors"), "com.Proc,ISOLATING\n");
+        Files.writeString(
+                dir.resolve("META-INF/maven/compiler/incremental.annotation.processors"), "com.Proc,ISOLATING\n");
         Files.writeString(dir.resolve("META-INF/gradle/incremental.annotation.processors"), "com.Proc,AGGREGATING\n");
 
         var pc = new ProcessorClassification(List.of(dir));
-        assertEquals(ProcessorType.ISOLATING, pc.classify("com.Proc"), "javaci should take precedence");
+        assertEquals(ProcessorType.ISOLATING, pc.classify("com.Proc"), "maven/compiler should take precedence");
     }
 
     @Test
     void worstCaseReturnsUnknownIfAnyUnknown() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Files.createDirectories(dir.resolve("META-INF/javaci"));
-        Files.writeString(dir.resolve("META-INF/javaci/incremental.annotation.processors"), "com.Known,ISOLATING\n");
+        Files.createDirectories(dir.resolve("META-INF/maven/compiler"));
+        Files.writeString(
+                dir.resolve("META-INF/maven/compiler/incremental.annotation.processors"), "com.Known,ISOLATING\n");
 
         var pc = new ProcessorClassification(List.of(dir));
         assertEquals(
@@ -126,9 +128,9 @@ class ProcessorClassificationTest {
     @Test
     void worstCaseReturnsAggregatingOverIsolating() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Files.createDirectories(dir.resolve("META-INF/javaci"));
+        Files.createDirectories(dir.resolve("META-INF/maven/compiler"));
         Files.writeString(
-                dir.resolve("META-INF/javaci/incremental.annotation.processors"),
+                dir.resolve("META-INF/maven/compiler/incremental.annotation.processors"),
                 "com.Iso,ISOLATING\ncom.Agg,AGGREGATING\n");
 
         var pc = new ProcessorClassification(List.of(dir));
@@ -141,9 +143,9 @@ class ProcessorClassificationTest {
     @Test
     void commentsAndBlankLinesIgnored() throws Exception {
         Path dir = tempDir.resolve("proc");
-        Files.createDirectories(dir.resolve("META-INF/javaci"));
+        Files.createDirectories(dir.resolve("META-INF/maven/compiler"));
         Files.writeString(
-                dir.resolve("META-INF/javaci/incremental.annotation.processors"),
+                dir.resolve("META-INF/maven/compiler/incremental.annotation.processors"),
                 "# comment\n\ncom.Proc,ISOLATING\n# another comment\n");
 
         var pc = new ProcessorClassification(List.of(dir));

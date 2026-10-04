@@ -65,7 +65,7 @@ class AbiManifestTest {
     @Test
     void readUnsupportedVersionReturnsEmptyMap() throws Exception {
         Path file = tempDir.resolve("manifest");
-        Files.writeString(file, "#javaci:v99\ncom.Foo=abc123\n");
+        Files.writeString(file, "#maven-compiler:v99\ncom.Foo=abc123\n");
 
         var result = AbiManifest.read(file);
         assertTrue(result.isEmpty(), "Unsupported version should return empty map");
@@ -102,7 +102,7 @@ class AbiManifestTest {
     @Test
     void commentsAndBlankLinesAreSkipped() throws Exception {
         Path file = tempDir.resolve("manifest");
-        Files.writeString(file, "#javaci:v1\n# a comment\n\ncom.Foo=abc123\n  \n# another\ncom.Bar=def456\n");
+        Files.writeString(file, "#maven-compiler:v1\n# a comment\n\ncom.Foo=abc123\n  \n# another\ncom.Bar=def456\n");
 
         var result = AbiManifest.read(file);
         assertEquals(2, result.size());

@@ -41,7 +41,7 @@ import java.util.logging.Logger;
  * <ol>
  *   <li><b>Manifest (option 1):</b> If a classpath directory contains an
  *       {@value AbiManifest#FILENAME} file, fingerprints are read from it.
- *       This is the fast path for reactor modules compiled with javaci.</li>
+ *       This is the fast path for reactor modules compiled with maven-compiler-plugin.</li>
  *   <li><b>Reactor metadata (option 2):</b> The caller can mark specific
  *       classpath entries as reactor modules via {@code reactorModulePaths}.
  *       These directories are scanned for class files when no manifest is
@@ -50,7 +50,7 @@ import java.util.logging.Logger;
  *       the resolver searches all classpath entries (directories and JARs) and
  *       computes the ABI fingerprint from bytecode via {@link BytecodeAnalyzer}.
  *       This works with any dependency, including third-party JARs that were
- *       not built with javaci.</li>
+ *       not built with maven-compiler-plugin.</li>
  * </ol>
  *
  * <p>JAR entries are cached by identity (path + size + last-modified-time).
