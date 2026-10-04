@@ -18,6 +18,8 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.tools.ToolProvider;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -418,6 +420,61 @@ public class CompilerMojoTestCase {
         testCompileMojo.execute();
         assertOutputFileDoesNotExist(testCompileMojo, "foo", "TestSkipTestCompile0Test.class");
         assertOutputFileDoesNotExist(compileMojo, "foo", "TestSkipTestCompile0Test.class");
+    }
+
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-existing-output")
+    public void testMainOutput(@InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo mojo)
+            throws Exception {
+        compileWithExistingOutput(mojo, false);
+    }
+
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-existing-output")
+    public void testMainOutputForked(@InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo mojo)
+            throws Exception {
+        compileWithExistingOutput(mojo, true);
+    }
+
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-existing-output")
+    public void testTestOutput(
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
+                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
+                    TestCompilerMojo mojo)
+            throws Exception {
+        compileWithExistingOutput(mojo, false);
+    }
+
+    @Test
+    @Basedir("${basedir}/target/test-classes/unit/compiler-existing-output")
+    public void testTestOutputForked(
+            @InjectMojo(goal = "testCompile", pom = "plugin-config.xml")
+                    @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
+                    TestCompilerMojo mojo)
+            throws Exception {
+        compileWithExistingOutput(mojo, true);
+    }
+
+    private static void compileWithExistingOutput(AbstractCompilerMojo mojo, boolean fork) throws Exception {
+        mojo.fork = fork;
+        if (fork) {
+            mojo.executable =
+                    Path.of(System.getProperty("java.home"), "bin", "javac").toString();
+        }
+        Path output = Files.createDirectories(mojo.getOutputDirectory());
+        String helperName = mojo instanceof TestCompilerMojo ? "TestHelper" : "MainHelper";
+        Path helper = mojo.basedir.resolve(helperName + ".java");
+        Files.writeString(
+                helper, "public class " + helperName + " { public static String value() { return \"existing\"; } }");
+        assertEquals(
+                0,
+                ToolProvider.getSystemJavaCompiler().run(null, null, null, "-d", output.toString(), helper.toString()));
+        Files.delete(helper);
+        Files.deleteIfExists(output.resolve("Consumer.class"));
+        mojo.execute();
+        assertTrue(Files.isRegularFile(output.resolve(helperName + ".class")));
+        assertTrue(Files.isRegularFile(output.resolve("Consumer.class")));
     }
 
     @Provides
