@@ -19,27 +19,20 @@
 package org.apache.maven.plugin.compiler.incremental;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Set;
 
 /**
- * Facade for analyzing compiled {@code .class} files to extract type references
- * and compute bytecode-level ABI fingerprints.
+ * Multi-release override of {@link BytecodeAnalyzer} for JDK 24+.
  *
- * <p>This class is part of a multi-release JAR. The root implementation (loaded on
- * JDK &lt; 24) always returns {@code false} from {@link #isAvailable()} — ABI
- * fingerprinting is not supported on JDK 17–23. The {@code META-INF/versions/24/}
- * override (loaded automatically by the JVM on JDK 24+) provides the real
- * implementation backed by the standard {@code java.lang.classfile} API.
+ * <p>This class lives in {@code META-INF/versions/24/} and is loaded automatically
+ * by the JVM on JDK 24 or later, overriding the root stub. It delegates directly
+ * to {@link ClassfileClassAnalyzer} using the standard {@code java.lang.classfile}
+ * API — no reflection required.
  *
- * <p>Callers must check {@link #isAvailable()} before calling {@link #analyze}.
- * When unavailable, the ABI incremental strategy falls back to the timestamp strategy.
- *
- * <p>The {@link ClassAnalysis} record carries the class name, ABI fingerprint,
- * human-readable canonical form, and two classified sets of type references:
- * {@link ClassAnalysis#signatureTypes()} (API surface) and
- * {@link ClassAnalysis#implementationTypes()} (method body instructions only).
+ * <p>On JDK &lt; 24, the root {@code BytecodeAnalyzer} is loaded instead and
+ * {@link #isAvailable()} returns {@code false}, triggering a fallback to the
+ * timestamp incremental strategy.
  */
 public final class BytecodeAnalyzer {
 
@@ -64,59 +57,45 @@ public final class BytecodeAnalyzer {
             String className,
             String abiFingerprint,
             String abiCanonical,
-            Set<String> signatureTypes,
-            Set<String> implementationTypes,
-            Set<String> annotationTypes,
+            java.util.Set<String> signatureTypes,
+            java.util.Set<String> implementationTypes,
+            java.util.Set<String> annotationTypes,
             String moduleName,
             boolean isModuleInfo,
             String sourceFileName) {}
 
+    private static final ClassfileClassAnalyzer ANALYZER = new ClassfileClassAnalyzer();
+
     private BytecodeAnalyzer() {}
 
     /**
-     * Returns {@code true} if ABI fingerprinting is available on the running JVM.
+     * Returns {@code true} — ABI fingerprinting is available on JDK 24+.
      *
-     * <p>This method returns {@code false} in the root JAR (JDK &lt; 24). The
-     * {@code META-INF/versions/24/} override returns {@code true}.
-     *
-     * <p>When this returns {@code false}, callers should fall back to the timestamp
-     * incremental strategy and log a warning to the user.
-     *
-     * @return {@code true} if {@link #analyze} can be called safely
+     * @return {@code true}
      */
     public static boolean isAvailable() {
-        return false;
+        return true;
     }
 
     /**
      * Analyzes the class file at {@code classFile}.
      *
-     * <p>Only call this method after confirming {@link #isAvailable()} returns {@code true}.
-     *
      * @param classFile path to the {@code .class} file
      * @return analysis result
      * @throws IOException if reading the file fails
-     * @throws UnsupportedOperationException if called on JDK &lt; 24
      */
     public static ClassAnalysis analyze(Path classFile) throws IOException {
-        throw new UnsupportedOperationException("ABI fingerprinting requires JDK 24 or later (running JDK "
-                + Runtime.version().feature()
-                + "). Check BytecodeAnalyzer.isAvailable() before calling analyze().");
+        return ANALYZER.analyze(Files.readAllBytes(classFile));
     }
 
     /**
      * Analyzes the given class file bytes.
      *
-     * <p>Only call this method after confirming {@link #isAvailable()} returns {@code true}.
-     *
      * @param classBytes raw {@code .class} file content
      * @return analysis result
-     * @throws UnsupportedOperationException if called on JDK &lt; 24
      */
     public static ClassAnalysis analyze(byte[] classBytes) {
-        throw new UnsupportedOperationException("ABI fingerprinting requires JDK 24 or later (running JDK "
-                + Runtime.version().feature()
-                + "). Check BytecodeAnalyzer.isAvailable() before calling analyze().");
+        return ANALYZER.analyze(classBytes);
     }
 
     // --- package-private utilities shared by the analyzer implementations and tests ---
@@ -144,7 +123,7 @@ public final class BytecodeAnalyzer {
     static String parseParams(String methodDesc) {
         int close = methodDesc.indexOf(')');
         String params = methodDesc.substring(1, close);
-        var result = new ArrayList<String>();
+        var result = new java.util.ArrayList<String>();
         int i = 0;
         while (i < params.length()) {
             int start = i;

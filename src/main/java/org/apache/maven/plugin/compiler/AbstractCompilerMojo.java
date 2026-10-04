@@ -1417,8 +1417,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         final ToolExecutor executor = createExecutor(null);
         if ("abi".equalsIgnoreCase(incrementalStrategy) && !Boolean.FALSE.equals(useIncrementalCompilation)) {
-            executor.compileWithAbiIncremental(compiler, configuration, this);
-            return;
+            if (!org.apache.maven.plugin.compiler.incremental.BytecodeAnalyzer.isAvailable()) {
+                logger.warn("ABI incremental strategy requires JDK 24 or later "
+                        + "(running JDK " + Runtime.version().feature() + "). "
+                        + "Falling back to timestamp strategy.");
+            } else {
+                executor.compileWithAbiIncremental(compiler, configuration, this);
+                return;
+            }
         }
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;

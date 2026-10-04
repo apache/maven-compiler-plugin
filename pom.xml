@@ -188,6 +188,17 @@ under the License.
             <excludes>
               <exclude>unit/**</exclude>
             </excludes>
+            <!--
+              Tests run against the exploded classes directory, not the packaged JAR.
+              The JVM's multi-release JAR dispatch does not apply to directories, so
+              the JDK 24+ BytecodeAnalyzer override must be placed before the root stub
+              on the classpath. We prepend META-INF/versions/24/ via the system property
+              so it is resolved before target/classes/ by the bootstrap class loader.
+            -->
+            <classesDirectory>${project.build.outputDirectory}/META-INF/versions/24</classesDirectory>
+            <additionalClasspathElements>
+              <additionalClasspathElement>${project.build.outputDirectory}</additionalClasspathElement>
+            </additionalClasspathElements>
           </configuration>
         </plugin>
       </plugins>
@@ -224,12 +235,13 @@ under the License.
         <executions>
           <execution>
             <!--
-              Compile sources that require java.lang.classfile (JDK 24+) separately
-              with release=24, so the main sources stay at the baseline Java version (17).
-              The compiled classes land alongside the main classes in the output directory.
-              BytecodeAnalyzer loads ClassfileClassAnalyzer reflectively at runtime when
-              the running JVM is JDK 24 or later; AsmClassAnalyzer is used otherwise.
-              JDK 25 is required at build time so this execution always runs unconditionally.
+              Compile the java.lang.classfile-based bytecode analyzer (JDK 24+ API)
+              into META-INF/versions/24/ to form a proper multi-release JAR.
+              On JDK 24+, the JVM automatically loads the versioned BytecodeAnalyzer
+              which delegates directly to ClassfileClassAnalyzer (no reflection needed).
+              On JDK < 24, the root BytecodeAnalyzer stub is loaded instead, which
+              reports isAvailable()=false and triggers a fallback to the timestamp strategy.
+              JDK 25 is required at build time so this execution always runs.
             -->
             <id>compile-java24</id>
             <goals>
@@ -241,9 +253,21 @@ under the License.
                 <compileSourceRoot>${project.basedir}/src/main/java24</compileSourceRoot>
               </compileSourceRoots>
               <release>24</release>
+              <outputDirectory>${project.build.outputDirectory}/META-INF/versions/24</outputDirectory>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Multi-Release>true</Multi-Release>
+            </manifestEntries>
+          </archive>
+        </configuration>
       </plugin>
     </plugins>
   </build>

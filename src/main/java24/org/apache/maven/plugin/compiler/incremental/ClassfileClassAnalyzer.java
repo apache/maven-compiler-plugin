@@ -41,10 +41,11 @@ import java.util.TreeSet;
  * {@link ClassAnalyzer} implementation using the standard {@code java.lang.classfile}
  * API, available since JDK 24.
  *
- * <p>This implementation is loaded reflectively by {@link BytecodeAnalyzer} when
- * the running JVM version is 24 or later. It is compiled separately with
- * {@code --release 24} to avoid a compile-time dependency on the classfile API
- * in the main sources.
+ * <p>This implementation lives in {@code META-INF/versions/24/} as part of the
+ * multi-release JAR. It is instantiated directly by the JDK 24+ override of
+ * {@link BytecodeAnalyzer} — no reflection required. On JDK &lt; 24, the root
+ * {@code BytecodeAnalyzer} stub is loaded instead and ABI fingerprinting is
+ * unavailable.
  *
  * <p>Type references are classified into two sets:
  * <ul>
