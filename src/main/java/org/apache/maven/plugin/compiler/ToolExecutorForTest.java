@@ -408,7 +408,9 @@ class ToolExecutorForTest extends ToolExecutor {
     void compileWithAbiIncremental(JavaCompiler compiler, Options configuration, AbstractCompilerMojo mojo)
             throws IOException {
         addModuleOptions(configuration); // Effective only once.
-        super.compileWithAbiIncremental(compiler, configuration, mojo);
+        try (var r = ModuleDirectoryRemover.create(outputDirectory, directoryLevelToRemove)) {
+            super.compileWithAbiIncremental(compiler, configuration, mojo);
+        }
     }
 
     /**

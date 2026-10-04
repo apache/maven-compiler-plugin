@@ -30,15 +30,14 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import com.sun.source.util.JavacTask;
-
 /**
  * ABI-fingerprint-driven incremental build engine, designed for embedding
  * in maven-compiler-plugin alongside the existing timestamp-based
  * {@code IncrementalBuild}.
  *
  * <p>The plugin drives compilation; this class determines <em>what</em> to
- * compile and collects analysis data during compilation. Typical usage:
+ * compile and performs post-compilation bytecode analysis to build the
+ * dependency graph and ABI fingerprints. Typical usage:
  *
  * <pre>{@code
  * var abi = new AbiIncrementalBuild(outputDir);
@@ -50,26 +49,30 @@ import com.sun.source.util.JavacTask;
  * Set<Path> toCompile = abi.initialize(allSourceFiles);
  *
  * while (!toCompile.isEmpty()) {
- *     JavacTask task = (JavacTask) compiler.getTask(..., toCompile, ...);
- *     abi.attachTo(task);
- *     if (!task.call()) { abi.invalidate(); break; }
- *     toCompile = abi.processRound();
+ *     compiler.compile(toCompile);      // any compiler, any mode
+ *     toCompile = abi.processCompiledClasses(toCompile);
  * }
  *
  * abi.finish();
  * }</pre>
  *
- * <p>See {@link org.apache.maven.plugin.compiler.ToolExecutor} for the full
- * integration including module path detection and multi-release handling.
+ * <p>After each compilation pass, {@link #processCompiledClasses(Set)} scans
+ * the freshly produced {@code .class} files, updates the dependency graph and
+ * ABI fingerprints, and returns any additional files that must be compiled in
+ * the next pass (cascade due to ABI changes, or newly discovered dependencies).
+ * The loop converges in at most 2–3 passes in practice.
  *
- * <p>The engine persists its state as {@code .incremental-state} inside the
- * output directory and writes an {@link AbiManifest} ({@code .abi-fingerprints})
- * in the build directory for downstream reactor modules.
+ * <p>The engine persists its state as {@code .abi-incremental-state} in the
+ * {@code target/maven-status/maven-compiler-plugin/<outputDirName>/} directory (outside the class
+ * output directory so it is not packaged into JARs) and writes an {@link AbiManifest}
+ * ({@code .abi-fingerprints}) in the build directory for downstream reactor modules.
  *
- * @see CompilationAnalyzer
  * @see IncrementalState
  */
 public class AbiIncrementalBuild {
+
+    /** Prefix used to distinguish module-info entries from regular type entries in the state. */
+    static final String MODULE_PREFIX = "module:";
 
     private final Path outputDir;
     private final Path buildDir;
@@ -85,17 +88,26 @@ public class AbiIncrementalBuild {
     private Map<String, Long> sourceMtimes;
     private List<Path> allSourceFiles;
     private Set<String> allCompiled;
-    private CompilationAnalyzer currentAnalyzer;
     private boolean fullBuild;
     private boolean useModulePrefixedPaths;
     private String configHash = "";
     private String rebuildCause;
     private int totalSources;
+    /** Source files compiled in previous rounds of the current build (for loop detection). */
+    private Set<String> compiledInPreviousRounds;
+    /** Lazily populated on full builds; maps each output class file to its simple top-level class name. */
+    private java.util.Map<Path, String> outputClassIndex;
 
     public AbiIncrementalBuild(Path outputDir) {
         this.outputDir = outputDir;
         this.buildDir = outputDir.getParent() != null ? outputDir.getParent() : outputDir;
-        this.stateFile = outputDir.resolve(".incremental-state");
+        // Store state outside the output directory so it is not included in the JAR.
+        // Use the same maven-status convention as the timestamp-based strategy.
+        // Include the output directory name (e.g. "classes", "test-classes") to avoid
+        // collisions between compile and testCompile executions.
+        String outputDirName = outputDir.getFileName().toString();
+        Path mavenStatus = buildDir.resolve("maven-status").resolve("maven-compiler-plugin");
+        this.stateFile = mavenStatus.resolve(outputDirName).resolve(".abi-incremental-state");
     }
 
     /**
@@ -175,30 +187,38 @@ public class AbiIncrementalBuild {
     }
 
     /**
-     * Attaches the ABI analyzer to a javac task. Must be called before
-     * {@code task.call()} on each compilation round.
-     */
-    public void attachTo(JavacTask task) {
-        currentAnalyzer = new CompilationAnalyzer(task);
-        task.addTaskListener(currentAnalyzer);
-    }
-
-    /**
-     * Processes the results of the last compilation round. Compares new ABI
-     * fingerprints against previous values and determines whether a cascade
-     * round is needed.
+     * Processes the {@code .class} files produced by the last compilation pass.
+     * Scans each class file to extract the dependency graph and ABI fingerprints,
+     * detects ABI changes, and returns any additional source files that must be
+     * compiled in the next pass.
      *
-     * @return the next set of files to compile (cascade consumers), or empty
-     *         if the fixpoint has been reached
+     * <p>The internal loop handles two cases:
+     * <ul>
+     *   <li><b>ABI cascade</b>: a type's public API changed → its signature consumers
+     *       need recompilation.</li>
+     *   <li><b>New dependency discovery</b>: a source file was compiled and now references
+     *       a type it didn't in the previous build → that dependency is recorded, and if
+     *       the referenced type also changed, the newly discovered consumer is added.</li>
+     * </ul>
+     *
+     * @param compiledSourceFiles the source files that were passed to the compiler in this round
+     * @return additional source files to compile (may be empty when fixpoint is reached)
+     * @throws IOException if reading {@code .class} files fails
      */
-    public Set<Path> processRound() {
-        if (currentAnalyzer == null) {
-            return Set.of();
+    public Set<Path> processCompiledClasses(Set<Path> compiledSourceFiles) throws IOException {
+        if (compiledInPreviousRounds == null) {
+            compiledInPreviousRounds = new TreeSet<>(allCompiled);
+        }
+        // Reset the class index so it is rebuilt fresh for each compilation round
+        outputClassIndex = null;
+
+        // Scan .class files for the types produced from the compiled source files
+        var results = new java.util.LinkedHashMap<String, SourceFileAnalysis>();
+        for (Path sourceFile : compiledSourceFiles) {
+            collectClassAnalyses(sourceFile, results);
         }
 
-        var results = currentAnalyzer.getResults();
-
-        // Detect ABI changes
+        // Detect ABI changes vs. previous state
         var abiChanged = new TreeSet<String>();
         for (var result : results.values()) {
             String prevAbi = previousState != null ? previousState.getAbiFingerprint(result.qualifiedName()) : null;
@@ -207,7 +227,7 @@ public class AbiIncrementalBuild {
             }
         }
 
-        // Update state with this round's results
+        // Update incremental state with this round's results
         for (var entry : sourceHashes.entrySet()) {
             if (allCompiled.contains(entry.getKey())) {
                 state.setSourceHash(entry.getKey(), entry.getValue());
@@ -230,13 +250,12 @@ public class AbiIncrementalBuild {
             return Set.of();
         }
 
-        // Detect module name changes — these require a full rebuild because
-        // all types in the module were compiled under the old module context
+        // Detect module name changes — require a full rebuild
         if (previousState != null && hasModuleNameChanged(state, previousState)) {
             return forceFullRebuild();
         }
 
-        // Cascade: find consumers of ABI-changed types
+        // Cascade: find signature consumers of ABI-changed types
         var abiCascade = new TreeSet<>(abiChanged);
         for (String type : abiChanged) {
             expandSignatureCascade(type, state, abiCascade);
@@ -257,6 +276,212 @@ public class AbiIncrementalBuild {
         additionalFiles.addAll(computeProcessorCascade());
 
         return additionalFiles;
+    }
+
+    /**
+     * Scans the output directory for {@code .class} files produced from the given source file,
+     * analyzes each one with {@link BytecodeAnalyzer}, and accumulates {@link SourceFileAnalysis}
+     * records into {@code results}.
+     *
+     * <p>The source→class mapping is reconstructed by looking up types previously recorded for
+     * this source file in the previous state, and by scanning the output directory for class
+     * files whose name prefix matches the source file's simple name. This covers both primary
+     * classes and inner/anonymous classes ({@code Foo$Bar.class}).
+     */
+    private void collectClassAnalyses(Path sourceFile, java.util.Map<String, SourceFileAnalysis> results)
+            throws IOException {
+        String sourceFilePath = sourceFile.toString();
+        String simpleSourceName = sourceFile.getFileName().toString(); // e.g. "Model.java"
+
+        // Map from class file path → pre-computed analysis (null if not yet analyzed).
+        // Reuses the analysis from the package-dir walk to avoid double BytecodeAnalyzer.analyze calls.
+        var classFileCache = new java.util.LinkedHashMap<Path, BytecodeAnalyzer.ClassAnalysis>();
+
+        // Types previously tracked for this source file — their .class files may have moved
+        if (previousState != null) {
+            for (String type : previousState.getTypesFromSource(sourceFilePath)) {
+                Path classFile = classFileFor(type, previousState.getType(type));
+                if (Files.exists(classFile)) {
+                    classFileCache.put(classFile, null);
+                }
+                // Also scan for inner classes (Foo$Bar.class etc.)
+                var innerFiles = new TreeSet<Path>();
+                addInnerClassFiles(classFile, innerFiles);
+                for (Path inner : innerFiles) {
+                    classFileCache.putIfAbsent(inner, null);
+                }
+            }
+        }
+
+        // Walk output directory entries for this source's simple name
+        // (handles new types introduced in this compilation)
+        Path packageDir = inferPackageDir(sourceFile);
+        if (packageDir != null && Files.isDirectory(packageDir)) {
+            try (var stream = Files.list(packageDir)) {
+                stream.filter(p -> p.toString().endsWith(".class")).forEach(cf -> {
+                    try {
+                        // Match by SourceFile attribute — covers primary class, inner/anonymous
+                        // classes (Foo$Bar.class), AND package-private secondary top-level classes
+                        // (FooHelper in Foo.java), without cross-package simple-name collisions.
+                        var a = BytecodeAnalyzer.analyze(cf);
+                        if (simpleSourceName.equals(a.sourceFileName())) {
+                            classFileCache.put(cf, a); // cache the analysis for reuse below
+                        }
+                    } catch (IOException e) {
+                        // best effort — skip unreadable class files
+                    }
+                });
+            }
+        } else {
+            // No previous state for this source (full build or new file in incremental build):
+            // use the cached class index keyed by SourceFile attribute value (simple source name,
+            // e.g. "Foo.java"). This correctly associates package-private secondary types and
+            // avoids cross-package simple-name collisions.
+            for (var entry : getFullBuildClassIndex().entrySet()) {
+                if (simpleSourceName.equals(entry.getValue())) {
+                    classFileCache.putIfAbsent(entry.getKey(), null);
+                }
+            }
+        }
+
+        // Special case: module-info.class — check both flat and module-prefixed locations
+        if (sourceFile.getFileName().toString().equals("module-info.java")) {
+            // Flat layout: outputDir/module-info.class
+            Path flat = outputDir.resolve("module-info.class");
+            if (Files.exists(flat)) {
+                classFileCache.putIfAbsent(flat, null);
+            }
+            // MODULE_SOURCE layout: outputDir/<moduleName>/module-info.class
+            if (useModulePrefixedPaths && previousState != null) {
+                // Find the module name from previous state
+                for (String type : previousState.getTypesFromSource(sourceFile.toString())) {
+                    if (type.startsWith(MODULE_PREFIX)) {
+                        String modName = type.substring(MODULE_PREFIX.length());
+                        Path modInfo = outputDir.resolve(modName).resolve("module-info.class");
+                        if (Files.exists(modInfo)) {
+                            classFileCache.putIfAbsent(modInfo, null);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Final pass: analyze each class file (reusing cached analysis where available)
+        for (var cacheEntry : classFileCache.entrySet()) {
+            Path classFile = cacheEntry.getKey();
+            if (!Files.exists(classFile)) {
+                continue;
+            }
+            try {
+                var analysis =
+                        cacheEntry.getValue() != null ? cacheEntry.getValue() : BytecodeAnalyzer.analyze(classFile);
+                String sourceFilePath2 = analysis.isModuleInfo()
+                        ? sourceFilePath
+                        : resolveSourceFile(analysis.className(), sourceFilePath);
+                var sfa = new SourceFileAnalysis(
+                        analysis.className(),
+                        sourceFilePath2,
+                        analysis.signatureTypes(),
+                        analysis.implementationTypes(),
+                        analysis.abiFingerprint(),
+                        analysis.abiCanonical(),
+                        analysis.annotationTypes(),
+                        analysis.moduleName());
+                results.put(analysis.className(), sfa);
+            } catch (IOException e) {
+                // Skip unreadable class files — they'll be caught at compile time
+            }
+        }
+    }
+
+    private java.util.Map<Path, String> getFullBuildClassIndex() throws IOException {
+        if (outputClassIndex == null) {
+            outputClassIndex = new java.util.LinkedHashMap<>();
+            if (Files.isDirectory(outputDir)) {
+                try (var walk = Files.walk(outputDir)) {
+                    for (Path cf :
+                            (Iterable<Path>) walk.filter(p -> p.toString().endsWith(".class"))::iterator) {
+                        try {
+                            var analysis = BytecodeAnalyzer.analyze(cf);
+                            // Use the SourceFile attribute value — correctly handles package-private
+                            // secondary types in the same file (e.g. FooHelper in Foo.java → "Foo.java").
+                            String sfName = analysis.sourceFileName();
+                            if (!sfName.isEmpty()) {
+                                outputClassIndex.put(cf, sfName);
+                            }
+                        } catch (IOException e) {
+                            // best effort — skip unreadable class files
+                        }
+                    }
+                }
+            }
+        }
+        return outputClassIndex;
+    }
+
+    /** Returns the expected .class file path for a type, accounting for module-prefixed output dirs. */
+    private Path classFileFor(String qualifiedName, IncrementalState.TypeInfo info) {
+        String moduleName = info != null ? info.moduleName() : "";
+        Path base = (useModulePrefixedPaths && !moduleName.isEmpty()) ? outputDir.resolve(moduleName) : outputDir;
+        if (qualifiedName.startsWith(MODULE_PREFIX)) {
+            return base.resolve("module-info.class");
+        }
+        return base.resolve(qualifiedName.replace('.', '/') + ".class");
+    }
+
+    private static void addInnerClassFiles(Path primaryClassFile, Set<Path> result) {
+        if (!Files.exists(primaryClassFile)) {
+            return;
+        }
+        Path dir = primaryClassFile.getParent();
+        if (dir == null || !Files.isDirectory(dir)) {
+            return;
+        }
+        String prefix = primaryClassFile.getFileName().toString().replace(".class", "$");
+        try (var stream = Files.list(dir)) {
+            stream.filter(p -> p.getFileName().toString().startsWith(prefix)
+                            && p.getFileName().toString().endsWith(".class"))
+                    .forEach(result::add);
+        } catch (IOException e) {
+            // Best effort
+        }
+    }
+
+    /**
+     * Infers the package directory in the output tree for the given source file,
+     * based on the types previously recorded for it in the incremental state.
+     * Accounts for module-prefixed output directories when {@code useModulePrefixedPaths} is true.
+     */
+    private Path inferPackageDir(Path sourceFile) {
+        if (previousState == null) {
+            return null;
+        }
+        String sourceFilePath = sourceFile.toString();
+        for (String type : previousState.getTypesFromSource(sourceFilePath)) {
+            if (!type.startsWith(MODULE_PREFIX)) {
+                String pkg = type.contains(".")
+                        ? type.substring(0, type.lastIndexOf('.')).replace('.', '/')
+                        : "";
+                // Determine base dir: for module-prefixed output, classes live under outputDir/<module>/
+                var info = previousState.getType(type);
+                String moduleName = (useModulePrefixedPaths && info != null) ? info.moduleName() : "";
+                Path base = (!moduleName.isEmpty()) ? outputDir.resolve(moduleName) : outputDir;
+                return pkg.isEmpty() ? base : base.resolve(pkg);
+            }
+        }
+        return null;
+    }
+
+    /** Returns the source file to associate with a class, preferring the known path if available. */
+    private String resolveSourceFile(String className, String defaultSourceFile) {
+        if (state != null) {
+            String sf = state.sourceFileFor(className);
+            if (sf != null) {
+                return sf;
+            }
+        }
+        return defaultSourceFile;
     }
 
     /**
@@ -556,10 +781,10 @@ public class AbiIncrementalBuild {
 
     private static boolean hasModuleNameChanged(IncrementalState current, IncrementalState previous) {
         var currentModules = current.getTypes().keySet().stream()
-                .filter(k -> k.startsWith(CompilationAnalyzer.MODULE_PREFIX))
+                .filter(k -> k.startsWith(MODULE_PREFIX))
                 .collect(Collectors.toSet());
         var previousModules = previous.getTypes().keySet().stream()
-                .filter(k -> k.startsWith(CompilationAnalyzer.MODULE_PREFIX))
+                .filter(k -> k.startsWith(MODULE_PREFIX))
                 .collect(Collectors.toSet());
         return !currentModules.equals(previousModules);
     }
@@ -582,10 +807,15 @@ public class AbiIncrementalBuild {
         return additionalFiles;
     }
 
-    private void expandSignatureCascade(String type, IncrementalState state, Set<String> result) {
-        for (String consumer : state.getSignatureConsumers(type)) {
-            if (result.add(consumer)) {
-                expandSignatureCascade(consumer, state, result);
+    private void expandSignatureCascade(String startType, IncrementalState state, Set<String> result) {
+        var worklist = new java.util.ArrayDeque<String>();
+        worklist.add(startType);
+        while (!worklist.isEmpty()) {
+            String type = worklist.poll();
+            for (String consumer : state.getSignatureConsumers(type)) {
+                if (result.add(consumer)) {
+                    worklist.add(consumer);
+                }
             }
         }
     }
@@ -594,7 +824,7 @@ public class AbiIncrementalBuild {
         String moduleName = info != null ? info.moduleName() : "";
         Path baseDir = moduleName.isEmpty() ? outputDir : outputDir.resolve(moduleName);
 
-        if (qualifiedName.startsWith(CompilationAnalyzer.MODULE_PREFIX)) {
+        if (qualifiedName.startsWith(MODULE_PREFIX)) {
             Path moduleInfoClass = baseDir.resolve("module-info.class");
             try {
                 Files.deleteIfExists(moduleInfoClass);

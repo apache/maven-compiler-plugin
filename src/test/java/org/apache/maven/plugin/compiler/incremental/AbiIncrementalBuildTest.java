@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import com.sun.source.util.JavacTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -82,14 +81,10 @@ class AbiIncrementalBuildTest {
 
         while (!toCompile.isEmpty()) {
             compileFiles(toCompile, modular);
-            abi.attachTo(lastTask);
-            lastTask.call();
-            toCompile = abi.processRound();
+            toCompile = abi.processCompiledClasses(toCompile);
         }
         abi.finish();
     }
-
-    private JavacTask lastTask;
 
     private void compileFiles(Set<Path> files) throws Exception {
         compileFiles(files, false);
@@ -97,16 +92,20 @@ class AbiIncrementalBuildTest {
 
     private void compileFiles(Set<Path> files, boolean modular) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-        var fm = compiler.getStandardFileManager(null, null, null);
-        fm.setLocation(StandardLocation.CLASS_OUTPUT, List.of(classesDir.toFile()));
-        fm.setLocation(StandardLocation.CLASS_PATH, List.of(classesDir.toFile()));
-        if (modular) {
-            fm.setLocation(StandardLocation.SOURCE_PATH, List.of(sourceDir.toFile()));
-        } else {
-            fm.setLocation(StandardLocation.SOURCE_PATH, List.of());
+        try (var fm = compiler.getStandardFileManager(null, null, null)) {
+            fm.setLocation(StandardLocation.CLASS_OUTPUT, List.of(classesDir.toFile()));
+            fm.setLocation(StandardLocation.CLASS_PATH, List.of(classesDir.toFile()));
+            if (modular) {
+                fm.setLocation(StandardLocation.SOURCE_PATH, List.of(sourceDir.toFile()));
+            } else {
+                fm.setLocation(StandardLocation.SOURCE_PATH, List.of());
+            }
+            var units = fm.getJavaFileObjectsFromPaths(files);
+            var task = compiler.getTask(null, fm, null, null, null, units);
+            if (!task.call()) {
+                throw new RuntimeException("Compilation failed");
+            }
         }
-        var units = fm.getJavaFileObjectsFromPaths(files);
-        lastTask = (JavacTask) compiler.getTask(null, fm, null, null, null, units);
     }
 
     private List<Path> listSources() throws Exception {
@@ -124,13 +123,12 @@ class AbiIncrementalBuildTest {
         assertEquals(3, toCompile.size(), "Should compile all 3 files");
 
         compileFiles(toCompile);
-        abi.attachTo(lastTask);
-        lastTask.call();
-        abi.processRound();
+        abi.processCompiledClasses(toCompile);
         abi.finish();
 
         // State and manifest should exist
-        assertTrue(Files.exists(workDir.resolve("target/classes/.incremental-state")));
+        assertTrue(Files.exists(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state")));
         assertTrue(Files.exists(workDir.resolve("target/.abi-fingerprints")));
         assertEquals(3, abi.compiledCount());
     }
@@ -190,9 +188,7 @@ class AbiIncrementalBuildTest {
         assertEquals(1, toCompile.size(), "Only Helper should need compilation");
 
         compileFiles(toCompile);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> cascade = abi2.processRound();
+        Set<Path> cascade = abi2.processCompiledClasses(toCompile);
         assertTrue(cascade.isEmpty(), "Body-only change should not cascade");
 
         abi2.finish();
@@ -216,17 +212,13 @@ class AbiIncrementalBuildTest {
         assertEquals(1, round1.size(), "Only Model changed");
 
         compileFiles(round1);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> round2 = abi2.processRound();
+        Set<Path> round2 = abi2.processCompiledClasses(round1);
 
         // Service has Model as signature dep → should cascade
         assertFalse(round2.isEmpty(), "ABI change should cascade");
 
         compileFiles(round2);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> round3 = abi2.processRound();
+        Set<Path> round3 = abi2.processCompiledClasses(round2);
         assertTrue(round3.isEmpty(), "Should reach fixpoint");
 
         abi2.finish();
@@ -251,17 +243,13 @@ class AbiIncrementalBuildTest {
         assertEquals(1, round1.size(), "Only Helper changed");
 
         compileFiles(round1);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> round2 = abi2.processRound();
+        Set<Path> round2 = abi2.processCompiledClasses(round1);
 
         // Service has Helper as impl dep → should cascade directly
         assertFalse(round2.isEmpty(), "Impl dep ABI change should trigger cascade to Service");
 
         compileFiles(round2);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> round3 = abi2.processRound();
+        Set<Path> round3 = abi2.processCompiledClasses(round2);
         assertTrue(round3.isEmpty(), "Impl dep cascade should not propagate further");
 
         abi2.finish();
@@ -284,9 +272,7 @@ class AbiIncrementalBuildTest {
                 "Extra.java should be in compile set");
 
         compileFiles(toCompile);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        abi2.processRound();
+        abi2.processCompiledClasses(toCompile);
         abi2.finish();
     }
 
@@ -312,9 +298,7 @@ class AbiIncrementalBuildTest {
                 "Service (consumer of deleted Helper) should be recompiled");
 
         compileFiles(toCompile);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        abi2.processRound();
+        abi2.processCompiledClasses(toCompile);
         abi2.finish();
 
         // Helper.class should be deleted
@@ -350,16 +334,12 @@ class AbiIncrementalBuildTest {
         assertFalse(round1.isEmpty(), "Modified file should need recompilation");
 
         compileFiles(round1);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> round2 = abi2.processRound();
+        Set<Path> round2 = abi2.processCompiledClasses(round1);
 
         // Cascade any ABI consumers
         while (!round2.isEmpty()) {
             compileFiles(round2);
-            abi2.attachTo(lastTask);
-            lastTask.call();
-            round2 = abi2.processRound();
+            round2 = abi2.processCompiledClasses(round2);
         }
         abi2.finish();
 
@@ -378,8 +358,10 @@ class AbiIncrementalBuildTest {
         doFullBuildCycle(true);
 
         // State should exist and include module entry
-        assertTrue(Files.exists(workDir.resolve("target/classes/.incremental-state")));
-        var state = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
+        assertTrue(Files.exists(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state")));
+        var state = IncrementalState.load(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state"));
         assertNotNull(state, "State should be loaded");
         assertNotNull(state.getType("module:my.mod"), "State should contain module-info entry with 'module:' prefix");
         assertNotNull(state.getAbiFingerprint("module:my.mod"), "Module entry should have an ABI fingerprint");
@@ -414,7 +396,8 @@ class AbiIncrementalBuildTest {
 
         doFullBuildCycle(true);
 
-        var state1 = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
+        var state1 = IncrementalState.load(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state"));
         String fingerprint1 = state1.getAbiFingerprint("module:my.mod");
         assertNotNull(fingerprint1);
 
@@ -427,13 +410,12 @@ class AbiIncrementalBuildTest {
 
         while (!toCompile.isEmpty()) {
             compileFiles(toCompile, true);
-            abi2.attachTo(lastTask);
-            lastTask.call();
-            toCompile = abi2.processRound();
+            toCompile = abi2.processCompiledClasses(toCompile);
         }
         abi2.finish();
 
-        var state2 = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
+        var state2 = IncrementalState.load(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state"));
         String fingerprint2 = state2.getAbiFingerprint("module:my.mod");
         assertNotNull(fingerprint2);
         assertNotEquals(fingerprint1, fingerprint2, "ABI fingerprint should change when exports are added");
@@ -454,9 +436,7 @@ class AbiIncrementalBuildTest {
 
         // First round: recompile module-info.java
         compileFiles(toCompile, true);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> cascade = abi2.processRound();
+        Set<Path> cascade = abi2.processCompiledClasses(toCompile);
 
         // Module name change should force recompilation of all remaining files
         assertFalse(cascade.isEmpty(), "Module name change should trigger full rebuild");
@@ -464,14 +444,13 @@ class AbiIncrementalBuildTest {
         // Complete all rounds
         while (!cascade.isEmpty()) {
             compileFiles(cascade, true);
-            abi2.attachTo(lastTask);
-            lastTask.call();
-            cascade = abi2.processRound();
+            cascade = abi2.processCompiledClasses(cascade);
         }
         abi2.finish();
 
         // State should reflect the new module name
-        var state = IncrementalState.load(workDir.resolve("target/classes/.incremental-state"));
+        var state = IncrementalState.load(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state"));
         assertNotNull(state.getType("module:my.renamed"), "State should have new module name");
         assertNull(state.getType("module:my.old"), "State should not have old module name");
     }
@@ -503,9 +482,7 @@ class AbiIncrementalBuildTest {
                 "package-info.java should be in compile set");
 
         compileFiles(toCompile);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        abi2.processRound();
+        abi2.processCompiledClasses(toCompile);
         abi2.finish();
     }
 
@@ -536,31 +513,30 @@ class AbiIncrementalBuildTest {
         assertEquals(1, round1.size(), "Only Constants changed");
 
         compileFiles(round1);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        Set<Path> round2 = abi2.processRound();
+        Set<Path> round2 = abi2.processCompiledClasses(round1);
 
         // Constants ABI changed (value is part of fingerprint) → Service should cascade
         assertFalse(round2.isEmpty(), "Constant value change should cascade to consumers");
 
         compileFiles(round2);
-        abi2.attachTo(lastTask);
-        lastTask.call();
-        abi2.processRound();
+        abi2.processCompiledClasses(round2);
         abi2.finish();
     }
 
     @Test
-    void stateFileInsideOutputDirectory() throws Exception {
+    void stateFileInMavenStatusDirectory() throws Exception {
         doFullBuildCycle();
 
-        // State file should be inside the output directory, not the parent
+        // State file should be in target/maven-status/maven-compiler-plugin/classes/, not inside output directory
+        Path stateFile = workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state");
         assertTrue(
-                Files.exists(classesDir.resolve(".incremental-state")),
-                "State file should be inside output directory (target/classes/)");
+                Files.exists(stateFile), "State file should be in target/maven-status/maven-compiler-plugin/classes/");
         assertFalse(
-                Files.exists(workDir.resolve("target/.incremental-state")),
-                "State file should NOT be in parent (target/)");
+                Files.exists(classesDir.resolve(".incremental-state")),
+                "State file should NOT be inside output directory (target/classes/)");
+        assertFalse(
+                Files.exists(classesDir.resolve(".abi-incremental-state")),
+                "State file should NOT be inside output directory (target/classes/)");
     }
 
     @Test
@@ -584,9 +560,10 @@ class AbiIncrementalBuildTest {
         abi2.initialize(testFiles);
         assertTrue(abi2.isFullBuild(), "Second output dir should get its own full build");
 
-        // State file should be in the test output directory
+        // State file should be in the maven-status directory
         // Original state should be untouched
-        var mainState = IncrementalState.load(classesDir.resolve(".incremental-state"));
+        var mainState = IncrementalState.load(
+                workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state"));
         assertNotNull(mainState, "Main compile state should still exist");
         assertEquals(3, mainState.getSourceHashes().size(), "Main state should have 3 sources");
     }
@@ -595,7 +572,7 @@ class AbiIncrementalBuildTest {
     void invalidateDeletesStateFile() throws Exception {
         doFullBuildCycle();
 
-        Path stateFile = classesDir.resolve(".incremental-state");
+        Path stateFile = workDir.resolve("target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state");
         assertTrue(Files.exists(stateFile), "State file should exist after successful build");
 
         // Simulate compilation failure → invalidate
@@ -620,9 +597,7 @@ class AbiIncrementalBuildTest {
         assertTrue(abi1.isFullBuild(), "First build should be full");
 
         compileFiles(toCompile);
-        abi1.attachTo(lastTask);
-        lastTask.call();
-        abi1.processRound();
+        abi1.processCompiledClasses(toCompile);
         abi1.finish();
 
         // Same configHash → incremental (no changes)

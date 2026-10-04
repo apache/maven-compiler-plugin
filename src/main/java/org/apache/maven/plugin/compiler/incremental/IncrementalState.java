@@ -62,6 +62,7 @@ public class IncrementalState {
     private final Map<String, String> classpathIdentities = new LinkedHashMap<>();
     private final Map<String, Set<String>> signatureConsumersIndex = new LinkedHashMap<>();
     private final Map<String, Set<String>> implementationConsumersIndex = new LinkedHashMap<>();
+    private final Map<String, Set<String>> sourceToTypesIndex = new LinkedHashMap<>();
     private String configHash = "";
 
     public record TypeInfo(
@@ -138,10 +139,8 @@ public class IncrementalState {
     }
 
     public List<String> getTypesFromSource(String sourceFile) {
-        return types.entrySet().stream()
-                .filter(e -> e.getValue().sourceFile().equals(sourceFile))
-                .map(Map.Entry::getKey)
-                .toList();
+        Set<String> indexed = sourceToTypesIndex.get(sourceFile);
+        return indexed != null ? List.copyOf(indexed) : List.of();
     }
 
     public Set<String> getSignatureConsumers(String type) {
@@ -287,6 +286,7 @@ public class IncrementalState {
     private void buildInvertedIndex() {
         signatureConsumersIndex.clear();
         implementationConsumersIndex.clear();
+        sourceToTypesIndex.clear();
         for (var entry : types.entrySet()) {
             String consumer = entry.getKey();
             TypeInfo info = entry.getValue();
@@ -300,6 +300,9 @@ public class IncrementalState {
                         .computeIfAbsent(dep, k -> new TreeSet<>())
                         .add(consumer);
             }
+            sourceToTypesIndex
+                    .computeIfAbsent(info.sourceFile(), k -> new TreeSet<>())
+                    .add(consumer);
         }
     }
 
@@ -318,6 +321,10 @@ public class IncrementalState {
                     consumers.remove(typeName);
                 }
             }
+            Set<String> oldSources = sourceToTypesIndex.get(oldInfo.sourceFile());
+            if (oldSources != null) {
+                oldSources.remove(typeName);
+            }
         }
         // Add new entries
         if (newInfo != null) {
@@ -331,6 +338,9 @@ public class IncrementalState {
                         .computeIfAbsent(dep, k -> new TreeSet<>())
                         .add(typeName);
             }
+            sourceToTypesIndex
+                    .computeIfAbsent(newInfo.sourceFile(), k -> new TreeSet<>())
+                    .add(typeName);
         }
     }
 
