@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import com.sun.source.util.JavacTask;
-
 /**
  * Shared helper for incremental compilation tests.
  */
@@ -42,6 +40,10 @@ class CompilerTestHelper {
         Files.writeString(packageDir.resolve(className + ".java"), source);
     }
 
+    /**
+     * Compiles all {@code .java} files under {@code sourceDir} into {@code outputDir}
+     * and returns the output directory. No ABI analysis — raw javac only.
+     */
     static Map<String, SourceFileAnalysis> compileAndAnalyze(Path sourceDir, Path outputDir) throws IOException {
         Files.createDirectories(outputDir);
         List<Path> sourceFiles;
@@ -54,16 +56,38 @@ class CompilerTestHelper {
         try (var fm = compiler.getStandardFileManager(null, null, null)) {
             fm.setLocation(StandardLocation.CLASS_OUTPUT, List.of(outputDir.toFile()));
             var units = fm.getJavaFileObjectsFromPaths(sourceFiles);
-            var task = (JavacTask) compiler.getTask(null, fm, null, null, null, units);
-
-            var analyzer = new CompilationAnalyzer(task);
-            task.addTaskListener(analyzer);
+            var task = compiler.getTask(null, fm, null, null, null, units);
 
             if (!task.call()) {
                 throw new RuntimeException("Compilation failed");
             }
 
-            return analyzer.getResults();
+            // Build a minimal SourceFileAnalysis map from bytecode (no dep graph needed here)
+            Map<String, SourceFileAnalysis> results = new java.util.LinkedHashMap<>();
+            for (Path sf : sourceFiles) {
+                try (Stream<Path> walk = Files.walk(outputDir)) {
+                    walk.filter(p -> p.toString().endsWith(".class")).forEach(cf -> {
+                        try {
+                            var analysis = BytecodeAnalyzer.analyze(cf);
+                            var sfa = new SourceFileAnalysis(
+                                    analysis.className(),
+                                    sf.toString(),
+                                    analysis.signatureTypes(),
+                                    analysis.implementationTypes(),
+                                    analysis.abiFingerprint(),
+                                    analysis.abiCanonical(),
+                                    analysis.annotationTypes(),
+                                    analysis.moduleName());
+                            results.put(analysis.className(), sfa);
+                        } catch (IOException e) {
+                            // best effort
+                        }
+                    });
+                } catch (IOException e) {
+                    // best effort
+                }
+            }
+            return results;
         }
     }
 

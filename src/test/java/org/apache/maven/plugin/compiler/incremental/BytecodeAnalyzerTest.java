@@ -146,7 +146,8 @@ class BytecodeAnalyzerTest {
         assertEquals(fromPath.className(), fromBytes.className());
         assertEquals(fromPath.abiFingerprint(), fromBytes.abiFingerprint());
         assertEquals(fromPath.abiCanonical(), fromBytes.abiCanonical());
-        assertEquals(fromPath.referencedTypes(), fromBytes.referencedTypes());
+        assertEquals(fromPath.signatureTypes(), fromBytes.signatureTypes());
+        assertEquals(fromPath.implementationTypes(), fromBytes.implementationTypes());
     }
 
     @Test
@@ -209,43 +210,38 @@ class BytecodeAnalyzerTest {
     }
 
     /**
-     * When running on JDK 24+, {@link BytecodeAnalyzer} uses the {@code ClassfileClassAnalyzer}
-     * instead of {@link AsmClassAnalyzer}. Both must produce identical results for the same
-     * class file. This test cross-validates the two implementations against each other.
-     *
-     * <p>The {@code ClassfileClassAnalyzer} class is compiled with {@code --release 24} and
-     * only exists in the output directory when building on JDK 24+. To avoid a compile-time
-     * dependency on a class that may not exist, the analyzer is instantiated reflectively.
+     * When running on JDK 24+, {@link BytecodeAnalyzer} uses the {@code ClassfileClassAnalyzer}.
+     * Verifies idempotency: analyzing the same bytes twice produces identical results.
+     * Also verifies that sig/impl split is non-trivially populated for a class with
+     * user-defined type cross-references.
      */
     @Test
     @org.junit.jupiter.api.condition.EnabledForJreRange(min = org.junit.jupiter.api.condition.JRE.JAVA_24)
-    void asmAndClassfileAnalyzersProduceIdenticalResults() throws Exception {
+    void classfileAnalyzerIsIdempotent() throws Exception {
+        // Write two classes so Subject references UserType (a non-JDK type → sig dependency)
+        CompilerTestHelper.writeSource(sourceDir, "test", "UserType", "package test; public class UserType {}");
         CompilerTestHelper.writeSource(sourceDir, "test", "Subject", """
                 package test;
                 public class Subject implements Runnable {
                     public static final String CONST = "hello";
                     private int secret = 42;
-                    public String greet(int x, java.util.List<String> items) { return CONST + x; }
-                    @Override public void run() { greet(1, null); }
-                    protected static int helper(byte b) throws java.io.IOException { return b; }
+                    public UserType getUser() { return new UserType(); }
+                    @Override public void run() { getUser(); }
                 }
                 """);
         CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
 
         byte[] bytes = Files.readAllBytes(outputDir.resolve("test/Subject.class"));
 
-        var asmResult = new AsmClassAnalyzer().analyze(bytes);
+        var r1 = BytecodeAnalyzer.analyze(bytes);
+        var r2 = BytecodeAnalyzer.analyze(bytes);
 
-        // Instantiate ClassfileClassAnalyzer reflectively — the class is only compiled on JDK 24+
-        ClassAnalyzer cfAnalyzer =
-                (ClassAnalyzer) Class.forName("org.apache.maven.plugin.compiler.incremental.ClassfileClassAnalyzer")
-                        .getDeclaredConstructor()
-                        .newInstance();
-        var cfResult = cfAnalyzer.analyze(bytes);
-
-        assertEquals(asmResult.className(), cfResult.className(), "className");
-        assertEquals(asmResult.abiCanonical(), cfResult.abiCanonical(), "abiCanonical");
-        assertEquals(asmResult.abiFingerprint(), cfResult.abiFingerprint(), "abiFingerprint");
-        assertEquals(asmResult.referencedTypes(), cfResult.referencedTypes(), "referencedTypes");
+        assertEquals(r1.className(), r2.className(), "className");
+        assertEquals(r1.abiCanonical(), r2.abiCanonical(), "abiCanonical");
+        assertEquals(r1.abiFingerprint(), r2.abiFingerprint(), "abiFingerprint");
+        assertEquals(r1.signatureTypes(), r2.signatureTypes(), "signatureTypes");
+        assertEquals(r1.implementationTypes(), r2.implementationTypes(), "implementationTypes");
+        // Subject.getUser() returns UserType → UserType is a non-JDK signature dependency
+        assertTrue(r1.signatureTypes().contains("test.UserType"), "test.UserType should be a signature type ref");
     }
 }

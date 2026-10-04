@@ -50,7 +50,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.sun.source.util.JavacTask;
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
 import org.apache.maven.api.plugin.Log;
@@ -58,6 +57,7 @@ import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
 import org.apache.maven.plugin.compiler.incremental.AbiIncrementalBuild;
+import org.apache.maven.plugin.compiler.incremental.Sha256;
 
 /**
  * A task which configures and executes a Java tool such as the Java compiler.
@@ -932,23 +932,6 @@ public class ToolExecutor {
      */
     void compileWithAbiIncremental(JavaCompiler compiler, final Options configuration, final AbstractCompilerMojo mojo)
             throws IOException {
-        if (compiler instanceof ForkedTool) {
-            logger.warn("ABI incremental strategy is not supported with forked compilation."
-                    + " Falling back to full compilation.");
-            // ABI analysis requires in-process javac (JavacTask). Fall back to the
-            // standard incremental strategy instead of attempting ABI analysis.
-            var compilerOutput = new StringWriter();
-            applyIncrementalBuild(mojo, configuration);
-            boolean success = compile(compiler, configuration, compilerOutput);
-            String output = compilerOutput.toString();
-            if (!output.isBlank()) {
-                logger.warn(output);
-            }
-            if (!success) {
-                throw new CompilationFailureException("Compilation failed (forked, non-ABI fallback).");
-            }
-            return;
-        }
         var abiBuild = new AbiIncrementalBuild(outputDirectory);
 
         // Collect classpath entries for cross-module tracking
@@ -1021,9 +1004,18 @@ public class ToolExecutor {
 
         var originalSourceFiles = new ArrayList<>(sourceFiles);
         boolean success = true;
+        // Safety bound: the compile set is monotonically growing (bounded by total source count).
+        // If a bug causes processCompiledClasses to return files already compiled, this prevents
+        // an infinite loop. In practice this limit should never be reached.
+        int maxRounds = originalSourceFiles.size() + 1;
+        int rounds = 0;
 
         try {
             while (!toCompile.isEmpty()) {
+                if (++rounds > maxRounds) {
+                    throw new IllegalStateException("ABI cascade loop did not converge after " + maxRounds
+                            + " rounds — " + "possible dependency cycle or bug in processCompiledClasses()");
+                }
                 Set<Path> compileSet = toCompile;
                 sourceFiles = originalSourceFiles.stream()
                         .filter(sf -> compileSet.contains(sf.file))
@@ -1043,7 +1035,7 @@ public class ToolExecutor {
                     break;
                 }
 
-                toCompile = abiBuild.processRound();
+                toCompile = abiBuild.processCompiledClasses(compileSet);
                 if (!toCompile.isEmpty()) {
                     logger.info("ABI cascade: recompiling " + toCompile.size() + " additional file(s).");
                     if (mojo.showCompilationChanges) {
@@ -1080,14 +1072,11 @@ public class ToolExecutor {
             if (Files.isRegularFile(patchFile)) {
                 try {
                     byte[] content = Files.readAllBytes(patchFile);
-                    var md = java.security.MessageDigest.getInstance("SHA-256");
-                    byte[] hash = md.digest(content);
-                    var hex = new StringBuilder();
-                    for (byte b : hash) {
-                        hex.append(String.format("%02x", b));
-                    }
-                    digest.append(patchFile).append(':').append(hex, 0, 16).append(';');
-                } catch (IOException | java.security.NoSuchAlgorithmException e) {
+                    digest.append(patchFile)
+                            .append(':')
+                            .append(Sha256.hash(content))
+                            .append(';');
+                } catch (IOException e) {
                     digest.append(patchFile).append(":unreadable;");
                 }
             }
@@ -1095,17 +1084,7 @@ public class ToolExecutor {
         if (digest.isEmpty()) {
             return "";
         }
-        try {
-            var md = java.security.MessageDigest.getInstance("SHA-256");
-            byte[] hash = md.digest(digest.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            var hex = new StringBuilder();
-            for (byte b : hash) {
-                hex.append(String.format("%02x", b));
-            }
-            return hex.substring(0, 16);
-        } catch (java.security.NoSuchAlgorithmException e) {
-            return digest.toString();
-        }
+        return Sha256.hash(digest.toString());
     }
 
     /**
@@ -1148,7 +1127,6 @@ public class ToolExecutor {
                         case PACKAGE_WITH_MODULE, MODULE_SOURCE -> new ModulePathManager(fileManager);
                     };
 
-            boolean isBaseRelease = true;
             for (final SourcesForRelease unit : units) {
                 configuration.setRelease(unit.getReleaseString());
                 pathManager.configureSourcePaths(unit.roots);
@@ -1160,17 +1138,11 @@ public class ToolExecutor {
                     Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(unit.files);
                     JavaCompiler.CompilationTask task;
                     task = compiler.getTask(otherOutput, fileManager, listener, configuration.options, null, sources);
-                    // Only attach ABI analyzer for the base release — versioned
-                    // releases (multi-release JARs) are always compiled fully
-                    if (isBaseRelease && task instanceof JavacTask javacTask) {
-                        abiBuild.attachTo(javacTask);
-                    }
                     success = task.call();
                     if (!success) {
                         break;
                     }
                 }
-                isBaseRelease = false;
                 pathManager.markVersioned();
             }
         } catch (UncheckedIOException e) {

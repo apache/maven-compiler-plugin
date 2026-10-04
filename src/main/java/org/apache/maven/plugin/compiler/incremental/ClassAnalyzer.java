@@ -28,24 +28,17 @@ import java.util.Set;
 /**
  * Abstract base for analyzing compiled {@code .class} files.
  *
- * <p>Implementations collect type references (API-specific) and extract member
- * metadata, then delegate canonical-form construction and fingerprinting to the
- * shared logic in this class.
- *
- * <p>Two built-in implementations are provided:
+ * <p>The single built-in implementation is:
  * <ul>
- *   <li>{@link AsmClassAnalyzer} — uses the bundled ASM library; works on any
- *       supported JDK version (Java 17+).</li>
  *   <li>{@code ClassfileClassAnalyzer} — uses the standard
  *       {@code java.lang.classfile} API introduced in JDK 24; loaded
- *       reflectively at runtime when the JVM is JDK 24 or later.</li>
+ *       reflectively at runtime. Requires JDK 24 or later.</li>
  * </ul>
  *
  * <p>Use {@link BytecodeAnalyzer#analyze(byte[])} which selects the best
  * available implementation automatically.
  *
  * @see BytecodeAnalyzer
- * @see AsmClassAnalyzer
  */
 public abstract class ClassAnalyzer {
 

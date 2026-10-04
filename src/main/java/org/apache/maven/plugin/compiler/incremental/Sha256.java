@@ -25,7 +25,7 @@ import java.security.NoSuchAlgorithmException;
 /**
  * SHA-256 hashing utility shared by the bytecode analyzer implementations.
  */
-final class Sha256 {
+public final class Sha256 {
 
     private Sha256() {}
 
@@ -35,7 +35,7 @@ final class Sha256 {
      * @param input the string to hash
      * @return 16-character hex string
      */
-    static String hash(String input) {
+    public static String hash(String input) {
         return hash(input.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -45,7 +45,7 @@ final class Sha256 {
      * @param content the bytes to hash
      * @return 16-character hex string
      */
-    static String hash(byte[] content) {
+    public static String hash(byte[] content) {
         try {
             var md = MessageDigest.getInstance("SHA-256");
             byte[] digest = md.digest(content);

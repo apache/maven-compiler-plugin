@@ -22,38 +22,51 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * Facade for analyzing compiled {@code .class} files to extract type references
  * and compute bytecode-level ABI fingerprints.
  *
- * <p>When the JVM is JDK 24 or later, the standard {@code java.lang.classfile}
- * API ({@code ClassfileClassAnalyzer}) is used automatically. On earlier JVMs
- * the bundled ASM library ({@link AsmClassAnalyzer}) is used as a fallback.
+ * <p>Requires JDK 24 or later — uses the standard {@code java.lang.classfile} API.
+ * Attempting to use this class on an older JDK throws {@link UnsupportedOperationException}
+ * at class-load time with a clear diagnostic message.
  *
- * <p>The {@link ClassAnalysis} record carries the class name, ABI fingerprint
- * (a 16-character SHA-256 prefix), the human-readable canonical form that the
- * fingerprint is derived from, and the set of fully-qualified type names
- * referenced by the class.
+ * <p>The {@link ClassAnalysis} record carries the class name, ABI fingerprint,
+ * human-readable canonical form, and two classified sets of type references:
+ * {@link ClassAnalysis#signatureTypes()} (API surface) and
+ * {@link ClassAnalysis#implementationTypes()} (method body instructions only).
  *
- * @see AsmClassAnalyzer
  * @see ClassAnalyzer
  */
 public final class BytecodeAnalyzer {
 
-    private static final Logger LOGGER = Logger.getLogger(BytecodeAnalyzer.class.getName());
-
     /**
      * Analysis result for a single {@code .class} file.
      *
-     * @param className       fully-qualified class name (dot-separated)
-     * @param abiFingerprint  16-character hex SHA-256 prefix of the ABI canonical form
-     * @param abiCanonical    human-readable representation of the public API surface
-     * @param referencedTypes fully-qualified names of all types referenced by this class
+     * @param className           fully-qualified class name (dot-separated)
+     * @param abiFingerprint      16-character hex SHA-256 prefix of the ABI canonical form
+     * @param abiCanonical        human-readable representation of the public API surface
+     * @param signatureTypes      types appearing in public API surface (method/field descriptors,
+     *                            supertype, interfaces, exception types, annotation types)
+     * @param implementationTypes types appearing only in method body bytecode instructions
+     *                            (INVOKEVIRTUAL, NEW, CHECKCAST, field owners, etc.)
+     * @param annotationTypes     fully-qualified names of annotation types present on the class
+     *                            or its members, used for annotation processor cascade decisions
+     * @param moduleName          Java module name, or empty string if unnamed or non-modular
+     * @param isModuleInfo        {@code true} if this represents {@code module-info.class}
+     * @param sourceFileName      simple source file name from the {@code SourceFile} class file
+     *                            attribute (e.g. {@code "Foo.java"}); empty string if absent
      */
     public record ClassAnalysis(
-            String className, String abiFingerprint, String abiCanonical, Set<String> referencedTypes) {}
+            String className,
+            String abiFingerprint,
+            String abiCanonical,
+            Set<String> signatureTypes,
+            Set<String> implementationTypes,
+            Set<String> annotationTypes,
+            String moduleName,
+            boolean isModuleInfo,
+            String sourceFileName) {}
 
     /** The {@link ClassAnalyzer} implementation chosen at class-load time. */
     private static final ClassAnalyzer ANALYZER = selectAnalyzer();
@@ -136,19 +149,22 @@ public final class BytecodeAnalyzer {
     // --- implementation selection ---
 
     private static ClassAnalyzer selectAnalyzer() {
-        if (Runtime.version().feature() >= 24) {
-            try {
-                Class<?> cls = Class.forName(
-                        "org.apache.maven.plugin.compiler.incremental.ClassfileClassAnalyzer",
-                        true,
-                        BytecodeAnalyzer.class.getClassLoader());
-                var ctor = cls.getDeclaredConstructor();
-                ctor.setAccessible(true);
-                return (ClassAnalyzer) ctor.newInstance();
-            } catch (Exception | LinkageError e) {
-                LOGGER.fine(() -> "java.lang.classfile analyzer unavailable (" + e + "), falling back to ASM");
-            }
+        if (Runtime.version().feature() < 24) {
+            throw new UnsupportedOperationException("The ABI incremental compilation strategy requires JDK 24 or later "
+                    + "(running JDK " + Runtime.version().feature() + "). "
+                    + "Use a different incrementalStrategy or upgrade your build JDK.");
         }
-        return new AsmClassAnalyzer();
+        try {
+            Class<?> cls = Class.forName(
+                    "org.apache.maven.plugin.compiler.incremental.ClassfileClassAnalyzer",
+                    true,
+                    BytecodeAnalyzer.class.getClassLoader());
+            var ctor = cls.getDeclaredConstructor();
+            ctor.setAccessible(true);
+            return (ClassAnalyzer) ctor.newInstance();
+        } catch (Exception | LinkageError e) {
+            throw new UnsupportedOperationException(
+                    "Failed to load the classfile analyzer despite JDK >= 24: " + e.getMessage(), e);
+        }
     }
 }
