@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -40,9 +41,10 @@ class CompilerTestHelper {
     }
 
     /**
-     * Compiles all {@code .java} files under {@code sourceDir} into {@code outputDir}.
+     * Compiles all {@code .java} files under {@code sourceDir} into {@code outputDir}
+     * and returns the output directory. No ABI analysis — raw javac only.
      */
-    static void compileAndAnalyze(Path sourceDir, Path outputDir) throws IOException {
+    static Map<String, SourceFileAnalysis> compileAndAnalyze(Path sourceDir, Path outputDir) throws IOException {
         Files.createDirectories(outputDir);
         List<Path> sourceFiles;
         try (Stream<Path> walk = Files.walk(sourceDir)) {
@@ -59,6 +61,31 @@ class CompilerTestHelper {
             if (!task.call()) {
                 throw new RuntimeException("Compilation failed");
             }
+
+            // Build a minimal SourceFileAnalysis map from bytecode (no dep graph needed here)
+            Map<String, SourceFileAnalysis> results = new java.util.LinkedHashMap<>();
+            try (Stream<Path> walk = Files.walk(outputDir)) {
+                walk.filter(p -> p.toString().endsWith(".class")).forEach(cf -> {
+                    try {
+                        var analysis = BytecodeAnalyzer.analyze(cf);
+                        var sfa = new SourceFileAnalysis(
+                                analysis.className(),
+                                analysis.className(), // source attribution not needed here
+                                analysis.signatureTypes(),
+                                analysis.implementationTypes(),
+                                analysis.abiFingerprint(),
+                                analysis.abiCanonical(),
+                                analysis.annotationTypes(),
+                                analysis.moduleName());
+                        results.put(analysis.className(), sfa);
+                    } catch (IOException e) {
+                        // best effort
+                    }
+                });
+            } catch (IOException e) {
+                // best effort
+            }
+            return results;
         }
     }
 
