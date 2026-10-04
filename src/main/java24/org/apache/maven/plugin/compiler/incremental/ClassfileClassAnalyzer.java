@@ -235,6 +235,10 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
             addRef(iface.asInternalName(), signatureTypes);
         }
 
+        // Class generic signature (e.g. "class Foo<T extends Bar>") — extract type args
+        cm.findAttribute(Attributes.signature())
+                .ifPresent(sig -> addGenericSignatureRefs(sig.signature().stringValue(), signatureTypes));
+
         // Class-level annotations → signature + annotation tracking
         collectAnnotations(
                 cm.findAttribute(Attributes.runtimeVisibleAnnotations())
@@ -254,6 +258,10 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
             Set<String> descTarget = isPrivate ? implementationTypes : signatureTypes;
 
             addDescriptor(field.fieldType().stringValue(), descTarget);
+
+            // Field generic signature — extract concrete type arguments (e.g. Foo in List<Foo>)
+            field.findAttribute(Attributes.signature())
+                    .ifPresent(sig -> addGenericSignatureRefs(sig.signature().stringValue(), descTarget));
 
             // Field annotations go to the same target as the field descriptor
             collectAnnotations(
@@ -278,6 +286,10 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
             addMethodDescriptor(method.methodType().stringValue(), sigTarget);
             method.findAttribute(Attributes.exceptions())
                     .ifPresent(ex -> ex.exceptions().forEach(e -> addRef(e.asInternalName(), sigTarget)));
+
+            // Method generic signature — extract concrete type arguments (e.g. Foo in List<Foo>)
+            method.findAttribute(Attributes.signature())
+                    .ifPresent(sig -> addGenericSignatureRefs(sig.signature().stringValue(), sigTarget));
 
             // Method annotations → same target as descriptor
             collectAnnotations(
@@ -387,6 +399,110 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
                 .toList();
 
         return buildCanonicalForm(classAccess, className, classSignature, superName, ifaceNames, fields, methods);
+    }
+
+    // --- generic signature type reference extraction ---
+
+    /**
+     * Extracts all concrete class type references from a JVM generic signature string
+     * (JVMS §4.7.9.1) and adds them to {@code types}.
+     *
+     * <p>Examples (signature → extracted types):
+     * <ul>
+     *   <li>{@code Ljava/util/List<Lcom/example/Foo;>;} → {@code com.example.Foo}
+     *   <li>{@code Ljava/util/Map<Lcom/example/Key;Lcom/example/Val;>;} → {@code com.example.Key}, {@code com.example.Val}
+     *   <li>{@code (Lcom/example/Req;)Lcom/example/Resp;} → {@code com.example.Req}, {@code com.example.Resp}
+     *   <li>{@code TT;} (type variable) → nothing
+     *   <li>{@code +Lcom/Foo;} (wildcard) → {@code com.Foo}
+     * </ul>
+     *
+     * <p>Type variables ({@code TName;}) and primitive types are intentionally skipped —
+     * they are not concrete dependencies.
+     */
+    private static void addGenericSignatureRefs(String sig, Set<String> types) {
+        if (sig == null || sig.isEmpty()) {
+            return;
+        }
+        int[] pos = {0};
+        parseSig(sig, pos, types);
+    }
+
+    /**
+     * Recursive descent parser for JVM generic signatures.
+     * Advances {@code pos[0]} as it consumes characters.
+     */
+    private static void parseSig(String sig, int[] pos, Set<String> types) {
+        while (pos[0] < sig.length()) {
+            char c = sig.charAt(pos[0]);
+            switch (c) {
+                case 'L' -> parseClassTypeSignature(sig, pos, types);
+                case 'T' -> {
+                    // TypeVariableSignature: T<Identifier>; — skip, it's a generic parameter, not a concrete type
+                    pos[0]++; // skip 'T'
+                    while (pos[0] < sig.length() && sig.charAt(pos[0]) != ';') {
+                        pos[0]++;
+                    }
+                    if (pos[0] < sig.length()) pos[0]++; // skip ';'
+                }
+                case '[' -> pos[0]++; // ArrayTypeSignature prefix — continue into element type
+                case '+', '-' -> pos[0]++; // wildcard indicator — continue into bound type
+                case '*' -> pos[0]++; // unbounded wildcard — nothing to extract
+                case '(' -> pos[0]++; // method params open paren
+                case ')' -> pos[0]++; // method params close paren
+                case '^' -> pos[0]++; // throws clause marker
+                case '<' -> pos[0]++; // type params open — contents parsed by ClassTypeSignature
+                case '>' -> pos[0]++; // type params close — contents parsed by ClassTypeSignature
+                case ';' -> pos[0]++; // separator — consumed inside ClassTypeSignature
+                default -> pos[0]++; // primitive (B C D F I J S V Z) or unknown — skip
+            }
+        }
+    }
+
+    /**
+     * Parses a {@code ClassTypeSignature} starting at {@code pos[0]} (which points at 'L').
+     * Format: {@code L<InternalName>[<TypeArguments>][.<InnerClass>[<TypeArguments>]]*;}
+     */
+    private static void parseClassTypeSignature(String sig, int[] pos, Set<String> types) {
+        pos[0]++; // consume 'L'
+        int nameStart = pos[0];
+        // Read class internal name up to '<', '.', or ';'
+        while (pos[0] < sig.length()) {
+            char c = sig.charAt(pos[0]);
+            if (c == '<' || c == '.' || c == ';') break;
+            pos[0]++;
+        }
+        String internalName = sig.substring(nameStart, pos[0]);
+        if (!internalName.isEmpty()) {
+            String javaName = BytecodeAnalyzer.toJavaName(internalName);
+            types.add(javaName);
+        }
+
+        // Handle type arguments <...> and inner class suffixes
+        while (pos[0] < sig.length()) {
+            char c = sig.charAt(pos[0]);
+            if (c == '<') {
+                pos[0]++; // consume '<'
+                // Parse type arguments until matching '>'
+                while (pos[0] < sig.length() && sig.charAt(pos[0]) != '>') {
+                    parseSig(sig, pos, types);
+                }
+                if (pos[0] < sig.length()) pos[0]++; // consume '>'
+            } else if (c == '.') {
+                // Inner class: .InnerName[<TypeArgs>]
+                pos[0]++; // consume '.'
+                while (pos[0] < sig.length()) {
+                    char ic = sig.charAt(pos[0]);
+                    if (ic == '<' || ic == '.' || ic == ';') break;
+                    pos[0]++;
+                }
+                // Don't add the inner class name separately — it's nested inside the outer class
+            } else if (c == ';') {
+                pos[0]++; // consume ';'
+                break;
+            } else {
+                break;
+            }
+        }
     }
 
     // --- utilities ---

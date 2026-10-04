@@ -209,6 +209,62 @@ class BytecodeAnalyzerTest {
                 "Changing type parameter bounds should change bytecode ABI fingerprint");
     }
 
+    @Test
+    @org.junit.jupiter.api.condition.EnabledForJreRange(min = org.junit.jupiter.api.condition.JRE.JAVA_24)
+    void genericTypeArgumentsTrackedAsDependencies() throws Exception {
+        // Foo is a user-defined type used only as a generic type argument
+        CompilerTestHelper.writeSource(sourceDir, "test", "Foo", "package test; public class Foo {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "Bar", "package test; public class Bar {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "Subject", """
+                package test;
+                import java.util.List;
+                import java.util.Map;
+                import java.util.function.Function;
+                public class Subject {
+                    // Foo appears only as a type argument — not in the erased descriptor
+                    public List<Foo> getItems() { return null; }
+                    // Bar appears as a Map value type argument
+                    public Map<String, Bar> getMap() { return null; }
+                    // Wildcards: Foo as lower bound
+                    public List<? extends Foo> getBounded() { return null; }
+                    // Foo in field generic signature
+                    public java.util.Optional<Foo> optFoo = java.util.Optional.empty();
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        var analysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/Subject.class"));
+
+        assertTrue(
+                analysis.signatureTypes().contains("test.Foo"),
+                "test.Foo used as generic type arg should be in signatureTypes; got: " + analysis.signatureTypes());
+        assertTrue(
+                analysis.signatureTypes().contains("test.Bar"),
+                "test.Bar used as generic type arg should be in signatureTypes; got: " + analysis.signatureTypes());
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledForJreRange(min = org.junit.jupiter.api.condition.JRE.JAVA_24)
+    void genericSuperclassTypeArgsTracked() throws Exception {
+        CompilerTestHelper.writeSource(sourceDir, "test", "Item", "package test; public class Item {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "ItemList", """
+                package test;
+                import java.util.AbstractList;
+                // Item appears only in the class generic signature (extends AbstractList<Item>)
+                public class ItemList extends AbstractList<Item> {
+                    @Override public Item get(int i) { return null; }
+                    @Override public int size() { return 0; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        var analysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/ItemList.class"));
+
+        assertTrue(
+                analysis.signatureTypes().contains("test.Item"),
+                "test.Item as superclass type arg should be in signatureTypes; got: " + analysis.signatureTypes());
+    }
+
     /**
      * When running on JDK 24+, {@link BytecodeAnalyzer} uses the {@code ClassfileClassAnalyzer}.
      * Verifies idempotency: analyzing the same bytes twice produces identical results.
