@@ -93,8 +93,6 @@ public class AbiIncrementalBuild {
     private String configHash = "";
     private String rebuildCause;
     private int totalSources;
-    /** Source files compiled in previous rounds of the current build (for loop detection). */
-    private Set<String> compiledInPreviousRounds;
     /** Lazily populated on full builds; maps each output class file to its simple top-level class name. */
     private java.util.Map<Path, String> outputClassIndex;
 
@@ -206,9 +204,6 @@ public class AbiIncrementalBuild {
      * @throws IOException if reading {@code .class} files fails
      */
     public Set<Path> processCompiledClasses(Set<Path> compiledSourceFiles) throws IOException {
-        if (compiledInPreviousRounds == null) {
-            compiledInPreviousRounds = new TreeSet<>(allCompiled);
-        }
         // Reset the class index so it is rebuilt fresh for each compilation round
         outputClassIndex = null;
 

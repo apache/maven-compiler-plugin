@@ -306,9 +306,51 @@ class BytecodeAnalyzerTest {
                         + multiAnalysis.signatureTypes());
     }
 
+    @Test
+    @org.junit.jupiter.api.condition.EnabledForJreRange(min = org.junit.jupiter.api.condition.JRE.JAVA_24)
+    void multipleTypeParameterBoundsAllTracked() throws Exception {
+        // Regression: parseSig() overconsumed past the first bound in FormalTypeParameters,
+        // causing subsequent type params with 'T'-prefixed names to lose their bounds.
+        // E.g. <K:Lfoo/Foo;T:Lbar/Bar;> → Bar was missed.
+        CompilerTestHelper.writeSource(sourceDir, "test", "MyBound", "package test; public interface MyBound {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "OtherBound", "package test; public interface OtherBound {}");
+        CompilerTestHelper.writeSource(sourceDir, "test", "BiContainer", """
+                package test;
+                // K has no bound; T (the classic single-letter param) has MyBound
+                public class BiContainer<K, T extends MyBound> {
+                    public K key() { return null; }
+                    public T val() { return null; }
+                }
+                """);
+        CompilerTestHelper.writeSource(sourceDir, "test", "TriContainer", """
+                package test;
+                // Multiple params, second and third have user-defined bounds
+                public class TriContainer<A, B extends MyBound, T extends OtherBound> {
+                    public A a() { return null; }
+                    public B b() { return null; }
+                    public T t() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        var biAnalysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/BiContainer.class"));
+        assertTrue(
+                biAnalysis.signatureTypes().contains("test.MyBound"),
+                "MyBound as second type param bound should be tracked; got: " + biAnalysis.signatureTypes());
+
+        var triAnalysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/TriContainer.class"));
+        assertTrue(
+                triAnalysis.signatureTypes().contains("test.MyBound"),
+                "MyBound as second type param bound should be tracked in TriContainer; got: "
+                        + triAnalysis.signatureTypes());
+        assertTrue(
+                triAnalysis.signatureTypes().contains("test.OtherBound"),
+                "OtherBound as third type param (T-named) bound should be tracked; got: "
+                        + triAnalysis.signatureTypes());
+    }
+
     /**
      * When running on JDK 24+, {@link BytecodeAnalyzer} uses the {@code ClassfileClassAnalyzer}.
-     * Verifies idempotency: analyzing the same bytes twice produces identical results.
      * Also verifies that sig/impl split is non-trivially populated for a class with
      * user-defined type cross-references.
      */

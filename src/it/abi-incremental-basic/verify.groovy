@@ -22,9 +22,8 @@ assert new File( basedir, 'target/classes/api/Model.class' ).exists()
 assert new File( basedir, 'target/classes/impl/Helper.class' ).exists()
 assert new File( basedir, 'target/classes/impl/Service.class' ).exists()
 
-// ABI state lives alongside class files; manifest is in target/ for reactor
-assert new File( basedir, 'target/classes/.incremental-state' ).exists()
-assert new File( basedir, 'target/.abi-fingerprints' ).exists()
+// ABI state is stored in maven-status dir (not inside classes/ to avoid polluting JARs)
+assert new File( basedir, 'target/maven-status/maven-compiler-plugin/classes/.abi-incremental-state' ).exists()
 
 // Build log should show incremental messages
 def logFile = new File( basedir, 'build.log' )

@@ -465,11 +465,32 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
                     // ClassBound may be empty (just ':' with no FieldTypeSignature before next ':' or '>')
                     if (pos[0] < sig.length()) {
                         char next = sig.charAt(pos[0]);
-                        if (next == 'L' || next == '[' || next == 'T') {
-                            // There is a FieldTypeSignature — parse it as a TypeArgument (NOT inFormalTypeParams)
-                            parseSig(sig, pos, types, false);
+                        if (next == 'L') {
+                            // ClassTypeSignature — parse exactly one class type (stops at ';')
+                            parseClassTypeSignature(sig, pos, types);
+                        } else if (next == '[') {
+                            // ArrayTypeSignature — consume '[' prefixes then the element type
+                            while (pos[0] < sig.length() && sig.charAt(pos[0]) == '[') pos[0]++;
+                            if (pos[0] < sig.length()) {
+                                char elem = sig.charAt(pos[0]);
+                                if (elem == 'L') {
+                                    parseClassTypeSignature(sig, pos, types);
+                                } else if (elem == 'T') {
+                                    // Array of type variable — skip T Identifier ;
+                                    pos[0]++;
+                                    while (pos[0] < sig.length() && sig.charAt(pos[0]) != ';') pos[0]++;
+                                    if (pos[0] < sig.length()) pos[0]++; // consume ';'
+                                } else {
+                                    pos[0]++; // primitive array element
+                                }
+                            }
+                        } else if (next == 'T') {
+                            // TypeVariableSignature as bound (e.g. <E:TComparable;>) — skip
+                            pos[0]++;
+                            while (pos[0] < sig.length() && sig.charAt(pos[0]) != ';') pos[0]++;
+                            if (pos[0] < sig.length()) pos[0]++; // consume ';'
                         }
-                        // else: empty ClassBound — move on to next ':' or '>'
+                        // else: empty ClassBound or unrecognised — leave for outer loop
                     }
                 }
                 // After all bounds for this FormalTypeParameter, loop back for the next one (if any)
