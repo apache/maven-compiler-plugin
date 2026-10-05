@@ -402,6 +402,18 @@ class ToolExecutorForTest extends ToolExecutor {
     }
 
     /**
+     * @hidden
+     */
+    @Override
+    void compileWithGraphIncremental(JavaCompiler compiler, Options configuration, AbstractCompilerMojo mojo)
+            throws IOException {
+        addModuleOptions(configuration); // Effective only once.
+        try (var r = ModuleDirectoryRemover.create(outputDirectory, directoryLevelToRemove)) {
+            super.compileWithGraphIncremental(compiler, configuration, mojo);
+        }
+    }
+
+    /**
      * Returns the output directory of the main classes. This is the directory to prepend to
      * the class-path or module-path before to compile the classes managed by this executor.
      *
