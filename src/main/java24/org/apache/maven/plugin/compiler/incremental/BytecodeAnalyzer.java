@@ -48,8 +48,6 @@ public final class BytecodeAnalyzer {
      * Analysis result for a single {@code .class} file.
      *
      * @param className           fully-qualified class name (dot-separated)
-     * @param abiFingerprint      16-character hex SHA-256 prefix of the ABI canonical form
-     * @param abiCanonical        human-readable representation of the public API surface
      * @param signatureTypes      types appearing in public API surface (method/field descriptors,
      *                            supertype, interfaces, exception types, annotation types)
      * @param implementationTypes types appearing only in method body bytecode instructions
@@ -63,8 +61,6 @@ public final class BytecodeAnalyzer {
      */
     public record ClassAnalysis(
             String className,
-            String abiFingerprint,
-            String abiCanonical,
             Set<String> signatureTypes,
             Set<String> implementationTypes,
             Set<String> annotationTypes,

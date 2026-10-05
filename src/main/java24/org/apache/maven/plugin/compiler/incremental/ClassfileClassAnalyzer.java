@@ -26,7 +26,6 @@ import java.lang.classfile.FieldModel;
 import java.lang.classfile.MethodModel;
 import java.lang.classfile.attribute.ModuleAttribute;
 import java.lang.classfile.attribute.ModuleProvideInfo;
-import java.lang.classfile.attribute.ModuleRequireInfo;
 import java.lang.classfile.constantpool.ClassEntry;
 import java.lang.classfile.instruction.FieldInstruction;
 import java.lang.classfile.instruction.InvokeInstruction;
@@ -34,7 +33,6 @@ import java.lang.classfile.instruction.NewMultiArrayInstruction;
 import java.lang.classfile.instruction.NewObjectInstruction;
 import java.lang.classfile.instruction.TypeCheckInstruction;
 import java.lang.reflect.AccessFlag;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -46,8 +44,7 @@ import java.util.TreeSet;
  * <p>This implementation lives in {@code META-INF/versions/24/} as part of the
  * multi-release JAR. It is instantiated directly by the JDK 24+ override of
  * {@link BytecodeAnalyzer} — no reflection required. On JDK &lt; 24, the root
- * {@code BytecodeAnalyzer} stub is loaded instead and ABI fingerprinting is
- * unavailable.
+ * {@code BytecodeAnalyzer} stub is loaded instead.
  *
  * <p>Type references are classified into two sets:
  * <ul>
@@ -93,9 +90,6 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
         implementationTypes.removeIf(ClassfileClassAnalyzer::isJdkType);
         annotationTypes.removeIf(ClassfileClassAnalyzer::isJdkType);
 
-        String abiCanonical = buildCanonical(cm);
-        String abiFingerprint = Sha256.hash(abiCanonical);
-
         // Read the SourceFile attribute for accurate source-file attribution
         String sourceFileName = cm.findAttribute(Attributes.sourceFile())
                 .map(sf -> sf.sourceFile().stringValue())
@@ -103,8 +97,6 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
 
         return new BytecodeAnalyzer.ClassAnalysis(
                 className,
-                abiFingerprint,
-                abiCanonical,
                 Set.copyOf(signatureTypes),
                 Set.copyOf(implementationTypes),
                 Set.copyOf(annotationTypes),
@@ -118,13 +110,8 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
     private static BytecodeAnalyzer.ClassAnalysis analyzeModuleInfo(ClassModel cm) {
         var moduleAttrOpt = cm.findAttribute(Attributes.module());
         if (moduleAttrOpt.isEmpty()) {
-            // No Module attribute — use a deterministic sentinel fingerprint so two different
-            // module-info classes without Module attributes are not falsely considered identical.
-            String sentinel = Sha256.hash("module-info:no-module-attribute");
             return new BytecodeAnalyzer.ClassAnalysis(
                     BytecodeAnalyzer.MODULE_PREFIX + "unknown",
-                    sentinel,
-                    "module-info:no-module-attribute",
                     Set.of(),
                     Set.of(),
                     Set.of(),
@@ -135,78 +122,6 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
 
         ModuleAttribute mod = moduleAttrOpt.get();
         String moduleName = mod.moduleName().name().stringValue();
-        boolean isOpen = cm.flags().has(AccessFlag.OPEN);
-
-        var requires = new TreeSet<String>();
-        var exports = new TreeSet<String>();
-        var opens = new TreeSet<String>();
-        var uses = new TreeSet<String>();
-        var provides = new TreeSet<String>();
-
-        for (ModuleRequireInfo req : mod.requires()) {
-            var sb = new StringBuilder("requires ");
-            if (req.requiresFlags().contains(AccessFlag.TRANSITIVE)) sb.append("transitive ");
-            if (req.requiresFlags().contains(AccessFlag.STATIC_PHASE)) sb.append("static ");
-            sb.append(req.requires().name().stringValue());
-            requires.add(sb.toString());
-        }
-        for (var exp : mod.exports()) {
-            var sb = new StringBuilder("exports ")
-                    .append(exp.exportedPackage().name().stringValue().replace('/', '.'));
-            var tos = exp.exportsTo();
-            if (!tos.isEmpty()) {
-                sb.append(" to ")
-                        .append(tos.stream()
-                                .map(e -> e.name().stringValue())
-                                .sorted()
-                                .reduce((a, b) -> a + ", " + b)
-                                .orElse(""));
-            }
-            exports.add(sb.toString());
-        }
-        for (var op : mod.opens()) {
-            var sb = new StringBuilder("opens ")
-                    .append(op.openedPackage().name().stringValue().replace('/', '.'));
-            var tos = op.opensTo();
-            if (!tos.isEmpty()) {
-                sb.append(" to ")
-                        .append(tos.stream()
-                                .map(e -> e.name().stringValue())
-                                .sorted()
-                                .reduce((a, b) -> a + ", " + b)
-                                .orElse(""));
-            }
-            opens.add(sb.toString());
-        }
-        for (var u : mod.uses()) {
-            uses.add("uses " + BytecodeAnalyzer.toJavaName(u.asInternalName()));
-        }
-        for (ModuleProvideInfo p : mod.provides()) {
-            var sb = new StringBuilder("provides ")
-                    .append(BytecodeAnalyzer.toJavaName(p.provides().asInternalName()));
-            var impls = p.providesWith();
-            if (!impls.isEmpty()) {
-                sb.append(" with ")
-                        .append(impls.stream()
-                                .map(i -> BytecodeAnalyzer.toJavaName(i.asInternalName()))
-                                .sorted()
-                                .reduce((a, b) -> a + ", " + b)
-                                .orElse(""));
-            }
-            provides.add(sb.toString());
-        }
-
-        var canonical = new StringBuilder();
-        if (isOpen) canonical.append("open ");
-        canonical.append("module ").append(moduleName).append('\n');
-        for (String r : requires) canonical.append("  ").append(r).append('\n');
-        for (String e : exports) canonical.append("  ").append(e).append('\n');
-        for (String o : opens) canonical.append("  ").append(o).append('\n');
-        for (String u : uses) canonical.append("  ").append(u).append('\n');
-        for (String p : provides) canonical.append("  ").append(p).append('\n');
-
-        String abiCanonical = canonical.toString();
-        String abiFingerprint = Sha256.hash(abiCanonical);
 
         // Signature deps for module-info: service types from uses/provides
         var sigTypes = new TreeSet<String>();
@@ -228,8 +143,6 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
 
         return new BytecodeAnalyzer.ClassAnalysis(
                 qualifiedName,
-                abiFingerprint,
-                abiCanonical,
                 Set.copyOf(sigTypes),
                 Set.of(),
                 Set.of(),
@@ -361,57 +274,6 @@ class ClassfileClassAnalyzer extends ClassAnalyzer {
                 annotationTarget.add(name);
             }
         }
-    }
-
-    // --- ABI canonical form ---
-
-    private static String buildCanonical(ClassModel cm) {
-        var fields = new ArrayList<FieldInfo>();
-        var methods = new ArrayList<MethodInfo>();
-
-        for (FieldModel field : cm.fields()) {
-            int access = accessMask(field.flags().flags());
-            if (!isPrivateOrSynthetic(access)) {
-                Object constantValue = field.findAttribute(Attributes.constantValue())
-                        .map(cv -> cv.constant().constantValue())
-                        .orElse(null);
-                String fieldSig = field.findAttribute(Attributes.signature())
-                        .map(s -> s.signature().stringValue())
-                        .orElse(null);
-                fields.add(new FieldInfo(
-                        access,
-                        field.fieldName().stringValue(),
-                        field.fieldType().stringValue(),
-                        constantValue,
-                        fieldSig));
-            }
-        }
-
-        for (MethodModel method : cm.methods()) {
-            int access = accessMask(method.flags().flags());
-            String name = method.methodName().stringValue();
-            if (!isPrivateOrSynthetic(access) && !"<clinit>".equals(name)) {
-                String methodSig = method.findAttribute(Attributes.signature())
-                        .map(s -> s.signature().stringValue())
-                        .orElse(null);
-                methods.add(new MethodInfo(access, name, method.methodType().stringValue(), methodSig));
-            }
-        }
-
-        int classAccess = accessMask(cm.flags().flags());
-        String className = BytecodeAnalyzer.toJavaName(cm.thisClass().asInternalName());
-        String classSignature = cm.findAttribute(Attributes.signature())
-                .map(s -> s.signature().stringValue())
-                .orElse(null);
-        String superName = cm.superclass()
-                .map(sup -> BytecodeAnalyzer.toJavaName(sup.asInternalName()))
-                .orElse(null);
-        List<String> ifaceNames = cm.interfaces().stream()
-                .map(iface -> BytecodeAnalyzer.toJavaName(iface.asInternalName()))
-                .sorted()
-                .toList();
-
-        return buildCanonicalForm(classAccess, className, classSignature, superName, ifaceNames, fields, methods);
     }
 
     // --- generic signature type reference extraction ---
