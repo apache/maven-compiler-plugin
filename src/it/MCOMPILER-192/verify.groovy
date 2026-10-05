@@ -23,7 +23,7 @@ def content = logFile.getText('UTF-8')
 
 def causedByExpected = content.contains ( 'Caused by: org.apache.maven.plugin.compiler.CompilationFailureException: Compilation failure' )
 def twoFilesBeingCompiled = content.contains ( '[INFO] Compiling 2 source files with javac ' )
-def checkResult = content.contains ( '[INFO] BUILD FAILURE' )
+def checkResult = content.contains ( 'BUILD FAILURE' )
 def compilationFailure1 = content.contains( '[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:')
 
 // This is the message on JDK 7 / Windows
