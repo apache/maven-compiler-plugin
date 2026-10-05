@@ -26,6 +26,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarOutputStream;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -115,31 +118,31 @@ class GraphIncrementalBuildTest {
 
     @Test
     void fullBuildCompilesEverything() throws Exception {
-        var abi = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi.initialize(listSources());
+        var build = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build.initialize(listSources());
 
-        assertTrue(abi.isFullBuild(), "First run should be full build");
+        assertTrue(build.isFullBuild(), "First run should be full build");
         assertEquals(3, toCompile.size(), "Should compile all 3 files");
 
         compileFiles(toCompile);
-        abi.processCompiledClasses(toCompile);
-        abi.finish();
+        build.processCompiledClasses(toCompile);
+        build.finish();
 
         // State should exist
         assertTrue(
                 Files.exists(workDir.resolve("target/maven-status/maven-compiler-plugin/classes/incremental-state")));
-        assertEquals(3, abi.compiledCount());
+        assertEquals(3, build.compiledCount());
     }
 
     @Test
     void noChangeReturnsEmpty() throws Exception {
         doFullBuildCycle();
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
         assertTrue(toCompile.isEmpty(), "No changes should return empty set");
-        assertNull(abi2.getRebuildCause(), "No changes should have no rebuild cause");
-        abi2.finish();
+        assertNull(build2.getRebuildCause(), "No changes should have no rebuild cause");
+        build2.finish();
     }
 
     @Test
@@ -154,19 +157,19 @@ class GraphIncrementalBuildTest {
                 "package impl; public class Helper { public String normalize(String s) { return s == null ? \"\" : s.strip(); } }");
         CompilerTestHelper.writeSource(sourceDir, "api", "Extra", "package api; public class Extra {}");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        abi2.initialize(listSources());
-        assertNotNull(abi2.getRebuildCause(), "Should have a rebuild cause");
-        assertTrue(abi2.getRebuildCause().contains("changed"), "Should mention changed files");
-        assertTrue(abi2.getRebuildCause().contains("new"), "Should mention new files");
+        var build2 = new GraphIncrementalBuild(classesDir);
+        build2.initialize(listSources());
+        assertNotNull(build2.getRebuildCause(), "Should have a rebuild cause");
+        assertTrue(build2.getRebuildCause().contains("changed"), "Should mention changed files");
+        assertTrue(build2.getRebuildCause().contains("new"), "Should mention new files");
     }
 
     @Test
     void fullBuildCauseDescribed() throws Exception {
-        var abi = new GraphIncrementalBuild(classesDir);
-        abi.initialize(listSources());
-        assertNotNull(abi.getRebuildCause(), "Full build should have a cause");
-        assertTrue(abi.getRebuildCause().contains("no previous"), "Should mention no previous state");
+        var build = new GraphIncrementalBuild(classesDir);
+        build.initialize(listSources());
+        assertNotNull(build.getRebuildCause(), "Full build should have a cause");
+        assertTrue(build.getRebuildCause().contains("no previous"), "Should mention no previous state");
     }
 
     @Test
@@ -180,13 +183,13 @@ class GraphIncrementalBuildTest {
                 "Helper",
                 "package impl; public class Helper { public String normalize(String s) { return s == null ? \"\" : s.strip().toLowerCase(); } }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
-        assertFalse(abi2.isFullBuild());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
+        assertFalse(build2.isFullBuild());
         assertEquals(1, toCompile.size(), "Only Helper should need compilation");
 
         compileFiles(toCompile);
-        Set<Path> cascade = abi2.processCompiledClasses(toCompile);
+        Set<Path> cascade = build2.processCompiledClasses(toCompile);
         // In the dep-graph strategy, any change to a class cascades to its consumers.
         // Helper is used by Service (implementation dep), so Service must be recompiled.
         assertFalse(cascade.isEmpty(), "Body change cascades to consumers in graph strategy");
@@ -194,13 +197,13 @@ class GraphIncrementalBuildTest {
         // Compile the cascade set
         while (!cascade.isEmpty()) {
             compileFiles(cascade);
-            cascade = abi2.processCompiledClasses(cascade);
+            cascade = build2.processCompiledClasses(cascade);
         }
 
-        abi2.finish();
+        build2.finish();
         // Helper + its consumers (Service) compiled — Model was not touched
-        assertTrue(abi2.compiledCount() >= 1);
-        assertTrue(abi2.unchangedCount() < 3, "At least one file should be unchanged (Model)");
+        assertTrue(build2.compiledCount() >= 1);
+        assertTrue(build2.unchangedCount() < 3, "At least one file should be unchanged (Model)");
     }
 
     @Test
@@ -214,23 +217,23 @@ class GraphIncrementalBuildTest {
                 "Model",
                 "package api; public class Model { private String name; public String getName() { return name; } public void setName(String n) { this.name = n; } public boolean isValid() { return name != null; } }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> round1 = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> round1 = build2.initialize(listSources());
         assertEquals(1, round1.size(), "Only Model changed");
 
         compileFiles(round1);
-        Set<Path> round2 = abi2.processCompiledClasses(round1);
+        Set<Path> round2 = build2.processCompiledClasses(round1);
 
         // Service has Model as signature dep → should cascade
         assertFalse(round2.isEmpty(), "ABI change should cascade");
 
         compileFiles(round2);
-        Set<Path> round3 = abi2.processCompiledClasses(round2);
+        Set<Path> round3 = build2.processCompiledClasses(round2);
         assertTrue(round3.isEmpty(), "Should reach fixpoint");
 
-        abi2.finish();
+        build2.finish();
         // Model + Service should be compiled; Helper should not
-        assertTrue(abi2.compiledCount() >= 2, "At least Model and Service should be compiled");
+        assertTrue(build2.compiledCount() >= 2, "At least Model and Service should be compiled");
     }
 
     @Test
@@ -245,23 +248,23 @@ class GraphIncrementalBuildTest {
                 "Helper",
                 "package impl; public class Helper { public String normalize(String s) { return s == null ? \"\" : s.trim(); } public int count(String s) { return s.length(); } }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> round1 = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> round1 = build2.initialize(listSources());
         assertEquals(1, round1.size(), "Only Helper changed");
 
         compileFiles(round1);
-        Set<Path> round2 = abi2.processCompiledClasses(round1);
+        Set<Path> round2 = build2.processCompiledClasses(round1);
 
         // Service has Helper as impl dep → should cascade directly
         assertFalse(round2.isEmpty(), "Impl dep ABI change should trigger cascade to Service");
 
         compileFiles(round2);
-        Set<Path> round3 = abi2.processCompiledClasses(round2);
+        Set<Path> round3 = build2.processCompiledClasses(round2);
         assertTrue(round3.isEmpty(), "Impl dep cascade should not propagate further");
 
-        abi2.finish();
+        build2.finish();
         // Helper + Service compiled, Model untouched
-        assertEquals(2, abi2.compiledCount());
+        assertEquals(2, build2.compiledCount());
     }
 
     @Test
@@ -271,16 +274,16 @@ class GraphIncrementalBuildTest {
         CompilerTestHelper.writeSource(
                 sourceDir, "api", "Extra", "package api; public class Extra { public String val() { return \"\"; } }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
         assertFalse(toCompile.isEmpty(), "New file should be detected");
         assertTrue(
                 toCompile.stream().anyMatch(p -> p.toString().contains("Extra")),
                 "Extra.java should be in compile set");
 
         compileFiles(toCompile);
-        abi2.processCompiledClasses(toCompile);
-        abi2.finish();
+        build2.processCompiledClasses(toCompile);
+        build2.finish();
     }
 
     @Test
@@ -297,16 +300,16 @@ class GraphIncrementalBuildTest {
                 "Service",
                 "package impl; import api.Model; public class Service { public Model process(String input) { Model m = new Model(); m.setName(input); return m; } }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
         assertFalse(toCompile.isEmpty(), "Deleted file should trigger recompilation of consumers");
         assertTrue(
                 toCompile.stream().anyMatch(p -> p.toString().contains("Service")),
                 "Service (consumer of deleted Helper) should be recompiled");
 
         compileFiles(toCompile);
-        abi2.processCompiledClasses(toCompile);
-        abi2.finish();
+        build2.processCompiledClasses(toCompile);
+        build2.finish();
 
         // Helper.class should be deleted
         assertFalse(
@@ -336,19 +339,19 @@ class GraphIncrementalBuildTest {
                 "Model",
                 "package api; public class Model { private String name; public String getName() { return name; } public void setName(String n) { this.name = n; } }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> round1 = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> round1 = build2.initialize(listSources());
         assertFalse(round1.isEmpty(), "Modified file should need recompilation");
 
         compileFiles(round1);
-        Set<Path> round2 = abi2.processCompiledClasses(round1);
+        Set<Path> round2 = build2.processCompiledClasses(round1);
 
         // Cascade any ABI consumers
         while (!round2.isEmpty()) {
             compileFiles(round2);
-            round2 = abi2.processCompiledClasses(round2);
+            round2 = build2.processCompiledClasses(round2);
         }
-        abi2.finish();
+        build2.finish();
 
         // Stale inner class file should be cleaned up
         assertFalse(
@@ -388,8 +391,8 @@ class GraphIncrementalBuildTest {
         Files.writeString(
                 sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n  exports impl;\n}\n");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
         assertFalse(toCompile.isEmpty(), "Changed module-info should need recompilation");
         assertTrue(
                 toCompile.stream().anyMatch(p -> p.toString().endsWith("module-info.java")),
@@ -410,8 +413,8 @@ class GraphIncrementalBuildTest {
         Files.writeString(
                 sourceDir.resolve("module-info.java"), "module my.mod {\n  exports api;\n  exports impl;\n}\n");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
 
         assertTrue(
                 toCompile.stream().anyMatch(p -> p.toString().endsWith("module-info.java")),
@@ -419,9 +422,9 @@ class GraphIncrementalBuildTest {
 
         while (!toCompile.isEmpty()) {
             compileFiles(toCompile, true);
-            toCompile = abi2.processCompiledClasses(toCompile);
+            toCompile = build2.processCompiledClasses(toCompile);
         }
-        abi2.finish();
+        build2.finish();
 
         var state2 = IncrementalState.load(
                 workDir.resolve("target/maven-status/maven-compiler-plugin/classes/incremental-state"));
@@ -437,13 +440,13 @@ class GraphIncrementalBuildTest {
         // Change the module name
         Files.writeString(sourceDir.resolve("module-info.java"), "module my.renamed {\n  exports api;\n}\n");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
-        assertFalse(abi2.isFullBuild(), "Should start as incremental");
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
+        assertFalse(build2.isFullBuild(), "Should start as incremental");
 
         // First round: recompile module-info.java
         compileFiles(toCompile, true);
-        Set<Path> cascade = abi2.processCompiledClasses(toCompile);
+        Set<Path> cascade = build2.processCompiledClasses(toCompile);
 
         // Module name change should force recompilation of all remaining files
         assertFalse(cascade.isEmpty(), "Module name change should trigger full rebuild");
@@ -451,9 +454,9 @@ class GraphIncrementalBuildTest {
         // Complete all rounds
         while (!cascade.isEmpty()) {
             compileFiles(cascade, true);
-            cascade = abi2.processCompiledClasses(cascade);
+            cascade = build2.processCompiledClasses(cascade);
         }
-        abi2.finish();
+        build2.finish();
 
         // State should reflect the new module name
         var state = IncrementalState.load(
@@ -481,16 +484,16 @@ class GraphIncrementalBuildTest {
         CompilerTestHelper.writeSource(
                 sourceDir, "api", "package-info", "@api.ApiStatus(\"experimental\")\npackage api;\n");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> toCompile = build2.initialize(listSources());
         assertFalse(toCompile.isEmpty(), "Changed package-info should need recompilation");
         assertTrue(
                 toCompile.stream().anyMatch(p -> p.toString().endsWith("package-info.java")),
                 "package-info.java should be in compile set");
 
         compileFiles(toCompile);
-        abi2.processCompiledClasses(toCompile);
-        abi2.finish();
+        build2.processCompiledClasses(toCompile);
+        build2.finish();
     }
 
     @Test
@@ -515,19 +518,19 @@ class GraphIncrementalBuildTest {
                 "Constants",
                 "package api; public final class Constants { public static final int MAX = 200; private Constants() {} }");
 
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        Set<Path> round1 = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        Set<Path> round1 = build2.initialize(listSources());
         assertEquals(1, round1.size(), "Only Constants changed");
 
         compileFiles(round1);
-        Set<Path> round2 = abi2.processCompiledClasses(round1);
+        Set<Path> round2 = build2.processCompiledClasses(round1);
 
         // Constants ABI changed (value is part of fingerprint) → Service should cascade
         assertFalse(round2.isEmpty(), "Constant value change should cascade to consumers");
 
         compileFiles(round2);
-        abi2.processCompiledClasses(round2);
-        abi2.finish();
+        build2.processCompiledClasses(round2);
+        build2.finish();
     }
 
     @Test
@@ -538,9 +541,6 @@ class GraphIncrementalBuildTest {
         Path stateFile = workDir.resolve("target/maven-status/maven-compiler-plugin/classes/incremental-state");
         assertTrue(
                 Files.exists(stateFile), "State file should be in target/maven-status/maven-compiler-plugin/classes/");
-        assertFalse(
-                Files.exists(classesDir.resolve("incremental-state")),
-                "State file should NOT be inside output directory (target/classes/)");
         assertFalse(
                 Files.exists(classesDir.resolve("incremental-state")),
                 "State file should NOT be inside output directory (target/classes/)");
@@ -558,14 +558,14 @@ class GraphIncrementalBuildTest {
         CompilerTestHelper.writeSource(
                 testSourceDir, "test", "MyTest", "package test; public class MyTest { public void run() {} }");
 
-        var abi2 = new GraphIncrementalBuild(testClassesDir);
+        var build2 = new GraphIncrementalBuild(testClassesDir);
         List<Path> testFiles;
         try (var walk = Files.walk(testSourceDir)) {
             testFiles =
                     walk.filter(p -> p.toString().endsWith(".java")).sorted().toList();
         }
-        abi2.initialize(testFiles);
-        assertTrue(abi2.isFullBuild(), "Second output dir should get its own full build");
+        build2.initialize(testFiles);
+        assertTrue(build2.isFullBuild(), "Second output dir should get its own full build");
 
         // State file should be in the maven-status directory
         // Original state should be untouched
@@ -583,40 +583,93 @@ class GraphIncrementalBuildTest {
         assertTrue(Files.exists(stateFile), "State file should exist after successful build");
 
         // Simulate compilation failure → invalidate
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        abi2.initialize(listSources());
-        abi2.invalidate();
+        var build2 = new GraphIncrementalBuild(classesDir);
+        build2.initialize(listSources());
+        build2.invalidate();
 
         assertFalse(Files.exists(stateFile), "State file should be deleted after invalidate");
 
         // Next build should be a full build
-        var abi3 = new GraphIncrementalBuild(classesDir);
-        abi3.initialize(listSources());
-        assertTrue(abi3.isFullBuild(), "Build after invalidation should be full");
+        var build3 = new GraphIncrementalBuild(classesDir);
+        build3.initialize(listSources());
+        assertTrue(build3.isFullBuild(), "Build after invalidation should be full");
     }
 
     @Test
     void configHashChangeTriggersFullRebuild() throws Exception {
         // Build with configHash "abc"
-        var abi1 = new GraphIncrementalBuild(classesDir);
-        abi1.setConfigHash("abc");
-        Set<Path> toCompile = abi1.initialize(listSources());
-        assertTrue(abi1.isFullBuild(), "First build should be full");
+        var build1 = new GraphIncrementalBuild(classesDir);
+        build1.setConfigHash("abc");
+        Set<Path> toCompile = build1.initialize(listSources());
+        assertTrue(build1.isFullBuild(), "First build should be full");
 
         compileFiles(toCompile);
-        abi1.processCompiledClasses(toCompile);
-        abi1.finish();
+        build1.processCompiledClasses(toCompile);
+        build1.finish();
 
         // Same configHash → incremental (no changes)
-        var abi2 = new GraphIncrementalBuild(classesDir);
-        abi2.setConfigHash("abc");
-        toCompile = abi2.initialize(listSources());
+        var build2 = new GraphIncrementalBuild(classesDir);
+        build2.setConfigHash("abc");
+        toCompile = build2.initialize(listSources());
         assertTrue(toCompile.isEmpty(), "Same configHash should be up-to-date");
 
         // Different configHash → full rebuild
-        var abi3 = new GraphIncrementalBuild(classesDir);
-        abi3.setConfigHash("xyz");
-        abi3.initialize(listSources());
-        assertTrue(abi3.isFullBuild(), "Changed configHash should trigger full rebuild");
+        var build3 = new GraphIncrementalBuild(classesDir);
+        build3.setConfigHash("xyz");
+        build3.initialize(listSources());
+        assertTrue(build3.isFullBuild(), "Changed configHash should trigger full rebuild");
+    }
+
+    @Test
+    void externalClasspathIdentitiesArePersistedAndDetected() throws Exception {
+        // Use the standard 3-source build so Service/Model/Helper are in state.
+        doFullBuildCycle();
+
+        Path jarPath = workDir.resolve("lib/external.jar");
+        Files.createDirectories(jarPath.getParent());
+        try (var jos = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            jos.putNextEntry(new JarEntry("META-INF/MANIFEST.MF"));
+            jos.write("Manifest-Version: 1.0\n".getBytes());
+            jos.closeEntry();
+        }
+
+        // Second build with this JAR on classpath — identities are stored
+        var build2 = new GraphIncrementalBuild(classesDir);
+        build2.setClasspathEntries(List.of(jarPath));
+        Set<Path> unchanged = build2.initialize(listSources());
+        assertTrue(unchanged.isEmpty(), "no source change, no external change — should be up-to-date");
+        build2.finish();
+
+        // Verify that the classpath identity was stored
+        var stateFile = workDir.resolve("target/maven-status/maven-compiler-plugin/classes/incremental-state");
+        var loaded = IncrementalState.load(stateFile);
+        assertNotNull(loaded);
+        assertTrue(
+                loaded.getClasspathIdentities().containsKey(jarPath.toString()),
+                "JAR identity should be persisted in state");
+
+        // Now change the JAR (different size) — next build should trigger full recompilation
+        // of any sources that have external deps.  Our sources (Model/Service/Helper) reference
+        // each other only; checkExternalDependencyChanges skips them if no external dep found.
+        // So we validate the identity *changed* (is detected), not the recompile set size.
+        try (var jos = new JarOutputStream(Files.newOutputStream(jarPath))) {
+            jos.putNextEntry(new JarEntry("META-INF/MANIFEST.MF"));
+            jos.write("Manifest-Version: 1.0\nCreated-By: test\n".getBytes());
+            jos.closeEntry();
+        }
+        jarPath.toFile().setLastModified(System.currentTimeMillis() + 5_000L);
+
+        var build3 = new GraphIncrementalBuild(classesDir);
+        build3.setClasspathEntries(List.of(jarPath));
+        build3.initialize(listSources());
+        // After initialize, the updated identities are stored
+        build3.finish();
+
+        var loaded3 = IncrementalState.load(stateFile);
+        assertNotNull(loaded3);
+        String newIdentity = loaded3.getClasspathIdentities().get(jarPath.toString());
+        String oldIdentity = loaded.getClasspathIdentities().get(jarPath.toString());
+        assertNotNull(newIdentity);
+        assertNotEquals(oldIdentity, newIdentity, "JAR identity should reflect the change");
     }
 }

@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,8 +97,8 @@ public class GraphIncrementalBuild {
     private Map<Path, String> outputClassIndex;
 
     public GraphIncrementalBuild(Path outputDir) {
-        this.outputDir = outputDir;
-        this.buildDir = outputDir.getParent() != null ? outputDir.getParent() : outputDir;
+        this.outputDir = outputDir.toAbsolutePath();
+        this.buildDir = this.outputDir.getParent() != null ? this.outputDir.getParent() : this.outputDir;
         // Store state outside the output directory so it is not included in the JAR.
         // Use the same maven-status convention as the timestamp-based strategy.
         // Include the output directory name (e.g. "classes", "test-classes") to avoid
@@ -187,8 +188,7 @@ public class GraphIncrementalBuild {
      * and returns any additional source files that must be compiled in the next pass.
      *
      * <p>The cascade logic: any compiled class whose content changed (new or modified)
-     * triggers recompilation of all source files that depend on it (signature or
-     * implementation consumers).
+     * triggers recompilation of all source files that depend on it.
      *
      * @param compiledSourceFiles the source files that were passed to the compiler in this round
      * @return additional source files to compile (may be empty when fixpoint is reached)
@@ -233,7 +233,7 @@ public class GraphIncrementalBuild {
         // Cascade: find all consumers of changed types (both signature and implementation)
         var cascade = new TreeSet<>(changedTypes);
         for (String type : changedTypes) {
-            expandSignatureCascade(type, state, cascade);
+            expandCascade(type, state, cascade);
         }
 
         var additionalFiles = new TreeSet<Path>();
@@ -375,7 +375,7 @@ public class GraphIncrementalBuild {
         if (b.isEmpty()) {
             return a;
         }
-        var result = new java.util.HashSet<String>(a);
+        var result = new HashSet<String>(a);
         result.addAll(b);
         return Set.copyOf(result);
     }
@@ -470,8 +470,8 @@ public class GraphIncrementalBuild {
     }
 
     /**
-     * Finalizes the incremental build: saves state and writes the ABI manifest
-     * for downstream reactor modules.
+     * Finalizes the incremental build: persists the updated incremental state
+     * to disk so that the next build can perform incremental analysis.
      */
     public void finish() throws IOException {
         if (state == null) {
@@ -570,7 +570,7 @@ public class GraphIncrementalBuild {
         }
 
         // Check external ABI changes
-        Set<String> externallyInvalidated = checkExternalAbiChanges();
+        Set<String> externallyInvalidated = checkExternalDependencyChanges();
 
         if (changedFiles.isEmpty() && newFiles.isEmpty() && deletedFiles.isEmpty() && externallyInvalidated.isEmpty()) {
             return Set.of();
@@ -740,7 +740,7 @@ public class GraphIncrementalBuild {
         return additionalFiles;
     }
 
-    private void expandSignatureCascade(String startType, IncrementalState state, Set<String> result) {
+    private void expandCascade(String startType, IncrementalState state, Set<String> result) {
         var worklist = new ArrayDeque<String>();
         worklist.add(startType);
         while (!worklist.isEmpty()) {
@@ -831,7 +831,7 @@ public class GraphIncrementalBuild {
 
     // --- External dependency tracking ---
 
-    private Set<String> checkExternalAbiChanges() {
+    private Set<String> checkExternalDependencyChanges() {
         var invalidated = new TreeSet<String>();
         Set<String> externalDeps = state.getExternalDependencies();
         if (externalDeps.isEmpty()) {
@@ -842,9 +842,8 @@ public class GraphIncrementalBuild {
         // Any JAR that changed (or was replaced) triggers recompilation of all
         // types that depend on something from the external classpath.
         Map<String, String> currentIdentities = computeCurrentClasspathIdentities();
-        Map<String, String> storedIdentities = previousState != null
-                ? previousState.getClasspathIdentities()
-                : state.getClasspathIdentities();
+        Map<String, String> storedIdentities =
+                previousState != null ? previousState.getClasspathIdentities() : state.getClasspathIdentities();
 
         boolean externalChanged = false;
         for (var entry : currentIdentities.entrySet()) {
@@ -889,15 +888,25 @@ public class GraphIncrementalBuild {
         for (Path entry : classpathEntries) {
             try {
                 if (Files.isRegularFile(entry)) {
-                    // JAR: hash its content
-                    byte[] bytes = Files.readAllBytes(entry);
-                    identities.put(entry.toString(), Sha256.hash(bytes));
+                    // JAR: use size + last-modified time as identity.
+                    // A full content hash would be more robust but is too expensive at the scale
+                    // of a typical Maven classpath. Size+mtime catches the vast majority of real
+                    // JAR changes (dependency upgrades, rebuilds) with negligible I/O cost.
+                    BasicFileAttributes attrs = Files.readAttributes(entry, BasicFileAttributes.class);
+                    identities.put(
+                            entry.toString(),
+                            attrs.size() + ":" + attrs.lastModifiedTime().toMillis());
                 } else if (Files.isDirectory(entry)) {
-                    // Directory (reactor module): use its incremental-state mtime as identity
-                    identities.put(entry.toString(), String.valueOf(Files.getLastModifiedTime(entry).toMillis()));
+                    // Directory (reactor module output): use mtime of the directory itself.
+                    // The graph strategy tracks reactor-module changes via the type-level dep graph;
+                    // this identity is a coarse safety net for non-graph changes (e.g. resources).
+                    identities.put(
+                            entry.toString(),
+                            String.valueOf(Files.getLastModifiedTime(entry).toMillis()));
                 }
             } catch (IOException e) {
-                // Ignore unreadable entries
+                // Ignore unreadable entries — they will be absent from the stored identities on
+                // the next build, which will trigger a conservative full invalidation.
             }
         }
         return identities;

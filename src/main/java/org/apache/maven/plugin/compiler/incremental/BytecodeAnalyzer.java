@@ -21,7 +21,6 @@ package org.apache.maven.plugin.compiler.incremental;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Set;
 
 /**

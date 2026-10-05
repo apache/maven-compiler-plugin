@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,27 +67,37 @@ class CompilerTestHelper {
                 throw new RuntimeException("Compilation failed");
             }
 
-            // Build a minimal SourceFileAnalysis map from bytecode (no dep graph needed here)
-            Map<String, SourceFileAnalysis> results = new java.util.LinkedHashMap<>();
-            for (Path sf : sourceFiles) {
-                try (Stream<Path> walk = Files.walk(outputDir)) {
-                    walk.filter(p -> p.toString().endsWith(".class")).forEach(cf -> {
-                        try {
-                            var analysis = BytecodeAnalyzer.analyze(cf);
-                            var sfa = new SourceFileAnalysis(
-                                    analysis.className(),
-                                    sf.toString(),
-                                    unionDeps(analysis.signatureTypes(), analysis.implementationTypes()),
-                                    analysis.annotationTypes(),
-                                    analysis.moduleName());
-                            results.put(analysis.className(), sfa);
-                        } catch (IOException e) {
-                            // best effort
-                        }
-                    });
-                } catch (IOException e) {
-                    // best effort
-                }
+            // Build a minimal SourceFileAnalysis map from bytecode.
+            // Walk the output directory once (not once per source file) to avoid O(n²) I/O.
+            Map<String, SourceFileAnalysis> results = new LinkedHashMap<>();
+            try (Stream<Path> walk = Files.walk(outputDir)) {
+                walk.filter(p -> p.toString().endsWith(".class")).forEach(cf -> {
+                    try {
+                        var analysis = BytecodeAnalyzer.analyze(cf);
+                        String className = analysis.className();
+                        // Attribute the class to its source file by matching the outer class name.
+                        String simple = className.contains(".")
+                                ? className.substring(className.lastIndexOf('.') + 1)
+                                : className;
+                        String outer = simple.contains("$") ? simple.substring(0, simple.indexOf('$')) : simple;
+                        String sourceFile = sourceFiles.stream()
+                                .filter(sf -> sf.getFileName().toString().equals(outer + ".java"))
+                                .map(Path::toString)
+                                .findFirst()
+                                .orElse(cf.toString());
+                        var sfa = new SourceFileAnalysis(
+                                className,
+                                sourceFile,
+                                unionDeps(analysis.signatureTypes(), analysis.implementationTypes()),
+                                analysis.annotationTypes(),
+                                analysis.moduleName());
+                        results.put(className, sfa);
+                    } catch (IOException e) {
+                        // best effort — corrupted class files are silently skipped
+                    }
+                });
+            } catch (IOException e) {
+                // best effort
             }
             return results;
         }
@@ -121,7 +133,7 @@ class CompilerTestHelper {
     }
 
     private static Set<String> unionDeps(Set<String> a, Set<String> b) {
-        var result = new java.util.HashSet<String>(a);
+        var result = new HashSet<String>(a);
         result.addAll(b);
         return Set.copyOf(result);
     }

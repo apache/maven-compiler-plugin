@@ -42,12 +42,10 @@ class IncrementalStateTest {
         state.setSourceHash("src/Model.java", "hash1");
         state.setSourceHash("src/Service.java", "hash2");
         state.setType(
-                "com.Model",
-                new IncrementalState.TypeInfo("src/Model.java", Set.of(), Set.of("com.MyAnnotation"), ""));
+                "com.Model", new IncrementalState.TypeInfo("src/Model.java", Set.of(), Set.of("com.MyAnnotation"), ""));
         state.setType(
                 "com.Service",
-                new IncrementalState.TypeInfo(
-                        "src/Service.java", Set.of("com.Model", "com.Helper"), Set.of(), ""));
+                new IncrementalState.TypeInfo("src/Service.java", Set.of("com.Model", "com.Helper"), Set.of(), ""));
         state.setClasspathIdentities(Map.of("/path/to/lib.jar", "1234:5678"));
         return state;
     }
@@ -92,7 +90,7 @@ class IncrementalStateTest {
     @Test
     void loadFromTruncatedFileReturnsNull() throws Exception {
         Path file = tempDir.resolve("truncated.bin");
-        Files.write(file, new byte[] {0, 0, 0, 4, 0, 0}); // version 4, then truncated
+        Files.write(file, new byte[] {0, 0, 0, 1, 0, 0}); // version 1, then truncated
         assertNull(IncrementalState.load(file));
     }
 
@@ -103,7 +101,6 @@ class IncrementalStateTest {
 
         assertNull(state.getSourceHash("src/Model.java"));
         assertNull(state.getType("com.Model"));
-        // Other entries untouched
         assertEquals("hash2", state.getSourceHash("src/Service.java"));
         assertNotNull(state.getType("com.Service"));
     }
@@ -126,7 +123,7 @@ class IncrementalStateTest {
         Set<String> external = state.getExternalDependencies();
         // com.Helper is a dep of com.Service but has no TypeInfo entry
         assertTrue(external.contains("com.Helper"), "should include deps without TypeInfo");
-        // com.Model is a dep of com.Service and has a TypeInfo entry
+        // com.Model has a TypeInfo entry — not external
         assertTrue(!external.contains("com.Model"), "should not include types with TypeInfo");
     }
 

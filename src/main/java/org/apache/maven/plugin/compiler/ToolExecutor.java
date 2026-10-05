@@ -1110,7 +1110,9 @@ public class ToolExecutor {
             if (!generatedSourceDirectories.isEmpty()) {
                 fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, generatedSourceDirectories);
             }
-            // Add output dir to classpath for resolving types not being compiled
+            // Add the output directory to the classpath so javac can resolve previously compiled
+            // types that are not being recompiled in this pass (graph-incremental compiles a
+            // specific subset of sources per round, so earlier class files must be resolvable).
             fileManager.setLocationFromPaths(StandardLocation.SOURCE_PATH, List.of());
             var classPath = new ArrayList<Path>();
             var existingCp = fileManager.getLocationAsPaths(StandardLocation.CLASS_PATH);

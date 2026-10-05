@@ -1425,10 +1425,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         var executor = createExecutor(null);
-        if ("graph".equalsIgnoreCase(incrementalStrategy)
-                && !Boolean.FALSE.equals(useIncrementalCompilation)) {
+        if ("graph".equalsIgnoreCase(incrementalStrategy) && !Boolean.FALSE.equals(useIncrementalCompilation)) {
             if (!BytecodeAnalyzer.isAvailable()) {
-                logger.warn("Graph/ABI incremental strategy requires JDK 24 or later "
+                logger.warn("Graph incremental strategy requires JDK 24 or later "
                         + "(running JDK " + Runtime.version().feature() + "). "
                         + "Falling back to timestamp strategy.");
             } else {

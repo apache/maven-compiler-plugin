@@ -41,7 +41,7 @@ import java.util.TreeSet;
  * all class-level references found in the classfile constant pool.
  *
  * <p>Serialized as a compact binary format via {@link DataOutputStream} and stored
- * alongside the class output as {@code .incremental-state}.
+ * alongside the class output as {@code incremental-state}.
  *
  * @see GraphIncrementalBuild
  */
@@ -52,10 +52,10 @@ public class IncrementalState {
     private final Map<String, String> sourceHashes = new LinkedHashMap<>();
     private final Map<String, Long> sourceMtimes = new LinkedHashMap<>();
     private final Map<String, TypeInfo> types = new LinkedHashMap<>();
-    private final Map<String, String> externalFingerprints = new LinkedHashMap<>();
     private final Map<String, String> classpathIdentities = new LinkedHashMap<>();
     /** Maps each dependency type to the set of types that reference it. */
     private final Map<String, Set<String>> consumersIndex = new LinkedHashMap<>();
+
     private final Map<String, Set<String>> sourceToTypesIndex = new LinkedHashMap<>();
     private String configHash = "";
 
@@ -164,17 +164,8 @@ public class IncrementalState {
     }
 
     // -----------------------------------------------------------------------
-    // External dependency / fingerprint accessors
+    // Classpath identity accessors
     // -----------------------------------------------------------------------
-
-    public Map<String, String> getExternalFingerprints() {
-        return Collections.unmodifiableMap(externalFingerprints);
-    }
-
-    public void setExternalFingerprints(Map<String, String> fingerprints) {
-        externalFingerprints.clear();
-        externalFingerprints.putAll(fingerprints);
-    }
 
     public Map<String, String> getClasspathIdentities() {
         return Collections.unmodifiableMap(classpathIdentities);
@@ -254,7 +245,6 @@ public class IncrementalState {
         copy.sourceHashes.putAll(this.sourceHashes);
         copy.sourceMtimes.putAll(this.sourceMtimes);
         copy.types.putAll(this.types);
-        copy.externalFingerprints.putAll(this.externalFingerprints);
         copy.classpathIdentities.putAll(this.classpathIdentities);
         copy.configHash = this.configHash;
         copy.buildInvertedIndex();
@@ -296,7 +286,9 @@ public class IncrementalState {
         for (String dep : info.classDeps()) {
             consumersIndex.computeIfAbsent(dep, k -> new TreeSet<>()).add(typeName);
         }
-        sourceToTypesIndex.computeIfAbsent(info.sourceFile(), k -> new TreeSet<>()).add(typeName);
+        sourceToTypesIndex
+                .computeIfAbsent(info.sourceFile(), k -> new TreeSet<>())
+                .add(typeName);
     }
 
     // -----------------------------------------------------------------------
@@ -323,7 +315,6 @@ public class IncrementalState {
                 writeStringSet(out, info.annotationTypes());
                 out.writeUTF(info.moduleName());
             }
-            writeStringMap(out, externalFingerprints);
             writeStringMap(out, classpathIdentities);
             out.writeUTF(configHash);
         }
@@ -359,7 +350,6 @@ public class IncrementalState {
                 String moduleName = in.readUTF();
                 state.types.put(name, new TypeInfo(sourceFile, classDeps, annotTypes, moduleName));
             }
-            readStringMap(in, state.externalFingerprints);
             readStringMap(in, state.classpathIdentities);
             state.configHash = in.readUTF();
             state.buildInvertedIndex();
@@ -382,7 +372,7 @@ public class IncrementalState {
         for (int i = 0; i < count; i++) {
             set.add(in.readUTF());
         }
-        return set;
+        return Set.copyOf(set);
     }
 
     private static void writeStringMap(DataOutputStream out, Map<String, String> map) throws IOException {
