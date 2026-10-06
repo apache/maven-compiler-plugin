@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler.incremental;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Set;
 
 /**
@@ -32,7 +33,7 @@ import java.util.Set;
  * API — no reflection required.
  *
  * <p>On JDK &lt; 24, the root {@code BytecodeAnalyzer} is loaded instead and
- * throws {@link UnsupportedOperationException}, triggering a fallback to the
+ * {@link #isAvailable()} returns {@code false}, triggering a fallback to the
  * timestamp incremental strategy.
  */
 public final class BytecodeAnalyzer {
@@ -47,6 +48,8 @@ public final class BytecodeAnalyzer {
      * Analysis result for a single {@code .class} file.
      *
      * @param className           fully-qualified class name (dot-separated)
+     * @param abiFingerprint      16-character hex SHA-256 prefix of the ABI canonical form
+     * @param abiCanonical        human-readable representation of the public API surface
      * @param signatureTypes      types appearing in public API surface (method/field descriptors,
      *                            supertype, interfaces, exception types, annotation types)
      * @param implementationTypes types appearing only in method body bytecode instructions
@@ -60,6 +63,8 @@ public final class BytecodeAnalyzer {
      */
     public record ClassAnalysis(
             String className,
+            String abiFingerprint,
+            String abiCanonical,
             Set<String> signatureTypes,
             Set<String> implementationTypes,
             Set<String> annotationTypes,
@@ -70,6 +75,43 @@ public final class BytecodeAnalyzer {
     private static final ClassfileClassAnalyzer ANALYZER = new ClassfileClassAnalyzer();
 
     private BytecodeAnalyzer() {}
+
+    /**
+     * Returns {@code true} — ABI fingerprinting is available on JDK 24+.
+     *
+     * @return {@code true}
+     */
+    public static boolean isAvailable() {
+        return true;
+    }
+
+    /**
+     * Extracts all class-level dependency references from the class file at {@code classFile}.
+     *
+     * <p>Returns the set of all types referenced in the classfile's constant pool
+     * ({@code ClassEntry} entries), without distinguishing public API (signature) from
+     * method-body (implementation) references. Array types and JDK built-in types
+     * ({@code java.*}, {@code javax.*}, {@code jdk.*}, {@code sun.*}) are excluded.
+     *
+     * <p>This is the lightweight analysis used by the {@code graph} incremental strategy.
+     *
+     * @param classFile path to the {@code .class} file
+     * @return set of fully qualified type names referenced in the classfile
+     * @throws IOException if reading the file fails
+     */
+    public static Set<String> analyzeGraph(Path classFile) throws IOException {
+        return ANALYZER.analyzeGraph(Files.readAllBytes(classFile));
+    }
+
+    /**
+     * Extracts all class-level dependency references from the given class file bytes.
+     *
+     * @param classBytes raw {@code .class} file content
+     * @return set of fully qualified type names referenced in the classfile
+     */
+    public static Set<String> analyzeGraph(byte[] classBytes) {
+        return ANALYZER.analyzeGraph(classBytes);
+    }
 
     /**
      * Analyzes the class file at {@code classFile}.
@@ -115,6 +157,33 @@ public final class BytecodeAnalyzer {
             case '[' -> descriptorToReadable(desc.substring(1)) + "[]";
             default -> desc;
         };
+    }
+
+    static String parseParams(String methodDesc) {
+        int close = methodDesc.indexOf(')');
+        String params = methodDesc.substring(1, close);
+        var result = new ArrayList<String>();
+        int i = 0;
+        while (i < params.length()) {
+            int start = i;
+            while (i < params.length() && params.charAt(i) == '[') {
+                i++;
+            }
+            if (i < params.length()) {
+                if (params.charAt(i) == 'L') {
+                    int semi = params.indexOf(';', i);
+                    i = semi >= 0 ? semi + 1 : params.length();
+                } else {
+                    i++;
+                }
+            }
+            result.add(descriptorToReadable(params.substring(start, i)));
+        }
+        return String.join(", ", result);
+    }
+
+    static String parseReturn(String methodDesc) {
+        return descriptorToReadable(methodDesc.substring(methodDesc.indexOf(')') + 1));
     }
 
     static String toJavaName(String internalName) {

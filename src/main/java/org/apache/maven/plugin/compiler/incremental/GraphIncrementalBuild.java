@@ -78,6 +78,7 @@ public class GraphIncrementalBuild {
     private final Path stateFile;
     private List<Path> classpathEntries;
     private Set<Path> reactorModulePaths;
+    private boolean abiTracking;
     private List<Path> processorPath;
     private ProcessorClassification processorClassification;
 
@@ -114,17 +115,31 @@ public class GraphIncrementalBuild {
     }
 
     /**
-     * Sets classpath entries for external dependency tracking.
+     * Sets classpath entries for cross-module ABI tracking. Directory entries
+     * are checked for {@link AbiManifest} files; JAR entries use bytecode
+     * analysis as fallback.
      */
     public void setClasspathEntries(List<Path> entries) {
         this.classpathEntries = entries;
     }
 
     /**
-     * Marks specific classpath entries as reactor modules.
+     * Marks specific classpath entries as reactor modules. These are always
+     * checked for ABI changes (via manifest or bytecode).
      */
     public void setReactorModulePaths(Set<Path> paths) {
         this.reactorModulePaths = paths;
+    }
+
+    /**
+     * Enables ABI tracking mode ({@code abi} strategy). When {@code true}, the
+     * engine computes ABI fingerprints and fine-grained {@code signatureDeps}/
+     * {@code implementationDeps} for each compiled type, and writes an
+     * {@link AbiManifest} on {@link #finish()}. When {@code false} (default,
+     * {@code graph} strategy), only class-level dependency references are collected.
+     */
+    public void setAbiTracking(boolean abiTracking) {
+        this.abiTracking = abiTracking;
     }
 
     /**
@@ -221,8 +236,19 @@ public class GraphIncrementalBuild {
         for (var result : results.values()) {
             String moduleName = useModulePrefixedPaths ? result.moduleName() : "";
             IncrementalState.TypeInfo typeInfo;
-            typeInfo = new IncrementalState.GraphTypeInfo(
-                    result.sourceFile(), result.classDeps(), result.annotationTypes(), moduleName);
+            if (abiTracking) {
+                typeInfo = new IncrementalState.AbiTypeInfo(
+                        result.sourceFile(),
+                        result.classDeps(),
+                        result.annotationTypes(),
+                        moduleName,
+                        result.signatureDeps(),
+                        result.implementationDeps(),
+                        result.abiFingerprint());
+            } else {
+                typeInfo = new IncrementalState.GraphTypeInfo(
+                        result.sourceFile(), result.classDeps(), result.annotationTypes(), moduleName);
+            }
             state.setType(result.qualifiedName(), typeInfo);
         }
 
@@ -307,8 +333,10 @@ public class GraphIncrementalBuild {
                             classFileCache.put(cf, a); // cache the analysis for reuse below
                         }
                     } catch (IOException e) {
-                        // Best effort — corrupted or inaccessible class files are silently
+                        // Log at debug level — a corrupted or inaccessible class file is silently
                         // skipped; the missing type entry will trigger a full rebuild next time.
+                        System.getLogger(GraphIncrementalBuild.class.getName())
+                                .log(System.Logger.Level.DEBUG, "Failed to analyze class file: {0}", cf);
                     }
                 });
             }
@@ -354,26 +382,47 @@ public class GraphIncrementalBuild {
                 continue;
             }
             try {
-                var analysis =
-                        cacheEntry.getValue() != null ? cacheEntry.getValue() : BytecodeAnalyzer.analyze(classFile);
-
-                // Guard against cross-package simple-name collisions: if the class's
-                // package directory doesn't match the source file's directory, skip it.
-                if (!analysis.isModuleInfo() && !isPackageConsistent(analysis.className(), sourceFile)) {
-                    continue;
+                if (abiTracking) {
+                    // Full ABI analysis: sig/impl deps + fingerprint
+                    var analysis =
+                            cacheEntry.getValue() != null ? cacheEntry.getValue() : BytecodeAnalyzer.analyze(classFile);
+                    String sourceFilePath2 = analysis.isModuleInfo()
+                            ? sourceFilePath
+                            : resolveSourceFile(analysis.className(), sourceFilePath);
+                    var sfa = new SourceFileAnalysis(
+                            analysis.className(),
+                            sourceFilePath2,
+                            unionDeps(analysis.signatureTypes(), analysis.implementationTypes()),
+                            analysis.signatureTypes(),
+                            analysis.implementationTypes(),
+                            analysis.abiFingerprint(),
+                            analysis.abiCanonical(),
+                            analysis.annotationTypes(),
+                            analysis.moduleName());
+                    results.put(analysis.className(), sfa);
+                } else {
+                    // Graph analysis: class-level deps only (constant pool scan)
+                    // We still need className, sourceFileName, moduleName, annotationTypes
+                    // from a lightweight analysis — use analyzeGraph for deps but full analyze
+                    // for metadata (still one parse of the classfile via the classfile API).
+                    var analysis =
+                            cacheEntry.getValue() != null ? cacheEntry.getValue() : BytecodeAnalyzer.analyze(classFile);
+                    String sourceFilePath2 = analysis.isModuleInfo()
+                            ? sourceFilePath
+                            : resolveSourceFile(analysis.className(), sourceFilePath);
+                    Set<String> classDeps = unionDeps(analysis.signatureTypes(), analysis.implementationTypes());
+                    var sfa = new SourceFileAnalysis(
+                            analysis.className(),
+                            sourceFilePath2,
+                            classDeps,
+                            Set.of(),
+                            Set.of(),
+                            "",
+                            "",
+                            analysis.annotationTypes(),
+                            analysis.moduleName());
+                    results.put(analysis.className(), sfa);
                 }
-
-                String sourceFilePath2 = analysis.isModuleInfo()
-                        ? sourceFilePath
-                        : resolveSourceFile(analysis.className(), sourceFilePath);
-                Set<String> classDeps = unionDeps(analysis.signatureTypes(), analysis.implementationTypes());
-                var sfa = new SourceFileAnalysis(
-                        analysis.className(),
-                        sourceFilePath2,
-                        classDeps,
-                        analysis.annotationTypes(),
-                        analysis.moduleName());
-                results.put(analysis.className(), sfa);
             } catch (IOException e) {
                 // Skip unreadable class files — they'll be caught at compile time
             }
@@ -483,34 +532,20 @@ public class GraphIncrementalBuild {
     }
 
     /**
-     * Checks whether a class's package is consistent with the source file's directory.
-     * Prevents cross-package misattribution when two packages contain files with the
-     * same simple name (e.g., {@code com/a/Foo.java} and {@code com/b/Foo.java}).
-     */
-    private static boolean isPackageConsistent(String className, Path sourceFile) {
-        int dot = className.lastIndexOf('.');
-        if (dot < 0) {
-            return true; // default package — can't validate further
-        }
-        // For inner classes (Foo$Bar), use the outer class's package
-        String outerName = className.contains("$") ? className.substring(0, className.indexOf('$')) : className;
-        dot = outerName.lastIndexOf('.');
-        if (dot < 0) {
-            return true;
-        }
-        String packagePath = outerName.substring(0, dot).replace('.', '/');
-        String sourceDir = sourceFile.getParent() != null
-                ? sourceFile.getParent().toString().replace('\\', '/')
-                : "";
-        return sourceDir.endsWith(packagePath);
-    }
-
-    /**
-     * Finalizes the incremental build and persists the state.
+     * Finalizes the incremental build: saves state and writes the ABI manifest
+     * for downstream reactor modules.
      */
     public void finish() throws IOException {
         if (state == null) {
             return;
+        }
+
+        // Resolve and store external fingerprints
+        Set<String> externalDeps = state.getExternalDependencies();
+        if (!externalDeps.isEmpty()) {
+            var resolver = createResolver();
+            state.setExternalFingerprints(resolver.resolve(externalDeps));
+            state.setClasspathIdentities(resolver.computeCurrentJarIdentities());
         }
 
         // Persist source mtimes for the next build's mtime-first optimization
@@ -520,6 +555,9 @@ public class GraphIncrementalBuild {
 
         state.setConfigHash(configHash);
         state.save(stateFile);
+        if (abiTracking) {
+            AbiManifest.write(buildDir.resolve(AbiManifest.FILENAME), state.getAllAbiFingerprints());
+        }
     }
 
     /**
@@ -570,7 +608,6 @@ public class GraphIncrementalBuild {
     private Set<Path> initFullBuild(List<Path> allSourceFiles) {
         fullBuild = true;
         state = new IncrementalState();
-        state.setClasspathIdentities(computeCurrentJarIdentities());
 
         var files = new TreeSet<Path>();
         for (Path f : allSourceFiles) {
@@ -602,8 +639,8 @@ public class GraphIncrementalBuild {
             }
         }
 
-        // Check external classpath changes
-        Set<String> externallyInvalidated = checkExternalClasspathChanges();
+        // Check external ABI changes
+        Set<String> externallyInvalidated = checkExternalAbiChanges();
 
         if (changedFiles.isEmpty() && newFiles.isEmpty() && deletedFiles.isEmpty() && externallyInvalidated.isEmpty()) {
             return Set.of();
@@ -831,12 +868,6 @@ public class GraphIncrementalBuild {
      * file's content.  This avoids redundant I/O on the common no-change case,
      * particularly beneficial for large source trees.
      *
-     * @implNote The mtime short-circuit assumes files are not modified without
-     * updating their last-modified time. Tools that preserve mtime while changing
-     * content (e.g., {@code rsync --size-only}, {@code touch -t}) will cause
-     * missed changes. This is the same trade-off Gradle's incremental compiler
-     * makes. A full rebuild ({@code mvn clean compile}) resolves any such case.
-     *
      * @param files    the source files to process
      * @param prev     previous build's state (may be {@code null})
      * @param mtimes   output map populated with each file's observed mtime (millis)
@@ -868,80 +899,49 @@ public class GraphIncrementalBuild {
         return hashes;
     }
 
-    // --- External classpath tracking ---
+    // --- External ABI tracking ---
 
-    private Set<String> checkExternalClasspathChanges() {
-        var currentIdentities = computeCurrentJarIdentities();
-        var previousIdentities = previousState.getClasspathIdentities();
-        state.setClasspathIdentities(currentIdentities);
-
-        if (currentIdentities.equals(previousIdentities)) {
-            return Set.of();
-        }
-
-        // Determine which classpath entries changed (added, removed, or modified)
-        var changedEntries = new TreeSet<String>();
-        for (var entry : currentIdentities.entrySet()) {
-            String prev = previousIdentities.get(entry.getKey());
-            if (prev == null || !prev.equals(entry.getValue())) {
-                changedEntries.add(entry.getKey());
-            }
-        }
-        for (String key : previousIdentities.keySet()) {
-            if (!currentIdentities.containsKey(key)) {
-                changedEntries.add(key);
-            }
-        }
-
-        if (changedEntries.isEmpty()) {
-            return Set.of();
-        }
-
-        // Any external dependency changed — recompile all source files that reference
-        // types not defined in this module. Since we don't track which external type
-        // comes from which JAR, we conservatively invalidate all files that have any
-        // external dependency.
-        var externalTypes = previousState.getExternalDependencies();
+    private Set<String> checkExternalAbiChanges() {
         var invalidated = new TreeSet<String>();
-        for (var entry : previousState.getTypes().entrySet()) {
-            String sf = entry.getValue().sourceFile();
-            if (sf != null) {
-                for (String dep : entry.getValue().classDeps()) {
-                    if (externalTypes.contains(dep)) {
+        Set<String> externalDeps = state.getExternalDependencies();
+        if (externalDeps.isEmpty()) {
+            return invalidated;
+        }
+
+        var resolver = createResolver();
+        Map<String, String> currentFingerprints = resolver.resolve(externalDeps);
+        Map<String, String> storedFingerprints = state.getExternalFingerprints();
+
+        var changedExternalTypes = new TreeSet<String>();
+        for (var entry : currentFingerprints.entrySet()) {
+            String stored = storedFingerprints.get(entry.getKey());
+            if (stored == null || !stored.equals(entry.getValue())) {
+                changedExternalTypes.add(entry.getKey());
+            }
+        }
+
+        if (!changedExternalTypes.isEmpty()) {
+            for (String changedType : changedExternalTypes) {
+                for (String consumer : state.getAllConsumers(changedType)) {
+                    String sf = state.sourceFileFor(consumer);
+                    if (sf != null) {
                         invalidated.add(sf);
-                        break;
                     }
                 }
             }
         }
+
+        state.setExternalFingerprints(currentFingerprints);
+        state.setClasspathIdentities(resolver.computeCurrentJarIdentities());
         return invalidated;
     }
 
-    /**
-     * Computes identity strings for JAR/ZIP classpath entries based on file size and
-     * last-modified time. Directory classpath entries (e.g., reactor module output
-     * directories) are not tracked — changes to reactor sibling modules' class files
-     * are detected by Maven's own dependency change detection which triggers a full
-     * rebuild via the timestamp strategy's "changed dependency" check.
-     */
-    private Map<String, String> computeCurrentJarIdentities() {
-        var identities = new LinkedHashMap<String, String>();
-        if (classpathEntries == null) {
-            return identities;
+    private ExternalAbiResolver createResolver() {
+        var resolver =
+                new ExternalAbiResolver(classpathEntries != null ? classpathEntries : List.of(), reactorModulePaths);
+        if (previousState != null) {
+            resolver.setCachedState(previousState.getExternalFingerprints(), previousState.getClasspathIdentities());
         }
-        for (Path entry : classpathEntries) {
-            String name = entry.getFileName().toString();
-            if ((name.endsWith(".jar") || name.endsWith(".zip")) && Files.exists(entry)) {
-                try {
-                    var attrs = Files.readAttributes(entry, BasicFileAttributes.class);
-                    identities.put(
-                            entry.toString(),
-                            attrs.size() + ":" + attrs.lastModifiedTime().toMillis());
-                } catch (IOException e) {
-                    // skip unreadable entries
-                }
-            }
-        }
-        return identities;
+        return resolver;
     }
 }

@@ -950,7 +950,7 @@ public class ToolExecutor {
             graphBuild.setProcessorPath(processorPaths);
         }
 
-        // Collect classpath entries for external dependency tracking
+        // Collect classpath entries for cross-module ABI tracking
         var classpathEntries = new ArrayList<Path>();
         var reactorModulePaths = new LinkedHashSet<Path>();
         for (var entry : dependencies.entrySet()) {
@@ -972,6 +972,9 @@ public class ToolExecutor {
         if (!reactorModulePaths.isEmpty()) {
             graphBuild.setReactorModulePaths(reactorModulePaths);
         }
+
+        // Enable ABI tracking when the abi strategy is selected
+        graphBuild.setAbiTracking("abi".equalsIgnoreCase(mojo.incrementalStrategy));
 
         // Hash module-info-patch.maven files for config change detection
         graphBuild.setConfigHash(computeConfigHash(configuration));
@@ -1000,9 +1003,6 @@ public class ToolExecutor {
             }
         }
 
-        // The sourceFiles field is temporarily replaced with a filtered subset for each round
-        // because noSourcesToCompile() and groupByReleaseAndModule() read it directly.
-        // The finally block guarantees restoration even on exception paths.
         var originalSourceFiles = new ArrayList<>(sourceFiles);
         boolean success = true;
         // Safety bound: the compile set is monotonically growing (bounded by total source count).

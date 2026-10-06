@@ -47,7 +47,7 @@ class CompilerTestHelper {
 
     /**
      * Compiles all {@code .java} files under {@code sourceDir} into {@code outputDir}
-     * and returns the output directory.
+     * and returns the output directory. No ABI analysis — raw javac only.
      */
     static Map<String, SourceFileAnalysis> compileAndAnalyze(Path sourceDir, Path outputDir) throws IOException {
         Files.createDirectories(outputDir);
@@ -92,6 +92,10 @@ class CompilerTestHelper {
                                 className,
                                 sourceFile,
                                 unionDeps(analysis.signatureTypes(), analysis.implementationTypes()),
+                                analysis.signatureTypes(),
+                                analysis.implementationTypes(),
+                                analysis.abiFingerprint(),
+                                analysis.abiCanonical(),
                                 analysis.annotationTypes(),
                                 analysis.moduleName());
                         results.put(className, sfa);

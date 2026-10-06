@@ -79,6 +79,7 @@ import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
+import org.apache.maven.plugin.compiler.incremental.BytecodeAnalyzer;
 
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
@@ -696,13 +697,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *       change to a class (API or implementation) cascades to all its consumers.
      *       Full JPMS support including {@code module-info.java} and
      *       {@code module-info-patch.maven} tracking.
-     *       <p>Requires JDK 24+ at runtime for bytecode analysis via {@code java.lang.classfile}.
-     *       On older JDKs, a warning is logged and the {@code timestamp} strategy is used
-     *       as a fallback.</p>
      *       <p>Note: the graph strategy has its own change detection (content hashing) and does
      *       not use {@code staleMillis}, {@code incrementalExcludes}, or the
      *       {@link #incrementalCompilation} aspects. Setting {@link #useIncrementalCompilation}
      *       to {@code false} disables this strategy and forces a full rebuild.</p></li>
+     *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks class-level dependencies
+     *       and public API surface (ABI) fingerprints via bytecode analysis. When a source file
+     *       changes, only files whose ABI actually changed cascade to their consumers; body-only
+     *       changes recompile only the changed file. Accepted as an alias for {@code graph}.</li>
      * </ul>
      *
      * @since 4.0.0-beta-7
@@ -1427,13 +1429,10 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
         var executor = createExecutor(null);
-        if (!"timestamp".equalsIgnoreCase(incrementalStrategy) && !"graph".equalsIgnoreCase(incrementalStrategy)) {
-            throw new MojoException(
-                    "Unknown incrementalStrategy: '" + incrementalStrategy + "'. Valid values are: timestamp, graph");
-        }
-        if ("graph".equalsIgnoreCase(incrementalStrategy) && !Boolean.FALSE.equals(useIncrementalCompilation)) {
-            if (Runtime.version().feature() < 24) {
-                logger.warn("Graph incremental strategy requires JDK 24 or later "
+        if (("graph".equalsIgnoreCase(incrementalStrategy) || "abi".equalsIgnoreCase(incrementalStrategy))
+                && !Boolean.FALSE.equals(useIncrementalCompilation)) {
+            if (!BytecodeAnalyzer.isAvailable()) {
+                logger.warn("Graph/ABI incremental strategy requires JDK 24 or later "
                         + "(running JDK " + Runtime.version().feature() + "). "
                         + "Falling back to timestamp strategy.");
             } else {
