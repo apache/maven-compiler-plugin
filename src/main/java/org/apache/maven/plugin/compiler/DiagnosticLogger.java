@@ -114,7 +114,19 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      */
     @Override
     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
-        String message = diagnostic.getMessage(locale);
+        String message;
+        try {
+            message = diagnostic.getMessage(locale);
+        } catch (Throwable e) {
+            /*
+             * Some JDK versions may fail while formatting a diagnostic if a referenced class has an
+             * annotation type that is not on the classpath (for example, a CLASS-retained annotation
+             * on a deprecated API). The compiler can still emit a useful fallback representation.
+             */
+            logger.debug("Cannot format compiler diagnostic; falling back to its string representation.");
+            logger.debug(e);
+            message = diagnostic.toString();
+        }
         if (message == null || message.isBlank()) {
             return;
         }
