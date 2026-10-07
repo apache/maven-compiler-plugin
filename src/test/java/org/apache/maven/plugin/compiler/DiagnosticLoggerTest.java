@@ -21,6 +21,7 @@ package org.apache.maven.plugin.compiler;
 import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.apache.maven.api.plugin.Log;
@@ -28,8 +29,11 @@ import org.apache.maven.impl.DefaultMessageBuilderFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +43,7 @@ class DiagnosticLoggerTest {
         var logger = mock(Log.class);
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
-        when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new LinkageError("missing type"));
+        when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
         when(diagnostic.toString()).thenReturn("deprecated API used");
         when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
         when(diagnostic.getSource()).thenReturn(null);
@@ -51,5 +55,54 @@ class DiagnosticLoggerTest {
         listener.report(diagnostic);
 
         verify(logger).warn((String) argThat(message -> ((String) message).contains("deprecated API used")));
+    }
+
+    @Test
+    void fallsBackToKindAndCodeWhenDiagnosticStringCannotBeFormatted() {
+        var logger = mock(Log.class);
+        @SuppressWarnings("unchecked")
+        Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
+        when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
+        when(diagnostic.toString()).thenThrow(new RuntimeException("missing type"));
+        when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
+        when(diagnostic.getSource()).thenReturn(null);
+        when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
+        when(diagnostic.getColumnNumber()).thenReturn(Diagnostic.NOPOS);
+        when(diagnostic.getCode()).thenReturn("compiler.warn.has.been.deprecated");
+
+        var listener = new DiagnosticLogger(logger, new DefaultMessageBuilderFactory(), null, null);
+        listener.report(diagnostic);
+
+        verify(logger).warn((String)
+                argThat(message -> ((String) message).contains("WARNING: compiler.warn.has.been.deprecated")));
+    }
+
+    @Test
+    void logsFormattingFailureOnlyOnceForEachDiagnosticCode() {
+        var logger = mock(Log.class);
+        @SuppressWarnings("unchecked")
+        Diagnostic<JavaFileObject> first = mock(Diagnostic.class);
+        @SuppressWarnings("unchecked")
+        Diagnostic<JavaFileObject> second = mock(Diagnostic.class);
+        var failure = new RuntimeException("missing type");
+        for (Diagnostic<JavaFileObject> diagnostic : List.of(first, second)) {
+            when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(failure);
+            when(diagnostic.toString()).thenReturn("deprecated API used");
+            when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
+            when(diagnostic.getSource()).thenReturn(null);
+            when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
+            when(diagnostic.getColumnNumber()).thenReturn(Diagnostic.NOPOS);
+            when(diagnostic.getCode()).thenReturn("compiler.warn.has.been.deprecated");
+        }
+
+        var listener = new DiagnosticLogger(logger, new DefaultMessageBuilderFactory(), null, null);
+        listener.report(first);
+        listener.report(second);
+
+        verify(logger, times(1))
+                .debug(
+                        eq("Cannot format compiler diagnostic; falling back to its string representation."),
+                        same(failure));
+        verify(logger, times(2)).warn((String) argThat(message -> ((String) message).contains("deprecated API used")));
     }
 }

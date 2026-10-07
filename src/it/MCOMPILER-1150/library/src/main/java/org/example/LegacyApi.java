@@ -21,6 +21,6 @@ package org.example;
 import lombok.NonNull;
 
 public class LegacyApi {
-    @Deprecated
+    @Deprecated // Invoking this constructor triggers the diagnostic that exposes the missing annotation type.
     public LegacyApi(@NonNull String value) {}
 }
