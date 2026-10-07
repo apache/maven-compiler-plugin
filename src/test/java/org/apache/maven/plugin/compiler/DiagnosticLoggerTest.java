@@ -78,6 +78,26 @@ class DiagnosticLoggerTest {
     }
 
     @Test
+    void fallsBackToKindWhenDiagnosticCodeIsNull() {
+        var logger = mock(Log.class);
+        @SuppressWarnings("unchecked")
+        Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
+        when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
+        when(diagnostic.toString()).thenThrow(new RuntimeException("missing type"));
+        when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
+        when(diagnostic.getSource()).thenReturn(null);
+        when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
+        when(diagnostic.getColumnNumber()).thenReturn(Diagnostic.NOPOS);
+        when(diagnostic.getCode()).thenReturn(null);
+
+        var listener = new DiagnosticLogger(logger, new DefaultMessageBuilderFactory(), null, null);
+        listener.report(diagnostic);
+
+        verify(logger).warn((String) argThat(message -> ((String) message).contains("WARNING")));
+        verify(logger).warn((String) argThat(message -> !((String) message).contains("WARNING: null")));
+    }
+
+    @Test
     void logsFormattingFailureOnlyOnceForEachDiagnosticCode() {
         var logger = mock(Log.class);
         @SuppressWarnings("unchecked")

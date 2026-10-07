@@ -135,7 +135,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
             try {
                 message = diagnostic.toString();
             } catch (RuntimeException e2) {
-                message = diagnostic.getKind() + ": " + code;
+                message = diagnostic.getKind() + (code != null ? ": " + code : "");
             }
         }
         if (message == null || message.isBlank()) {
