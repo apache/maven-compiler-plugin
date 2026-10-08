@@ -28,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -150,7 +149,7 @@ public class ProcessorClassification {
                 int comma = line.indexOf(',');
                 if (comma > 0 && comma < line.length() - 1) {
                     String name = line.substring(0, comma).strip();
-                    String typeStr = line.substring(comma + 1).strip().toUpperCase(Locale.ROOT);
+                    String typeStr = line.substring(comma + 1).strip().toUpperCase(java.util.Locale.ROOT);
                     try {
                         ProcessorType type = ProcessorType.valueOf(typeStr);
                         // Don't overwrite — first classification wins (maven/compiler before gradle)
