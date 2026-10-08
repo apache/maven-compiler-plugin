@@ -27,13 +27,10 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathScope;
 import org.apache.maven.api.Project;
 import org.apache.maven.api.Session;
@@ -205,54 +202,6 @@ public class CompilerMojoTestCase {
         clearInvocations(log);
         compileMojo.execute();
         verify(log).info("Nothing to compile - all classes are up to date.");
-    }
-
-    /**
-     * Tests that annotation processing runs again when {@code proc} is {@code only}, even if the sources are unchanged.
-     */
-    @Test
-    @Basedir("${basedir}/target/test-classes/unit/compiler-proc-only-test")
-    public void testCompilerProcOnlyRunsWhenSourcesAreUnchanged(
-            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
-        Log log = mock(Log.class);
-        compileMojo.logger = log;
-        compileMojo.execute();
-
-        clearInvocations(log);
-        compileMojo.execute();
-
-        verify(log, never()).info("Nothing to compile - all classes are up to date.");
-        assertCompilerStubOutputFileExists(compileMojo);
-    }
-
-    /**
-     * Tests that full annotation processing runs again when sources are unchanged.
-     */
-    @Test
-    @Basedir("${basedir}/target/test-classes/unit/compiler-proc-full-test")
-    public void testCompilerProcFullRunsWhenSourcesAreUnchanged(
-            @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
-        Log log = mock(Log.class);
-        compileMojo.logger = log;
-        compileMojo.execute();
-
-        clearInvocations(log);
-        compileMojo.execute();
-
-        verify(log, never()).info("Nothing to compile - all classes are up to date.");
-        assertCompilerStubOutputFileExists(compileMojo);
-    }
-
-    /**
-     * Tests that an explicitly configured incremental compilation value takes precedence over annotation processing.
-     */
-    @Test
-    public void testCompilerProcOnlyRespectsExplicitIncrementalCompilation() {
-        CompilerMojo compileMojo = new CompilerMojo();
-        compileMojo.incrementalCompilation = "classes";
-        EnumSet<IncrementalBuild.Aspect> aspects = EnumSet.of(IncrementalBuild.Aspect.CLASSES);
-        compileMojo.amendincrementalCompilation(aspects, Set.of(JavaPathType.PROCESSOR_CLASSES));
-        assertEquals(EnumSet.of(IncrementalBuild.Aspect.CLASSES), aspects);
     }
 
     /**

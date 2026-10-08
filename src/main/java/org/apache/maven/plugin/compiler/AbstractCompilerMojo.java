@@ -79,7 +79,6 @@ import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
-import org.apache.maven.plugin.compiler.incremental.BytecodeAnalyzer;
 
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
@@ -691,20 +690,19 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *       times and triggers full rebuilds when files are added/removed or dependencies change.
      *       Respects {@link #incrementalCompilation} aspects, {@code staleMillis}, and
      *       {@code incrementalExcludes}.</li>
-     *   <li>{@code graph} — dependency-graph-based strategy. Tracks class-level dependencies
-     *       by analysing bytecode after each compilation pass. When a source file changes, only
-     *       the source files that transitively depend on any of its classes are recompiled. Any
-     *       change to a class (API or implementation) cascades to all its consumers.
-     *       Full JPMS support including {@code module-info.java} and
-     *       {@code module-info-patch.maven} tracking.
-     *       <p>Note: the graph strategy has its own change detection (content hashing) and does
-     *       not use {@code staleMillis}, {@code incrementalExcludes}, or the
-     *       {@link #incrementalCompilation} aspects. Setting {@link #useIncrementalCompilation}
-     *       to {@code false} disables this strategy and forces a full rebuild.</p></li>
-     *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks class-level dependencies
-     *       and public API surface (ABI) fingerprints via bytecode analysis. When a source file
-     *       changes, only files whose ABI actually changed cascade to their consumers; body-only
-     *       changes recompile only the changed file. Accepted as an alias for {@code graph}.</li>
+     *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks the public API surface
+     *       (method signatures, field types, constant values, sealed permits, enum constant
+     *       order, generic type parameters) of each compiled type and only recompiles consumers
+     *       whose dependency's ABI actually changed. Method body changes do not cascade.
+     *       Cross-module ABI changes are detected via manifest files written in the output
+     *       directory. Full JPMS support including {@code module-info.java} fingerprinting
+     *       and {@code module-info-patch.maven} tracking.
+     *       <p>Note: the ABI strategy has its own change detection and does not use
+     *       {@code staleMillis}, {@code incrementalExcludes}, or the
+     *       {@link #incrementalCompilation} aspects. Forked compilation ({@code fork=true})
+     *       falls back to full compilation since the ABI analyzer requires in-process javac.
+     *       Setting {@link #useIncrementalCompilation} to {@code false} disables this
+     *       strategy and forces a full rebuild.</p></li>
      * </ul>
      *
      * @since 4.0.0-beta-7
@@ -738,26 +736,15 @@ public abstract class AbstractCompilerMojo implements Mojo {
     }
 
     /**
-     * Amends the default configuration of incremental compilation for annotation processing.
-     * When processing is explicitly requested, incremental compilation is disabled so that processors always run.
-     * On Java versions before 23, an absent {@code proc} value only implies the compiler's default processing mode;
-     * it does not prove that a processor is present, so the traditional rebuild-on-add/change behavior is retained.
-     * This method does not amend an explicitly configured {@link #incrementalCompilation} value.
+     * Amends the configuration of incremental compilation for the presence of annotation processors.
      *
      * @param aspects the configuration to amend if an annotation processor is found
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
     final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
         if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
-            if (isAbsent(proc) && !isVersionEqualOrNewer(RELEASE_23)) {
-                // Case when `hasAnnotationProcessor(…)` cannot decide for sure.
-                // Apply an intermediate strategy between "no processor" and "processor for sure".
-                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
-                aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
-            } else {
-                aspects.clear();
-                aspects.add(IncrementalBuild.Aspect.NONE);
-            }
+            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
+            aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
         }
     }
 
@@ -1428,15 +1415,14 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
-        var executor = createExecutor(null);
-        if (("graph".equalsIgnoreCase(incrementalStrategy) || "abi".equalsIgnoreCase(incrementalStrategy))
-                && !Boolean.FALSE.equals(useIncrementalCompilation)) {
-            if (!BytecodeAnalyzer.isAvailable()) {
-                logger.warn("Graph/ABI incremental strategy requires JDK 24 or later "
+        final ToolExecutor executor = createExecutor(null);
+        if ("abi".equalsIgnoreCase(incrementalStrategy) && !Boolean.FALSE.equals(useIncrementalCompilation)) {
+            if (!org.apache.maven.plugin.compiler.incremental.BytecodeAnalyzer.isAvailable()) {
+                logger.warn("ABI incremental strategy requires JDK 24 or later "
                         + "(running JDK " + Runtime.version().feature() + "). "
                         + "Falling back to timestamp strategy.");
             } else {
-                executor.compileWithGraphIncremental(compiler, configuration, this);
+                executor.compileWithAbiIncremental(compiler, configuration, this);
                 return;
             }
         }
