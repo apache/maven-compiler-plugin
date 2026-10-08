@@ -81,6 +81,7 @@ public class GraphIncrementalBuild {
     private Set<Path> reactorModulePaths;
     private boolean abiTracking;
     private List<Path> processorPath;
+    private ProcessorClassification processorClassification;
     private IncrementalState previousState;
     private IncrementalState state;
 
@@ -142,10 +143,15 @@ public class GraphIncrementalBuild {
     }
 
     /**
-     * Sets the annotation processor classpath.
+     * Sets the annotation processor classpath for processor classification.
+     * Entries are scanned for {@code META-INF/maven/compiler/incremental.annotation.processors}
+     * and {@code META-INF/gradle/incremental.annotation.processors} to determine
+     * whether each processor is {@link ProcessorType#ISOLATING},
+     * {@link ProcessorType#AGGREGATING}, or {@link ProcessorType#UNKNOWN}.
      */
     public void setProcessorPath(List<Path> processorPath) {
         this.processorPath = processorPath;
+        this.processorClassification = new ProcessorClassification(processorPath);
     }
 
     /**
@@ -696,12 +702,17 @@ public class GraphIncrementalBuild {
     // --- Annotation processor handling ---
 
     /**
-     * Determines additional files to compile based on annotation processor
-     * presence. When processors are on the path and compiled sources contain
-     * annotations, all source files are conservatively recompiled.
+     * Determines additional files to compile based on annotation processor classification.
+     * Called during incremental builds when annotated sources are in the compile set.
+     *
+     * <ul>
+     *   <li>ISOLATING: no extra files needed (default, current behavior works)</li>
+     *   <li>AGGREGATING: all sources carrying the processor's trigger annotations</li>
+     *   <li>UNKNOWN: all sources (conservative full rebuild)</li>
+     * </ul>
      */
     private Set<Path> computeProcessorCascade() {
-        if (processorPath == null || processorPath.isEmpty()) {
+        if (processorClassification == null) {
             return Set.of();
         }
 
@@ -717,14 +728,53 @@ public class GraphIncrementalBuild {
             return Set.of();
         }
 
-        // Conservative: recompile all source files when processors are present
-        var additionalFiles = new TreeSet<Path>();
-        for (Path sf : allSourceFiles) {
-            if (!allCompiled.contains(sf.toString())) {
-                additionalFiles.add(sf);
-                allCompiled.add(sf.toString());
+        // Check if any compiled annotation triggers an AGGREGATING or UNKNOWN processor
+        boolean hasUnknown = false;
+        boolean hasAggregating = false;
+
+        // Use worst-case classification from the processor path
+        var allAnnotations = state.getAllAnnotationTypes();
+        if (allAnnotations.isEmpty()) {
+            return Set.of();
+        }
+
+        // Check if any processors on the path are UNKNOWN or AGGREGATING
+        var classificationMap = processorClassification.getClassifications();
+        for (var entry : classificationMap.entrySet()) {
+            if (entry.getValue() == ProcessorType.UNKNOWN) {
+                hasUnknown = true;
+            } else if (entry.getValue() == ProcessorType.AGGREGATING) {
+                hasAggregating = true;
             }
         }
+
+        // If no processors are classified at all but processor path is set,
+        // we can't know what annotations they handle — conservative approach
+        if (classificationMap.isEmpty() && processorPath != null && !processorPath.isEmpty()) {
+            hasUnknown = true;
+        }
+
+        var additionalFiles = new TreeSet<Path>();
+
+        if (hasUnknown) {
+            // UNKNOWN: recompile all source files
+            for (Path sf : allSourceFiles) {
+                if (!allCompiled.contains(sf.toString())) {
+                    additionalFiles.add(sf);
+                    allCompiled.add(sf.toString());
+                }
+            }
+        } else if (hasAggregating) {
+            // AGGREGATING: recompile all annotated sources
+            Set<String> annotatedFiles = state.getSourceFilesWithAnnotations(allAnnotations);
+            for (String sf : annotatedFiles) {
+                if (!allCompiled.contains(sf)) {
+                    additionalFiles.add(Path.of(sf));
+                    allCompiled.add(sf);
+                }
+            }
+        }
+        // ISOLATING: no extra files needed
 
         return additionalFiles;
     }
