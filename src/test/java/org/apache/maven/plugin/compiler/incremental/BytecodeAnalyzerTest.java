@@ -26,6 +26,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -99,6 +100,23 @@ class BytecodeAnalyzerTest {
     }
 
     @Test
+    void parseParamsMultiple() {
+        assertEquals("java.lang.String, int", BytecodeAnalyzer.parseParams("(Ljava/lang/String;I)V"));
+    }
+
+    @Test
+    void parseParamsEmpty() {
+        assertEquals("", BytecodeAnalyzer.parseParams("()V"));
+    }
+
+    @Test
+    void parseReturnType() {
+        assertEquals("java.lang.String", BytecodeAnalyzer.parseReturn("(I)Ljava/lang/String;"));
+        assertEquals("void", BytecodeAnalyzer.parseReturn("()V"));
+        assertEquals("int", BytecodeAnalyzer.parseReturn("()I"));
+    }
+
+    @Test
     void analyzePathProducesCorrectClassName() throws Exception {
         CompilerTestHelper.writeSource(
                 sourceDir,
@@ -112,6 +130,8 @@ class BytecodeAnalyzerTest {
 
         var analysis = BytecodeAnalyzer.analyze(classFile);
         assertEquals("test.Hello", analysis.className());
+        assertNotNull(analysis.abiFingerprint());
+        assertNotNull(analysis.abiCanonical());
     }
 
     @Test
@@ -125,8 +145,69 @@ class BytecodeAnalyzerTest {
         var fromBytes = BytecodeAnalyzer.analyze(Files.readAllBytes(classFile));
 
         assertEquals(fromPath.className(), fromBytes.className());
+        assertEquals(fromPath.abiFingerprint(), fromBytes.abiFingerprint());
+        assertEquals(fromPath.abiCanonical(), fromBytes.abiCanonical());
         assertEquals(fromPath.signatureTypes(), fromBytes.signatureTypes());
         assertEquals(fromPath.implementationTypes(), fromBytes.implementationTypes());
+    }
+
+    @Test
+    void genericTypeChangeAffectsFingerprint() throws Exception {
+        // Compile with List<String>
+        CompilerTestHelper.writeSource(sourceDir, "test", "Generics", """
+                package test;
+                public class Generics {
+                    public java.util.List<String> getNames() { return null; }
+                    public java.util.Map<String, Integer> getMap() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis1 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Generics.class"));
+
+        // Recompile with List<Integer> — erased descriptor is identical,
+        // but generic signature differs
+        Path srcFile = sourceDir.resolve("test/Generics.java");
+        Files.writeString(srcFile, """
+                package test;
+                public class Generics {
+                    public java.util.List<Integer> getNames() { return null; }
+                    public java.util.Map<String, Integer> getMap() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis2 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Generics.class"));
+
+        assertNotEquals(
+                analysis1.abiFingerprint(),
+                analysis2.abiFingerprint(),
+                "Changing List<String> to List<Integer> should change bytecode ABI fingerprint");
+        assertTrue(analysis2.abiCanonical().contains("<sig:"), "Canonical form should include generic signatures");
+    }
+
+    @Test
+    void classLevelGenericSignatureAffectsFingerprint() throws Exception {
+        CompilerTestHelper.writeSource(sourceDir, "test", "Box", """
+                package test;
+                public class Box<T> {
+                    public T get() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis1 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Box.class"));
+
+        Files.writeString(sourceDir.resolve("test/Box.java"), """
+                package test;
+                public class Box<T extends Comparable<T>> {
+                    public T get() { return null; }
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+        var analysis2 = BytecodeAnalyzer.analyze(outputDir.resolve("test/Box.class"));
+
+        assertNotEquals(
+                analysis1.abiFingerprint(),
+                analysis2.abiFingerprint(),
+                "Changing type parameter bounds should change bytecode ABI fingerprint");
     }
 
     @Test
@@ -291,10 +372,25 @@ class BytecodeAnalyzerTest {
         var r2 = BytecodeAnalyzer.analyze(bytes);
 
         assertEquals(r1.className(), r2.className(), "className");
+        assertEquals(r1.abiCanonical(), r2.abiCanonical(), "abiCanonical");
+        assertEquals(r1.abiFingerprint(), r2.abiFingerprint(), "abiFingerprint");
         assertEquals(r1.signatureTypes(), r2.signatureTypes(), "signatureTypes");
         assertEquals(r1.implementationTypes(), r2.implementationTypes(), "implementationTypes");
         // Subject.getUser() returns UserType → UserType is a non-JDK signature dependency
         assertTrue(r1.signatureTypes().contains("test.UserType"), "test.UserType should be a signature type ref");
+    }
+
+    @Test
+    void sourceFileNameAttributeExtracted() throws Exception {
+        CompilerTestHelper.writeSource(
+                sourceDir,
+                "test",
+                "Hello",
+                "package test; public class Hello { public String greet() { return \"hi\"; } }");
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        var analysis = BytecodeAnalyzer.analyze(outputDir.resolve("test/Hello.class"));
+        assertEquals("Hello.java", analysis.sourceFileName(), "sourceFileName should match the source file name");
     }
 
     @Test
@@ -403,5 +499,23 @@ class BytecodeAnalyzerTest {
                 analysis.className().startsWith(BytecodeAnalyzer.MODULE_PREFIX),
                 "className should start with MODULE_PREFIX; got: " + analysis.className());
         assertEquals("test.mod", analysis.moduleName(), "moduleName should be test.mod");
+        assertNotNull(analysis.abiFingerprint(), "abiFingerprint should not be null");
+        assertFalse(analysis.abiFingerprint().isEmpty(), "abiFingerprint should not be empty");
+        assertEquals("module-info.java", analysis.sourceFileName());
+
+        // ABI fingerprint should change when the module declaration changes
+        java.nio.file.Files.writeString(modInfo, """
+                module test.mod {
+                    exports test;
+                    requires java.logging;
+                }
+                """);
+        CompilerTestHelper.compileAndAnalyze(sourceDir, outputDir);
+
+        var analysis2 = BytecodeAnalyzer.analyze(modClass);
+        assertNotEquals(
+                analysis.abiFingerprint(),
+                analysis2.abiFingerprint(),
+                "Adding a requires directive should change the module ABI fingerprint");
     }
 }

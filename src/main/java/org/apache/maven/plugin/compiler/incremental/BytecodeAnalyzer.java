@@ -20,21 +20,26 @@ package org.apache.maven.plugin.compiler.incremental;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Set;
 
 /**
- * Facade for analyzing compiled {@code .class} files to extract type references.
+ * Facade for analyzing compiled {@code .class} files to extract type references
+ * and compute bytecode-level ABI fingerprints.
  *
  * <p>This class is part of a multi-release JAR. The root implementation (loaded on
- * JDK &lt; 24) always throws {@link UnsupportedOperationException} from
- * {@link #analyze} — bytecode analysis is not supported on JDK 17–23.
- * The {@code META-INF/versions/24/} override (loaded automatically by the JVM
- * on JDK 24+) provides the real implementation backed by the standard
- * {@code java.lang.classfile} API.
+ * JDK &lt; 24) always returns {@code false} from {@link #isAvailable()} — ABI
+ * fingerprinting is not supported on JDK 17–23. The {@code META-INF/versions/24/}
+ * override (loaded automatically by the JVM on JDK 24+) provides the real
+ * implementation backed by the standard {@code java.lang.classfile} API.
  *
- * <p>The {@link ClassAnalysis} record carries the class name and two classified
- * sets of type references: {@link ClassAnalysis#signatureTypes()} (API surface)
- * and {@link ClassAnalysis#implementationTypes()} (method body instructions only).
+ * <p>Callers must check {@link #isAvailable()} before calling {@link #analyze}.
+ * When unavailable, the ABI incremental strategy falls back to the timestamp strategy.
+ *
+ * <p>The {@link ClassAnalysis} record carries the class name, ABI fingerprint,
+ * human-readable canonical form, and two classified sets of type references:
+ * {@link ClassAnalysis#signatureTypes()} (API surface) and
+ * {@link ClassAnalysis#implementationTypes()} (method body instructions only).
  */
 public final class BytecodeAnalyzer {
 
@@ -48,6 +53,8 @@ public final class BytecodeAnalyzer {
      * Analysis result for a single {@code .class} file.
      *
      * @param className           fully-qualified class name (dot-separated)
+     * @param abiFingerprint      16-character hex SHA-256 prefix of the ABI canonical form
+     * @param abiCanonical        human-readable representation of the public API surface
      * @param signatureTypes      types appearing in public API surface (method/field descriptors,
      *                            supertype, interfaces, exception types, annotation types)
      * @param implementationTypes types appearing only in method body bytecode instructions
@@ -61,6 +68,8 @@ public final class BytecodeAnalyzer {
      */
     public record ClassAnalysis(
             String className,
+            String abiFingerprint,
+            String abiCanonical,
             Set<String> signatureTypes,
             Set<String> implementationTypes,
             Set<String> annotationTypes,
@@ -71,7 +80,59 @@ public final class BytecodeAnalyzer {
     private BytecodeAnalyzer() {}
 
     /**
+     * Returns {@code true} if ABI fingerprinting is available on the running JVM.
+     *
+     * <p>This method returns {@code false} in the root JAR (JDK &lt; 24). The
+     * {@code META-INF/versions/24/} override returns {@code true}.
+     *
+     * <p>When this returns {@code false}, callers should fall back to the timestamp
+     * incremental strategy and log a warning to the user.
+     *
+     * @return {@code true} if {@link #analyze} can be called safely
+     */
+    public static boolean isAvailable() {
+        return false;
+    }
+
+    /**
+     * Extracts all class-level dependency references from the class file at {@code classFile}.
+     *
+     * <p>Returns the set of all types referenced in the classfile's constant pool (all
+     * {@code ClassEntry} entries), without distinguishing public API (signature) from
+     * method-body (implementation) references. JDK built-in types ({@code java.*},
+     * {@code javax.*}, etc.) are excluded.
+     *
+     * <p>This is the lightweight analysis used by the {@code graph} incremental strategy.
+     * Only call this method after confirming {@link #isAvailable()} returns {@code true}.
+     *
+     * @param classFile path to the {@code .class} file
+     * @return set of fully qualified type names referenced in the classfile
+     * @throws IOException if reading the file fails
+     * @throws UnsupportedOperationException if called on JDK &lt; 24
+     */
+    public static Set<String> analyzeGraph(Path classFile) throws IOException {
+        throw new UnsupportedOperationException("Graph incremental strategy requires JDK 24 or later (running JDK "
+                + Runtime.version().feature()
+                + "). Check BytecodeAnalyzer.isAvailable() before calling analyzeGraph().");
+    }
+
+    /**
+     * Extracts all class-level dependency references from the given class file bytes.
+     *
+     * @param classBytes raw {@code .class} file content
+     * @return set of fully qualified type names referenced in the classfile
+     * @throws UnsupportedOperationException if called on JDK &lt; 24
+     */
+    public static Set<String> analyzeGraph(byte[] classBytes) {
+        throw new UnsupportedOperationException("Graph incremental strategy requires JDK 24 or later (running JDK "
+                + Runtime.version().feature()
+                + "). Check BytecodeAnalyzer.isAvailable() before calling analyzeGraph().");
+    }
+
+    /**
      * Analyzes the class file at {@code classFile}.
+     *
+     * <p>Only call this method after confirming {@link #isAvailable()} returns {@code true}.
      *
      * @param classFile path to the {@code .class} file
      * @return analysis result
@@ -79,22 +140,24 @@ public final class BytecodeAnalyzer {
      * @throws UnsupportedOperationException if called on JDK &lt; 24
      */
     public static ClassAnalysis analyze(Path classFile) throws IOException {
-        throw new UnsupportedOperationException("Bytecode analysis requires JDK 24 or later (running JDK "
+        throw new UnsupportedOperationException("ABI fingerprinting requires JDK 24 or later (running JDK "
                 + Runtime.version().feature()
-                + ").");
+                + "). Check BytecodeAnalyzer.isAvailable() before calling analyze().");
     }
 
     /**
      * Analyzes the given class file bytes.
+     *
+     * <p>Only call this method after confirming {@link #isAvailable()} returns {@code true}.
      *
      * @param classBytes raw {@code .class} file content
      * @return analysis result
      * @throws UnsupportedOperationException if called on JDK &lt; 24
      */
     public static ClassAnalysis analyze(byte[] classBytes) {
-        throw new UnsupportedOperationException("Bytecode analysis requires JDK 24 or later (running JDK "
+        throw new UnsupportedOperationException("ABI fingerprinting requires JDK 24 or later (running JDK "
                 + Runtime.version().feature()
-                + ").");
+                + "). Check BytecodeAnalyzer.isAvailable() before calling analyze().");
     }
 
     // --- package-private utilities shared by the analyzer implementations and tests ---
@@ -114,12 +177,42 @@ public final class BytecodeAnalyzer {
             case 'F' -> "float";
             case 'D' -> "double";
             case 'L' -> {
+                // Precondition: JVM-spec-compliant bytecode always has a closing ';'.
+                // A malformed descriptor (e.g. "Lfoo" without ';') would indicate corrupt bytecode
+                // that the JVM itself would reject at load time.
                 int semi = desc.indexOf(';');
                 yield semi > 0 ? toJavaName(desc.substring(1, semi)) : desc;
             }
             case '[' -> descriptorToReadable(desc.substring(1)) + "[]";
             default -> desc;
         };
+    }
+
+    static String parseParams(String methodDesc) {
+        int close = methodDesc.indexOf(')');
+        String params = methodDesc.substring(1, close);
+        var result = new ArrayList<String>();
+        int i = 0;
+        while (i < params.length()) {
+            int start = i;
+            while (i < params.length() && params.charAt(i) == '[') {
+                i++;
+            }
+            if (i < params.length()) {
+                if (params.charAt(i) == 'L') {
+                    int semi = params.indexOf(';', i);
+                    i = semi >= 0 ? semi + 1 : params.length(); // guard: malformed descriptor
+                } else {
+                    i++;
+                }
+            }
+            result.add(descriptorToReadable(params.substring(start, i)));
+        }
+        return String.join(", ", result);
+    }
+
+    static String parseReturn(String methodDesc) {
+        return descriptorToReadable(methodDesc.substring(methodDesc.indexOf(')') + 1));
     }
 
     static String toJavaName(String internalName) {

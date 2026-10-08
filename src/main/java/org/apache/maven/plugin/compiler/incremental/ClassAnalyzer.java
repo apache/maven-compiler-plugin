@@ -18,6 +18,14 @@
  */
 package org.apache.maven.plugin.compiler.incremental;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Abstract base for analyzing compiled {@code .class} files.
  *
@@ -46,6 +54,188 @@ public abstract class ClassAnalyzer {
     protected static final int ACC_SYNTHETIC = 0x1000;
     protected static final int ACC_ENUM = 0x4000;
 
+    protected static final Set<String> EXCLUDED_SUPERTYPES =
+            Set.of("java.lang.Object", "java.lang.Enum", "java.lang.Record");
+
+    /**
+     * A non-private, non-synthetic field extracted from a class file.
+     *
+     * @param access        JVM access flags bitmask
+     * @param name          field name
+     * @param descriptor    JVM type descriptor
+     * @param constantValue compile-time constant value, or {@code null}
+     * @param signature     generic signature from the Signature attribute, or {@code null}
+     */
+    protected record FieldInfo(int access, String name, String descriptor, Object constantValue, String signature)
+            implements Comparable<FieldInfo> {
+        @Override
+        public int compareTo(FieldInfo o) {
+            return name.compareTo(o.name);
+        }
+    }
+
+    /**
+     * A non-private, non-synthetic method extracted from a class file.
+     *
+     * @param access     JVM access flags bitmask
+     * @param name       method name
+     * @param descriptor JVM method descriptor
+     * @param signature  generic signature from the Signature attribute, or {@code null}
+     */
+    protected record MethodInfo(int access, String name, String descriptor, String signature)
+            implements Comparable<MethodInfo> {
+        @Override
+        public int compareTo(MethodInfo o) {
+            int c = name.compareTo(o.name);
+            return c != 0 ? c : descriptor.compareTo(o.descriptor);
+        }
+    }
+
+    /**
+     * Analyzes the given class file bytes.
+     *
+     * @param classBytes raw {@code .class} file content
+     * @return analysis result containing class name, ABI fingerprint, canonical
+     *         form, and referenced type names
+     */
+    public abstract BytecodeAnalyzer.ClassAnalysis analyze(byte[] classBytes);
+
+    /**
+     * Extracts all class-level dependency references from the given class file bytes.
+     *
+     * <p>Returns the set of all types referenced in the classfile's constant pool,
+     * without distinguishing public API from method-body references. Array types
+     * and JDK built-in types are excluded.
+     *
+     * <p>The default implementation delegates to {@link #analyze(byte[])} and
+     * computes the union of {@code signatureTypes} and {@code implementationTypes}.
+     * Subclasses may override for a more efficient constant-pool-only scan.
+     *
+     * @param classBytes raw {@code .class} file content
+     * @return set of fully qualified type names referenced in the classfile
+     */
+    public Set<String> analyzeGraph(byte[] classBytes) {
+        var analysis = analyze(classBytes);
+        var deps = new HashSet<>(analysis.signatureTypes());
+        deps.addAll(analysis.implementationTypes());
+        return Set.copyOf(deps);
+    }
+
+    /**
+     * Analyzes the class file at the given path.
+     *
+     * @param classFile path to the {@code .class} file
+     * @return analysis result
+     * @throws IOException if reading the file fails
+     */
+    public BytecodeAnalyzer.ClassAnalysis analyze(Path classFile) throws IOException {
+        return analyze(Files.readAllBytes(classFile));
+    }
+
+    /**
+     * Builds the ABI canonical form from extracted class metadata.
+     * The format is deterministic and identical across both analyzer
+     * implementations, ensuring consistent fingerprints.
+     *
+     * @param classAccess    JVM access flags for the class
+     * @param className      fully-qualified class name (dot-separated)
+     * @param classSignature generic signature of the class, or {@code null}
+     * @param superName      fully-qualified superclass name, or {@code null}
+     * @param interfaces     fully-qualified interface names (dot-separated)
+     * @param fields         non-private, non-synthetic fields (will be sorted)
+     * @param methods        non-private, non-synthetic methods (will be sorted)
+     * @return the canonical ABI string
+     */
+    protected static String buildCanonicalForm(
+            int classAccess,
+            String className,
+            String classSignature,
+            String superName,
+            List<String> interfaces,
+            List<FieldInfo> fields,
+            List<MethodInfo> methods) {
+
+        Collections.sort(fields);
+        Collections.sort(methods);
+
+        var sb = new StringBuilder();
+
+        appendAccessFlags(sb, classAccess);
+        if ((classAccess & ACC_INTERFACE) != 0) {
+            sb.append("interface ");
+        } else if ((classAccess & ACC_ENUM) != 0) {
+            sb.append("enum ");
+        } else {
+            sb.append("class ");
+        }
+        sb.append(className);
+        if (classSignature != null) {
+            sb.append(" <sig: ").append(classSignature).append('>');
+        }
+        sb.append('\n');
+
+        if (superName != null && !EXCLUDED_SUPERTYPES.contains(superName)) {
+            sb.append("  extends ").append(superName).append('\n');
+        }
+
+        for (String iface : interfaces) {
+            sb.append("  implements ").append(iface).append('\n');
+        }
+
+        for (var f : fields) {
+            sb.append("  ");
+            appendAccessFlags(sb, f.access);
+            sb.append(BytecodeAnalyzer.descriptorToReadable(f.descriptor)).append(' ');
+            sb.append(f.name);
+            if (f.constantValue != null) {
+                sb.append(" = ").append(f.constantValue);
+            }
+            if (f.signature != null) {
+                sb.append(" <sig: ").append(f.signature).append('>');
+            }
+            sb.append('\n');
+        }
+
+        for (var m : methods) {
+            sb.append("  ");
+            appendAccessFlags(sb, m.access);
+            sb.append(m.name);
+            sb.append('(').append(BytecodeAnalyzer.parseParams(m.descriptor)).append(')');
+            String ret = BytecodeAnalyzer.parseReturn(m.descriptor);
+            if (!"void".equals(ret)) {
+                sb.append(" -> ").append(ret);
+            }
+            if (m.signature != null) {
+                sb.append(" <sig: ").append(m.signature).append('>');
+            }
+            sb.append('\n');
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Appends the human-readable access flag names (public, protected, abstract,
+     * static, final) to the builder, in the canonical order.
+     */
+    protected static void appendAccessFlags(StringBuilder sb, int access) {
+        if ((access & ACC_PUBLIC) != 0) {
+            sb.append("public ");
+        }
+        if ((access & ACC_PROTECTED) != 0) {
+            sb.append("protected ");
+        }
+        if ((access & ACC_ABSTRACT) != 0) {
+            sb.append("abstract ");
+        }
+        if ((access & ACC_STATIC) != 0) {
+            sb.append("static ");
+        }
+        if ((access & ACC_FINAL) != 0) {
+            sb.append("final ");
+        }
+    }
+
     /**
      * Resolves a JVM internal name (possibly an array descriptor) to a
      * fully-qualified Java name. Returns {@code null} for primitives and
@@ -72,6 +262,10 @@ public abstract class ClassAnalyzer {
         return BytecodeAnalyzer.toJavaName(name);
     }
 
+    /**
+     * Returns {@code true} if the given access flags indicate a private or
+     * synthetic member that should be excluded from the ABI canonical form.
+     */
     protected static boolean isPrivateOrSynthetic(int access) {
         return (access & ACC_PRIVATE) != 0 || (access & ACC_SYNTHETIC) != 0;
     }
