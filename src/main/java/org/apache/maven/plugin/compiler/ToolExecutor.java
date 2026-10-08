@@ -950,6 +950,29 @@ public class ToolExecutor {
             graphBuild.setProcessorPath(processorPaths);
         }
 
+        // Collect classpath entries for cross-module ABI tracking
+        var classpathEntries = new ArrayList<Path>();
+        var reactorModulePaths = new LinkedHashSet<Path>();
+        for (var entry : dependencies.entrySet()) {
+            if (entry.getKey() instanceof JavaPathType type) {
+                var location = type.location();
+                if (location.isPresent() && location.get() == StandardLocation.CLASS_PATH) {
+                    for (Path p : entry.getValue()) {
+                        classpathEntries.add(p);
+                        if (Files.isDirectory(p)) {
+                            reactorModulePaths.add(p);
+                        }
+                    }
+                }
+            }
+        }
+        if (!classpathEntries.isEmpty()) {
+            graphBuild.setClasspathEntries(classpathEntries);
+        }
+        if (!reactorModulePaths.isEmpty()) {
+            graphBuild.setReactorModulePaths(reactorModulePaths);
+        }
+
         // Enable ABI tracking when the abi strategy is selected
         graphBuild.setAbiTracking("abi".equalsIgnoreCase(mojo.incrementalStrategy));
 

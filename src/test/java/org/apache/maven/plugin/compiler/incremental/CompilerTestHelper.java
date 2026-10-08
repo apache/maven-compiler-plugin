@@ -117,7 +117,7 @@ class CompilerTestHelper {
 
     /**
      * Compiles {@code files} into {@code outputDir}, with {@code extraClasspath} entries
-     * added to the classpath.
+     * added to the classpath (used for cross-module tests).
      */
     static void compileFiles(Path outputDir, Set<Path> files, Path... extraClasspath) throws IOException {
         Files.createDirectories(outputDir);

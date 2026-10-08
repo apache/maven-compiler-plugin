@@ -45,7 +45,9 @@ import java.util.TreeSet;
  *       distinguishing signature from implementation dependencies, and without ABI fingerprints.</li>
  *   <li>{@link AbiTypeInfo} — used by the {@code abi} strategy. Extends {@code GraphTypeInfo}
  *       with fine-grained {@code signatureDeps}/{@code implementationDeps} sets and an ABI
- *       fingerprint, enabling more precise cascade decisions.</li>
+ *       fingerprint, enabling more precise cascade decisions (only signature consumers
+ *       cascade transitively) and cross-module incremental detection via
+ *       {@link AbiManifest}.</li>
  * </ul>
  *
  * <p>Serialized as a compact binary format via {@link DataOutputStream} and stored alongside
@@ -134,7 +136,8 @@ public class IncrementalState {
      * Type metadata for the {@code abi} incremental strategy.
      *
      * <p>Extends {@link GraphTypeInfo} with fine-grained dependency sets and an ABI fingerprint,
-     * enabling more precise cascade decisions (only signature consumers cascade transitively).
+     * enabling more precise cascade decisions (only signature consumers cascade transitively)
+     * and cross-module incremental detection via {@link AbiManifest}.
      *
      * @param sourceFile         path to the source file that defines this type
      * @param classDeps          all types referenced in the classfile (union of sig + impl deps)
@@ -362,7 +365,8 @@ public class IncrementalState {
     }
 
     /**
-     * Returns the current ABI fingerprints for all types stored as {@link AbiTypeInfo}.
+     * Returns the current ABI fingerprints for all types stored as {@link AbiTypeInfo},
+     * suitable for writing to an {@link AbiManifest}.
      *
      * <p>Types stored as {@link GraphTypeInfo} (i.e. compiled with the {@code graph} strategy)
      * are not included — they have no ABI fingerprint.

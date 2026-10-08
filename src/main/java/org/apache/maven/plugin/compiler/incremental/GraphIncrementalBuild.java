@@ -77,6 +77,8 @@ public class GraphIncrementalBuild {
     private final Path outputDir;
     private final Path buildDir;
     private final Path stateFile;
+    private List<Path> classpathEntries;
+    private Set<Path> reactorModulePaths;
     private boolean abiTracking;
     private List<Path> processorPath;
     private IncrementalState previousState;
@@ -109,6 +111,23 @@ public class GraphIncrementalBuild {
         String outputDirName = outputDir.getFileName().toString();
         Path mavenStatus = buildDir.resolve("maven-status").resolve("maven-compiler-plugin");
         this.stateFile = mavenStatus.resolve(outputDirName).resolve("incremental-state");
+    }
+
+    /**
+     * Sets classpath entries for cross-module ABI tracking. Directory entries
+     * are checked for {@link AbiManifest} files; JAR entries use bytecode
+     * analysis as fallback.
+     */
+    public void setClasspathEntries(List<Path> entries) {
+        this.classpathEntries = entries;
+    }
+
+    /**
+     * Marks specific classpath entries as reactor modules. These are always
+     * checked for ABI changes (via manifest or bytecode).
+     */
+    public void setReactorModulePaths(Set<Path> paths) {
+        this.reactorModulePaths = paths;
     }
 
     /**
@@ -506,11 +525,20 @@ public class GraphIncrementalBuild {
     }
 
     /**
-     * Finalizes the incremental build by persisting the current state.
+     * Finalizes the incremental build: saves state and writes the ABI manifest
+     * for downstream reactor modules.
      */
     public void finish() throws IOException {
         if (state == null) {
             return;
+        }
+
+        // Resolve and store external fingerprints
+        Set<String> externalDeps = state.getExternalDependencies();
+        if (!externalDeps.isEmpty()) {
+            var resolver = createResolver();
+            state.setExternalFingerprints(resolver.resolve(externalDeps));
+            state.setClasspathIdentities(resolver.computeCurrentJarIdentities());
         }
 
         // Persist source mtimes for the next build's mtime-first optimization
@@ -520,6 +548,9 @@ public class GraphIncrementalBuild {
 
         state.setConfigHash(configHash);
         state.save(stateFile);
+        if (abiTracking) {
+            AbiManifest.write(buildDir.resolve(AbiManifest.FILENAME), state.getAllAbiFingerprints());
+        }
     }
 
     /**
@@ -601,7 +632,10 @@ public class GraphIncrementalBuild {
             }
         }
 
-        if (changedFiles.isEmpty() && newFiles.isEmpty() && deletedFiles.isEmpty()) {
+        // Check external ABI changes
+        Set<String> externallyInvalidated = checkExternalAbiChanges();
+
+        if (changedFiles.isEmpty() && newFiles.isEmpty() && deletedFiles.isEmpty() && externallyInvalidated.isEmpty()) {
             return Set.of();
         }
 
@@ -616,12 +650,16 @@ public class GraphIncrementalBuild {
         if (!deletedFiles.isEmpty()) {
             causes.add(deletedFiles.size() + " deleted");
         }
+        if (!externallyInvalidated.isEmpty()) {
+            causes.add(externallyInvalidated.size() + " invalidated by dependency changes");
+        }
         rebuildCause = String.join(", ", causes);
 
         // Build initial recompilation set
         var toRecompile = new TreeSet<String>();
         toRecompile.addAll(changedFiles);
         toRecompile.addAll(newFiles);
+        toRecompile.addAll(externallyInvalidated);
 
         // Consumers of deleted types
         for (String deleted : deletedFiles) {
@@ -808,5 +846,51 @@ public class GraphIncrementalBuild {
             hashes.put(path, Sha256.hash(Files.readAllBytes(file)));
         }
         return hashes;
+    }
+
+    // --- External ABI tracking ---
+
+    private Set<String> checkExternalAbiChanges() {
+        var invalidated = new TreeSet<String>();
+        Set<String> externalDeps = state.getExternalDependencies();
+        if (externalDeps.isEmpty()) {
+            return invalidated;
+        }
+
+        var resolver = createResolver();
+        Map<String, String> currentFingerprints = resolver.resolve(externalDeps);
+        Map<String, String> storedFingerprints = state.getExternalFingerprints();
+
+        var changedExternalTypes = new TreeSet<String>();
+        for (var entry : currentFingerprints.entrySet()) {
+            String stored = storedFingerprints.get(entry.getKey());
+            if (stored == null || !stored.equals(entry.getValue())) {
+                changedExternalTypes.add(entry.getKey());
+            }
+        }
+
+        if (!changedExternalTypes.isEmpty()) {
+            for (String changedType : changedExternalTypes) {
+                for (String consumer : state.getAllConsumers(changedType)) {
+                    String sf = state.sourceFileFor(consumer);
+                    if (sf != null) {
+                        invalidated.add(sf);
+                    }
+                }
+            }
+        }
+
+        state.setExternalFingerprints(currentFingerprints);
+        state.setClasspathIdentities(resolver.computeCurrentJarIdentities());
+        return invalidated;
+    }
+
+    private ExternalAbiResolver createResolver() {
+        var resolver =
+                new ExternalAbiResolver(classpathEntries != null ? classpathEntries : List.of(), reactorModulePaths);
+        if (previousState != null) {
+            resolver.setCachedState(previousState.getExternalFingerprints(), previousState.getClasspathIdentities());
+        }
+        return resolver;
     }
 }
