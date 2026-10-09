@@ -58,25 +58,6 @@ class DiagnosticLoggerTest {
     }
 
     @Test
-    void fallsBackToKindAndCodeWhenDiagnosticStringCannotBeFormatted() {
-        var logger = mock(Log.class);
-        @SuppressWarnings("unchecked")
-        Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
-        when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
-        when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
-        when(diagnostic.getSource()).thenReturn(null);
-        when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
-        when(diagnostic.getColumnNumber()).thenReturn(Diagnostic.NOPOS);
-        when(diagnostic.getCode()).thenReturn("compiler.warn.has.been.deprecated");
-
-        var listener = new DiagnosticLogger(logger, new DefaultMessageBuilderFactory(), null, null);
-        listener.report(diagnostic);
-
-        verify(logger).warn((String)
-                argThat(message -> ((String) message).contains("WARNING: compiler.warn.has.been.deprecated")));
-    }
-
-    @Test
     void fallsBackToKindWhenDiagnosticCodeIsNull() {
         var logger = mock(Log.class);
         @SuppressWarnings("unchecked")

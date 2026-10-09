@@ -19,4 +19,4 @@
 
 def buildLog = new File(basedir, 'build.log')
 assert buildLog.isFile() : 'Expected the Maven Invoker build log'
-assert buildLog.text.contains('Cannot format compiler diagnostic; falling back to its string representation.') : 'Expected the diagnostic-formatting fallback to run'
+assert buildLog.text.contains('Cannot format compiler diagnostic; falling back to its kind and code.') : 'Expected the diagnostic-formatting fallback to run'
