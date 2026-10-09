@@ -16,10 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'build.log' )
-assert logFile.exists()
-content = logFile.text
-
-assert !new File( basedir, 'target/classes/foo/BeanA.class' ).exists()
-assert content.contains( 'COMPILATION ERROR:' )
-assert content.contains( 'CompilationFailureException' ) // In debug level logs.
+public class Consumer {
+    String value = MainHelper.value();
+}
