@@ -27,6 +27,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.StandardLocation;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.io.UncheckedIOException;
 import java.io.Writer;
 import java.nio.charset.Charset;
@@ -47,6 +48,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
@@ -54,6 +56,8 @@ import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
+import org.apache.maven.plugin.compiler.incremental.GraphIncrementalBuild;
+import org.apache.maven.plugin.compiler.incremental.Sha256;
 
 /**
  * A task which configures and executes a Java tool such as the Java compiler.
@@ -916,6 +920,244 @@ public class ToolExecutor {
     }
 
     /**
+     * Compiles using the dependency-graph incremental strategy. This method handles the full
+     * lifecycle: determining what to compile, running javac, cascading on changed classes,
+     * and persisting state.
+     *
+     * @param compiler the compiler
+     * @param configuration the options to give to the Java compiler
+     * @param mojo the MOJO for configuration access
+     * @throws IOException if an error occurred while reading or writing a file
+     * @throws MojoException if the compilation failed
+     */
+    void compileWithGraphIncremental(JavaCompiler compiler, Options configuration, AbstractCompilerMojo mojo)
+            throws IOException {
+        var graphBuild = new GraphIncrementalBuild(outputDirectory);
+
+        // Collect annotation processor path for processor classification
+        var processorPaths = new ArrayList<Path>();
+        for (var entry : dependencies.entrySet()) {
+            if (entry.getKey() instanceof JavaPathType type) {
+                var location = type.location();
+                if (location.isPresent()
+                        && (location.get() == StandardLocation.ANNOTATION_PROCESSOR_PATH
+                                || location.get() == StandardLocation.ANNOTATION_PROCESSOR_MODULE_PATH)) {
+                    processorPaths.addAll(entry.getValue());
+                }
+            }
+        }
+        if (!processorPaths.isEmpty()) {
+            graphBuild.setProcessorPath(processorPaths);
+        }
+
+        // Collect classpath entries for external dependency tracking
+        var classpathEntries = new ArrayList<Path>();
+        var reactorModulePaths = new LinkedHashSet<Path>();
+        for (var entry : dependencies.entrySet()) {
+            if (entry.getKey() instanceof JavaPathType type) {
+                var location = type.location();
+                if (location.isPresent() && location.get() == StandardLocation.CLASS_PATH) {
+                    for (Path p : entry.getValue()) {
+                        classpathEntries.add(p);
+                        if (Files.isDirectory(p)) {
+                            reactorModulePaths.add(p);
+                        }
+                    }
+                }
+            }
+        }
+        if (!classpathEntries.isEmpty()) {
+            graphBuild.setClasspathEntries(classpathEntries);
+        }
+        if (!reactorModulePaths.isEmpty()) {
+            graphBuild.setReactorModulePaths(reactorModulePaths);
+        }
+
+        // Hash module-info-patch.maven files for config change detection
+        graphBuild.setConfigHash(computeConfigHash(configuration));
+
+        // Collect all source file paths
+        var allSourcePaths = new ArrayList<Path>();
+        for (SourceFile sf : sourceFiles) {
+            allSourcePaths.add(sf.file);
+        }
+
+        Set<Path> toCompile = graphBuild.initialize(allSourcePaths);
+        if (toCompile.isEmpty()) {
+            logger.info("Nothing to compile - all classes are up to date (graph strategy).");
+            graphBuild.finish();
+            return;
+        }
+
+        logger.info(
+                graphBuild.isFullBuild()
+                        ? "Compiling " + toCompile.size() + " source file(s) (graph: full build)."
+                        : "Compiling " + toCompile.size() + " source file(s) (graph: incremental).");
+        if (mojo.showCompilationChanges && graphBuild.getRebuildCause() != null) {
+            logger.info("Rebuild cause: " + graphBuild.getRebuildCause());
+            for (Path f : toCompile) {
+                logger.info("  " + f);
+            }
+        }
+
+        // The sourceFiles field is temporarily replaced with a filtered subset for each round
+        // because noSourcesToCompile() and groupByReleaseAndModule() read it directly.
+        // The finally block guarantees restoration even on exception paths.
+        var originalSourceFiles = new ArrayList<>(sourceFiles);
+        boolean success = true;
+        // Safety bound: the compile set is monotonically growing (bounded by total source count).
+        // If a bug causes processCompiledClasses to return files already compiled, this prevents
+        // an infinite loop. In practice this limit should never be reached.
+        int maxRounds = originalSourceFiles.size() + 1;
+        int rounds = 0;
+
+        try {
+            while (!toCompile.isEmpty()) {
+                if (++rounds > maxRounds) {
+                    throw new IllegalStateException("graph cascade loop did not converge after " + maxRounds
+                            + " rounds — " + "possible dependency cycle or bug in processCompiledClasses()");
+                }
+                Set<Path> compileSet = toCompile;
+                sourceFiles = originalSourceFiles.stream()
+                        .filter(sf -> compileSet.contains(sf.file))
+                        .collect(Collectors.toList());
+
+                if (sourceFiles.isEmpty()) {
+                    break;
+                }
+
+                var compilerOutput = new StringWriter();
+                success = compileIncrementalRound(compiler, configuration, compilerOutput, graphBuild);
+                String output = compilerOutput.toString();
+                if (!output.isBlank()) {
+                    logger.warn(output);
+                }
+                if (!success) {
+                    break;
+                }
+
+                toCompile = graphBuild.processCompiledClasses(compileSet);
+                if (!toCompile.isEmpty()) {
+                    logger.info("graph cascade: recompiling " + toCompile.size() + " additional file(s).");
+                    if (mojo.showCompilationChanges) {
+                        for (Path f : toCompile) {
+                            logger.info("  " + f);
+                        }
+                    }
+                }
+            }
+        } finally {
+            sourceFiles = originalSourceFiles;
+        }
+
+        if (success) {
+            graphBuild.finish();
+            logger.info("Compiled " + graphBuild.compiledCount() + " file(s), " + graphBuild.unchangedCount()
+                    + " unchanged (graph strategy).");
+        } else {
+            graphBuild.invalidate();
+            throw new CompilationFailureException("Compilation failed (graph incremental strategy).");
+        }
+    }
+
+    private String computeConfigHash(Options configuration) {
+        var digest = new StringBuilder();
+
+        // Include compiler options in the config hash so changes to -source/-target/-release
+        // etc. trigger a full rebuild under the graph strategy.
+        String optionsRepr = String.join("|", configuration.options);
+        digest.append("opts:").append(optionsRepr).append(';');
+
+        for (SourceDirectory source : sourceDirectories) {
+            Path patchFile = source.root.resolve(ModuleInfoPatch.FILENAME);
+            if (Files.isRegularFile(patchFile)) {
+                try {
+                    byte[] content = Files.readAllBytes(patchFile);
+                    digest.append(patchFile)
+                            .append(':')
+                            .append(Sha256.hash(content))
+                            .append(';');
+                } catch (IOException e) {
+                    digest.append(patchFile).append(":unreadable;");
+                }
+            }
+        }
+        return Sha256.hash(digest.toString());
+    }
+
+    /**
+     * Runs one compilation round using the graph incremental strategy.
+     * Source files are compiled and the resulting class files are analyzed
+     * by {@link GraphIncrementalBuild#processCompiledClasses} to determine
+     * the cascade set for the next round.
+     */
+    private boolean compileIncrementalRound(
+            JavaCompiler compiler, Options configuration, Writer otherOutput, GraphIncrementalBuild graphBuild)
+            throws IOException {
+
+        if (noSourcesToCompile()) {
+            return true;
+        }
+        Collection<SourcesForRelease> units = groupByReleaseAndModule();
+        determineDirectoryHierarchy(units);
+        graphBuild.setUseModulePrefixedPaths(directoryHierarchy == DirectoryHierarchy.MODULE_SOURCE);
+        if (WorkaroundForPatchModule.ENABLED && hasModuleDeclaration && !(compiler instanceof ForkedTool)) {
+            compiler = new WorkaroundForPatchModule(compiler);
+        }
+        boolean success = true;
+        try (StandardJavaFileManager fileManager = compiler.getStandardFileManager(listener, LOCALE, encoding)) {
+            setDependencyPaths(fileManager);
+            if (!generatedSourceDirectories.isEmpty()) {
+                fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, generatedSourceDirectories);
+            }
+            // Add the output directory to the classpath so javac can resolve previously compiled
+            // types that are not being recompiled in this pass (graph-incremental compiles a
+            // specific subset of sources per round, so earlier class files must be resolvable).
+            fileManager.setLocationFromPaths(StandardLocation.SOURCE_PATH, List.of());
+            var classPath = new ArrayList<Path>();
+            var existingCp = fileManager.getLocationAsPaths(StandardLocation.CLASS_PATH);
+            if (existingCp != null) {
+                existingCp.forEach(classPath::add);
+            }
+            if (!classPath.contains(outputDirectory)) {
+                classPath.add(outputDirectory);
+            }
+            fileManager.setLocationFromPaths(StandardLocation.CLASS_PATH, classPath);
+
+            PathManager pathManager =
+                    switch (directoryHierarchy) {
+                        case PACKAGE -> new PathManager(fileManager);
+                        case PACKAGE_WITH_MODULE, MODULE_SOURCE -> new ModulePathManager(fileManager);
+                    };
+
+            for (SourcesForRelease unit : units) {
+                configuration.setRelease(unit.getReleaseString());
+                pathManager.configureSourcePaths(unit.roots);
+                copyDependencyValues();
+                unit.dependencySnapshot = new LinkedHashMap<>(dependencies);
+                pathManager.setupOutputDirectory(unit);
+
+                if (!unit.files.isEmpty()) {
+                    Iterable<? extends JavaFileObject> sources = fileManager.getJavaFileObjectsFromPaths(unit.files);
+                    JavaCompiler.CompilationTask task;
+                    task = compiler.getTask(otherOutput, fileManager, listener, configuration.options, null, sources);
+                    success = task.call();
+                    if (!success) {
+                        break;
+                    }
+                }
+                pathManager.markVersioned();
+            }
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
+        if (listener instanceof DiagnosticLogger diagnostic) {
+            diagnostic.logSummary();
+        }
+        return success;
+    }
+
+    /**
      * Runs the compilation task.
      *
      * @param compiler the compiler
@@ -934,7 +1176,7 @@ public class ToolExecutor {
         }
 
         // Determine project type once from all units before processing.
-        final Collection<SourcesForRelease> units = groupByReleaseAndModule();
+        Collection<SourcesForRelease> units = groupByReleaseAndModule();
         determineDirectoryHierarchy(units);
 
         // Workaround for a `javax.tools` method which seems not yet supported on all compilers.
@@ -947,14 +1189,14 @@ public class ToolExecutor {
             if (!generatedSourceDirectories.isEmpty()) {
                 fileManager.setLocationFromPaths(StandardLocation.SOURCE_OUTPUT, generatedSourceDirectories);
             }
-            final PathManager pathManager =
+            PathManager pathManager =
                     switch (directoryHierarchy) {
                         case PACKAGE -> new PathManager(fileManager);
                         case PACKAGE_WITH_MODULE, MODULE_SOURCE -> new ModulePathManager(fileManager);
                     };
 
             // Compile each release version in order (base version first for multi-release projects).
-            for (final SourcesForRelease unit : units) {
+            for (SourcesForRelease unit : units) {
                 configuration.setRelease(unit.getReleaseString());
                 pathManager.configureSourcePaths(unit.roots);
 
