@@ -72,7 +72,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     private final Map<String, Integer> codeCount;
 
     /** Diagnostic codes for which a formatting failure was already logged. */
-    private final Set<String> loggedFormattingFailures = new HashSet<>();
+    private final Set<String> loggedFormattingFailures;
 
     /**
      * The first error, or {@code null} if none.
@@ -93,6 +93,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         this.locale = locale;
         this.directory = directory;
         codeCount = new LinkedHashMap<>();
+        loggedFormattingFailures = new HashSet<>();
     }
 
     /**
@@ -120,7 +121,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     @Override
     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
         String message;
-        String code = diagnostic.getCode();
+        final String code = diagnostic.getCode();
         try {
             message = diagnostic.getMessage(locale);
         } catch (RuntimeException e) {
@@ -130,13 +131,9 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
              * compiler can still emit a useful fallback representation.
              */
             if (loggedFormattingFailures.add(code)) {
-                logger.debug("Cannot format compiler diagnostic; falling back to its string representation.", e);
+                logger.debug("Cannot format compiler diagnostic; falling back to its kind and code.", e);
             }
-            try {
-                message = diagnostic.toString();
-            } catch (RuntimeException e2) {
-                message = diagnostic.getKind() + (code != null ? ": " + code : "");
-            }
+            message = diagnostic.getKind() + (code != null ? ": " + code : "");
         }
         if (message == null || message.isBlank()) {
             return;

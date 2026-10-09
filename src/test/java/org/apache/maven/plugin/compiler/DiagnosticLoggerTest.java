@@ -39,12 +39,11 @@ import static org.mockito.Mockito.when;
 
 class DiagnosticLoggerTest {
     @Test
-    void fallsBackWhenDiagnosticMessageCannotBeFormatted() {
+    void fallsBackToKindAndCodeWhenDiagnosticMessageCannotBeFormatted() {
         var logger = mock(Log.class);
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
         when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
-        when(diagnostic.toString()).thenReturn("deprecated API used");
         when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
         when(diagnostic.getSource()).thenReturn(null);
         when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
@@ -54,7 +53,8 @@ class DiagnosticLoggerTest {
         var listener = new DiagnosticLogger(logger, new DefaultMessageBuilderFactory(), null, null);
         listener.report(diagnostic);
 
-        verify(logger).warn((String) argThat(message -> ((String) message).contains("deprecated API used")));
+        verify(logger).warn((String)
+                argThat(message -> ((String) message).contains("WARNING: compiler.warn.has.been.deprecated")));
     }
 
     @Test
@@ -63,7 +63,6 @@ class DiagnosticLoggerTest {
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
         when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
-        when(diagnostic.toString()).thenThrow(new RuntimeException("missing type"));
         when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
         when(diagnostic.getSource()).thenReturn(null);
         when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
@@ -83,7 +82,6 @@ class DiagnosticLoggerTest {
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
         when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
-        when(diagnostic.toString()).thenThrow(new RuntimeException("missing type"));
         when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
         when(diagnostic.getSource()).thenReturn(null);
         when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
@@ -107,7 +105,6 @@ class DiagnosticLoggerTest {
         var failure = new RuntimeException("missing type");
         for (Diagnostic<JavaFileObject> diagnostic : List.of(first, second)) {
             when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(failure);
-            when(diagnostic.toString()).thenReturn("deprecated API used");
             when(diagnostic.getKind()).thenReturn(Diagnostic.Kind.WARNING);
             when(diagnostic.getSource()).thenReturn(null);
             when(diagnostic.getLineNumber()).thenReturn(Diagnostic.NOPOS);
@@ -120,9 +117,8 @@ class DiagnosticLoggerTest {
         listener.report(second);
 
         verify(logger, times(1))
-                .debug(
-                        eq("Cannot format compiler diagnostic; falling back to its string representation."),
-                        same(failure));
-        verify(logger, times(2)).warn((String) argThat(message -> ((String) message).contains("deprecated API used")));
+                .debug(eq("Cannot format compiler diagnostic; falling back to its kind and code."), same(failure));
+        verify(logger, times(2)).warn((String)
+                argThat(message -> ((String) message).contains("WARNING: compiler.warn.has.been.deprecated")));
     }
 }
