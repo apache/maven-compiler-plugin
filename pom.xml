@@ -84,7 +84,7 @@ under the License.
     <javaVersion>17</javaVersion>
     <mavenVersion>4.0.0-rc-7</mavenVersion>
 
-    <asmVersion>9.10.1</asmVersion>
+    <asmVersion>9.11</asmVersion>
     <mockitoVersion>5.24.0</mockitoVersion>
     <eclipseCompilerVersion>3.42.0</eclipseCompilerVersion>
     <version.maven-plugin-tools-3.x>3.15.2</version.maven-plugin-tools-3.x>
