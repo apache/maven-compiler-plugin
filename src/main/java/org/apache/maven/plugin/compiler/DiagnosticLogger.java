@@ -24,10 +24,12 @@ import javax.tools.JavaFileObject;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.services.MessageBuilder;
@@ -69,6 +71,9 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      */
     private final Map<String, Integer> codeCount;
 
+    /** Diagnostic codes for which a formatting failure was already logged. */
+    private final Set<String> loggedFormattingFailures;
+
     /**
      * The first error, or {@code null} if none.
      */
@@ -88,6 +93,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
         this.locale = locale;
         this.directory = directory;
         codeCount = new LinkedHashMap<>();
+        loggedFormattingFailures = new HashSet<>();
     }
 
     /**
@@ -114,7 +120,21 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      */
     @Override
     public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
-        String message = diagnostic.getMessage(locale);
+        String message;
+        final String code = diagnostic.getCode();
+        try {
+            message = diagnostic.getMessage(locale);
+        } catch (RuntimeException e) {
+            /*
+             * Some JDK versions may fail while formatting a diagnostic if a referenced class has an
+             * annotation type that is not on the classpath. CompletionFailure is a RuntimeException; the
+             * compiler can still emit a useful fallback representation.
+             */
+            if (loggedFormattingFailures.add(code)) {
+                logger.debug("Cannot format compiler diagnostic; falling back to its kind and code.", e);
+            }
+            message = diagnostic.getKind() + (code != null ? ": " + code : "");
+        }
         if (message == null || message.isBlank()) {
             return;
         }
@@ -172,7 +192,6 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
                 break;
         }
         // Statistics
-        String code = diagnostic.getCode();
         if (code != null) {
             codeCount.merge(code, 1, (old, initial) -> old + 1);
         }
