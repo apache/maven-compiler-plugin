@@ -278,6 +278,7 @@ public class CompilerMojo extends AbstractCompilerMojo {
             try {
                 Collection<File> dependencyArtifacts =
                         getCompileClasspathElements(getProject(), projectOutputDirectories);
+                resolveMultiReleaseDependencies(dependencyArtifacts, projectOutputDirectories);
 
                 ResolvePathsRequest<File> request = ResolvePathsRequest.ofFiles(dependencyArtifacts)
                         .setIncludeStatic(true)
@@ -396,6 +397,72 @@ public class CompilerMojo extends AbstractCompilerMojo {
             }
         }
         return list;
+    }
+
+    /**
+     * Replaces exploded multi-release project outputs with the versioned directory containing their module descriptor.
+     * The Java module system does not apply multi-release JAR lookup rules to directories, so a descriptor under
+     * {@code META-INF/versions/<N>} is otherwise invisible when another reactor project is compiled before packaging.
+     *
+     * @param artifacts compile path entries, including this project's own output directories
+     * @param projectOutputDirectories this project's outputs, which are already arranged for multi-release compilation
+     */
+    private void resolveMultiReleaseDependencies(Collection<File> artifacts, List<File> projectOutputDirectories) {
+        String release = getRelease();
+        if (release == null) {
+            release = getSource();
+        }
+        if (release == null) {
+            release = getTarget();
+        }
+        int releaseVersion =
+                getJavaMajorVersion(release != null ? release : System.getProperty("java.specification.version"));
+        List<File> resolved = new ArrayList<>(artifacts.size());
+        for (File artifact : artifacts) {
+            if (!projectOutputDirectories.contains(artifact)) {
+                File moduleDirectory = findModuleDirectory(artifact, releaseVersion);
+                if (moduleDirectory != null) {
+                    artifact = moduleDirectory;
+                }
+            }
+            resolved.add(artifact);
+        }
+        artifacts.clear();
+        artifacts.addAll(resolved);
+    }
+
+    /**
+     * Finds the highest multi-release output directory with a module descriptor not newer than the current release.
+     *
+     * @return the matching directory, or {@code null} if the artifact is not an exploded multi-release module
+     */
+    private File findModuleDirectory(File artifact, int release) {
+        if (!artifact.isDirectory() || new File(artifact, "module-info.class").isFile()) {
+            return null;
+        }
+        File versionsDirectory = new File(artifact, "META-INF/versions");
+        File[] versions = versionsDirectory.listFiles(File::isDirectory);
+        if (versions == null) {
+            return null;
+        }
+        File moduleDirectory = null;
+        int moduleRelease = 0;
+        for (File versionDirectory : versions) {
+            int version;
+            try {
+                version = Integer.parseInt(versionDirectory.getName());
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (version >= 9
+                    && version <= release
+                    && version > moduleRelease
+                    && new File(versionDirectory, "module-info.class").isFile()) {
+                moduleDirectory = versionDirectory;
+                moduleRelease = version;
+            }
+        }
+        return moduleDirectory;
     }
 
     @Override
