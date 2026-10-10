@@ -20,12 +20,12 @@ def logFile = new File( basedir, 'build.log' )
 assert logFile.exists()
 def content = logFile.text
 
-// With proc=none (annotation processing disabled), changing exactly one of three independent
-// classes must recompile only the modified file, on every Java version. This is the documented
-// workaround for Java < 23, where the default otherwise conservatively rebuilds all files.
+// With incrementalCompilation=options,dependencies,sources explicitly set, changing exactly one
+// of three independent classes must recompile only the modified file. This verifies the opt-in
+// per-file strategy works correctly (the default rebuild-on-change would recompile everything).
 assert content.contains( 'Compiling 1 modified source file' ) :
         'Expected only the single modified source file to be recompiled'
 
 // It must NOT fall back to a full rebuild of the whole source set.
 assert !content.contains( 'Recompiling all files because at least one source file changed' ) :
-        'proc=none recompiled all files after a single-file change'
+        'Per-file strategy recompiled all files after a single-file change'
