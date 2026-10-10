@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -276,9 +275,11 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
             ResolvePathsResult<File> resolvePathsResult;
             try {
-                Collection<File> dependencyArtifacts =
-                        getCompileClasspathElements(getProject(), projectOutputDirectories);
-                resolveMultiReleaseDependencies(dependencyArtifacts, projectOutputDirectories);
+                Map<File, File> multiReleaseDependencyPatches = new LinkedHashMap<>();
+                List<File> dependencyArtifacts = resolveMultiReleaseDependencies(
+                        getCompileClasspathElements(getProject(), projectOutputDirectories),
+                        projectOutputDirectories,
+                        multiReleaseDependencyPatches);
 
                 ResolvePathsRequest<File> request = ResolvePathsRequest.ofFiles(dependencyArtifacts)
                         .setIncludeStatic(true)
@@ -329,6 +330,17 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
                 for (File file : resolvePathsResult.getModulepathElements().keySet()) {
                     modulepathElements.add(file.getPath());
+                }
+
+                for (Map.Entry<File, File> patch : multiReleaseDependencyPatches.entrySet()) {
+                    JavaModuleDescriptor dependencyDescriptor =
+                            resolvePathsResult.getPathElements().get(patch.getKey());
+                    if (dependencyDescriptor != null) {
+                        compilerArgs.add("--patch-module");
+                        compilerArgs.add(dependencyDescriptor.name()
+                                + '='
+                                + patch.getValue().getPath());
+                    }
                 }
 
                 if (useModuleVersion) {
@@ -407,7 +419,8 @@ public class CompilerMojo extends AbstractCompilerMojo {
      * @param artifacts compile path entries, including this project's own output directories
      * @param projectOutputDirectories this project's outputs, which are already arranged for multi-release compilation
      */
-    private void resolveMultiReleaseDependencies(Collection<File> artifacts, List<File> projectOutputDirectories) {
+    private List<File> resolveMultiReleaseDependencies(
+            List<File> artifacts, List<File> projectOutputDirectories, Map<File, File> dependencyPatches) {
         String release = getRelease();
         if (release == null) {
             release = getSource();
@@ -422,13 +435,13 @@ public class CompilerMojo extends AbstractCompilerMojo {
             if (!projectOutputDirectories.contains(artifact)) {
                 File moduleDirectory = findModuleDirectory(artifact, releaseVersion);
                 if (moduleDirectory != null) {
+                    dependencyPatches.put(moduleDirectory, artifact);
                     artifact = moduleDirectory;
                 }
             }
             resolved.add(artifact);
         }
-        artifacts.clear();
-        artifacts.addAll(resolved);
+        return resolved;
     }
 
     /**
