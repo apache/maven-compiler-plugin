@@ -28,6 +28,8 @@ github:
     squash: true
     merge: false
     rebase: true
+  autolink_jira:
+    - MCOMPILER
   protected_branches:
     master: { }
     maven-compiler-plugin-4.x: { }
