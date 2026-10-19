@@ -19,7 +19,7 @@ name: Release Drafter
 on:
   push:
     branches:
-      - maven-compiler-plugin-3.x
+      - master
   workflow_dispatch:
 
 jobs:
