@@ -21,10 +21,25 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    target-branch: "maven-compiler-plugin-4.x"
+
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
     ignore:
-      # ignore Maven Core updates
-      - dependency-name: "org.apache.maven:*"
+      # Mockito 5 requires Java 11; the build still runs on JDK 8
+      - dependency-name: "org.mockito:*"
+        versions: [">= 5.0.0"]
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "daily"
+    target-branch: "maven-compiler-plugin-4.x"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+# trigger rescan: 2026-09-25
