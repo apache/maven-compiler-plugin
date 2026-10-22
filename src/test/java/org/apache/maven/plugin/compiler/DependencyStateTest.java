@@ -34,7 +34,10 @@ import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DependencyStateTest {
@@ -111,6 +114,33 @@ class DependencyStateTest {
         assertTrue(state.get(0).startsWith("classpath:"));
         assertTrue(state.get(1).startsWith("classpath:"));
         assertTrue(state.get(2).startsWith("modulepath:"));
+    }
+
+    @Test
+    void treatsMissingDependencyDirectoryAsEmptyWithoutWarningOrForcedRebuild() throws Exception {
+        Path dependency = temporaryDirectory.resolve("classes-not-yet-compiled");
+        IncrementalBuildHelper helper = mock(IncrementalBuildHelper.class);
+        when(helper.getMojoStatusDirectory()).thenReturn(temporaryDirectory.toFile());
+        Log log = mock(Log.class);
+
+        DependencyState.Configuration configuration =
+                new DependencyState.Configuration(Collections.emptySet(), BUILD_START, 0, log, false);
+        List<String> classpath = Collections.singletonList(dependency.toString());
+
+        assertFalse(DependencyState.hasChanged(
+                helper,
+                temporaryDirectory.resolve("output").toFile(),
+                classpath,
+                Collections.emptyList(),
+                configuration));
+        assertFalse(DependencyState.hasChanged(
+                helper,
+                temporaryDirectory.resolve("output").toFile(),
+                classpath,
+                Collections.emptyList(),
+                configuration));
+
+        verify(log, never()).warn(contains("I/O error"));
     }
 
     @Test

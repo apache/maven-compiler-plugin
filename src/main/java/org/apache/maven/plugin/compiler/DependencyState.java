@@ -137,6 +137,15 @@ final class DependencyState {
      * The directory digest covers each relevant file's relative path, size and modification time.
      */
     private static ModificationState modificationState(Path dependency, ScanContext context) {
+        if (Files.notExists(dependency)) {
+            // A reactor module with no sources for this output kind (e.g. no main sources, so
+            // `target/classes` is never created) still appears on the classpath. Treat it like an
+            // empty directory instead of letting `readAttributes` below fail with a spurious
+            // "I/O error reading dependency state" warning and an "unreadable" state that never
+            // compares equal across builds, which defeated incremental compilation (forced a
+            // recompile on every run).
+            return new ModificationState(0 + ":" + toHexString(newDigest().digest()), null);
+        }
         if (!Files.isDirectory(dependency)) {
             try {
                 BasicFileAttributes attributes = readAttributes(dependency);
