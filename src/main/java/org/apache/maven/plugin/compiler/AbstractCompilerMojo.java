@@ -642,21 +642,26 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * <h4>Default value</h4>
      * The default value depends on the context.
-     * If there is no annotation processor, then the default is {@code "options,dependencies,sources"}.
+     * If there is no annotation processor, then the default is {@code "options,dependencies,sources,rebuild-on-change"}.
      * It means that a full rebuild will be done if the compiler options or the dependencies changed,
-     * or if a source file has been deleted. Otherwise, only the modified source files will be recompiled.
+     * or if a source file has been deleted, or if any source file has been modified.
+     * This ensures correctness: if a method signature changes in {@code Foo.java}, all classes that depend
+     * on {@code Foo} will be recompiled together with it, preventing stale {@code .class} files that could
+     * cause {@link NoSuchMethodError} at runtime.
+     * Users who prefer faster (but potentially unsafe) incremental builds can set
+     * {@code "options,dependencies,sources"} explicitly.
      *
-     * <p>If an annotation processor is present (e.g., {@link #proc} set to a value other than {@code "none"}),
-     * then the default value is same as above with the addition of {@code "rebuild-on-add,rebuild-on-change"}.
-     * It means that a full rebuild will be done if any kind of change is detected.</p>
+     * <p>When an annotation processor is confirmed to be present (e.g., {@link #proc} set to a value other
+     * than {@code "none"}, or Java &ge; 23 with explicit processor paths), incremental compilation is
+     * disabled entirely ({@code "none"}) because annotation processors can generate or modify classes in
+     * ways the timestamp strategy cannot track, risking invalid compiled output.</p>
      *
-     * <p>Whether an annotation processor is considered present depends on the Java version when {@link #proc} is unset,
+     * <p>When the presence of an annotation processor is uncertain (Java &lt; 23, {@link #proc} unset,
+     * no explicit processor path), the default is
+     * {@code "options,dependencies,sources,rebuild-on-change,rebuild-on-add"}.
+     * This is a conservative middle ground: a full rebuild is done if any kind of change is detected,
      * because {@code javac} enables annotation processing by default before Java 23 ({@code -proc:full})
-     * but disables it since Java 23 ({@code -proc:none} unless a processor is configured).
-     * Consequently, on Java versions prior to 23 the plugin conservatively assumes that a processor may be present
-     * — since {@code javac} would discover processors on the compile classpath —
-     * and therefore applies {@code "rebuild-on-add,rebuild-on-change"} by default,
-     * doing a full rebuild on any change even when no processor is actually present.
+     * and would discover processors on the compile classpath.
      * Projects on Java &lt; 23 that use no annotation processor can restore per-file recompilation
      * by setting {@link #proc} to {@code "none"} (or by setting this {@code incrementalCompilation} property explicitly).</p>
      *
@@ -702,7 +707,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
             return EnumSet.of(
                     IncrementalBuild.Aspect.OPTIONS,
                     IncrementalBuild.Aspect.DEPENDENCIES,
-                    IncrementalBuild.Aspect.SOURCES);
+                    IncrementalBuild.Aspect.SOURCES,
+                    IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
         }
         return IncrementalBuild.Aspect.parse(incrementalCompilation);
     }
