@@ -343,7 +343,8 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
      * &lt;/configuration&gt;
      * </pre>
      *
-     * <b>Note:</b> Exclusions are supported from version 3.11.0.
+     * <b>Note:</b> Exclusions are supported from version 3.11.0. Since version 3.12.0, {@code <version>} may be
+     * omitted and is then taken from {@code <dependencyManagement>}; see {@link #annotationProcessorPathsUseDepMgmt}.
      *
      * @since 3.5
      * @see <a href="https://docs.oracle.com/en/java/javase/17/docs/specs/man/javac.html#option-processor-path">javac -processorpath</a>
@@ -355,13 +356,10 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
 
     /**
      * <p>
-     * Whether to use the Maven dependency management section when resolving transitive dependencies of annotation
-     * processor paths.
-     * </p>
-     * <p>
-     * This flag does not enable / disable the ability to resolve the version of annotation processor paths
-     * from dependency management section. It only influences the resolution of transitive dependencies of those
-     * top-level paths.
+     * Whether to apply the {@code <dependencyManagement>} section when resolving the <em>transitive</em>
+     * dependencies of {@link #annotationProcessorPaths}. When {@code false} (default), they are resolved without
+     * dependency management; when {@code true}, managed versions can override them. The {@code <version>} of the
+     * paths themselves is always taken from dependency management when omitted, regardless of this flag.
      * </p>
      *
      * @since 3.12.0
