@@ -1307,7 +1307,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
             patchJdkModuleVersion(compilerResult, sources);
         }
 
-        if (useIncrementalCompilation) {
+        if (useIncrementalCompilation && compilerResult.isSuccess()) {
             if (incrementalBuildHelperRequest.getOutputDirectory().exists()) {
                 getLog().debug("incrementalBuildHelper#afterRebuildExecution");
                 // now scan the same directory again and create a diff
