@@ -28,7 +28,4 @@ under the License.
   <version>1.0-SNAPSHOT</version>
   <name>mcompiler-170-1</name>
   <url>http://maven.apache.org</url>
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
 </project>
