@@ -188,10 +188,88 @@ under the License.
             <excludes>
               <exclude>unit/**</exclude>
             </excludes>
+            <!--
+              Tests run against the exploded classes directory, not the packaged JAR.
+              The JVM's multi-release JAR dispatch does not apply to directories, so
+              the JDK 24+ BytecodeAnalyzer override must be placed before the root stub
+              on the classpath. We prepend META-INF/versions/24/ via the classesDirectory parameter
+              so it is resolved before target/classes/ by the bootstrap class loader.
+            -->
+            <classesDirectory>${project.build.outputDirectory}/META-INF/versions/24</classesDirectory>
+            <additionalClasspathElements>
+              <additionalClasspathElement>${project.build.outputDirectory}</additionalClasspathElement>
+            </additionalClasspathElements>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-java-build-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <!--
+                    Building this plugin requires JDK 25+ so that the java.lang.classfile
+                    classes in src/main/java24/ can always be compiled (with release=24).
+                    The compiled plugin JAR targets JDK 17 for main sources and JDK 24
+                    for the classfile-backed bytecode analyzer, and runs on any JVM >= 17.
+                  -->
+                  <version>[25,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <!--
+              Compile the java.lang.classfile-based bytecode analyzer (JDK 24+ API)
+              into META-INF/versions/24/ to form a proper multi-release JAR.
+              On JDK 24+, the JVM automatically loads the versioned BytecodeAnalyzer
+              which delegates directly to ClassfileClassAnalyzer (no reflection needed).
+              On JDK < 24, the root BytecodeAnalyzer stub is loaded instead, which
+              reports isAvailable()=false and triggers a fallback to the timestamp strategy.
+              JDK 25 is required at build time so this execution always runs.
+            -->
+            <id>compile-java24</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <phase>compile</phase>
+            <configuration>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java24</compileSourceRoot>
+              </compileSourceRoots>
+              <release>24</release>
+              <outputDirectory>${project.build.outputDirectory}/META-INF/versions/24</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestEntries>
+              <Multi-Release>true</Multi-Release>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
 
   <profiles>
