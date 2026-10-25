@@ -31,6 +31,9 @@ updates:
       # Mockito 5 requires Java 11; the build still runs on JDK 8
       - dependency-name: "org.mockito:*"
         versions: [">= 5.0.0"]
+      # Maven 3 line: stay on Maven 3 core (4.x lives on the -4.x branch)
+      - dependency-name: "org.apache.maven:*"
+        versions: [">= 4.0.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
