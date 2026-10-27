@@ -31,15 +31,16 @@ updates:
       # Mockito 5 requires Java 11; the build still runs on JDK 8
       - dependency-name: "org.mockito:*"
         versions: [">= 5.0.0"]
-      # Maven 3 line: stay on Maven 3 core (4.x lives on the -4.x branch).
-      # Scoped to the core artifacts this plugin actually uses, so other
+      # ASF plugins stay on the Maven 3.9 baseline (min-prerequisite
+      # decision, dev@ 2025-11; 3.10 would pull in Resolver 2.x).
+      # Scoped to the core artifacts this plugin uses; other
       # org.apache.maven:* artifacts with their own release line are untouched.
       - dependency-name: "org.apache.maven:maven-artifact"
-        versions: [">= 4.0.0"]
+        versions: [">= 3.10.0"]
       - dependency-name: "org.apache.maven:maven-core"
-        versions: [">= 4.0.0"]
+        versions: [">= 3.10.0"]
       - dependency-name: "org.apache.maven:maven-plugin-api"
-        versions: [">= 4.0.0"]
+        versions: [">= 3.10.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
