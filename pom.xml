@@ -68,6 +68,7 @@ under the License.
 
   <properties>
     <mavenVersion>3.9.16</mavenVersion>
+    <resolverVersion>1.9.27</resolverVersion>
     <plexusCompilerVersion>2.17.1</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
@@ -104,6 +105,30 @@ under the License.
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-core</artifactId>
       <version>${mavenVersion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven</groupId>
+      <artifactId>maven-model</artifactId>
+      <version>${mavenVersion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.resolver</groupId>
+      <artifactId>maven-resolver-api</artifactId>
+      <version>${resolverVersion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.maven.resolver</groupId>
+      <artifactId>maven-resolver-util</artifactId>
+      <version>${resolverVersion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>javax.inject</groupId>
+      <artifactId>javax.inject</artifactId>
+      <version>1</version>
       <scope>provided</scope>
     </dependency>
     <!-- not used directly but really needed at runtime and we cannot depend on transitive dependency -->
