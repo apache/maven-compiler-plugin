@@ -68,7 +68,7 @@ under the License.
 
   <properties>
     <mavenVersion>3.9.16</mavenVersion>
-    <resolverVersion>1.9.27</resolverVersion>
+    <resolverVersion>2.0.24</resolverVersion>
     <plexusCompilerVersion>2.17.1</plexusCompilerVersion>
 
     <groovyVersion>2.4.21</groovyVersion>
