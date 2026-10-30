@@ -796,6 +796,12 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         if (compileSourceRoots.isEmpty()) {
             getLog().info("No sources to compile");
 
+            // MCOMPILER-443: forget a previous execution's output now, or it lingers forever.
+            if (useIncrementalCompilation) {
+                new IncrementalBuildHelper(mojoExecution, session)
+                        .forgetFilesFromPreviousExecution(getOutputDirectory());
+            }
+
             return;
         }
 
