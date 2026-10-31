@@ -17,14 +17,14 @@
  * under the License.
  */
 
-import org.junit.Test
-import org.junit.Assert
+import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 
 class GroovyTest {
 
 	@Test
 	void testMethod() {
 		GroovyMain.main null
-		Assert.assertTrue true
+		Assertions.assertTrue true
 	}
 }

@@ -18,11 +18,10 @@
  */
 package mr;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 public class ATest {
 
@@ -30,19 +29,19 @@ public class ATest {
 
     @Test
     public void testGet8() throws Exception {
-        assumeThat(javaVersion, is("8"));
+        assumeTrue("8".equals(javaVersion));
 
-        assertThat(A.getString(), is("BASE -> 8"));
+        assertEquals("BASE -> 8", A.getString());
 
-        assertThat(new A().introducedClass().getName(), is("java.time.LocalDateTime"));
+        assertEquals("java.time.LocalDateTime", new A().introducedClass().getName());
     }
 
     @Test
     public void testGet9() throws Exception {
-        assumeThat(javaVersion, is("9"));
+        assumeTrue("9".equals(javaVersion));
 
-        assertThat(A.getString(), is("BASE -> 9"));
+        assertEquals("BASE -> 9", A.getString());
 
-        assertThat(new A().introducedClass().getName(), is("java.lang.Module"));
+        assertEquals("java.lang.Module", new A().introducedClass().getName());
     }
 }
