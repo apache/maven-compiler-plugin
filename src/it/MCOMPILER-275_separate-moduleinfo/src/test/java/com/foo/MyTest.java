@@ -18,8 +18,6 @@
  */
 package com.foo;
 
-import junit.framework.TestCase;
-
-public class MyTest extends TestCase {
+public class MyTest {
     private MyClass myClass = new MyClass();
 }
