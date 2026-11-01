@@ -44,7 +44,7 @@ Using The Other Plexus Compilers
 
 To use any of the non-javac compilers, you need to make the artifact available in the classpath when the Compiler Plugin runs. This is possible by adding the dependency when declaring the plugin in your project's `pom.xml`. The example below shows how to use the `csharp` compiler:
 
-```unknown
+```xml
 <project>
   [...]
   <build>

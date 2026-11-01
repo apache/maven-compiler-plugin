@@ -45,7 +45,7 @@ In case you want the project to be Java 6, 7 or 8 compatible, you can simply use
 
 The easiest way is to use Java 9 as the runtime for Maven, by setting `JAVA_HOME=/path/to/jdk-9` before running `mvn`. But if you want to use an older Java runtime for Maven, you can use the maven-toolchain-plugin to specify the shared JDK or a custom jdkToolchain and refer to the JDK 9 installation on your system. 
 
-```unknown
+```xml
 <project>
   [...]
   <build>
@@ -99,7 +99,7 @@ Given that Maven 3 requires newer Java release at runtime, you'll absolutely nee
 
 You could add a jdkToolchain to do base-compile execution-block as well referring to JDK 5. 
 
-```unknown
+```xml
 <project>
   [...]
   <build>
