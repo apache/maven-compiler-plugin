@@ -36,12 +36,12 @@ The preferred way to do this is by having 2 execution blocks, as described below
 1. default `default-compile` execution with `release=9`,
 1. additional custom `base-compile` execution with expected target compatibility.
 
-Notice that, in addition, JDK 9 only supports compilations for Java 6 and above, so projects wanting to be compatible with Java 5 or below need to use two different JDKs for the 2 executions. With [toolchains](/guides/mini/guide-using-toolchains.html) configuration, it is quite easy to achieve this, even if a little bit more complex.
+Notice that, in addition, each JDK compiles only for a limited range of older releases: JDK 9 to 11 down to Java 6, JDK 12 to 19 down to Java 7, and JDK 20 and later down to Java 8. Projects targeting an older release than the JDK running Maven supports need two different JDKs for the 2 executions. With [toolchains](/guides/mini/guide-using-toolchains.html) configuration, it is quite easy to achieve this, even if a little bit more complex.
 
 Java 6 to 8 Compatibility
 -------------------------
 
-In case you want the project to be Java 6, 7 or 8 compatible, you can simply use JDK 9 for both execution blocks.
+In case you want the project to be Java 6, 7 or 8 compatible, you can use one JDK for both execution blocks, as long as it still compiles for your target: any JDK from 9 for Java 8, JDK 9 to 19 for Java 7, and JDK 9 to 11 for Java 6.
 
 The easiest way is to use Java 9 as the runtime for Maven, by setting `JAVA_HOME=/path/to/jdk-9` before running `mvn`. But if you want to use an older Java runtime for Maven, you can use the maven-toolchain-plugin to specify the shared JDK or a custom jdkToolchain and refer to the JDK 9 installation on your system. 
 
@@ -78,7 +78,7 @@ The easiest way is to use Java 9 as the runtime for Maven, by setting `JAVA_HOME
         </executions>
         <!-- defaults for compile and testCompile -->
         <configuration>
-          <release>6</release><!-- or 7 or 8 depending on compatibility expectations -->
+          <release>8</release><!-- or 6 or 7, with a JDK that still compiles for it -->
           <!-- Only required when Maven runtime JAVA_HOME isn't at least Java 9 and when haven't configured the maven-toolchains-plugin -->
           <jdkToolchain>
             <version>9</version>
