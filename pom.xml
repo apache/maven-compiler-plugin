@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
     <artifactId>maven-plugins</artifactId>
-    <version>49</version>
+    <version>50</version>
     <relativePath />
   </parent>
 
@@ -70,8 +70,8 @@ under the License.
     <url>https://github.com/apache/maven-compiler-plugin/issues</url>
   </issueManagement>
   <ciManagement>
-    <system>Jenkins</system>
-    <url>https://ci-maven.apache.org/job/Maven/job/maven-box/job/maven-compiler-plugin/</url>
+    <system>GitHub</system>
+    <url>https://github.com/apache/maven-compiler-plugin/actions</url>
   </ciManagement>
   <distributionManagement>
     <site>
@@ -82,10 +82,10 @@ under the License.
 
   <properties>
     <javaVersion>17</javaVersion>
-    <mavenVersion>4.0.0-rc-6</mavenVersion>
+    <mavenVersion>4.0.0-rc-7</mavenVersion>
 
-    <asmVersion>9.10.1</asmVersion>
-    <mockitoVersion>5.23.0</mockitoVersion>
+    <asmVersion>9.11.1</asmVersion>
+    <mockitoVersion>5.24.0</mockitoVersion>
     <eclipseCompilerVersion>3.42.0</eclipseCompilerVersion>
     <version.maven-plugin-tools-3.x>3.15.2</version.maven-plugin-tools-3.x>
     <version.maven-plugin-tools>4.0.0-beta-2</version.maven-plugin-tools>
