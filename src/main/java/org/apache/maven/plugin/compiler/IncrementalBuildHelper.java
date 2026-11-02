@@ -210,6 +210,30 @@ class IncrementalBuildHelper {
         }
     }
 
+    /**
+     * Deletes the output files recorded as created by the previous execution, then records that this execution
+     * created none and read no input files. Used when the current execution has no inputs at all (e.g. every
+     * source root was removed), so there is nothing to recompile and thus nothing to diff the output directory
+     * against.
+     *
+     * @param outputDirectory the output directory of the current execution
+     * @throws MojoExecutionException if the recorded status cannot be read or written
+     */
+    void forgetFilesFromPreviousExecution(File outputDirectory) throws MojoExecutionException {
+        IncrementalBuildHelperRequest request = new IncrementalBuildHelperRequest().outputDirectory(outputDirectory);
+        beforeRebuildExecution(request);
+        afterRebuildExecution(request);
+
+        // afterRebuildExecution() only (re)writes inputFiles.lst when it is missing, so a file left over from an
+        // earlier execution that did have sources would otherwise keep listing them as if they still existed.
+        File inputFilesLst = new File(getMojoStatusDirectory(), INPUT_FILES_LST_FILENAME);
+        try {
+            writeLines(inputFilesLst, EMPTY_ARRAY);
+        } catch (IOException e) {
+            throw new MojoExecutionException("Error while storing the mojo status", e);
+        }
+    }
+
     private static String[] toArrayOfPath(Set<File> files) {
         if (files == null || files.isEmpty()) {
             return EMPTY_ARRAY;
