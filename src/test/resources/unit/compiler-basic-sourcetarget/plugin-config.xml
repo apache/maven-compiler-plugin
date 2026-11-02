@@ -31,7 +31,7 @@
           </compileSourceRoots>
           <source>17</source>
           <target>17</target>
-          <incrementalCompilation>none</incrementalCompilation>
+          <rebuildStrategy>none</rebuildStrategy>
         </configuration>
       </plugin>
     </plugins>

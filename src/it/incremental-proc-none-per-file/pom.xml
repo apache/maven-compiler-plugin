@@ -40,7 +40,7 @@ under the License.
           <version>@project.version@</version>
           <configuration>
             <!-- proc=none disables annotation processing, so the default incremental configuration
-                 behaves per-file on every JDK, including Java < 23. See the incrementalCompilation
+                 behaves per-file on every JDK, including Java < 23. See the rebuildStrategy
                  "Default value" javadoc. -->
             <proc>none</proc>
           </configuration>

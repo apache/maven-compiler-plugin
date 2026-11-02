@@ -423,7 +423,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * extra option. If the extra option is not supported, then a warning is logged and no option is added to
      * the compiler arguments.</p>
      *
-     * @see #incrementalCompilation
+     * @see #rebuildStrategy
      * @since 3.10
      */
     @Parameter(property = "maven.compiler.createMissingPackageInfoClass", defaultValue = "false")
@@ -512,9 +512,9 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * Whether to provide more details about why a module is rebuilt.
-     * This is used only if {@link #incrementalCompilation} is set to something else than {@code "none"}.
+     * This is used only if {@link #rebuildStrategy} is set to something else than {@code "none"}.
      *
-     * @see #incrementalCompilation
+     * @see #rebuildStrategy
      */
     @Parameter(property = "maven.compiler.showCompilationChanges", defaultValue = "false")
     protected boolean showCompilationChanges;
@@ -668,7 +668,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * and therefore applies {@code "rebuild-on-add,rebuild-on-change"} by default,
      * doing a full rebuild on any change even when no processor is actually present.
      * Projects on Java &lt; 23 that use no annotation processor can restore per-file recompilation
-     * by setting {@link #proc} to {@code "none"} (or by setting this {@code incrementalCompilation} property explicitly).</p>
+     * by setting {@link #proc} to {@code "none"} (or by setting this {@code rebuildStrategy} property explicitly).</p>
      *
      * @see #staleMillis
      * @see #fileExtensions
@@ -676,8 +676,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @see #createMissingPackageInfoClass
      * @since 4.0.0
      */
-    @Parameter(property = "maven.compiler.incrementalCompilation")
-    protected String incrementalCompilation;
+    @Parameter(property = "maven.compiler.rebuildStrategy")
+    protected String rebuildStrategy;
 
     /**
      * Whether to enable/disable the change detection that decides when to recompile the sub-project.
@@ -687,7 +687,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @since 3.1
      *
-     * @deprecated Replaced by {@link #incrementalCompilation}.
+     * @deprecated Replaced by {@link #rebuildStrategy}.
      * A value of {@code true} in this old property is equivalent to {@code "dependencies,sources,rebuild-on-add"}
      * in the new property, and a value of {@code false} is equivalent to {@code "classes"}.
      */
@@ -698,12 +698,12 @@ public abstract class AbstractCompilerMojo implements Mojo {
     /**
      * Returns the configuration of the incremental compilation.
      * If the argument is null or blank, then this method applies
-     * the default values documented in {@link #incrementalCompilation} javadoc.
+     * the default values documented in {@link #rebuildStrategy} javadoc.
      *
      * @throws MojoException if a value is not recognized, or if mutually exclusive values are specified
      */
-    final EnumSet<IncrementalBuild.Aspect> incrementalCompilationConfiguration() {
-        if (isAbsent(incrementalCompilation)) {
+    final EnumSet<IncrementalBuild.Aspect> rebuildStrategyConfiguration() {
+        if (isAbsent(rebuildStrategy)) {
             if (useIncrementalCompilation != null) {
                 return useIncrementalCompilation
                         ? EnumSet.of(
@@ -717,7 +717,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
                     IncrementalBuild.Aspect.DEPENDENCIES,
                     IncrementalBuild.Aspect.SOURCES);
         }
-        return IncrementalBuild.Aspect.parse(incrementalCompilation);
+        return IncrementalBuild.Aspect.parse(rebuildStrategy);
     }
 
     /**
@@ -726,8 +726,8 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * @param aspects the configuration to amend if an annotation processor is found
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      */
-    final void amendincrementalCompilation(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
-        if (isAbsent(incrementalCompilation) && hasAnnotationProcessor(dependencyTypes)) {
+    final void amendRebuildStrategy(EnumSet<IncrementalBuild.Aspect> aspects, Set<PathType> dependencyTypes) {
+        if (isAbsent(rebuildStrategy) && hasAnnotationProcessor(dependencyTypes)) {
             aspects.add(IncrementalBuild.Aspect.REBUILD_ON_ADD);
             aspects.add(IncrementalBuild.Aspect.REBUILD_ON_CHANGE);
         }
@@ -739,7 +739,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * TODO: Rename with a name making clearer that this parameter is about incremental build.
      *
-     * @see #incrementalCompilation
+     * @see #rebuildStrategy
      * @since 3.1
      */
     @Parameter(defaultValue = "class,jar")
@@ -749,7 +749,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * The granularity in milliseconds of the last modification
      * date for testing whether a source needs recompilation.
      *
-     * @see #incrementalCompilation
+     * @see #rebuildStrategy
      */
     @Parameter(property = "lastModGranularityMs", defaultValue = "0")
     protected int staleMillis;
@@ -1693,7 +1693,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      *
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      *
-     * @see #incrementalCompilation
+     * @see #rebuildStrategy
      */
     private boolean hasAnnotationProcessor(final Set<PathType> dependencyTypes) {
         if (isAbsent(proc)) {

@@ -39,7 +39,7 @@
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
-          <incrementalCompilation>none</incrementalCompilation>
+          <rebuildStrategy>none</rebuildStrategy>
           <executable>javac</executable>
           <!--
              <executable>${env.JAVA_HOME}/bin/javac</executable>

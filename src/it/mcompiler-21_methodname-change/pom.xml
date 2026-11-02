@@ -36,7 +36,7 @@ under the License.
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <incrementalCompilation>sources,rebuild-on-change</incrementalCompilation>
+            <rebuildStrategy>sources,rebuild-on-change</rebuildStrategy>
           </configuration>
         </plugin>
       </plugins>
