@@ -19,6 +19,12 @@
 
 assert new File(basedir, 'module-a/target/classes/sample/a/Api.class').isFile()
 assert new File(basedir, 'module-a/target/classes/META-INF/versions/9/module-info.class').isFile()
-assert new File(basedir, 'module-a/target/classes/META-INF/versions/17/module-info.class').isFile()
+// Read the version from the forked build, which may use a different JDK than this verifier.
+def javaVersion = new Properties()
+new File(basedir, 'module-a/target/classes/java-version.properties').withInputStream {
+    javaVersion.load(it)
+}
+def hasJava17Descriptor = new File(basedir, 'module-a/target/classes/META-INF/versions/17/module-info.class').isFile()
+assert hasJava17Descriptor == (javaVersion.getProperty('java.specification.version').toInteger() >= 17)
 assert new File(basedir, 'module-b/target/classes/sample/b/UseApi.class').isFile()
 assert new File(basedir, 'module-b/target/classes/module-info.class').isFile()

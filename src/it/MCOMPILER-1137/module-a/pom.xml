@@ -27,6 +27,12 @@
   <artifactId>module-a</artifactId>
 
   <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -44,20 +50,39 @@
               <multiReleaseOutput>true</multiReleaseOutput>
             </configuration>
           </execution>
-          <execution>
-            <id>compile-java17-module-info</id>
-            <phase>compile</phase>
-            <goals><goal>compile</goal></goals>
-            <configuration>
-              <release>17</release>
-              <compileSourceRoots>
-                <compileSourceRoot>${project.basedir}/src/main/java17</compileSourceRoot>
-              </compileSourceRoots>
-              <multiReleaseOutput>true</multiReleaseOutput>
-            </configuration>
-          </execution>
         </executions>
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>java17-descriptor</id>
+      <activation>
+        <jdk>[17,)</jdk>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>compile-java17-module-info</id>
+                <phase>compile</phase>
+                <goals><goal>compile</goal></goals>
+                <configuration>
+                  <release>17</release>
+                  <compileSourceRoots>
+                    <compileSourceRoot>${project.basedir}/src/main/java17</compileSourceRoot>
+                  </compileSourceRoots>
+                  <multiReleaseOutput>true</multiReleaseOutput>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
