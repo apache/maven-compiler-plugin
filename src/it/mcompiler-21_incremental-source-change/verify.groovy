@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'build.log' )
-assert logFile.exists()
-content = logFile.text
+def buildLog = new File(basedir, 'build.log').text
 
-assert content.contains( 'COMPILATION ERROR :' )
+// invoker appends the output of all goals to one log: one compilation error per failed build
+assert buildLog.count('COMPILATION ERROR :') == 2

@@ -17,6 +17,10 @@
  * under the License.
  */
 
-buildLog = new File( basedir, 'build.log' ).text;
+def buildLog = new File(basedir, 'build.log').text
 
-assert !buildLog.contains("] Required automodules detected. Please don't publish this project to a public artifact repository!");
+// the jar names its module in the manifest and is resolved from the module path
+assert buildLog.contains('with javac [debug release 9 module-path]')
+assert buildLog =~ /--module-path \S*ta3-3\.0-SNAPSHOT\.jar/
+
+assert !buildLog.contains('Required filename-based automodules detected')

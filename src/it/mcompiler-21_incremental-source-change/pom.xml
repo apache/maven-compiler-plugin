@@ -24,13 +24,13 @@ under the License.
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>org.apache.maven.plugins.compiler.it</groupId>
-  <artifactId>mcompiler-21_methodname-change</artifactId>
+  <artifactId>mcompiler-21_incremental-source-change</artifactId>
   <version>1.0-SNAPSHOT</version>
 
   <description>
-    This IT tests what happens if the method name in a single class BeanA gets changed.
-    In this case 'mvn compile' (without a clean) should fail as  BeanA2
-    still uses the old method of BeanA.
+    This IT tests what happens if a source file changes between two builds without a clean.
+    First the method getI() of BeanA is renamed, then renamed back, then the class BeanA is removed.
+    In both incompatible cases 'mvn compile' should fail as BeanA2 still uses the old method and the removed class.
   </description>
 
   <build>
@@ -45,24 +45,42 @@ under the License.
     </pluginManagement> 
     <plugins>
       <plugin>
-        <!-- Called as second invoker goal to simulate file adjustment -->
+        <!-- Called as separate invoker goals to simulate file adjustments between the builds -->
         <groupId>org.codehaus.gmaven</groupId>
         <artifactId>groovy-maven-plugin</artifactId>
         <version>2.1.1</version>
-        <configuration>
-          <source>
-            def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
-            
-            processFileInplace( beanAFile ) { text -> 
-              text.replaceAll( /getI/, 'getI_doesntexistanymore')
-            }
-            
-            def processFileInplace(file, Closure processText) {
-              def text = file.text
-              file.write(processText(text))
-            }
-          </source>
-        </configuration>
+        <executions>
+          <execution>
+            <id>rename-method</id>
+            <configuration>
+              <source>
+                def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
+
+                beanAFile.write( beanAFile.text.replaceAll( /getI/, 'getI_doesntexistanymore' ) )
+              </source>
+            </configuration>
+          </execution>
+          <execution>
+            <id>restore-method</id>
+            <configuration>
+              <source>
+                def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
+
+                beanAFile.write( beanAFile.text.replaceAll( /getI_doesntexistanymore/, 'getI' ) )
+              </source>
+            </configuration>
+          </execution>
+          <execution>
+            <id>remove-class</id>
+            <configuration>
+              <source>
+                def beanAFile = new File( project.basedir, 'src/main/java/BeanA.java' )
+
+                beanAFile.delete()
+              </source>
+            </configuration>
+          </execution>
+        </executions>
         <dependencies>
           <dependency>
             <groupId>org.codehaus.groovy</groupId>
