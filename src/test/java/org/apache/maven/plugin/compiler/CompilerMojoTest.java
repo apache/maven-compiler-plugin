@@ -27,9 +27,11 @@ import java.util.Set;
 import org.apache.maven.api.plugin.testing.InjectMojo;
 import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.artifact.Artifact;
+import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
+import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
 
 import static org.apache.maven.api.plugin.testing.MojoExtension.getVariableValueFromObject;
@@ -41,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -280,15 +283,18 @@ class CompilerMojoTest {
     void testCompileFailure(CompilerMojo compilerMojo) throws Exception {
         setUpCompilerMojoTestEnv(compilerMojo);
 
+        File createdFiles = createdFilesList(compilerMojo);
+
         setVariableValueToObject(compilerMojo, "compilerManager", new CompilerManagerStub(true));
 
-        try {
-            compilerMojo.execute();
+        assertThrows(CompilationFailureException.class, compilerMojo::execute);
 
-            fail("Should throw an exception");
-        } catch (CompilationFailureException e) {
-            // expected
-        }
+        assertFalse(createdFiles.exists(), "failed compilations must not update the incremental build status");
+
+        setVariableValueToObject(compilerMojo, "compilerManager", new CompilerManagerStub());
+        compilerMojo.execute();
+
+        assertTrue(createdFiles.exists(), "successful retries must update the incremental build status");
     }
 
     @Test
@@ -296,14 +302,16 @@ class CompilerMojoTest {
     void testCompileFailOnError(CompilerMojo compilerMojo) throws Exception {
         setUpCompilerMojoTestEnv(compilerMojo);
 
+        File createdFiles = createdFilesList(compilerMojo);
         setVariableValueToObject(compilerMojo, "compilerManager", new CompilerManagerStub(true));
 
         try {
             compilerMojo.execute();
-            assertTrue(true);
         } catch (CompilationFailureException e) {
             fail("The compilation error should have been consumed because failOnError = false");
         }
+
+        assertFalse(createdFiles.exists(), "failed compilations must not update the incremental build status");
     }
 
     /**
@@ -341,5 +349,15 @@ class CompilerMojoTest {
         setVariableValueToObject(mojo, "projectArtifact", new ArtifactStub());
         setVariableValueToObject(mojo, "session", getMockMavenSession());
         setVariableValueToObject(mojo, "project", getMockMavenProject());
+    }
+
+    private File createdFilesList(CompilerMojo compilerMojo) throws Exception {
+        MojoExecution mojoExecution = getVariableValueFromObject(compilerMojo, "mojoExecution");
+        MavenProject project = getVariableValueFromObject(compilerMojo, "project");
+        File createdFiles = new File(
+                new IncrementalBuildHelper(mojoExecution, project).getMojoStatusDirectory(),
+                IncrementalBuildHelper.CREATED_FILES_LST_FILENAME);
+        Files.deleteIfExists(createdFiles.toPath());
+        return createdFiles;
     }
 }
