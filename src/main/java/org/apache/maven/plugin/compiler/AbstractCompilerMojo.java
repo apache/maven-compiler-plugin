@@ -79,6 +79,7 @@ import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.PathMatcherFactory;
 import org.apache.maven.api.services.ProjectManager;
 import org.apache.maven.api.services.ToolchainManager;
+import org.apache.maven.plugin.compiler.incremental.BytecodeAnalyzer;
 
 import static org.apache.maven.plugin.compiler.SourceDirectory.CLASS_FILE_SUFFIX;
 import static org.apache.maven.plugin.compiler.SourceDirectory.MODULE_INFO;
@@ -681,6 +682,35 @@ public abstract class AbstractCompilerMojo implements Mojo {
     @Deprecated(since = "4.0.0")
     @Parameter(property = "maven.compiler.useIncrementalCompilation")
     protected Boolean useIncrementalCompilation;
+
+    /**
+     * The strategy to use for incremental compilation.
+     * <ul>
+     *   <li>{@code timestamp} (default) — the existing timestamp-based strategy from
+     *       {@link IncrementalBuild}. Detects changes by comparing source file modification
+     *       times and triggers full rebuilds when files are added/removed or dependencies change.
+     *       Respects {@link #incrementalCompilation} aspects, {@code staleMillis}, and
+     *       {@code incrementalExcludes}.</li>
+     *   <li>{@code graph} — dependency-graph-based strategy. Tracks class-level dependencies
+     *       by analysing bytecode after each compilation pass. When a source file changes, only
+     *       the source files that transitively depend on any of its classes are recompiled. Any
+     *       change to a class (API or implementation) cascades to all its consumers.
+     *       Full JPMS support including {@code module-info.java} and
+     *       {@code module-info-patch.maven} tracking.
+     *       <p>Note: the graph strategy has its own change detection (content hashing) and does
+     *       not use {@code staleMillis}, {@code incrementalExcludes}, or the
+     *       {@link #incrementalCompilation} aspects. Setting {@link #useIncrementalCompilation}
+     *       to {@code false} disables this strategy and forces a full rebuild.</p></li>
+     *   <li>{@code abi} — ABI-fingerprint-based strategy. Tracks class-level dependencies
+     *       and public API surface (ABI) fingerprints via bytecode analysis. When a source file
+     *       changes, only files whose ABI actually changed cascade to their consumers; body-only
+     *       changes recompile only the changed file. Accepted as an alias for {@code graph}.</li>
+     * </ul>
+     *
+     * @since 4.0.0-beta-7
+     */
+    @Parameter(property = "maven.compiler.incrementalStrategy", defaultValue = "timestamp")
+    protected String incrementalStrategy;
 
     /**
      * Returns the configuration of the incremental compilation.
@@ -1398,7 +1428,24 @@ public abstract class AbstractCompilerMojo implements Mojo {
      */
     @SuppressWarnings("UseSpecificCatch")
     private void compile(final JavaCompiler compiler, final Options configuration) throws IOException {
-        final ToolExecutor executor = createExecutor(null);
+        var executor = createExecutor(null);
+        if (!"timestamp".equalsIgnoreCase(incrementalStrategy)
+                && !"graph".equalsIgnoreCase(incrementalStrategy)
+                && !"abi".equalsIgnoreCase(incrementalStrategy)) {
+            throw new MojoException("Unknown incrementalStrategy: '" + incrementalStrategy
+                    + "'. Valid values are: timestamp, graph, abi");
+        }
+        if (("graph".equalsIgnoreCase(incrementalStrategy) || "abi".equalsIgnoreCase(incrementalStrategy))
+                && !Boolean.FALSE.equals(useIncrementalCompilation)) {
+            if (!BytecodeAnalyzer.isAvailable()) {
+                logger.warn("Graph/ABI incremental strategy requires JDK 24 or later "
+                        + "(running JDK " + Runtime.version().feature() + "). "
+                        + "Falling back to timestamp strategy.");
+            } else {
+                executor.compileWithGraphIncremental(compiler, configuration, this);
+                return;
+            }
+        }
         if (!executor.applyIncrementalBuild(this, configuration)) {
             return;
         }
@@ -1688,7 +1735,6 @@ public abstract class AbstractCompilerMojo implements Mojo {
 
     /**
      * {@return whether an annotation processor seems to be present}
-     * In case of doubt (for example, with Java versions older than 23), conservatively returns {@code true}.
      *
      * @param dependencyTypes the type of dependencies, for checking if any of them is a processor path
      *
