@@ -24,12 +24,12 @@ under the License.
   <artifactId>incremental-proc-none-per-file</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <description>When annotation processing is disabled (proc=none), changing a single source file
-    must recompile only that file, not the whole source set, on every Java version. This is the
-    documented workaround for Java &lt; 23, where the default conservatively assumes an annotation
-    processor may be present (javac defaults to -proc:full) and rebuilds everything on any change.
+  <description>Verifies the explicit per-file incremental strategy (options,dependencies,sources)
+    when annotation processing is disabled (proc=none). The default since this PR is
+    options,dependencies,sources,rebuild-on-change for all projects; users who want faster
+    (but potentially unsafe) per-file compilation must opt in explicitly.
     This IT modifies one of three independent classes between two 'compile' invocations and asserts
-    that only one file is recompiled.</description>
+    that only the modified file is recompiled when per-file mode is requested explicitly.</description>
 
   <build>
     <pluginManagement>
@@ -39,10 +39,11 @@ under the License.
           <artifactId>maven-compiler-plugin</artifactId>
           <version>@project.version@</version>
           <configuration>
-            <!-- proc=none disables annotation processing, so the default incremental configuration
-                 behaves per-file on every JDK, including Java < 23. See the incrementalCompilation
-                 "Default value" javadoc. -->
+            <!-- Explicitly opt in to per-file incremental compilation.
+                 The default (rebuild-on-change) would recompile all files on any change;
+                 this test verifies that the opt-in per-file strategy works correctly. -->
             <proc>none</proc>
+            <incrementalCompilation>options,dependencies,sources</incrementalCompilation>
           </configuration>
         </plugin>
       </plugins>
