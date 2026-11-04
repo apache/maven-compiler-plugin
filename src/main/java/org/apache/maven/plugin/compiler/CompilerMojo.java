@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -276,8 +275,11 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
             ResolvePathsResult<File> resolvePathsResult;
             try {
-                Collection<File> dependencyArtifacts =
-                        getCompileClasspathElements(getProject(), projectOutputDirectories);
+                Map<File, File> multiReleaseDependencyPatches = new LinkedHashMap<>();
+                List<File> dependencyArtifacts = resolveMultiReleaseDependencies(
+                        getCompileClasspathElements(getProject(), projectOutputDirectories),
+                        projectOutputDirectories,
+                        multiReleaseDependencyPatches);
 
                 ResolvePathsRequest<File> request = ResolvePathsRequest.ofFiles(dependencyArtifacts)
                         .setIncludeStatic(true)
@@ -328,6 +330,17 @@ public class CompilerMojo extends AbstractCompilerMojo {
 
                 for (File file : resolvePathsResult.getModulepathElements().keySet()) {
                     modulepathElements.add(file.getPath());
+                }
+
+                for (Map.Entry<File, File> patch : multiReleaseDependencyPatches.entrySet()) {
+                    JavaModuleDescriptor dependencyDescriptor =
+                            resolvePathsResult.getPathElements().get(patch.getKey());
+                    if (dependencyDescriptor != null) {
+                        compilerArgs.add("--patch-module");
+                        compilerArgs.add(dependencyDescriptor.name()
+                                + '='
+                                + patch.getValue().getPath());
+                    }
                 }
 
                 if (useModuleVersion) {
@@ -396,6 +409,73 @@ public class CompilerMojo extends AbstractCompilerMojo {
             }
         }
         return list;
+    }
+
+    /**
+     * Replaces exploded multi-release project outputs with the versioned directory containing their module descriptor.
+     * The Java module system does not apply multi-release JAR lookup rules to directories, so a descriptor under
+     * {@code META-INF/versions/<N>} is otherwise invisible when another reactor project is compiled before packaging.
+     *
+     * @param artifacts compile path entries, including this project's own output directories
+     * @param projectOutputDirectories this project's outputs, which are already arranged for multi-release compilation
+     */
+    private List<File> resolveMultiReleaseDependencies(
+            List<File> artifacts, List<File> projectOutputDirectories, Map<File, File> dependencyPatches) {
+        String release = getRelease();
+        if (release == null) {
+            release = getSource();
+        }
+        if (release == null) {
+            release = getTarget();
+        }
+        int releaseVersion =
+                getJavaMajorVersion(release != null ? release : System.getProperty("java.specification.version"));
+        List<File> resolved = new ArrayList<>(artifacts.size());
+        for (File artifact : artifacts) {
+            if (!projectOutputDirectories.contains(artifact)) {
+                File moduleDirectory = findModuleDirectory(artifact, releaseVersion);
+                if (moduleDirectory != null) {
+                    dependencyPatches.put(moduleDirectory, artifact);
+                    artifact = moduleDirectory;
+                }
+            }
+            resolved.add(artifact);
+        }
+        return resolved;
+    }
+
+    /**
+     * Finds the highest multi-release output directory with a module descriptor not newer than the current release.
+     *
+     * @return the matching directory, or {@code null} if the artifact is not an exploded multi-release module
+     */
+    private File findModuleDirectory(File artifact, int release) {
+        if (!artifact.isDirectory() || new File(artifact, "module-info.class").isFile()) {
+            return null;
+        }
+        File versionsDirectory = new File(artifact, "META-INF/versions");
+        File[] versions = versionsDirectory.listFiles(File::isDirectory);
+        if (versions == null) {
+            return null;
+        }
+        File moduleDirectory = null;
+        int moduleRelease = 0;
+        for (File versionDirectory : versions) {
+            int version;
+            try {
+                version = Integer.parseInt(versionDirectory.getName());
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (version >= 9
+                    && version <= release
+                    && version > moduleRelease
+                    && new File(versionDirectory, "module-info.class").isFile()) {
+                moduleDirectory = versionDirectory;
+                moduleRelease = version;
+            }
+        }
+        return moduleDirectory;
     }
 
     @Override
