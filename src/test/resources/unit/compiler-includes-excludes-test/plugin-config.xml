@@ -43,7 +43,7 @@
             <exclude>**/TestCompile2*.java</exclude>
             <exclude>**/TestCompile3*.java</exclude>
           </testExcludes>
-          <incrementalCompilation>none</incrementalCompilation>
+          <rebuildStrategy>none</rebuildStrategy>
         </configuration>
       </plugin>
     </plugins>

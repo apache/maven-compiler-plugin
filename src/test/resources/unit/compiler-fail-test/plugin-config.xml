@@ -30,7 +30,7 @@
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <compilerId>maven-failing-compiler-stub</compilerId>
-          <incrementalCompilation>none</incrementalCompilation>
+          <rebuildStrategy>none</rebuildStrategy>
         </configuration>
       </plugin>
     </plugins>

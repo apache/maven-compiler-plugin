@@ -30,7 +30,7 @@
             Incremental compilation must be disabled, otherwise arguments
             are not given to the compiler if there is nothing to compile.
           -->
-          <incrementalCompilation>none</incrementalCompilation>
+          <rebuildStrategy>none</rebuildStrategy>
           <compileSourceRoots>
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>

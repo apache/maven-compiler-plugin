@@ -164,7 +164,7 @@ public class ToolExecutor {
     /**
      * Configuration of the incremental compilation.
      *
-     * @see AbstractCompilerMojo#incrementalCompilation
+     * @see AbstractCompilerMojo#rebuildStrategy
      * @see AbstractCompilerMojo#useIncrementalCompilation
      */
     private final EnumSet<IncrementalBuild.Aspect> incrementalBuildConfig;
@@ -229,7 +229,7 @@ public class ToolExecutor {
         }
         this.listener = listener;
         encoding = mojo.charset();
-        incrementalBuildConfig = mojo.incrementalCompilationConfiguration();
+        incrementalBuildConfig = mojo.rebuildStrategyConfiguration();
         outputDirectory = Files.createDirectories(mojo.getOutputDirectory());
         sourceDirectories = mojo.getSourceDirectories(outputDirectory);
         dependencies = new LinkedHashMap<>();
@@ -244,14 +244,14 @@ public class ToolExecutor {
             boolean hasNoFileMatchers = mojo.hasNoFileMatchers();
             for (SourceDirectory root : sourceDirectories) {
                 if (root.moduleName == null) {
-                    throw new CompilationFailureException("The <incrementalCompilation> value can be \"modules\" "
+                    throw new CompilationFailureException("The <rebuildStrategy> value can be \"modules\" "
                             + "only if all source directories are Java modules.");
                 }
                 hasNoFileMatchers &= root.includes.isEmpty() && root.excludes.isEmpty();
             }
             if (!hasNoFileMatchers) {
                 throw new CompilationFailureException("Include and exclude filters cannot be specified "
-                        + "when <incrementalCompilation> is set to \"modules\".");
+                        + "when <rebuildStrategy> is set to \"modules\".");
             }
             hasModuleDeclaration = true;
             sourceFiles = List.of();
@@ -278,7 +278,7 @@ public class ToolExecutor {
             dependencies.putAll(dependencyResolution.getDispatchedPaths());
         }
         mojo.resolveProcessorPathEntries(dependencies);
-        mojo.amendincrementalCompilation(incrementalBuildConfig, dependencies.keySet());
+        mojo.amendRebuildStrategy(incrementalBuildConfig, dependencies.keySet());
         generatedSourceDirectories = mojo.addGeneratedSourceDirectory(dependencies.keySet());
         copyDependencyValues();
     }
