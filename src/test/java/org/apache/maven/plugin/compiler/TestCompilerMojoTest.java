@@ -18,6 +18,9 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +34,10 @@ import java.util.stream.Stream;
 import org.apache.maven.api.plugin.testing.InjectMojo;
 import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
+import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -170,6 +176,56 @@ class TestCompilerMojoTest {
 
         File testClass = new File(testCompilerMojo.getOutputDirectory(), "foo/TestSkipTestCompile0Test.class");
         assertFalse(testClass.exists());
+    }
+
+    /**
+     * Tests that test sources of a module are compiled as a patch of the main module: the mojo records
+     * {@code --patch-module} and {@code --add-reads} in {@code META-INF/jpms.args}.
+     */
+    @Test
+    @EnabledForJreRange(min = JRE.JAVA_9)
+    @InjectMojo(goal = TEST_COMPILE, pom = "classpath:/unit/compiler-jpms-patch-module/plugin-config.xml")
+    void testJpmsPatchModule(TestCompilerMojo testCompilerMojo, @TempDir Path mainClasses) throws Exception {
+        setUpCompilerMojoTestEnv(testCompilerMojo);
+
+        // the test mojo reads the main module descriptor from the compiled main classes
+        Path fixture = Paths.get(testCompilerMojo.getCompileSourceRoots().get(0))
+                .getParent()
+                .getParent()
+                .getParent();
+        Path mainSources = fixture.resolve("src/main/java");
+        JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
+        assertEquals(
+                0,
+                javac.run(
+                        null,
+                        null,
+                        null,
+                        "--release",
+                        "9",
+                        "-d",
+                        mainClasses.toString(),
+                        mainSources.resolve("module-info.java").toString(),
+                        mainSources.resolve("org/maven/test/Main.java").toString()));
+
+        MavenProject project = getMockMavenProject();
+        project.getBuild().setOutputDirectory(mainClasses.toString());
+        setVariableValueToObject(testCompilerMojo, "project", project);
+        setVariableValueToObject(
+                testCompilerMojo,
+                "compileSourceRoots",
+                Arrays.asList(fixture.resolve("src/test/java").toString()));
+        setVariableValueToObject(testCompilerMojo, "testPath", Arrays.asList(mainClasses.toString()));
+
+        // output of earlier runs stays under target/, so start without it
+        Path jpmsArgs = testCompilerMojo.getOutputDirectory().toPath().resolve("META-INF/jpms.args");
+        Files.deleteIfExists(jpmsArgs);
+
+        testCompilerMojo.execute();
+
+        assertEquals(
+                Arrays.asList("--patch-module", "app=_", "--add-reads", "app=ALL-UNNAMED"),
+                Files.readAllLines(jpmsArgs));
     }
 
     private void setUpCompilerMojoTestEnv(TestCompilerMojo mojo) throws Exception {

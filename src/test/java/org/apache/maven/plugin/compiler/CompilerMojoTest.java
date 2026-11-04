@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,6 +32,8 @@ import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 
 import static org.apache.maven.api.plugin.testing.MojoExtension.getVariableValueFromObject;
 import static org.apache.maven.api.plugin.testing.MojoExtension.setVariableValueToObject;
@@ -335,6 +338,27 @@ class CompilerMojoTest {
 
         File testClass = new File(compilerMojo.getOutputDirectory(), "foo/TestSkipTestCompile0.class");
         assertTrue(testClass.exists());
+    }
+
+    /**
+     * Tests that runtime options such as {@code --add-exports} are recorded in {@code META-INF/jpms.args} when the
+     * project is a module.
+     *
+     * @throws Exception
+     */
+    @Test
+    @EnabledForJreRange(min = JRE.JAVA_9)
+    @InjectMojo(goal = COMPILE, pom = "classpath:/unit/compiler-jpms-add-exports/plugin-config.xml")
+    void testJpmsAddExports(CompilerMojo compilerMojo) throws Exception {
+        setUpCompilerMojoTestEnv(compilerMojo);
+
+        // output of earlier runs stays under target/, so start without it
+        Path jpmsArgs = compilerMojo.getOutputDirectory().toPath().resolve("META-INF/jpms.args");
+        Files.deleteIfExists(jpmsArgs);
+
+        compilerMojo.execute();
+
+        assertEquals(Arrays.asList("--add-exports", "app/org.maven.test=ALL_UNNAMED"), Files.readAllLines(jpmsArgs));
     }
 
     private void setUpCompilerMojoTestEnv(CompilerMojo mojo) throws Exception {
