@@ -26,10 +26,6 @@
 
   <name>Test for default configuration in a modular project</name>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-
   <build>
     <plugins>
       <plugin>
