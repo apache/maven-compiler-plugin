@@ -217,7 +217,8 @@ class TestCompilerMojoTest {
                 Arrays.asList(fixture.resolve("src/test/java").toString()));
         setVariableValueToObject(testCompilerMojo, "testPath", Arrays.asList(mainClasses.toString()));
 
-        // output of earlier runs stays under target/, so start without it
+        // The mojo only logs a warning when it cannot write jpms.args, and target/ keeps the file of earlier runs.
+        // Delete it so the assertion cannot pass on a stale file.
         Path jpmsArgs = testCompilerMojo.getOutputDirectory().toPath().resolve("META-INF/jpms.args");
         Files.deleteIfExists(jpmsArgs);
 
