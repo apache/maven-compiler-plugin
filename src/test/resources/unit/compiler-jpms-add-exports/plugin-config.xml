@@ -32,7 +32,7 @@
           <buildDirectory>${basedir}/target/test/unit/compiler-jpms-add-exports/target</buildDirectory>
           <compilerArgs>
             <arg>--add-exports</arg>
-            <arg>app/org.maven.test=ALL_UNNAMED</arg>
+            <arg>app/org.maven.test=ALL-UNNAMED</arg>
           </compilerArgs>
         </configuration>
       </plugin>

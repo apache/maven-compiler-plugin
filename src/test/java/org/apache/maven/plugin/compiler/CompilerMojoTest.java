@@ -31,6 +31,7 @@ import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.plugin.testing.stubs.ArtifactStub;
+import org.codehaus.plexus.util.FileUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledForJreRange;
 import org.junit.jupiter.api.condition.JRE;
@@ -352,13 +353,15 @@ class CompilerMojoTest {
     void testJpmsAddExports(CompilerMojo compilerMojo) throws Exception {
         setUpCompilerMojoTestEnv(compilerMojo);
 
-        // output of earlier runs stays under target/, so start without it
+        // The mojo only writes jpms.args when it compiles, and only logs a warning when it cannot write it, while
+        // target/ keeps the classes of earlier runs (the next run would find nothing to compile). Start from an empty
+        // output directory so the assertion reads this run's file.
+        FileUtils.deleteDirectory(compilerMojo.getOutputDirectory());
         Path jpmsArgs = compilerMojo.getOutputDirectory().toPath().resolve("META-INF/jpms.args");
-        Files.deleteIfExists(jpmsArgs);
 
         compilerMojo.execute();
 
-        assertEquals(Arrays.asList("--add-exports", "app/org.maven.test=ALL_UNNAMED"), Files.readAllLines(jpmsArgs));
+        assertEquals(Arrays.asList("--add-exports", "app/org.maven.test=ALL-UNNAMED"), Files.readAllLines(jpmsArgs));
     }
 
     private void setUpCompilerMojoTestEnv(CompilerMojo mojo) throws Exception {
