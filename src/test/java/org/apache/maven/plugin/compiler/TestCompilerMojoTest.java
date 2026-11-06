@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -219,13 +220,23 @@ class TestCompilerMojoTest {
                 Arrays.asList(fixture.resolve("src/test/java").toString()));
         setVariableValueToObject(testCompilerMojo, "testPath", Arrays.asList(mainClasses.toString()));
 
-        // The mojo only logs a warning when it cannot write jpms.args, and target/ keeps the file of earlier runs.
-        // Delete it so the assertion cannot pass on a stale file.
-        Path jpmsArgs = testCompilerMojo.getOutputDirectory().toPath().resolve("META-INF/jpms.args");
-        Files.deleteIfExists(jpmsArgs);
+        // The mojo only writes jpms.args when it compiles, and only logs a warning when it cannot write it, while
+        // target/ keeps the classes of earlier runs (the next run would find nothing to compile). Start from an empty
+        // output directory so the assertion reads this run's file.
+        Path output = testCompilerMojo.getOutputDirectory().toPath();
+        if (Files.exists(output)) {
+            try (Stream<Path> paths = Files.walk(output)) {
+                for (Path path : (Iterable<Path>) paths.sorted(Comparator.reverseOrder())::iterator) {
+                    Files.delete(path);
+                }
+            }
+        }
+        Path jpmsArgs = output.resolve("META-INF/jpms.args");
 
         testCompilerMojo.execute();
 
+        assertTrue(Files.exists(output.resolve("org/maven/test/MainTest.class")), "the test sources were not compiled");
+        assertTrue(Files.exists(jpmsArgs), "the test sources were compiled, but META-INF/jpms.args was not written");
         assertEquals(
                 Arrays.asList("--patch-module", "app=_", "--add-reads", "app=ALL-UNNAMED"),
                 Files.readAllLines(jpmsArgs));
