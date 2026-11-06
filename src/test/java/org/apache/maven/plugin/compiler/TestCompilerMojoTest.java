@@ -50,6 +50,7 @@ import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @MojoTest
 class TestCompilerMojoTest {
@@ -195,6 +196,7 @@ class TestCompilerMojoTest {
                 .getParent();
         Path mainSources = fixture.resolve("src/main/java");
         JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
+        assumeTrue(javac != null, "needs the JDK's system Java compiler");
         assertEquals(
                 0,
                 javac.run(
