@@ -18,11 +18,15 @@
  */
 package org.apache.maven.plugin.compiler;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -31,7 +35,10 @@ import java.util.stream.Stream;
 import org.apache.maven.api.plugin.testing.InjectMojo;
 import org.apache.maven.api.plugin.testing.MojoTest;
 import org.apache.maven.plugin.compiler.stubs.CompilerManagerStub;
+import org.apache.maven.project.MavenProject;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledForJreRange;
+import org.junit.jupiter.api.condition.JRE;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -44,6 +51,7 @@ import static org.apache.maven.plugin.compiler.MojoTestUtils.getMockMavenSession
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @MojoTest
 class TestCompilerMojoTest {
@@ -170,6 +178,68 @@ class TestCompilerMojoTest {
 
         File testClass = new File(testCompilerMojo.getOutputDirectory(), "foo/TestSkipTestCompile0Test.class");
         assertFalse(testClass.exists());
+    }
+
+    /**
+     * Tests that test sources of a module are compiled as a patch of the main module: the mojo records
+     * {@code --patch-module} and {@code --add-reads} in {@code META-INF/jpms.args}.
+     */
+    @Test
+    @EnabledForJreRange(min = JRE.JAVA_9)
+    @InjectMojo(goal = TEST_COMPILE, pom = "classpath:/unit/compiler-jpms-patch-module/plugin-config.xml")
+    void testJpmsPatchModule(TestCompilerMojo testCompilerMojo, @TempDir Path mainClasses) throws Exception {
+        setUpCompilerMojoTestEnv(testCompilerMojo);
+
+        // the test mojo reads the main module descriptor from the compiled main classes
+        Path fixture = Paths.get(testCompilerMojo.getCompileSourceRoots().get(0))
+                .getParent()
+                .getParent()
+                .getParent();
+        Path mainSources = fixture.resolve("src/main/java");
+        JavaCompiler javac = ToolProvider.getSystemJavaCompiler();
+        assumeTrue(javac != null, "needs the JDK's system Java compiler");
+        assertEquals(
+                0,
+                javac.run(
+                        null,
+                        null,
+                        null,
+                        "--release",
+                        "9",
+                        "-d",
+                        mainClasses.toString(),
+                        mainSources.resolve("module-info.java").toString(),
+                        mainSources.resolve("org/maven/test/Main.java").toString()));
+
+        MavenProject project = getMockMavenProject();
+        project.getBuild().setOutputDirectory(mainClasses.toString());
+        setVariableValueToObject(testCompilerMojo, "project", project);
+        setVariableValueToObject(
+                testCompilerMojo,
+                "compileSourceRoots",
+                Arrays.asList(fixture.resolve("src/test/java").toString()));
+        setVariableValueToObject(testCompilerMojo, "testPath", Arrays.asList(mainClasses.toString()));
+
+        // The mojo only writes jpms.args when it compiles, and only logs a warning when it cannot write it, while
+        // target/ keeps the classes of earlier runs (the next run would find nothing to compile). Start from an empty
+        // output directory so the assertion reads this run's file.
+        Path output = testCompilerMojo.getOutputDirectory().toPath();
+        if (Files.exists(output)) {
+            try (Stream<Path> paths = Files.walk(output)) {
+                for (Path path : (Iterable<Path>) paths.sorted(Comparator.reverseOrder())::iterator) {
+                    Files.delete(path);
+                }
+            }
+        }
+        Path jpmsArgs = output.resolve("META-INF/jpms.args");
+
+        testCompilerMojo.execute();
+
+        assertTrue(Files.exists(output.resolve("org/maven/test/MainTest.class")), "the test sources were not compiled");
+        assertTrue(Files.exists(jpmsArgs), "the test sources were compiled, but META-INF/jpms.args was not written");
+        assertEquals(
+                Arrays.asList("--patch-module", "app=_", "--add-reads", "app=ALL-UNNAMED"),
+                Files.readAllLines(jpmsArgs));
     }
 
     private void setUpCompilerMojoTestEnv(TestCompilerMojo mojo) throws Exception {
