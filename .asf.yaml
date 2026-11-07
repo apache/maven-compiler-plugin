@@ -64,8 +64,8 @@ project:
     announce_release_template_url: https://maven.apache.org/atr/templates/announce_release_template.txt
     start_vote_template_url: https://maven.apache.org/atr/templates/start_vote_template.txt
     finish_vote_template_url: https://maven.apache.org/atr/templates/finish_vote_template.txt
-    github_repository_name: maven-compiler-plugin
     download_path_suffix: plugins
+    auto_archive_prior_release: true
     vote_recipients:
       to: dev@maven.apache.org
     announce_recipients:
@@ -75,3 +75,4 @@ project:
         - users@maven.apache.org
   features:
     atr_sync: true
+    atr_sync_mode: full
