@@ -58,7 +58,6 @@ import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.shared.utils.logging.MessageBuilder;
 import org.apache.maven.shared.utils.logging.MessageUtils;
 import org.apache.maven.toolchain.Toolchain;
@@ -78,6 +77,7 @@ import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.version.JavaVersion;
+import org.codehaus.plexus.util.StringUtils;
 import org.eclipse.aether.RepositorySystem;
 import org.eclipse.aether.artifact.Artifact;
 import org.eclipse.aether.artifact.ArtifactTypeRegistry;
@@ -1251,7 +1251,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
         // Compile!
         // ----------------------------------------------------------------------
 
-        if (StringUtils.isEmpty(compilerConfiguration.getSourceEncoding())) {
+        if (StringUtils.isBlank(compilerConfiguration.getSourceEncoding())) {
             getLog().warn("File encoding has not been set, using platform encoding "
                     + MessageUtils.buffer().strong(Charset.defaultCharset())
                     + ", i.e. build is platform dependent!");

@@ -39,7 +39,6 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
-import org.apache.maven.shared.utils.StringUtils;
 import org.apache.maven.toolchain.Toolchain;
 import org.apache.maven.toolchain.java.JavaToolchainImpl;
 import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
@@ -49,6 +48,7 @@ import org.codehaus.plexus.languages.java.jpms.JavaModuleDescriptor;
 import org.codehaus.plexus.languages.java.jpms.LocationManager;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsRequest;
 import org.codehaus.plexus.languages.java.jpms.ResolvePathsResult;
+import org.codehaus.plexus.util.StringUtils;
 
 /**
  * Compiles application test sources.
