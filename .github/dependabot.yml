@@ -41,6 +41,13 @@ updates:
         versions: [">= 3.10.0"]
       - dependency-name: "org.apache.maven:maven-plugin-api"
         versions: [">= 3.10.0"]
+      # Baseline is Maven 3.9 with Resolver 1.9; Maven 3.10 pulls Resolver 2.x.
+      # Excludes the Maven artifacts this plugin uses.
+      - dependency-name: "org.apache.maven:maven-model"
+        versions: [">= 3.10.0"]
+      # Resolver 2.x is not part of the Maven 3.9 baseline.
+      - dependency-name: "org.apache.maven.resolver:*"
+        versions: [">= 2.0.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
