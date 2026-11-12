@@ -249,9 +249,9 @@ public class CompilerMojoTestCase {
     @Test
     public void testCompilerProcOnlyRespectsExplicitIncrementalCompilation() {
         CompilerMojo compileMojo = new CompilerMojo();
-        compileMojo.incrementalCompilation = "classes";
+        compileMojo.rebuildStrategy = "classes";
         EnumSet<IncrementalBuild.Aspect> aspects = EnumSet.of(IncrementalBuild.Aspect.CLASSES);
-        compileMojo.amendincrementalCompilation(aspects, Set.of(JavaPathType.PROCESSOR_CLASSES));
+        compileMojo.amendRebuildStrategy(aspects, Set.of(JavaPathType.PROCESSOR_CLASSES));
         assertEquals(EnumSet.of(IncrementalBuild.Aspect.CLASSES), aspects);
     }
 

@@ -29,7 +29,7 @@
             <compileSourceRoot>${project.basedir}/src/main/java</compileSourceRoot>
           </compileSourceRoots>
           <release>17</release>
-          <incrementalCompilation>classes</incrementalCompilation>
+          <rebuildStrategy>classes</rebuildStrategy>
         </configuration>
       </plugin>
     </plugins>

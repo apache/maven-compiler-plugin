@@ -51,7 +51,7 @@ final class IncrementalBuild {
     /**
      * Elements to take in consideration when deciding whether to recompile a file.
      *
-     * @see AbstractCompilerMojo#incrementalCompilation
+     * @see AbstractCompilerMojo#rebuildStrategy
      */
     enum Aspect {
         /**
