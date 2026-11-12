@@ -25,6 +25,10 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
   <artifactId>annotation-processor</artifactId>
+  <properties>
+    <!-- The service descriptor is copied before this module compiles its provider. -->
+    <maven.compiler.proc>none</maven.compiler.proc>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.maven.plugins.compiler.it</groupId>
