@@ -139,6 +139,29 @@ class IncrementalBuildHelperTest {
     }
 
     @Test
+    void forgetFilesFromPreviousExecutionDeletesStaleOutputAndClearsStatus() throws Exception {
+        // MCOMPILER-443: simulate a previous execution that compiled Foo.java, then had its sources removed.
+        Files.createDirectories(outputDirectory);
+        Files.write(outputDirectory.resolve("Foo.class"), new byte[0]);
+        Path statusDirectory = helper.getMojoStatusDirectory().toPath();
+        Files.write(
+                statusDirectory.resolve(IncrementalBuildHelper.CREATED_FILES_LST_FILENAME),
+                "Foo.class\n".getBytes(Charset.defaultCharset()));
+        Files.write(
+                statusDirectory.resolve("inputFiles.lst"),
+                basedir.resolve("Foo.java").toString().getBytes(Charset.defaultCharset()));
+
+        helper.forgetFilesFromPreviousExecution(outputDirectory.toFile());
+
+        assertFalse(Files.exists(outputDirectory.resolve("Foo.class")));
+        assertEquals(
+                Collections.emptyList(),
+                Files.readAllLines(statusDirectory.resolve(IncrementalBuildHelper.CREATED_FILES_LST_FILENAME)));
+        // the input file tree is empty too now, or the next build with sources would see Foo.java as unchanged
+        assertEquals(Collections.emptyList(), Files.readAllLines(statusDirectory.resolve("inputFiles.lst")));
+    }
+
+    @Test
     void toleratesAMissingOutputDirectory() throws Exception {
         IncrementalBuildHelperRequest request =
                 new IncrementalBuildHelperRequest().outputDirectory(outputDirectory.toFile());
