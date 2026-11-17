@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
 import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
 import org.junit.jupiter.api.Test;
 
@@ -49,7 +48,7 @@ class CompilationOutputRegistryTest {
     private final Set<Path> outputs = Collections.singleton(OUTPUT);
 
     @Test
-    void shouldMapSourceAgainstMostSpecificRoot() throws InclusionScanException {
+    void shouldMapSourceAgainstMostSpecificRoot() throws Exception {
         Path sourceRoot = Paths.get("src").toAbsolutePath().normalize();
         Path nestedSourceRoot = sourceRoot.resolve("main/java");
         Path outputDirectory = Paths.get("target/classes").toAbsolutePath().normalize();
