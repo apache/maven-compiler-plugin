@@ -42,26 +42,32 @@ public class CompilerStub implements org.codehaus.plexus.compiler.Compiler {
         this.shouldFail = shouldFail;
     }
 
+    @Override
     public CompilerOutputStyle getCompilerOutputStyle() {
         return CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES;
     }
 
+    @Override
     public String getInputFileEnding(CompilerConfiguration compilerConfiguration) {
         return "java";
     }
 
+    @Override
     public String getOutputFileEnding(CompilerConfiguration compilerConfiguration) {
         return "class";
     }
 
+    @Override
     public String getOutputFile(CompilerConfiguration compilerConfiguration) {
         return "output-file";
     }
 
+    @Override
     public boolean canUpdateTarget(CompilerConfiguration compilerConfiguration) {
         return false;
     }
 
+    @Override
     public CompilerResult performCompile(CompilerConfiguration compilerConfiguration) throws CompilerException {
         File outputDir = new File(compilerConfiguration.getOutputLocation());
 
@@ -80,6 +86,7 @@ public class CompilerStub implements org.codehaus.plexus.compiler.Compiler {
                 !shouldFail, Collections.singletonList(new CompilerMessage("message 1", CompilerMessage.Kind.OTHER)));
     }
 
+    @Override
     public String[] createCommandLine(CompilerConfiguration compilerConfiguration) {
         return new String[0];
     }
