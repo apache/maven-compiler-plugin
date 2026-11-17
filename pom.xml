@@ -17,8 +17,8 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+  <modelVersion>4.1.0</modelVersion>
 
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
@@ -165,6 +165,17 @@ under the License.
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <!--
+            Use the last published 4.x version to compile ourselves: this is required so that
+            Maven can process the <sources> DSL (targetVersion per source directory) introduced
+            in model version 4.1.0. The 3.x compiler plugin does not understand this DSL and
+            would compile all source directories together with a single -release flag.
+          -->
+          <version>4.0.0-beta-5</version>
+        </plugin>
+        <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
           <configuration>
@@ -218,7 +229,7 @@ under the License.
                 <requireJavaVersion>
                   <!--
                     Building this plugin requires JDK 25+ so that the java.lang.classfile
-                    classes in src/main/java24/ can always be compiled (with release=24).
+                    classes in src/main/java24/ can always be compiled with -release 24.
                     The compiled plugin JAR targets JDK 17 for main sources and JDK 24
                     for the classfile-backed bytecode analyzer, and runs on any JVM >= 17.
                   -->
@@ -229,47 +240,27 @@ under the License.
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <executions>
-          <execution>
-            <!--
-              Compile the java.lang.classfile-based bytecode analyzer (JDK 24+ API)
-              into META-INF/versions/24/ to form a proper multi-release JAR.
-              On JDK 24+, the JVM automatically loads the versioned BytecodeAnalyzer
-              which delegates directly to ClassfileClassAnalyzer (no reflection needed).
-              On JDK < 24, the root BytecodeAnalyzer stub is loaded instead, which
-              reports isAvailable()=false and triggers a fallback to the timestamp strategy.
-              JDK 25 is required at build time so this execution always runs.
-            -->
-            <id>compile-java24</id>
-            <goals>
-              <goal>compile</goal>
-            </goals>
-            <phase>compile</phase>
-            <configuration>
-              <compileSourceRoots>
-                <compileSourceRoot>${project.basedir}/src/main/java24</compileSourceRoot>
-              </compileSourceRoots>
-              <release>24</release>
-              <outputDirectory>${project.build.outputDirectory}/META-INF/versions/24</outputDirectory>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <configuration>
-          <archive>
-            <manifestEntries>
-              <Multi-Release>true</Multi-Release>
-            </manifestEntries>
-          </archive>
-        </configuration>
-      </plugin>
     </plugins>
+    <sources>
+      <!--
+        Main sources target JDK 17 (the minimum runtime version).
+        The JDK 24+ bytecode analyzer override is compiled separately into
+        META-INF/versions/24/ to form a proper multi-release JAR.
+        On JDK 24+, the JVM automatically loads the versioned BytecodeAnalyzer
+        which delegates directly to ClassfileClassAnalyzer (no reflection needed).
+        On JDK < 24, the root BytecodeAnalyzer stub is loaded instead, which
+        reports isAvailable()=false and triggers a fallback to the timestamp strategy.
+        JDK 25 is required at build time so the java.lang.classfile API is always available.
+      -->
+      <source>
+        <directory>src/main/java</directory>
+        <targetVersion>17</targetVersion>
+      </source>
+      <source>
+        <directory>src/main/java24</directory>
+        <targetVersion>24</targetVersion>
+      </source>
+    </sources>
   </build>
 
   <profiles>
