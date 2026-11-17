@@ -34,6 +34,7 @@ public class CompilerManagerStub implements CompilerManager {
         this.shouldFail = shouldFail;
     }
 
+    @Override
     public org.codehaus.plexus.compiler.Compiler getCompiler(String compilerId) {
         return new CompilerStub(shouldFail);
     }

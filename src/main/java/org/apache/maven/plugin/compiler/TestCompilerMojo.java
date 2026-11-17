@@ -207,6 +207,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
 
     private Collection<String> modulepathElements;
 
+    @Override
     public void execute() throws MojoExecutionException, CompilationFailureException {
         if (skip) {
             getLog().info("Not compiling test sources");
@@ -215,6 +216,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         super.execute();
     }
 
+    @Override
     protected List<String> getCompileSourceRoots() {
         return compileSourceRoots;
     }
@@ -224,6 +226,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return pathElements;
     }
 
+    @Override
     protected List<String> getClasspathElements() {
         return new ArrayList<>(classpathElements);
     }
@@ -233,6 +236,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return new ArrayList<>(modulepathElements);
     }
 
+    @Override
     protected File getOutputDirectory() {
         return outputDirectory;
     }
@@ -450,6 +454,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         compilerArgs.add(moduleName + '=' + patchPath);
     }
 
+    @Override
     protected SourceInclusionScanner getSourceInclusionScanner(int staleMillis) {
         SourceInclusionScanner scanner;
 
@@ -467,6 +472,7 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return scanner;
     }
 
+    @Override
     protected SourceInclusionScanner getSourceInclusionScanner(String inputFileEnding) {
         SourceInclusionScanner scanner;
 
@@ -492,10 +498,12 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return getJavaMajorVersion(version) < 9;
     }
 
+    @Override
     protected String getSource() {
         return testSource == null ? source : testSource;
     }
 
+    @Override
     protected String getTarget() {
         return testTarget == null ? target : testTarget;
     }
@@ -505,15 +513,18 @@ public class TestCompilerMojo extends AbstractCompilerMojo {
         return testRelease == null ? release : testRelease;
     }
 
+    @Override
     protected String getCompilerArgument() {
         return testCompilerArgument == null ? compilerArgument : testCompilerArgument;
     }
 
+    @Override
     @SuppressWarnings("deprecation")
     protected Map<String, String> getCompilerArguments() {
         return testCompilerArguments == null ? compilerArguments : testCompilerArguments;
     }
 
+    @Override
     protected File getGeneratedSourcesDirectory() {
         return generatedTestSourcesDirectory;
     }
