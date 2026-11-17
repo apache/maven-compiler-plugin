@@ -44,9 +44,9 @@ import static org.mockito.Mockito.mock;
 /**
  * Tests for {@link ByteCodeTransformer#patchJdkModuleVersion}.
  *
- * <p>On JDK 24+, surefire prepends {@code META-INF/versions/24/} on the test classpath,
- * so this test exercises the {@code java.lang.classfile}-backed implementation.
- * On JDK 17-23, it exercises the ASM fallback.
+ * <p>Surefire prepends {@code META-INF/versions/24/} on the test classpath so that this test
+ * exercises the {@code java.lang.classfile}-backed implementation (the build enforcer requires
+ * JDK 25+, so the ASM fallback is never reached during the build).
  *
  * @see <a href="https://issues.apache.org/jira/browse/MCOMPILER-542">MCOMPILER-542</a>
  */
@@ -69,7 +69,7 @@ class ByteCodeTransformerTest {
         byte[] result = ByteCodeTransformer.patchJdkModuleVersion(bytes, "21", LOG);
         // javac on JDK 21+ emits requires version attributes for jdk modules.
         // On JDK 25+ the compiler always emits requires version attributes
-        assertNotNull(result, "javac on JDK 25+ should emit requires version attributes");
+        assertNotNull(result, "patchJdkModuleVersion returned null — expected non-null result when javac emits requires version attributes for java.*/jdk.* platform modules");
         assertTrue(result.length > 0, "Patched result must be non-empty");
         Map<String, String> versions = readRequiresVersions(result);
         for (Map.Entry<String, String> entry : versions.entrySet()) {
@@ -99,6 +99,9 @@ class ByteCodeTransformerTest {
     @Test
     void doesNotThrowOnEmptyModule(@TempDir Path tempDir) throws Exception {
         byte[] bytes = compileModuleInfo(tempDir, "empty", "module com.example { }");
+        // For an empty module, javac may or may not emit requires version attributes for
+        // the implicit java.base dependency — either outcome is acceptable; we only verify
+        // that no exception is thrown during transformation.
         ByteCodeTransformer.patchJdkModuleVersion(bytes, "21", LOG);
     }
 
