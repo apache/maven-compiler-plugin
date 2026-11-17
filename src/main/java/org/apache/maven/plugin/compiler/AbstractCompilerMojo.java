@@ -969,9 +969,9 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 incrementalBuildHelperRequest = new IncrementalBuildHelperRequest().inputFiles(sources);
 
                 // Strategies used to detect modifications.
-                String immutableOutputFile = (compiler.getCompilerOutputStyle()
+                String immutableOutputFile = compiler.getCompilerOutputStyle()
                                         .equals(CompilerOutputStyle.ONE_OUTPUT_FILE_FOR_ALL_INPUT_FILES)
-                                && !canUpdateTarget)
+                                && !canUpdateTarget
                         ? "immutable single output file"
                         : null;
                 String dependencyChanged = null;
@@ -1350,7 +1350,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 for (CompilerMessage warning : warnings) {
                     getLog().warn(warning.toString());
                 }
-                getLog().info(warnings.size() + ((warnings.size() > 1) ? " warnings " : " warning"));
+                getLog().info(warnings.size() + (warnings.size() > 1 ? " warnings " : " warning"));
                 getLog().info("-------------------------------------------------------------");
             }
 
@@ -1361,7 +1361,7 @@ public abstract class AbstractCompilerMojo extends AbstractMojo {
                 for (CompilerMessage error : errors) {
                     getLog().error(error.toString());
                 }
-                getLog().info(errors.size() + ((errors.size() > 1) ? " errors " : " error"));
+                getLog().info(errors.size() + (errors.size() > 1 ? " errors " : " error"));
                 getLog().info("-------------------------------------------------------------");
             }
 
