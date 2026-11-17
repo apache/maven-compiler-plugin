@@ -231,7 +231,7 @@ under the License.
                     Building this plugin requires JDK 25+ so that the java.lang.classfile
                     classes in src/main/java24/ can always be compiled with -release 24.
                     The compiled plugin JAR targets JDK 17 for main sources and JDK 24
-                    for the classfile-backed bytecode analyzer, and runs on any JVM >= 17.
+                    for the classfile-backed ByteCodeTransformer, and runs on any JVM >= 17.
                   -->
                   <version>[25,)</version>
                 </requireJavaVersion>
