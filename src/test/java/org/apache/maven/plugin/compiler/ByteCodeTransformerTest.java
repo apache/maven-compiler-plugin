@@ -69,7 +69,9 @@ class ByteCodeTransformerTest {
         byte[] result = ByteCodeTransformer.patchJdkModuleVersion(bytes, "21", LOG);
         // javac on JDK 21+ emits requires version attributes for jdk modules.
         // On JDK 25+ the compiler always emits requires version attributes
-        assertNotNull(result, "patchJdkModuleVersion returned null — expected non-null result when javac emits requires version attributes for java.*/jdk.* platform modules");
+        assertNotNull(
+                result,
+                "patchJdkModuleVersion returned null — expected non-null result when javac emits requires version attributes for java.*/jdk.* platform modules");
         assertTrue(result.length > 0, "Patched result must be non-empty");
         Map<String, String> versions = readRequiresVersions(result);
         for (Map.Entry<String, String> entry : versions.entrySet()) {
