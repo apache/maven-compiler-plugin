@@ -305,7 +305,6 @@ class CompilerMojoTest {
 
         try {
             compilerMojo.execute();
-            assertTrue(true);
         } catch (CompilationFailureException e) {
             fail("The compilation error should have been consumed because failOnError = false");
         }
