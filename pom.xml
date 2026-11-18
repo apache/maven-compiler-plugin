@@ -17,8 +17,8 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" root="true" xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+  <modelVersion>4.1.0</modelVersion>
 
   <parent>
     <groupId>org.apache.maven.plugins</groupId>
@@ -169,6 +169,17 @@ under the License.
     <pluginManagement>
       <plugins>
         <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <!--
+            Use the last published 4.x version to compile ourselves: this is required so that
+            Maven can process the <sources> DSL (targetVersion per source directory) introduced
+            in model version 4.1.0. The 3.x compiler plugin does not understand this DSL and
+            would compile all source directories together with a single -release flag.
+          -->
+          <version>4.0.0-beta-5</version>
+        </plugin>
+        <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
           <configuration>
@@ -186,16 +197,89 @@ under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <configuration>
+            <!--
+              Restrict javadoc to src/main/java only.
+              The src/main/java24 sources are a MR-JAR override for java.lang.classfile
+              and duplicate the same public API already documented from src/main/java.
+              Including them would cause javadoc to fail because the classfile API
+              requires the -release 24 flag / module access that the site reporting phase
+              does not provide.
+            -->
+            <sourcepath>${project.basedir}/src/main/java</sourcepath>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
             <excludes>
               <exclude>unit/**</exclude>
             </excludes>
+            <!--
+              Tests run against the exploded classes directory, not the packaged JAR.
+              The JVM's multi-release JAR dispatch does not apply to directories, so
+              the JDK 24+ ByteCodeTransformer override must be placed before the root stub
+              on the classpath. We prepend META-INF/versions/24/ via the classesDirectory parameter
+              so it is resolved before target/classes/ by the bootstrap class loader.
+            -->
+            <classesDirectory>${project.build.outputDirectory}/META-INF/versions/24</classesDirectory>
+            <additionalClasspathElements>
+              <additionalClasspathElement>${project.build.outputDirectory}</additionalClasspathElement>
+            </additionalClasspathElements>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce-java-build-version</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <!--
+                    Building this plugin requires JDK 25+ so that the java.lang.classfile
+                    classes in src/main/java24/ can always be compiled with -release 24.
+                    The compiled plugin JAR targets JDK 17 for main sources and JDK 24
+                    for the classfile-backed ByteCodeTransformer, and runs on any JVM >= 17.
+                  -->
+                  <version>[25,)</version>
+                </requireJavaVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+    <sources>
+      <!--
+        Main sources target JDK 17 (the minimum runtime version).
+        The JDK 24+ ByteCodeTransformer override is compiled separately into
+        META-INF/versions/24/ to form a proper multi-release JAR.
+        On JDK 24+, the JVM automatically loads the versioned ByteCodeTransformer
+        which uses java.lang.classfile directly (no ASM dependency).
+        On JDK 17-23, the root ByteCodeTransformer implementation is loaded instead,
+        which uses ASM to patch module-info class files.
+        JDK 25 is required at build time so the java.lang.classfile API is always available.
+      -->
+      <source>
+        <directory>src/main/java</directory>
+        <targetVersion>17</targetVersion>
+      </source>
+      <source>
+        <directory>src/main/java24</directory>
+        <targetVersion>24</targetVersion>
+      </source>
+    </sources>
   </build>
 
   <profiles>
