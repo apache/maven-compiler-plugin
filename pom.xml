@@ -193,6 +193,21 @@ under the License.
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <configuration>
+            <!--
+              Restrict javadoc to src/main/java only.
+              The src/main/java24 sources are a MR-JAR override for java.lang.classfile
+              and duplicate the same public API already documented from src/main/java.
+              Including them would cause javadoc to fail because the classfile API
+              requires --release 24 / module access that the site reporting phase
+              does not provide.
+            -->
+            <sourcepath>${project.basedir}/src/main/java</sourcepath>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <configuration>
             <redirectTestOutputToFile>true</redirectTestOutputToFile>
