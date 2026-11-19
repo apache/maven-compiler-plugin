@@ -1,0 +1,30 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+assert new File(basedir, 'module-a/target/classes/sample/a/Api.class').isFile()
+assert new File(basedir, 'module-a/target/classes/META-INF/versions/9/module-info.class').isFile()
+// Read the version from the forked build, which may use a different JDK than this verifier.
+def javaVersion = new Properties()
+new File(basedir, 'module-a/target/classes/java-version.properties').withInputStream {
+    javaVersion.load(it)
+}
+def hasJava17Descriptor = new File(basedir, 'module-a/target/classes/META-INF/versions/17/module-info.class').isFile()
+assert hasJava17Descriptor == (javaVersion.getProperty('java.specification.version').toInteger() >= 17)
+assert new File(basedir, 'module-b/target/classes/sample/b/UseApi.class').isFile()
+assert new File(basedir, 'module-b/target/classes/module-info.class').isFile()
