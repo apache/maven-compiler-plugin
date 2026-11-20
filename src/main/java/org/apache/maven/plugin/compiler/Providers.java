@@ -20,6 +20,7 @@ package org.apache.maven.plugin.compiler;
 
 import org.apache.maven.api.Session;
 import org.apache.maven.api.di.Named;
+import org.apache.maven.api.di.Priority;
 import org.apache.maven.api.di.Provides;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
@@ -33,6 +34,7 @@ import org.apache.maven.api.services.ToolchainManager;
 class Providers {
 
     @Provides
+    @Priority(-10)
     static ToolchainManager toolchainManager(Session session) {
         return session.getService(ToolchainManager.class);
     }
