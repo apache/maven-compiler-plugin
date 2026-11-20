@@ -50,7 +50,7 @@ import java.util.Set;
 
 import org.apache.maven.api.JavaPathType;
 import org.apache.maven.api.PathType;
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.services.DependencyResolverResult;
 import org.apache.maven.api.services.MavenException;
@@ -197,7 +197,7 @@ public class ToolExecutor {
      *
      * @see AbstractCompilerMojo#logger
      */
-    protected final Log logger;
+    protected final Logger logger;
 
     /**
      * The sources to write in the {@code target/javac.args} debug files.
@@ -407,9 +407,9 @@ public class ToolExecutor {
                     }
                     sb.append('.');
                     if (incrementalBuild.showCompilationChanges) {
-                        logger.info(sb);
+                        logger.info(sb.toString());
                     } else {
-                        logger.debug(sb);
+                        logger.debug(sb.toString());
                     }
                 }
             }
@@ -512,7 +512,7 @@ public class ToolExecutor {
             for (Path p : unresolvedPaths) {
                 sb.append(System.lineSeparator()).append(" - ").append(p);
             }
-            logger.warn(sb);
+            logger.warn(sb.toString());
         }
     }
 
@@ -599,7 +599,7 @@ public class ToolExecutor {
             for (SourceFile file : sourceFiles) {
                 sb.append(System.lineSeparator()).append("    ").append(file);
             }
-            logger.debug(sb);
+            logger.debug(sb.toString());
         }
         return false;
     }
