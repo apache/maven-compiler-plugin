@@ -217,7 +217,7 @@ class ToolExecutorForTest extends ToolExecutor {
                 try {
                     version = SourceDirectory.parse(path.getFileName().toString());
                 } catch (UnsupportedVersionException e) {
-                    logger.debug(e);
+                    logger.atDebug().withThrowable(e).log("");
                     continue;
                 }
                 addModuleDirectories(path, version, patchedModules);

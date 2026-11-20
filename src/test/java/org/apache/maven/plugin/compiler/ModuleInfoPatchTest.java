@@ -26,7 +26,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringWriter;
 
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -50,7 +50,7 @@ public class ModuleInfoPatchTest implements OptionChecker {
                 new InputStreamReader(ModuleInfoPatchTest.class.getResourceAsStream("module-info-patch.maven"))) {
             info.load(r);
         }
-        var config = new Options(this, Mockito.mock(Log.class));
+        var config = new Options(this, Mockito.mock(Logger.class));
         var out = new StringWriter();
         try (var buffered = new BufferedWriter(out)) {
             info.writeTo(config, buffered);

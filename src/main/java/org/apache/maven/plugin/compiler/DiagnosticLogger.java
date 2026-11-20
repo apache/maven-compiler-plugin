@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 import org.apache.maven.api.services.MessageBuilder;
 import org.apache.maven.api.services.MessageBuilderFactory;
 
@@ -44,7 +44,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
     /**
      * The logger where to send diagnostics.
      */
-    private final Log logger;
+    private final Logger logger;
 
     /**
      * The factory for creating message builders.
@@ -87,7 +87,7 @@ final class DiagnosticLogger implements DiagnosticListener<JavaFileObject> {
      * @param locale the locale for compiler message
      * @param directory the base directory with which to relativize the paths to source files
      */
-    DiagnosticLogger(Log logger, MessageBuilderFactory messageBuilderFactory, Locale locale, Path directory) {
+    DiagnosticLogger(Logger logger, MessageBuilderFactory messageBuilderFactory, Locale locale, Path directory) {
         this.logger = logger;
         this.messageBuilderFactory = messageBuilderFactory;
         this.locale = locale;
