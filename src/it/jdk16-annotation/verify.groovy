@@ -17,30 +17,8 @@
  * under the License.
  */
 
-import java.io.*;
-import java.util.*;
-import java.util.regex.*;
+File res = new File( basedir, "target/test-classes/META-INF/one" );
+assert res.isFile() : "generated resource not existent: " + res
 
-try
-{
-    File res = new File( basedir, "target/test-classes/META-INF/one" );
-    if ( !res.isFile() )
-    {
-        System.out.println( "generated resource not existent: " + res );
-        return false;
-    }
-    File java = new File( basedir, "target/generated-test-sources/test-annotations/org/Milos.java" );
-    if ( !java.isFile() )
-    {
-        System.out.println( "generated java file not existent: " + java );
-        return false;
-    }
-
-}
-catch( Throwable t )
-{
-    t.printStackTrace();
-    return false;
-}
-
-return true;
+File java = new File( basedir, "target/generated-test-sources/test-annotations/org/Milos.java" );
+assert java.isFile() : "generated java file not existent: " + java

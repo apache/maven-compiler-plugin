@@ -38,7 +38,5 @@ println "Jenkins: causedByExpected:${causedByExpected} twoFilesBeingCompiled:${t
 // We need to combine different identification to handle differences between OS's and JDK's.
 def finalResult = twoFilesBeingCompiled && checkResult && causedByExpected && compilationFailure1 && compilationFailure2
 
-if ( !finalResult ) { 
-  throw new RuntimeException( "log does not contain expected result to be failed but <startLog>" + content + "</startLog>")
-}
+assert finalResult : "log does not contain expected result to be failed but <startLog>" + content + "</startLog>"
 
