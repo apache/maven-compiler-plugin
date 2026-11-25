@@ -21,3 +21,6 @@ File target = new File( basedir, "target" );
 assert target.isDirectory()
 
 assert new File( target, "classes/KotlinService.class" ).exists();
+assert new File( target, "classes/JavaService.class" ).exists();
+assert new File( target, "test-classes/KotlinTestHelper.class" ).exists();
+assert new File( target, "test-classes/JavaTestHelper.class" ).exists();
