@@ -32,52 +32,50 @@ def javaVersion = System.getProperty('java.specification.version') as Double
 
 System.out.println("javaVersion: ${javaVersion}")
 if (javaVersion >= 9) {
-	assert mrjar.manifest.mainAttributes.getValue('Multi-Release') == 'true'
-	
-	assert (je = mrjar.getEntry('META-INF/versions/9/mr/A.class')) != null
-	assert 53 == getMajor(mrjar.getInputStream(je))
-	assert (je = mrjar.getEntry('META-INF/versions/9/module-info.class')) != null
-	assert 53 == getMajor(mrjar.getInputStream(je))
+    assert mrjar.manifest.mainAttributes.getValue('Multi-Release') == 'true'
+
+    assert (je = mrjar.getEntry('META-INF/versions/9/mr/A.class')) != null
+    assert 53 == getMajor(mrjar.getInputStream(je))
+    assert (je = mrjar.getEntry('META-INF/versions/9/module-info.class')) != null
+    assert 53 == getMajor(mrjar.getInputStream(je))
 }
 
 /*
-  base
-  base/Base.class
-  mr
-  mr/A.class
-  mr/I.class
-  META-INF
-  META-INF/MANFEST.MF
-  META-INF/versions
-  META-INF/versions/9
-  META-INF/versions/9/mr
-  META-INF/versions/9/mr/A.class
-  META-INF/versions/9/module-info.class
-  META-INF/maven
-  META-INF/maven/multirelease
-  META-INF/maven/multirelease/multirelease
-  META-INF/maven/multirelease/multirelease/pom.xml
-  META-INF/maven/multirelease/multirelease/pom.properties
-*/
-if ( javaVersion >= 9 ) {
-  assert mrjar.entries().size() == 17
+ base
+ base/Base.class
+ mr
+ mr/A.class
+ mr/I.class
+ META-INF
+ META-INF/MANFEST.MF
+ META-INF/versions
+ META-INF/versions/9
+ META-INF/versions/9/mr
+ META-INF/versions/9/mr/A.class
+ META-INF/versions/9/module-info.class
+ META-INF/maven
+ META-INF/maven/multirelease
+ META-INF/maven/multirelease/multirelease
+ META-INF/maven/multirelease/multirelease/pom.xml
+ META-INF/maven/multirelease/multirelease/pom.properties
+ */
+if (javaVersion >= 9) {
+    assert mrjar.entries().size() == 17
 }
 else {
-  assert mrjar.entries().size() == 12
+    assert mrjar.entries().size() == 12
 }
 
-int getMajor(InputStream is)
-{
-  def dis = new DataInputStream(is)
-  final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
-  if (!firstFourBytes.equalsIgnoreCase("cafebabe"))
-  {
-    throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
-  }
-  final int minorVersion = dis.readUnsignedShort()
-  final int majorVersion = dis.readUnsignedShort()
+int getMajor(InputStream is) {
+    def dis = new DataInputStream(is)
+    final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
+    if (!firstFourBytes.equalsIgnoreCase("cafebabe")) {
+        throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
+    }
+    final int minorVersion = dis.readUnsignedShort()
+    final int majorVersion = dis.readUnsignedShort()
 
-  is.close();
-  return majorVersion;
+    is.close()
+    return majorVersion
 }
 

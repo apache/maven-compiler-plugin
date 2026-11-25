@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def packageInfoClassFile = new File( basedir, 'target/classes/dummy/package-info.class' )
+def packageInfoClassFile = new File(basedir, 'target/classes/dummy/package-info.class')
 assert packageInfoClassFile.exists()
