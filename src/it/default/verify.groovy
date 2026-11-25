@@ -17,30 +17,8 @@
  * under the License.
  */
 
-import java.io.*;
-import java.util.*;
-import java.util.regex.*;
+File mainClass = new File( basedir, "target/classes/foo/MyClass.class" );
+assert mainClass.isFile() : "Main class not existent: " + mainClass
 
-try
-{
-    File mainClass = new File( basedir, "target/classes/foo/MyClass.class" );
-    if ( !mainClass.isFile() )
-    {
-        System.out.println( "Main class not existent: " + mainClass );
-        return false;
-    }
-
-    File testClass = new File( basedir, "target/test-classes/foo/MyTest.class" );
-    if ( !testClass.isFile() )
-    {
-        System.out.println( "Test class not existent: " + testClass );
-        return false;
-    }
-}
-catch( Throwable t )
-{
-    t.printStackTrace();
-    return false;
-}
-
-return true;
+File testClass = new File( basedir, "target/test-classes/foo/MyTest.class" );
+assert testClass.isFile() : "Test class not existent: " + testClass
