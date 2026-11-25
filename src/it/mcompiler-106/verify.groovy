@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( ' -Averbose=true' )
-assert content.contains( ' -Xlint' )
+assert content.contains(' -Averbose=true')
+assert content.contains(' -Xlint')
 

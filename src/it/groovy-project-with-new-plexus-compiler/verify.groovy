@@ -20,7 +20,7 @@
 assert new File(basedir,"target/classes/GroovyMain.class").exists()
 assert new File(basedir,"target/test-classes/GroovyTest.class").exists()
 
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 //content = logFile.text
 

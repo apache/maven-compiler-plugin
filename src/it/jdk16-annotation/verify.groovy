@@ -17,8 +17,8 @@
  * under the License.
  */
 
-File res = new File( basedir, "target/test-classes/META-INF/one" );
+File res = new File(basedir, "target/test-classes/META-INF/one")
 assert res.isFile() : "generated resource not existent: " + res
 
-File java = new File( basedir, "target/generated-test-sources/test-annotations/org/Milos.java" );
+File java = new File( basedir, "target/generated-test-sources/test-annotations/org/Milos.java" )
 assert java.isFile() : "generated java file not existent: " + java

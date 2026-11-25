@@ -17,6 +17,6 @@
  * under the License.
  */
 
-buildLog = new File( basedir, 'build.log' ).text;
+buildLog = new File(basedir, 'build.log').text
 
-assert buildLog.contains("[WARNING] * Required filename-based automodules detected: [plexus-utils-3.0.24.jar]. Please don't publish this project to a public artifact repository! *");
+assert buildLog.contains("[WARNING] * Required filename-based automodules detected: [plexus-utils-3.0.24.jar]. Please don't publish this project to a public artifact repository! *")

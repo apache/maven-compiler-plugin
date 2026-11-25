@@ -24,12 +24,12 @@ def majorVersion = { File classFile ->
     ((bytes[6] & 0xFF) << 8) | (bytes[7] & 0xFF)
 }
 
-def exampleClass = new File( basedir, 'target/classes/org/example/Example.class' )
-def exampleMajorVersion = majorVersion( exampleClass )
+def exampleClass = new File(basedir, 'target/classes/org/example/Example.class')
+def exampleMajorVersion = majorVersion(exampleClass)
 // major_version: 52 = Java 8, from the base-compile execution.
 assert exampleMajorVersion == 52
 
-def moduleInfoClass = new File( basedir, 'target/classes/module-info.class' )
-def moduleInfoMajorVersion = majorVersion( moduleInfoClass )
+def moduleInfoClass = new File(basedir, 'target/classes/module-info.class')
+def moduleInfoMajorVersion = majorVersion(moduleInfoClass)
 // major_version: 55 = Java 11, from the base-modules-compile execution.
 assert moduleInfoMajorVersion == 55

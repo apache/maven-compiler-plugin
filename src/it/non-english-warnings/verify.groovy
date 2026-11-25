@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package foo;
+package foo
 
-File mainClass = new File( basedir, "target/classes/foo/MyClass.class" );
+File mainClass = new File(basedir, "target/classes/foo/MyClass.class")
 assert mainClass.isFile() : "Main class not existent: " + mainClass
 
-File testClass = new File( basedir, "target/test-classes/foo/MyTest.class" );
+File testClass = new File( basedir, "target/test-classes/foo/MyTest.class" )
 assert testClass.isFile() : "Test class not existent: " + testClass

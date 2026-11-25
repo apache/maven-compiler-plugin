@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def log = new File( basedir, 'build.log').text
+def log = new File(basedir, 'build.log').text
 
 def noteExists = log.contains("[INFO] NOTE Test message.")
-def otherExists =  log.contains("[INFO] OTHER Test message.")
+def otherExists = log.contains("[INFO] OTHER Test message.")
 def warningExists = log.contains("[WARNING] WARNING Test message.")
 def mandatoryWarningExists = log.contains("[WARNING] MANDATORY_WARNING Test message.")
 

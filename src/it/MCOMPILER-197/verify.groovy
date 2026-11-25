@@ -16,6 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def sourceFile = new File( basedir, 'target/generated-sources/org/issue/Person_.java')
+def sourceFile = new File(basedir, 'target/generated-sources/org/issue/Person_.java')
 assert sourceFile.exists()
 
