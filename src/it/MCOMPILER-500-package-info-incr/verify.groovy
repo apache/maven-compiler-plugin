@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 content = logFile.text
 
-assert 0 == content.count( "Recompiling the module because of ")
-assert 1 == content.count( 'Nothing to compile - all classes are up to date.' )
+assert 0 == content.count("Recompiling the module because of ")
+assert 1 == content.count('Nothing to compile - all classes are up to date.')
 
 

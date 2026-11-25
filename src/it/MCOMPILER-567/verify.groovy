@@ -17,7 +17,7 @@
  * under the License.
  */
 
-File target = new File( basedir, "target" );
+File target = new File(basedir, "target")
 assert target.isDirectory()
 
-assert new File( target, "classes/Main.class" ).exists();
+assert new File(target, "classes/Main.class").exists()

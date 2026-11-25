@@ -17,7 +17,7 @@
  * under the License.
  */
 
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 content = logFile.text
 
@@ -27,8 +27,8 @@ content = logFile.text
  * But we cannot test that message because it is locale-dependent.
  * Check only a few keywords instead.
  */
-assert content.contains( '[WARNING]' )
-assert content.contains( 'add(E)' )
-assert content.contains( 'List' ) // May be `List` or `java.util.List`.
-assert content.contains( 'COMPILATION ERROR:' )
-assert content.contains( 'CompilationFailureException' ) // In debug level logs.
+assert content.contains('[WARNING]')
+assert content.contains('add(E)')
+assert content.contains('List') // May be `List` or `java.util.List`.
+assert content.contains('COMPILATION ERROR:')
+assert content.contains('CompilationFailureException') // In debug level logs.

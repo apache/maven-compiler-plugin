@@ -17,8 +17,8 @@
  * under the License.
  */
 
-def args = new File( basedir, 'target/javac.args' ).text;
-assert args.contains( '--add-exports app/org.maven.test=ALL_UNNAMED' )
+def args = new File(basedir, 'target/javac.args').text
+assert args.contains('--add-exports app/org.maven.test=ALL_UNNAMED')
 /*
  * A previous version of this file made more extensive checks of `jpms.args` file content.
  * But the `jpms.args` file is no longer generated since Maven compiler plugin version 4.

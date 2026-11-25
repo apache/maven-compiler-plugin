@@ -30,5 +30,5 @@
  * possible to build the project with the dependency on the classpath and an `--add-reads` option.
  * We verify by ensuring that the test file, which use JDOM, has been compiled.
  */
-def targetFile = new File( basedir, 'target/test-classes/test/MyTest.class')
+def targetFile = new File(basedir, 'target/test-classes/test/MyTest.class')
 assert targetFile.exists()

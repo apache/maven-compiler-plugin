@@ -20,7 +20,7 @@
 import java.util.jar.JarFile
 
 def baseVersion = 60 // Java 16
-def nextVersion = 61; // Java 17
+def nextVersion = 61 // Java 17
 
 def mrjar = new JarFile(new File(basedir,'target/multirelease-1.0.0-SNAPSHOT.jar'))
 
@@ -39,38 +39,36 @@ assert (je = mrjar.getEntry('META-INF/versions/17/module-info.class')) != null
 assert nextVersion == getMajor(mrjar.getInputStream(je))
 
 /*
-  base
-  base/Base.class
-  mr
-  mr/A.class
-  mr/I.class
-  META-INF
-  META-INF/MANFEST.MF
-  META-INF/versions
-  META-INF/versions/9
-  META-INF/versions/9/mr
-  META-INF/versions/9/mr/A.class
-  META-INF/versions/9/module-info.class
-  META-INF/maven
-  META-INF/maven/multirelease
-  META-INF/maven/multirelease/multirelease
-  META-INF/maven/multirelease/multirelease/pom.xml
-  META-INF/maven/multirelease/multirelease/pom.properties
-*/
+ base
+ base/Base.class
+ mr
+ mr/A.class
+ mr/I.class
+ META-INF
+ META-INF/MANFEST.MF
+ META-INF/versions
+ META-INF/versions/9
+ META-INF/versions/9/mr
+ META-INF/versions/9/mr/A.class
+ META-INF/versions/9/module-info.class
+ META-INF/maven
+ META-INF/maven/multirelease
+ META-INF/maven/multirelease/multirelease
+ META-INF/maven/multirelease/multirelease/pom.xml
+ META-INF/maven/multirelease/multirelease/pom.properties
+ */
 assert mrjar.entries().size() == 17
 
-int getMajor(InputStream is)
-{
-  def dis = new DataInputStream(is)
-  final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
-  if (!firstFourBytes.equalsIgnoreCase("cafebabe"))
-  {
-    throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
-  }
-  final int minorVersion = dis.readUnsignedShort()
-  final int majorVersion = dis.readUnsignedShort()
+int getMajor(InputStream is) {
+    def dis = new DataInputStream(is)
+    final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
+    if (!firstFourBytes.equalsIgnoreCase("cafebabe")) {
+        throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
+    }
+    final int minorVersion = dis.readUnsignedShort()
+    final int majorVersion = dis.readUnsignedShort()
 
-  is.close();
-  return majorVersion;
+    is.close()
+    return majorVersion
 }
 
