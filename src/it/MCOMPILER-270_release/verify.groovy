@@ -19,5 +19,5 @@
 def cmd = new File(basedir, 'target/javac.args').text
 assert cmd.count("--release") == 1
 
-assert !( cmd =~  /\s-source\s/ )
-assert !( cmd =~  /\s-target\s/ )
+assert !(cmd =~ /\s-source\s/)
+assert !(cmd =~ /\s-target\s/)

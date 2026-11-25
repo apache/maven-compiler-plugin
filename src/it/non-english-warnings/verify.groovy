@@ -16,20 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package foo;
+package foo
 
-import java.io.*;
-import java.util.*;
-import java.util.regex.*;
+import java.io.*
+import java.util.*
+import java.util.regex.*
 
-File mainClass = new File( basedir, "target/classes/foo/MyClass.class" );
-if ( !mainClass.isFile() )
-{
-    throw new FileNotFoundException( "Main class not existent: " + mainClass );
+File mainClass = new File(basedir, "target/classes/foo/MyClass.class")
+if (!mainClass.isFile()) {
+    throw new FileNotFoundException("Main class not existent: " + mainClass)
 }
 
-File testClass = new File( basedir, "target/test-classes/foo/MyTest.class" );
-if ( !testClass.isFile() )
-{
-    throw new FileNotFoundException( "Test class not existent: " + testClass );
+File testClass = new File(basedir, "target/test-classes/foo/MyTest.class")
+if (!testClass.isFile()) {
+    throw new FileNotFoundException("Test class not existent: " + testClass)
 }

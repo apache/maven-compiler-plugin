@@ -17,6 +17,6 @@
  * under the License.
  */
 
-buildLog = new File( basedir, 'build.log' ).text;
+buildLog = new File(basedir, 'build.log').text
 
 assert !buildLog.contains("Filename-based automodules detected on the module path")

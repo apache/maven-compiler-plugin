@@ -19,10 +19,10 @@
 
 import java.util.jar.JarFile
 
-assert new File( basedir, "target/classes/org.foo/module-info.class").exists()
-assert new File( basedir, "target/classes/org.foo/foo/App.class").exists()
-assert new File( basedir, "target/test-classes/org.foo/foo/AppTest.class").exists()
+assert new File(basedir, "target/classes/org.foo/module-info.class").exists()
+assert new File(basedir, "target/classes/org.foo/foo/App.class").exists()
+assert new File(basedir, "target/test-classes/org.foo/foo/AppTest.class").exists()
 
-assert new File( basedir, "target/classes/org.bar/module-info.class").exists()
-assert new File( basedir, "target/classes/org.bar/bar/App.class").exists()
-assert new File( basedir, "target/test-classes/org.bar/bar/AppTest.class").exists()
+assert new File(basedir, "target/classes/org.bar/module-info.class").exists()
+assert new File(basedir, "target/classes/org.bar/bar/App.class").exists()
+assert new File(basedir, "target/test-classes/org.bar/bar/AppTest.class").exists()

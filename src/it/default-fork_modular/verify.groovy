@@ -17,10 +17,10 @@
  * under the License.
  */
 
-assert new File( basedir, 'target/classes/foo/MyClass.class').exists()
-assert new File( basedir, 'target/test-classes/foo/MyTest.class').exists()
-assert new File( basedir, 'target/classes/module-info.class').exists()
+assert new File(basedir, 'target/classes/foo/MyClass.class').exists()
+assert new File(basedir, 'target/test-classes/foo/MyTest.class').exists()
+assert new File(basedir, 'target/classes/module-info.class').exists()
 
 // For each line, exactly one of the two files should exist.
-assert new File( basedir, 'target/javac.sh').exists() != new File( basedir, 'target/javac.bat').exists()
-assert new File( basedir, 'target/javac-test.sh').exists() != new File( basedir, 'target/javac-test.bat').exists()
+assert new File(basedir, 'target/javac.sh').exists() != new File(basedir, 'target/javac.bat').exists()
+assert new File(basedir, 'target/javac-test.sh').exists() != new File(basedir, 'target/javac-test.bat').exists()

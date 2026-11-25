@@ -34,37 +34,35 @@ assert (je = mrjar.getEntry('META-INF/versions/9/mr/A.class')) != null
 assert 53 == getMajor(mrjar.getInputStream(je))
 
 /*
-  base
-  base/Base.class
-  mr
-  mr/A.class
-  mr/I.class
-  META-INF
-  META-INF/MANFEST.MF
-  META-INF/versions
-  META-INF/versions/9
-  META-INF/versions/9/mr
-  META-INF/versions/9/mr/A.class
-  META-INF/maven
-  META-INF/maven/multirelease
-  META-INF/maven/multirelease/multirelease
-  META-INF/maven/multirelease/multirelease/pom.xml
-  META-INF/maven/multirelease/multirelease/pom.properties
-*/
+ base
+ base/Base.class
+ mr
+ mr/A.class
+ mr/I.class
+ META-INF
+ META-INF/MANFEST.MF
+ META-INF/versions
+ META-INF/versions/9
+ META-INF/versions/9/mr
+ META-INF/versions/9/mr/A.class
+ META-INF/maven
+ META-INF/maven/multirelease
+ META-INF/maven/multirelease/multirelease
+ META-INF/maven/multirelease/multirelease/pom.xml
+ META-INF/maven/multirelease/multirelease/pom.properties
+ */
 assert mrjar.entries().size() == 16
 
-int getMajor(InputStream is)
-{
-  def dis = new DataInputStream(is)
-  final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
-  if (!firstFourBytes.equalsIgnoreCase("cafebabe"))
-  {
-    throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
-  }
-  final int minorVersion = dis.readUnsignedShort()
-  final int majorVersion = dis.readUnsignedShort()
+int getMajor(InputStream is) {
+    def dis = new DataInputStream(is)
+    final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
+    if (!firstFourBytes.equalsIgnoreCase("cafebabe")) {
+        throw new IllegalArgumentException(dataSourceName + " is NOT a Java .class file.")
+    }
+    final int minorVersion = dis.readUnsignedShort()
+    final int majorVersion = dis.readUnsignedShort()
 
-  is.close();
-  return majorVersion;
+    is.close()
+    return majorVersion
 }
 

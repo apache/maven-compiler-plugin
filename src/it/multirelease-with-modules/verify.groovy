@@ -19,35 +19,33 @@
 
 import java.util.jar.JarFile
 
-def baseVersion = 59; // Java 15
-def nextVersion = 60; // Java 16
+def baseVersion = 59 // Java 15
+def nextVersion = 60 // Java 16
 
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar/foo/MainFile.class"))
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar/foo/OtherFile.class"))
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar/foo/YetAnotherFile.class"))
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar.more/more/MainFile.class"))
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo.bar.more/more/OtherFile.class"))
-assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/OtherFile.class"))
-assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar.more/more/OtherFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo.bar/foo/MainFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo.bar/foo/OtherFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo.bar/foo/YetAnotherFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo.bar.more/more/MainFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo.bar.more/more/OtherFile.class"))
+assert nextVersion == getMajor(new File(basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/OtherFile.class"))
+assert nextVersion == getMajor(new File(basedir, "target/classes/META-INF/versions-modular/16/foo.bar.more/more/OtherFile.class"))
 
 // Verify that the classes inherited from the base version were not recompiled a second time.
-assert new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/MainFile.class").exists() == false
-assert new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/YetAnotherFile.class").exists() == false
-assert new File( basedir, "target/classes/META-INF/versions-modular/16/foo.bar.more/more/MainFile.class").exists() == false
+assert new File(basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/MainFile.class").exists() == false
+assert new File(basedir, "target/classes/META-INF/versions-modular/16/foo.bar/foo/YetAnotherFile.class").exists() == false
+assert new File(basedir, "target/classes/META-INF/versions-modular/16/foo.bar.more/more/MainFile.class").exists() == false
 
 
-int getMajor(File file)
-{
-  assert file.exists()
-  def dis = new DataInputStream(new FileInputStream(file))
-  final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
-  if (!firstFourBytes.equalsIgnoreCase("cafebabe"))
-  {
-    throw new IllegalArgumentException(dataSourceName + " is not a Java .class file.")
-  }
-  final int minorVersion = dis.readUnsignedShort()
-  final int majorVersion = dis.readUnsignedShort()
+int getMajor(File file) {
+    assert file.exists()
+    def dis = new DataInputStream(new FileInputStream(file))
+    final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
+    if (!firstFourBytes.equalsIgnoreCase("cafebabe")) {
+        throw new IllegalArgumentException(dataSourceName + " is not a Java .class file.")
+    }
+    final int minorVersion = dis.readUnsignedShort()
+    final int majorVersion = dis.readUnsignedShort()
 
-  dis.close()
-  return majorVersion
+    dis.close()
+    return majorVersion
 }

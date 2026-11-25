@@ -18,27 +18,27 @@
  * under the License.
  */
 
-import java.nio.file.*;
-import java.time.*;
+import java.nio.file.*
+import java.time.*
 import java.time.temporal.*
-import java.util.*;
+import java.util.*
 
-File target = new File( basedir, "target" );
+File target = new File(basedir, "target")
 assert target.isDirectory()
 
-File jarFile = new File( target, "MCOMPILER-525-no-recreation-1.0-SNAPSHOT.jar" );
+File jarFile = new File(target, "MCOMPILER-525-no-recreation-1.0-SNAPSHOT.jar")
 assert jarFile.isFile()
 
-File refFile = new File( target, "reference.jar" );
+File refFile = new File(target, "reference.jar")
 assert refFile.isFile()
 
-Instant referenceTimestamp = Files.getLastModifiedTime( refFile.toPath() )
-    .toInstant().truncatedTo( ChronoUnit.MILLIS );
-System.out.println( "Reference timestamp: " + referenceTimestamp );
+Instant referenceTimestamp = Files.getLastModifiedTime(refFile.toPath())
+        .toInstant().truncatedTo(ChronoUnit.MILLIS)
+System.out.println("Reference timestamp: " + referenceTimestamp)
 
-Instant actualTimestamp = Files.getLastModifiedTime( jarFile.toPath() )
-    .toInstant().truncatedTo( ChronoUnit.MILLIS );
-System.out.println( "Actual timestamp   : " + actualTimestamp );
+Instant actualTimestamp = Files.getLastModifiedTime(jarFile.toPath())
+        .toInstant().truncatedTo(ChronoUnit.MILLIS)
+System.out.println("Actual timestamp   : " + actualTimestamp)
 
 assert referenceTimestamp.equals(actualTimestamp),
-    "Timestamps don't match, JAR was recreated although contents has not changed"
+"Timestamps don't match, JAR was recreated although contents has not changed"

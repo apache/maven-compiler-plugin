@@ -19,27 +19,25 @@
 
 import java.util.jar.JarFile
 
-def baseVersion = 59; // Java 15
-def nextVersion = 60; // Java 16
-def lastVersion = 61; // Java 17
+def baseVersion = 59 // Java 15
+def nextVersion = 60 // Java 16
+def lastVersion = 61 // Java 17
 
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo/MainFile.class"))
-assert baseVersion == getMajor(new File( basedir, "target/classes/foo/OtherFile.class"))
-assert nextVersion == getMajor(new File( basedir, "target/classes/META-INF/versions/16/foo/OtherFile.class"))
-assert lastVersion == getMajor(new File( basedir, "target/classes/META-INF/versions/17/foo/YetAnotherFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo/MainFile.class"))
+assert baseVersion == getMajor(new File(basedir, "target/classes/foo/OtherFile.class"))
+assert nextVersion == getMajor(new File(basedir, "target/classes/META-INF/versions/16/foo/OtherFile.class"))
+assert lastVersion == getMajor(new File(basedir, "target/classes/META-INF/versions/17/foo/YetAnotherFile.class"))
 
-int getMajor(File file)
-{
-  assert file.exists()
-  def dis = new DataInputStream(new FileInputStream(file))
-  final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
-  if (!firstFourBytes.equalsIgnoreCase("cafebabe"))
-  {
-    throw new IllegalArgumentException(dataSourceName + " is not a Java .class file.")
-  }
-  final int minorVersion = dis.readUnsignedShort()
-  final int majorVersion = dis.readUnsignedShort()
+int getMajor(File file) {
+    assert file.exists()
+    def dis = new DataInputStream(new FileInputStream(file))
+    final String firstFourBytes = Integer.toHexString(dis.readUnsignedShort()) + Integer.toHexString(dis.readUnsignedShort())
+    if (!firstFourBytes.equalsIgnoreCase("cafebabe")) {
+        throw new IllegalArgumentException(dataSourceName + " is not a Java .class file.")
+    }
+    final int minorVersion = dis.readUnsignedShort()
+    final int majorVersion = dis.readUnsignedShort()
 
-  dis.close()
-  return majorVersion
+    dis.close()
+    return majorVersion
 }

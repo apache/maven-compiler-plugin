@@ -17,12 +17,12 @@
  * under the License.
  */
 
-def args = new File( basedir, 'target/javac-test.args' ).text;
-assert args.contains( '--patch-module' )
+def args = new File(basedir, 'target/javac-test.args').text
+assert args.contains('--patch-module')
 /*
  * A previous version of this file made more extensive checks of `jpms.args` file content.
  * But the `jpms.args` file is no longer generated since Maven compiler plugin version 4.
  */
 
-assert new File( basedir, "./target/classes/module-info.class" ).exists()
-assert new File( basedir, "target/test-classes/org/maven/test/MainTest.class" ).exists()
+assert new File(basedir, "./target/classes/module-info.class").exists()
+assert new File(basedir, "target/test-classes/org/maven/test/MainTest.class").exists()

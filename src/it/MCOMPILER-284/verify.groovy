@@ -17,21 +17,19 @@
  * under the License.
  */
 
-import java.io.*;
-import java.util.*;
+import java.io.*
+import java.util.*
 
-File mainClass = new File( basedir, "target/classes/com/foo/MyClass.class" );
-if ( mainClass.isFile() )
-{
-    System.out.println( "Main class is present but was skipped: " + mainClass );
-    return false;
+File mainClass = new File(basedir, "target/classes/com/foo/MyClass.class")
+if (mainClass.isFile()) {
+    System.out.println("Main class is present but was skipped: " + mainClass)
+    return false
 }
 
-File testClass = new File( basedir, "target/test-classes/com/foo/MyTest.class" );
-if ( testClass.isFile() )
-{
-    System.out.println( "Test class is present but was skipped: " + testClass );
-    return false;
+File testClass = new File(basedir, "target/test-classes/com/foo/MyTest.class")
+if (testClass.isFile()) {
+    System.out.println("Test class is present but was skipped: " + testClass)
+    return false
 }
 
-return true;
+return true

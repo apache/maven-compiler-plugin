@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'target/javac.args' )
+def logFile = new File(basedir, 'target/javac.args')
 assert logFile.exists()
 content = logFile.text
 
-assert content.contains( '-Averbose=true' )
-assert content.contains( '-Xlint' )
+assert content.contains('-Averbose=true')
+assert content.contains('-Xlint')

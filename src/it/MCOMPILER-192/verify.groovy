@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-def logFile = new File( basedir, 'build.log' )
+def logFile = new File(basedir, 'build.log')
 assert logFile.exists()
 
 def content = logFile.getText('UTF-8')
 
-def causedByExpected = content.contains ( 'Caused by: org.apache.maven.plugin.compiler.CompilationFailureException:' )
-def twoFilesBeingCompiled = content.contains ( 'Compiling all files' )
-def checkResult = content.contains ( 'BUILD FAILURE' )
-def compilationFailure1 = content.contains( '[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:')
-def compilationFailure2 = content.contains( ':compile (default-compile) on project MCOMPILER-192: Cannot compile')
+def causedByExpected = content.contains('Caused by: org.apache.maven.plugin.compiler.CompilationFailureException:')
+def twoFilesBeingCompiled = content.contains('Compiling all files')
+def checkResult = content.contains('BUILD FAILURE')
+def compilationFailure1 = content.contains('[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:')
+def compilationFailure2 = content.contains(':compile (default-compile) on project MCOMPILER-192: Cannot compile')
 
 println "Jenkins: causedByExpected:${causedByExpected} twoFilesBeingCompiled:${twoFilesBeingCompiled} checkResult: ${checkResult} compilationFailure1: ${compilationFailure1} compilationFailure2: ${compilationFailure2}"
 
 // We need to combine different identification to handle differences between OS's and JDK's.
 def finalResult = twoFilesBeingCompiled && checkResult && causedByExpected && compilationFailure1 && compilationFailure2
 
-if ( !finalResult ) {
-  throw new RuntimeException( "log does not contain expected result to be failed but <startLog>" + content + "</startLog>")
+if (!finalResult) {
+    throw new RuntimeException("log does not contain expected result to be failed but <startLog>" + content + "</startLog>")
 }

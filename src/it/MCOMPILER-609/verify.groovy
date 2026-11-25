@@ -16,4 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-assert new File( basedir, 'target/classes/myproject/HelloWorld.class' ).isFile()
+assert new File(basedir, 'target/classes/myproject/HelloWorld.class').isFile()
