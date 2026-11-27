@@ -24,7 +24,7 @@ import javax.tools.JavaFileObject;
 import java.util.List;
 import java.util.Locale;
 
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 import org.apache.maven.impl.DefaultMessageBuilderFactory;
 import org.junit.jupiter.api.Test;
 
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 class DiagnosticLoggerTest {
     @Test
     void fallsBackToKindAndCodeWhenDiagnosticMessageCannotBeFormatted() {
-        var logger = mock(Log.class);
+        var logger = mock(Logger.class);
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
         when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
@@ -59,7 +59,7 @@ class DiagnosticLoggerTest {
 
     @Test
     void fallsBackToKindWhenDiagnosticCodeIsNull() {
-        var logger = mock(Log.class);
+        var logger = mock(Logger.class);
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> diagnostic = mock(Diagnostic.class);
         when(diagnostic.getMessage(nullable(Locale.class))).thenThrow(new RuntimeException("missing type"));
@@ -78,7 +78,7 @@ class DiagnosticLoggerTest {
 
     @Test
     void logsFormattingFailureOnlyOnceForEachDiagnosticCode() {
-        var logger = mock(Log.class);
+        var logger = mock(Logger.class);
         @SuppressWarnings("unchecked")
         Diagnostic<JavaFileObject> first = mock(Diagnostic.class);
         @SuppressWarnings("unchecked")

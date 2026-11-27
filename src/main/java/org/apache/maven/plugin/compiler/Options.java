@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.UnaryOperator;
 
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 
 /**
  * A helper class for preparing the options to pass to the tool (compiler or document generator).
@@ -61,7 +61,7 @@ public final class Options {
     /**
      * Where to report warnings about unsupported options.
      */
-    private final Log logger;
+    private final Logger logger;
 
     /**
      * The warning message to log. This is used when a warning is not logged immediately,
@@ -75,7 +75,7 @@ public final class Options {
      * @param checker the tools to use for checking whether an option is supported
      * @param logger where to report warnings about unsupported options
      */
-    Options(OptionChecker checker, Log logger) {
+    Options(OptionChecker checker, Logger logger) {
         options = new ArrayList<>();
         this.checker = checker;
         this.logger = logger;

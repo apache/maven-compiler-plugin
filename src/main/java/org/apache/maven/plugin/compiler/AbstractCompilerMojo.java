@@ -65,7 +65,7 @@ import org.apache.maven.api.Type;
 import org.apache.maven.api.annotations.Nonnull;
 import org.apache.maven.api.annotations.Nullable;
 import org.apache.maven.api.di.Inject;
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 import org.apache.maven.api.plugin.Mojo;
 import org.apache.maven.api.plugin.MojoException;
 import org.apache.maven.api.plugin.annotations.Parameter;
@@ -981,7 +981,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
      * This logger should be thread-safe if the {@link ToolExecutor} is executed in a background thread.
      */
     @Inject
-    protected Log logger;
+    protected Logger logger;
 
     /**
      * Cached value for writing replacement proposal when a deprecated option is used.
@@ -1443,7 +1443,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             if (message != null) {
                 logger.error(message);
             } else {
-                logger.error(failureCause);
+                logger.error(failureCause.toString(), failureCause);
             }
         }
         /*

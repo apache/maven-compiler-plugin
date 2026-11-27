@@ -21,7 +21,7 @@ package org.apache.maven.plugin.compiler;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-import org.apache.maven.api.plugin.Log;
+import org.apache.maven.api.logging.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -59,7 +59,7 @@ final class ByteCodeTransformer {
      * @see <a href="https://bugs.openjdk.org/browse/JDK-8318913">JDK-8318913</a>
      * @see #MODULE_VERSION_FIX
      */
-    static byte[] patchJdkModuleVersion(byte[] originalBytecode, String javaVersion, Log log) {
+    static byte[] patchJdkModuleVersion(byte[] originalBytecode, String javaVersion, Logger log) {
         var modulesModified = new ArrayList<String>();
         var foundVersions = new HashSet<String>();
         var reader = new ClassReader(originalBytecode);

@@ -40,9 +40,9 @@ import org.apache.maven.api.Session;
 import org.apache.maven.api.di.Inject;
 import org.apache.maven.api.di.Provides;
 import org.apache.maven.api.di.Singleton;
+import org.apache.maven.api.logging.Logger;
 import org.apache.maven.api.model.Build;
 import org.apache.maven.api.model.Model;
-import org.apache.maven.api.plugin.Log;
 import org.apache.maven.api.services.ArtifactManager;
 import org.apache.maven.api.services.MessageBuilderFactory;
 import org.apache.maven.api.services.ToolchainManager;
@@ -137,7 +137,7 @@ public class CompilerMojoTestCase {
                     @MojoParameter(name = "compileSourceRoots", value = "${project.basedir}/src/test/java")
                     TestCompilerMojo testCompileMojo) {
 
-        Log log = mock(Log.class);
+        Logger log = mock(Logger.class);
         compileMojo.logger = log;
         compileMojo.execute();
         verify(log).warn(startsWith("No explicit value set for --release or --target."));
@@ -160,7 +160,7 @@ public class CompilerMojoTestCase {
     public void testCompilerBasicSourceTarget(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
 
-        Log log = mock(Log.class);
+        Logger log = mock(Logger.class);
         compileMojo.logger = log;
         compileMojo.execute();
         verify(log, never()).warn(startsWith("No explicit value set for --release or --target."));
@@ -198,7 +198,7 @@ public class CompilerMojoTestCase {
         Files.createDirectories(source.getParent());
         Files.write(source, new byte[0]);
 
-        Log log = mock(Log.class);
+        Logger log = mock(Logger.class);
         compileMojo.logger = log;
         compileMojo.execute();
 
@@ -214,7 +214,7 @@ public class CompilerMojoTestCase {
     @Basedir("${basedir}/target/test-classes/unit/compiler-proc-only-test")
     public void testCompilerProcOnlyRunsWhenSourcesAreUnchanged(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
-        Log log = mock(Log.class);
+        Logger log = mock(Logger.class);
         compileMojo.logger = log;
         compileMojo.execute();
 
@@ -232,7 +232,7 @@ public class CompilerMojoTestCase {
     @Basedir("${basedir}/target/test-classes/unit/compiler-proc-full-test")
     public void testCompilerProcFullRunsWhenSourcesAreUnchanged(
             @InjectMojo(goal = "compile", pom = "plugin-config.xml") CompilerMojo compileMojo) {
-        Log log = mock(Log.class);
+        Logger log = mock(Logger.class);
         compileMojo.logger = log;
         compileMojo.execute();
 
