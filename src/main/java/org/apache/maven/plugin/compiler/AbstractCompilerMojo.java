@@ -1443,7 +1443,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             if (message != null) {
                 logger.error(message);
             } else {
-                logger.atError().withThrowable(failureCause).log("");
+                logger.error(failureCause.toString(), failureCause);
             }
         }
         /*
