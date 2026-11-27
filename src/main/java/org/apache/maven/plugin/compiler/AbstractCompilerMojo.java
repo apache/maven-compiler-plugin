@@ -1236,7 +1236,7 @@ public abstract class AbstractCompilerMojo implements Mojo {
             } else if (e instanceof MojoException) {
                 int s = message.indexOf(System.lineSeparator());
                 if (s >= 0) {
-                    message = message.substring(0, s); // Logger only the first line.
+                    message = message.substring(0, s); // Log only the first line.
                 }
             }
             MessageBuilder mb = messageBuilderFactory
